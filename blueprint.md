@@ -22,14 +22,15 @@ This is a simple web application that generates and displays random lottery numb
 *   **Interactivity:** A button will allow users to generate a new set of numbers at any time.
 *   **Theme Toggle:** A switch allows users to toggle between light and dark mode.
 *   **Partnership Inquiry Form:** A simple contact form is provided for partnership inquiries, using Formspree to handle submissions.
+*   **Comment Section:** A Disqus comment section is included at the bottom of the page for user discussions.
 
 ## Current Plan
 
 1.  **Modify `index.html`:**
-    *   Add a new section for the partnership inquiry form below the lottery generator.
+    *   Add a new container for the Disqus comment section at the bottom of the page.
+    *   Include the provided Disqus script to load the comment thread.
 2.  **Modify `style.css`:**
-    *   Add styles for the new form container, input fields, and submit button to match the website's theme.
-    *   Adjust the main `body` layout to accommodate both the lottery generator and the new form.
+    *   Add styles for the Disqus container to ensure it fits within the existing layout.
 3.  **Deploy to GitHub:**
     *   Commit the changes.
     *   Push the changes to the remote repository.

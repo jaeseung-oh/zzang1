@@ -105,6 +105,11 @@ h1, h2 {
     color: var(--text-color);
 }
 
+/* Disqus Container */
+.disqus-container {
+    margin-top: 20px;
+}
+
 /* Dark Mode */
 .dark-mode {
     --primary-color: #ccc;
