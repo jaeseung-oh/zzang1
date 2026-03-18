@@ -10,10 +10,10 @@ This is a simple web application that generates and displays random lottery numb
 ### Style and Design
 
 *   **Layout:** The application will have a centered layout with a clean and modern design.
-*   **Colors:** A vibrant color palette will be used to make the application feel energetic and fun.
+*   **Colors:** A simple black and white color scheme is used for dark and light modes.
 *   **Typography:** Expressive fonts will be used to create a clear visual hierarchy.
 *   **Effects:** Subtle shadows and gradients will be used to add depth and a premium feel to the UI elements.
-*   **Theme:** The application supports both light and dark modes.
+*   **Theme:** The application supports both light (white) and dark (black) modes.
 
 ### Features
 
@@ -24,15 +24,10 @@ This is a simple web application that generates and displays random lottery numb
 
 ## Current Plan
 
-1.  **Modify `index.html`:**
-    *   Add a theme toggle switch to the page.
-2.  **Modify `style.css`:**
-    *   Define color variables for both light and dark themes.
-    *   Add styles for the new theme toggle switch.
-    *   Create a `.dark-mode` class to apply the dark theme.
-3.  **Modify `main.js`:**
-    *   Add an event listener to the theme toggle switch.
-    *   Implement the logic to toggle the `.dark-mode` class on the `body` element.
-4.  **Deploy to GitHub:**
+1.  **Modify `style.css`:**
+    *   Update the light theme to use a pure white background and black text.
+    *   Update the dark theme to use a pure black background and white text.
+    *   Adjust the primary and secondary colors to better fit the new black and white themes.
+2.  **Deploy to GitHub:**
     *   Commit the changes.
     *   Push the changes to the remote repository.
