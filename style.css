@@ -14,9 +14,20 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
+    padding: 20px;
     transition: background-color 0.3s, color 0.3s;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.main-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 500px;
 }
 
 .container {
@@ -29,7 +40,7 @@ body {
     border: 1px solid var(--text-color);
 }
 
-h1 {
+h1, h2 {
     color: var(--primary-color);
     margin-bottom: 20px;
 }
@@ -55,7 +66,7 @@ h1 {
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
 }
 
-#generate-btn {
+#generate-btn, .form-container button {
     background-color: var(--primary-color);
     color: var(--white);
     border: none;
@@ -65,10 +76,33 @@ h1 {
     cursor: pointer;
     transition: background-color 0.3s ease;
     box-shadow: 0 5px 10px rgba(0, 0, 0, 0.1);
+    width: 100%;
 }
 
-#generate-btn:hover {
+#generate-btn:hover, .form-container button:hover {
     background-color: var(--secondary-color);
+}
+
+/* Form Styles */
+.form-container form {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    text-align: left;
+}
+
+.form-container label {
+    font-weight: bold;
+}
+
+.form-container input,
+.form-container textarea {
+    width: 100%;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: var(--background-color);
+    color: var(--text-color);
 }
 
 /* Dark Mode */

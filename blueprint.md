@@ -21,13 +21,15 @@ This is a simple web application that generates and displays random lottery numb
 *   **Display:** The generated numbers will be displayed in a clear and visually appealing way.
 *   **Interactivity:** A button will allow users to generate a new set of numbers at any time.
 *   **Theme Toggle:** A switch allows users to toggle between light and dark mode.
+*   **Partnership Inquiry Form:** A simple contact form is provided for partnership inquiries, using Formspree to handle submissions.
 
 ## Current Plan
 
-1.  **Modify `style.css`:**
-    *   Update the light theme to use a pure white background and black text.
-    *   Update the dark theme to use a pure black background and white text.
-    *   Adjust the primary and secondary colors to better fit the new black and white themes.
-2.  **Deploy to GitHub:**
+1.  **Modify `index.html`:**
+    *   Add a new section for the partnership inquiry form below the lottery generator.
+2.  **Modify `style.css`:**
+    *   Add styles for the new form container, input fields, and submit button to match the website's theme.
+    *   Adjust the main `body` layout to accommodate both the lottery generator and the new form.
+3.  **Deploy to GitHub:**
     *   Commit the changes.
     *   Push the changes to the remote repository.
