@@ -23,14 +23,14 @@ This is a simple web application that generates and displays random lottery numb
 *   **Theme Toggle:** A switch allows users to toggle between light and dark mode.
 *   **Partnership Inquiry Form:** A simple contact form is provided for partnership inquiries, using Formspree to handle submissions.
 *   **Comment Section:** A Disqus comment section is included at the bottom of the page for user discussions.
+*   **Google AdSense:** Google AdSense is integrated for monetization.
 
 ## Current Plan
 
-1.  **Modify `index.html`:**
-    *   Add a new container for the Disqus comment section at the bottom of the page.
-    *   Include the provided Disqus script to load the comment thread.
-2.  **Modify `style.css`:**
-    *   Add styles for the Disqus container to ensure it fits within the existing layout.
+1.  **Create `ads.txt`:**
+    *   Create a new `ads.txt` file in the project root with the provided AdSense information.
+2.  **Modify `index.html`:**
+    *   Add the Google AdSense meta tag and script to the `<head>` section.
 3.  **Deploy to GitHub:**
     *   Commit the changes.
     *   Push the changes to the remote repository.
