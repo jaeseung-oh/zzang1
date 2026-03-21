@@ -37,6 +37,7 @@
                 <p class="logo-copy">음주운전, 성범죄, 사기, 폭력 예방 교육과 생활복귀 교육을 안내하는 민간 교육센터</p>
             </div>
             <nav class="topnav" aria-label="주요 메뉴">
+                <a href="#auth-section">로그인</a>
                 <a href="#courses">교육과정</a>
                 <a href="#documents">제공자료</a>
                 <a href="#process">수강절차</a>
@@ -60,7 +61,7 @@
                     </p>
                     <div class="hero-actions">
                         <a class="btn-primary" href="#courses">교육과정 보기</a>
-                        <a class="btn-secondary" href="#partner">상담 및 제휴 문의</a>
+                        <a class="btn-secondary" href="#auth-section">로그인 후 시작하기</a>
                     </div>
                     <div class="hero-points">
                         <span>강의별 40~50분 구성</span>
@@ -91,6 +92,45 @@
                         <div>
                             <strong>06강</strong>
                             <span>사기 교육</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="section auth-section" id="auth-section">
+                <div class="section-head narrow">
+                    <p class="eyebrow">MEMBERSHIP</p>
+                    <h2>회원가입 및 로그인</h2>
+                    <p>구글 계정으로 바로 시작할 수 있고, 네이버 로그인은 Firebase OIDC 설정 후 함께 사용할 수 있습니다.</p>
+                </div>
+                <div class="auth-grid">
+                    <div class="auth-card" id="auth-state" data-logged-in="false">
+                        <p class="auth-label">현재 상태</p>
+                        <h3 id="user-name">로그인이 필요합니다</h3>
+                        <p id="user-meta">구글 또는 네이버 계정으로 회원가입 및 로그인이 가능합니다.</p>
+                        <div class="auth-controls" id="auth-controls">
+                            <button type="button" class="social-button google-button" id="google-login-button">구글로 시작하기</button>
+                            <button type="button" class="social-button naver-button" id="naver-login-button">네이버로 시작하기</button>
+                        </div>
+                        <button type="button" class="logout-button" id="logout-button" hidden>로그아웃</button>
+                        <p class="auth-message" id="auth-message">auth-config.js에 Firebase 설정값을 입력하면 로그인 기능이 활성화됩니다.</p>
+                    </div>
+                    <div class="member-card" id="member-panel" hidden>
+                        <p class="auth-label">내 강의실</p>
+                        <h3 id="member-greeting">회원님, 내 강의실과 수강 현황을 확인하세요.</h3>
+                        <div class="member-list">
+                            <article>
+                                <strong>내 강의</strong>
+                                <span>수강 중인 교육과정을 확인합니다.</span>
+                            </article>
+                            <article>
+                                <strong>학습 자료</strong>
+                                <span>학습확인서, 금주 실천 서약서, 재발방지 계획서를 정리합니다.</span>
+                            </article>
+                            <article>
+                                <strong>진도 관리</strong>
+                                <span>강의별 수강 상태와 다음 학습 단계를 확인합니다.</span>
+                            </article>
                         </div>
                     </div>
                 </div>
@@ -205,50 +245,13 @@
                             </div>
                             <div class="program-badge">6강 구성 완료</div>
                         </div>
-
                         <div class="lesson-list">
-                            <article class="lesson-card active-lesson">
-                                <span>1강</span>
-                                <div>
-                                    <h4>성범죄의 유형 이해와 책임 인식</h4>
-                                    <p>행위 유형과 기본적인 책임 구조를 정리하는 도입 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>2강</span>
-                                <div>
-                                    <h4>동의 개념과 관계 경계의 이해</h4>
-                                    <p>동의의 의미와 관계 속 경계를 구체적으로 구분하는 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>3강</span>
-                                <div>
-                                    <h4>피해자 관점 이해와 공감 훈련</h4>
-                                    <p>피해 경험의 관점에서 사건을 다시 이해하는 교육 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>4강</span>
-                                <div>
-                                    <h4>디지털 성범죄와 온라인 행동 기준</h4>
-                                    <p>메신저, 촬영물, 온라인 접촉 등 디지털 상황에서의 기준을 다루는 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>5강</span>
-                                <div>
-                                    <h4>재접촉 금지 원칙과 충동 통제 전략</h4>
-                                    <p>위험 상황을 인식하고 행동을 멈추는 구체적 통제전략을 다루는 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>6강</span>
-                                <div>
-                                    <h4>재발방지 계획서 작성과 생활관리 점검</h4>
-                                    <p>개인별 위험요인과 생활통제 계획을 정리하는 마무리 강의</p>
-                                </div>
-                            </article>
+                            <article class="lesson-card active-lesson"><span>1강</span><div><h4>성범죄의 유형 이해와 책임 인식</h4><p>행위 유형과 기본적인 책임 구조를 정리하는 도입 강의</p></div></article>
+                            <article class="lesson-card"><span>2강</span><div><h4>동의 개념과 관계 경계의 이해</h4><p>동의의 의미와 관계 속 경계를 구체적으로 구분하는 강의</p></div></article>
+                            <article class="lesson-card"><span>3강</span><div><h4>피해자 관점 이해와 공감 훈련</h4><p>피해 경험의 관점에서 사건을 다시 이해하는 교육 강의</p></div></article>
+                            <article class="lesson-card"><span>4강</span><div><h4>디지털 성범죄와 온라인 행동 기준</h4><p>메신저, 촬영물, 온라인 접촉 등 디지털 상황에서의 기준을 다루는 강의</p></div></article>
+                            <article class="lesson-card"><span>5강</span><div><h4>재접촉 금지 원칙과 충동 통제 전략</h4><p>위험 상황을 인식하고 행동을 멈추는 구체적 통제전략을 다루는 강의</p></div></article>
+                            <article class="lesson-card"><span>6강</span><div><h4>재발방지 계획서 작성과 생활관리 점검</h4><p>개인별 위험요인과 생활통제 계획을 정리하는 마무리 강의</p></div></article>
                         </div>
                     </section>
 
@@ -261,50 +264,13 @@
                             </div>
                             <div class="program-badge">6강 구성 완료</div>
                         </div>
-
                         <div class="lesson-list">
-                            <article class="lesson-card active-lesson">
-                                <span>1강</span>
-                                <div>
-                                    <h4>사기 행위의 구조와 책임 이해</h4>
-                                    <p>사기 행위가 발생하는 기본 구조와 책임 인식을 정리하는 도입 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>2강</span>
-                                <div>
-                                    <h4>거짓 설명과 유인행동의 반복 패턴 점검</h4>
-                                    <p>사기 행동이 반복되는 패턴을 사례 중심으로 확인하는 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>3강</span>
-                                <div>
-                                    <h4>금전 압박과 충동적 결정의 위험관리</h4>
-                                    <p>경제적 압박 상황에서 잘못된 선택을 줄이기 위한 대응 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>4강</span>
-                                <div>
-                                    <h4>피해 관점 이해와 신뢰 회복의 기준</h4>
-                                    <p>피해자의 손실과 관계 파괴를 이해하고 복구 기준을 정리하는 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>5강</span>
-                                <div>
-                                    <h4>경제윤리와 일상 속 정직한 의사결정 훈련</h4>
-                                    <p>생활 속 재정 판단과 정직한 소통 기준을 다루는 강의</p>
-                                </div>
-                            </article>
-                            <article class="lesson-card">
-                                <span>6강</span>
-                                <div>
-                                    <h4>재발방지 계획서 작성과 생활복귀 점검</h4>
-                                    <p>반복 행동 차단 계획과 생활관리 목표를 정리하는 마무리 강의</p>
-                                </div>
-                            </article>
+                            <article class="lesson-card active-lesson"><span>1강</span><div><h4>사기 행위의 구조와 책임 이해</h4><p>사기 행위가 발생하는 기본 구조와 책임 인식을 정리하는 도입 강의</p></div></article>
+                            <article class="lesson-card"><span>2강</span><div><h4>거짓 설명과 유인행동의 반복 패턴 점검</h4><p>사기 행동이 반복되는 패턴을 사례 중심으로 확인하는 강의</p></div></article>
+                            <article class="lesson-card"><span>3강</span><div><h4>금전 압박과 충동적 결정의 위험관리</h4><p>경제적 압박 상황에서 잘못된 선택을 줄이기 위한 대응 강의</p></div></article>
+                            <article class="lesson-card"><span>4강</span><div><h4>피해 관점 이해와 신뢰 회복의 기준</h4><p>피해자의 손실과 관계 파괴를 이해하고 복구 기준을 정리하는 강의</p></div></article>
+                            <article class="lesson-card"><span>5강</span><div><h4>경제윤리와 일상 속 정직한 의사결정 훈련</h4><p>생활 속 재정 판단과 정직한 소통 기준을 다루는 강의</p></div></article>
+                            <article class="lesson-card"><span>6강</span><div><h4>재발방지 계획서 작성과 생활복귀 점검</h4><p>반복 행동 차단 계획과 생활관리 목표를 정리하는 마무리 강의</p></div></article>
                         </div>
                     </section>
 
@@ -325,18 +291,9 @@
                     <p>수강 후 스스로 점검하고 생활계획을 정리할 수 있도록 민간 교육용 작성 자료를 제공합니다.</p>
                 </div>
                 <div class="certificate-panel">
-                    <article class="certificate-card">
-                        <h3>학습확인서</h3>
-                        <p>강의 수강 완료 여부와 학습 진행 내역을 확인할 수 있는 민간 교육용 확인 자료</p>
-                    </article>
-                    <article class="certificate-card">
-                        <h3>금주 실천 서약서</h3>
-                        <p>음주운전 예방교육 수강 후 개인 목표와 실천 항목을 정리하는 작성 양식</p>
-                    </article>
-                    <article class="certificate-card notice-card">
-                        <h3>재발방지 계획서</h3>
-                        <p>위험 상황, 회피 전략, 생활관리 계획을 스스로 정리할 수 있는 교육용 계획 문서</p>
-                    </article>
+                    <article class="certificate-card"><h3>학습확인서</h3><p>강의 수강 완료 여부와 학습 진행 내역을 확인할 수 있는 민간 교육용 확인 자료</p></article>
+                    <article class="certificate-card"><h3>금주 실천 서약서</h3><p>음주운전 예방교육 수강 후 개인 목표와 실천 항목을 정리하는 작성 양식</p></article>
+                    <article class="certificate-card notice-card"><h3>재발방지 계획서</h3><p>위험 상황, 회피 전략, 생활관리 계획을 스스로 정리할 수 있는 교육용 계획 문서</p></article>
                 </div>
             </section>
 
@@ -346,21 +303,9 @@
                     <h2>수강 절차 안내</h2>
                 </div>
                 <div class="steps">
-                    <article class="step-card">
-                        <strong>01</strong>
-                        <h3>과정 선택</h3>
-                        <p>사건 유형에 맞는 교육과정을 확인하고 필요한 과정을 선택합니다.</p>
-                    </article>
-                    <article class="step-card">
-                        <strong>02</strong>
-                        <h3>영상 수강</h3>
-                        <p>강의별 교육영상을 순서대로 시청하고 필요한 내용을 학습합니다.</p>
-                    </article>
-                    <article class="step-card">
-                        <strong>03</strong>
-                        <h3>자료 작성</h3>
-                        <p>학습확인서, 금주 실천 서약서, 재발방지 계획서 등 교육용 자료를 정리합니다.</p>
-                    </article>
+                    <article class="step-card"><strong>01</strong><h3>과정 선택</h3><p>사건 유형에 맞는 교육과정을 확인하고 필요한 과정을 선택합니다.</p></article>
+                    <article class="step-card"><strong>02</strong><h3>영상 수강</h3><p>강의별 교육영상을 순서대로 시청하고 필요한 내용을 학습합니다.</p></article>
+                    <article class="step-card"><strong>03</strong><h3>자료 작성</h3><p>학습확인서, 금주 실천 서약서, 재발방지 계획서 등 교육용 자료를 정리합니다.</p></article>
                 </div>
             </section>
 
@@ -370,18 +315,9 @@
                     <h2>교육센터 안내</h2>
                 </div>
                 <div class="card-grid three-col">
-                    <article class="quote-card">
-                        <h3>온라인 수강</h3>
-                        <p>교육과정별 강의 구성을 확인하고 순서대로 수강할 수 있도록 구성합니다.</p>
-                    </article>
-                    <article class="quote-card">
-                        <h3>작성 자료 제공</h3>
-                        <p>예방교육 수강 후 실천 목표와 생활관리 계획을 직접 정리할 수 있는 자료를 제공합니다.</p>
-                    </article>
-                    <article class="quote-card">
-                        <h3>업무제휴 문의</h3>
-                        <p>상담센터, 기관, 교육 운영 협력과 관련된 문의를 메일 폼으로 접수할 수 있습니다.</p>
-                    </article>
+                    <article class="quote-card"><h3>온라인 수강</h3><p>교육과정별 강의 구성을 확인하고 순서대로 수강할 수 있도록 구성합니다.</p></article>
+                    <article class="quote-card"><h3>작성 자료 제공</h3><p>예방교육 수강 후 실천 목표와 생활관리 계획을 직접 정리할 수 있는 자료를 제공합니다.</p></article>
+                    <article class="quote-card"><h3>업무제휴 문의</h3><p>상담센터, 기관, 교육 운영 협력과 관련된 문의를 메일 폼으로 접수할 수 있습니다.</p></article>
                 </div>
             </section>
 
@@ -394,13 +330,10 @@
                 <form class="partner-form" action="https://formspree.io/f/xjgajykl" method="POST">
                     <label for="name">이름 또는 기관명</label>
                     <input type="text" id="name" name="name" placeholder="홍길동 / 교육기관명" required>
-
                     <label for="email">이메일</label>
                     <input type="email" id="email" name="email" placeholder="name@example.com" required>
-
                     <label for="message">문의 내용</label>
                     <textarea id="message" name="message" placeholder="업무제휴, 교육 운영, 과정 문의 내용을 적어주세요." required></textarea>
-
                     <button type="submit">메일 보내기</button>
                 </form>
             </section>
@@ -411,18 +344,9 @@
                     <h2>자주 묻는 질문</h2>
                 </div>
                 <div class="faq-list">
-                    <article class="faq-item active">
-                        <button type="button" class="faq-question" aria-expanded="true">교육 영상은 어떻게 수강하나요?</button>
-                        <div class="faq-answer"><p>과정 탭에서 원하는 교육을 선택한 뒤 강의 순서에 맞춰 영상을 시청하면 됩니다.</p></div>
-                    </article>
-                    <article class="faq-item">
-                        <button type="button" class="faq-question" aria-expanded="false">교육 후 어떤 자료를 작성할 수 있나요?</button>
-                        <div class="faq-answer"><p>학습확인서, 금주 실천 서약서, 재발방지 계획서 같은 민간 교육용 자료를 정리할 수 있도록 구성하고 있습니다.</p></div>
-                    </article>
-                    <article class="faq-item">
-                        <button type="button" class="faq-question" aria-expanded="false">업무제휴 문의 기능은 그대로 유지되나요?</button>
-                        <div class="faq-answer"><p>예. 기존 Formspree 메일 전송 폼을 그대로 유지하면서 디자인과 문구만 정리했습니다.</p></div>
-                    </article>
+                    <article class="faq-item active"><button type="button" class="faq-question" aria-expanded="true">교육 영상은 어떻게 수강하나요?</button><div class="faq-answer"><p>과정 탭에서 원하는 교육을 선택한 뒤 강의 순서에 맞춰 영상을 시청하면 됩니다.</p></div></article>
+                    <article class="faq-item"><button type="button" class="faq-question" aria-expanded="false">교육 후 어떤 자료를 작성할 수 있나요?</button><div class="faq-answer"><p>학습확인서, 금주 실천 서약서, 재발방지 계획서 같은 민간 교육용 자료를 정리할 수 있도록 구성하고 있습니다.</p></div></article>
+                    <article class="faq-item"><button type="button" class="faq-question" aria-expanded="false">업무제휴 문의 기능은 그대로 유지되나요?</button><div class="faq-answer"><p>예. 기존 Formspree 메일 전송 폼을 그대로 유지하면서 디자인과 문구만 정리했습니다.</p></div></article>
                 </div>
             </section>
 
@@ -457,6 +381,8 @@
             <p class="footer-copy">&copy; <span id="current-year"></span> Reset Edu Center. All rights reserved.</p>
         </footer>
     </div>
+    <script src="auth-config.js"></script>
     <script src="main.js"></script>
+    <script type="module" src="auth.js"></script>
 </body>
 </html>
