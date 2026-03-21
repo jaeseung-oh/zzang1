@@ -269,7 +269,7 @@ main { display: grid; gap: 26px; }
     transition: transform 0.24s ease, box-shadow 0.24s ease, background 0.24s ease;
 }
 
-.btn-primary, .course-tab.active, .partner-form button, .google-button {
+.btn-primary, .course-tab.active, .partner-form button {
     border: none;
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-strong) 100%);
     color: #fff9f2;
@@ -279,6 +279,12 @@ main { display: grid; gap: 26px; }
     border: 1px solid var(--line);
     background: rgba(255,255,255,0.66);
     color: var(--ink);
+}
+
+.kakao-button {
+    border: 1px solid #f2cd00;
+    background: #fee500;
+    color: #191919;
 }
 
 .naver-button {
