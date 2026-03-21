@@ -3,15 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us - Lotto Number Generator</title>
+    <title>센터소개 | 리셋캠퍼스</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-QR2PHCE2YJ"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
-
       gtag('config', 'G-QR2PHCE2YJ');
     </script>
     <script type="text/javascript">
@@ -23,25 +21,57 @@
     </script>
 </head>
 <body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about.html">About</a></li>
-                <li><a href="privacy.html">Privacy Policy</a></li>
-                <li><a href="terms.html">Terms of Service</a></li>
-            </ul>
-        </nav>
-    </header>
-    <div class="main-container">
-        <div class="container">
-            <h1>About Us</h1>
-            <p>Welcome to the Lotto Number Generator! Our goal is to provide a simple, fast, and reliable tool for generating lottery numbers for various games. We are committed to offering a great user experience and continuously improving our services.</p>
-            <p>Our team is passionate about creating helpful tools for everyone. We believe that technology should be accessible and easy to use. Thank you for visiting our site, and we wish you the best of luck!</p>
-        </div>
+    <div class="site-shell">
+        <header class="site-header">
+            <div class="brand-block">
+                <a class="brand-mark" href="index.html">RESET CAMPUS</a>
+                <p class="brand-copy">사건 이후 책임교육과 생활 복귀를 연결하는 재사회화 교육 플랫폼</p>
+            </div>
+            <nav class="site-nav" aria-label="주요 메뉴">
+                <a href="index.html#programs">교육과정</a>
+                <a href="index.html#roadmap">진행절차</a>
+                <a href="index.html#consulting">상담접수</a>
+                <a href="privacy.html">개인정보</a>
+                <a href="terms.html">이용약관</a>
+            </nav>
+        </header>
+
+        <main class="simple-page">
+            <p class="eyebrow">ABOUT</p>
+            <h1>리셋캠퍼스는 변화의 실행 구조를 설계합니다</h1>
+            <p>리셋캠퍼스는 음주운전, 성범죄, 사기 등 사건 이후 필요한 교육을 단순 수강이 아니라 재범방지와 생활 복귀 관점에서 다시 구성한 교육 사이트입니다.</p>
+
+            <section>
+                <h2>운영 방향</h2>
+                <p>우리는 낙인을 강화하는 언어보다 책임 회복, 경계 인식, 생활 습관 재설계, 관계 복구 같은 실제 변화 요소를 중심에 둡니다. 교육은 판결 이후 필요한 증빙과 실제 생활 개선이 동시에 이어져야 한다고 봅니다.</p>
+            </section>
+
+            <section>
+                <h2>핵심 구성</h2>
+                <ul>
+                    <li>사건 유형별 특화 교육과 공통 재사회화 과정을 함께 제공합니다.</li>
+                    <li>출석, 과제, 상담 이력을 기반으로 제출용 확인 문서 흐름을 염두에 둡니다.</li>
+                    <li>모바일에서도 수강, 일정 점검, 문의 접수가 끊기지 않도록 설계합니다.</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>협력 대상</h2>
+                <p>법률사무소, 상담센터, 보호관찰 연계기관, 직업훈련 파트너와의 협업을 전제로 확장 가능한 교육 허브 구조를 목표로 합니다.</p>
+                <p><a href="index.html#consulting">상담 및 제휴 문의로 이동</a></p>
+            </section>
+        </main>
+
+        <footer class="site-footer">
+            <p class="footer-brand">RESET CAMPUS</p>
+            <div class="footer-links">
+                <a href="index.html">홈</a>
+                <a href="privacy.html">개인정보처리방침</a>
+                <a href="terms.html">이용약관</a>
+            </div>
+            <p class="footer-meta">&copy; <span id="current-year"></span> Reset Campus. All rights reserved.</p>
+        </footer>
     </div>
-    <footer>
-        <p>&copy; 2023 Lotto Number Generator. All rights reserved.</p>
-    </footer>
+    <script src="main.js"></script>
 </body>
 </html>
