@@ -4,7 +4,10 @@ compatibility_date = "2026-03-22"
 workers_dev = true
 
 [vars]
-APP_BASE_URL = "https://jaeseung-oh.github.io/zzang1"
+APP_BASE_URL = "https://zzang1.pages.dev"
 # KAKAO_REDIRECT_URI should match your deployed Worker URL.
 # Example: https://reset-edu-kakao-auth.your-subdomain.workers.dev/api/auth/kakao/callback
 KAKAO_REDIRECT_URI = "https://reset-edu-kakao-auth.cfv47.workers.dev/api/auth/kakao/callback"
+
+SUPABASE_URL = "https://ghufoabtkjbizszdzies.supabase.co"
+SUPABASE_PROFILE_TABLE = "member_profiles"

@@ -60,6 +60,30 @@ const getUserDisplayName = (user) => {
     return user.nickname || user.name || '회원 로그인 완료';
 };
 
+const formatUserMeta = (user) => {
+    if (!user) {
+        return modeCopy.idleMeta;
+    }
+
+    const parts = [];
+    if (user.lastAuthMode === 'signup') {
+        parts.push('최근 인증: 회원가입');
+    } else if (user.lastAuthMode === 'login') {
+        parts.push('최근 인증: 로그인');
+    }
+    if (typeof user.loginCount === 'number' && user.loginCount > 0) {
+        parts.push('누적 로그인 ' + user.loginCount + '회');
+    }
+    if (user.lastLoginAt) {
+        const date = new Date(user.lastLoginAt);
+        if (!Number.isNaN(date.getTime())) {
+            parts.push('마지막 접속 ' + date.toLocaleString('ko-KR'));
+        }
+    }
+
+    return parts.join(' · ') || '카카오 프로필 연동 완료';
+};
+
 const renderSignedOut = () => {
     if (authState) {
         authState.dataset.loggedIn = 'false';
@@ -91,7 +115,7 @@ const renderSignedIn = (user) => {
         userName.textContent = displayName;
     }
     if (userMeta) {
-        userMeta.textContent = user?.profileImage || '카카오 프로필 연동 완료';
+        userMeta.textContent = formatUserMeta(user);
     }
     if (authControls) {
         authControls.hidden = true;
@@ -122,6 +146,11 @@ const getApiUrl = (path, params) => {
 const getUrlMessage = () => {
     const params = new URLSearchParams(window.location.search);
     return params.get('auth_error');
+};
+
+const getUrlFlag = (name) => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get(name);
 };
 
 const clearAuthParams = () => {
@@ -165,9 +194,17 @@ const fetchCurrentUser = async () => {
 
 const init = async () => {
     const urlMessage = getUrlMessage();
+    const loggedOut = getUrlFlag('logged_out') === '1';
     if (urlMessage) {
         renderSignedOut();
         setMessage(decodeURIComponent(urlMessage), true);
+        clearAuthParams();
+        return;
+    }
+
+    if (loggedOut) {
+        renderSignedOut();
+        setMessage('로그아웃되었습니다. 다시 진행하려면 카카오 계정 인증을 새로 해주세요.');
         clearAuthParams();
     }
 
@@ -189,7 +226,7 @@ const init = async () => {
         setMessage('카카오 로그인 상태가 유지되고 있습니다.');
     } else {
         renderSignedOut();
-        setMessage(modeCopy.readyMessage);
+        setMessage(loggedOut ? '로그아웃되었습니다. 다시 진행하려면 카카오 인증을 새로 시작해 주세요.' : modeCopy.readyMessage);
     }
 
     if (kakaoButton) {
@@ -197,7 +234,8 @@ const init = async () => {
             setMessage(modeCopy.pendingMessage);
             window.location.href = getApiUrl('/api/auth/kakao/start', {
                 next: currentUrl,
-                mode: authMode
+                mode: authMode,
+                prompt: authMode === 'signup' ? 'login' : ''
             });
         });
     }
@@ -205,16 +243,11 @@ const init = async () => {
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {
             try {
-                const response = await fetch(getApiUrl('/api/logout'), {
-                    method: 'POST',
-                    credentials: 'include'
+                setMessage('카카오 로그아웃 화면으로 이동하는 중입니다. 카카오 계정까지 로그아웃하려면 해당 화면에서 함께 로그아웃을 선택해 주세요.');
+                window.location.href = getApiUrl('/api/logout', {
+                    next: currentUrl,
+                    provider: 'kakao'
                 });
-                const payload = await response.json().catch(() => ({ ok: false }));
-                if (!response.ok || !payload.ok) {
-                    throw new Error(payload?.message || '로그아웃에 실패했습니다.');
-                }
-                renderSignedOut();
-                setMessage('로그아웃되었습니다.');
             } catch (error) {
                 handleAuthError(error);
             }

@@ -25,6 +25,10 @@ async function handleRequest(request, env) {
             return handleCurrentUser(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/logout/kakao/callback' && request.method === 'GET') {
+            return handleKakaoLogoutCallback(request, env);
+        }
+
         if (url.pathname === '/api/logout' && (request.method === 'POST' || request.method === 'GET')) {
             return handleLogout(request, env, corsHeaders);
         }
@@ -45,8 +49,14 @@ async function handleRequest(request, env) {
 
 function buildCorsHeaders(request, env) {
     const headers = new Headers();
-    const allowedOrigin = env.APP_BASE_URL || '';
     const origin = request.headers.get('Origin');
+    let allowedOrigin = '';
+
+    try {
+        allowedOrigin = env.APP_BASE_URL ? new URL(env.APP_BASE_URL).origin : '';
+    } catch {
+        allowedOrigin = '';
+    }
 
     if (origin && allowedOrigin && origin === allowedOrigin) {
         headers.set('Access-Control-Allow-Origin', origin);
@@ -150,15 +160,8 @@ async function signPayload(payload, secret) {
     return toBase64Url(new Uint8Array(signature));
 }
 
-async function makeSessionValue(user, secret) {
-    const payload = {
-        sub: String(user.id),
-        nickname: user.properties?.nickname || '카카오 사용자',
-        profileImage: user.properties?.profile_image || '',
-        thumbnailImage: user.properties?.thumbnail_image || '',
-        iat: Date.now()
-    };
-    const encodedPayload = toBase64Url(new TextEncoder().encode(JSON.stringify(payload)));
+async function makeSessionValue(session, secret) {
+    const encodedPayload = toBase64Url(new TextEncoder().encode(JSON.stringify(session)));
     const signature = await signPayload(encodedPayload, secret);
     return `${encodedPayload}.${signature}`;
 }
@@ -192,6 +195,7 @@ async function startKakaoLogin(request, env) {
     const next = sanitizeNextUrl(url.searchParams.get('next'), env.APP_BASE_URL);
     const mode = url.searchParams.get('mode') === 'signup' ? 'signup' : 'login';
     const state = crypto.randomUUID();
+    const forcePrompt = url.searchParams.get('prompt') === 'login' || mode === 'signup';
 
     const authorizeUrl = new URL('https://kauth.kakao.com/oauth/authorize');
     authorizeUrl.searchParams.set('client_id', env.KAKAO_REST_API_KEY);
@@ -199,6 +203,9 @@ async function startKakaoLogin(request, env) {
     authorizeUrl.searchParams.set('response_type', 'code');
     authorizeUrl.searchParams.set('scope', 'profile_nickname,profile_image');
     authorizeUrl.searchParams.set('state', state);
+    if (forcePrompt) {
+        authorizeUrl.searchParams.set('prompt', 'login');
+    }
 
     const headers = new Headers();
     appendSetCookies(headers, [
@@ -250,8 +257,10 @@ async function handleKakaoCallback(request, env) {
     }
 
     const token = await exchangeCodeForToken(code, env);
-    const user = await fetchKakaoUser(token.access_token);
-    const sessionValue = await makeSessionValue(user, env.SESSION_SECRET);
+    const kakaoUser = await fetchKakaoUser(token.access_token);
+    const memberProfile = await persistMemberProfile(kakaoUser, mode, env);
+    const sessionPayload = buildSessionPayload(kakaoUser, memberProfile);
+    const sessionValue = await makeSessionValue(sessionPayload, env.SESSION_SECRET);
 
     const headers = new Headers();
     appendSetCookies(headers, [
@@ -260,6 +269,23 @@ async function handleKakaoCallback(request, env) {
     ]);
 
     return redirect(withParams(next, { login: 'success', mode }), headers);
+}
+
+function buildSessionPayload(user, memberProfile) {
+    return {
+        sub: String(user.id),
+        nickname: user.properties?.nickname || '카카오 사용자',
+        profileImage: user.properties?.profile_image || '',
+        thumbnailImage: user.properties?.thumbnail_image || '',
+        memberProfileId: memberProfile?.id || null,
+        profileSaved: Boolean(memberProfile),
+        signupCompletedAt: memberProfile?.signup_completed_at || null,
+        signupCount: memberProfile?.signup_count || 0,
+        loginCount: memberProfile?.login_count || 0,
+        lastAuthMode: memberProfile?.last_auth_mode || null,
+        lastLoginAt: memberProfile?.last_login_at || new Date().toISOString(),
+        iat: Date.now()
+    };
 }
 
 async function exchangeCodeForToken(code, env) {
@@ -306,6 +332,72 @@ async function fetchKakaoUser(accessToken) {
     return JSON.parse(text);
 }
 
+async function persistMemberProfile(user, mode, env) {
+    if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
+        return null;
+    }
+
+    const table = env.SUPABASE_PROFILE_TABLE || 'member_profiles';
+    const now = new Date().toISOString();
+    const currentProfile = await fetchMemberProfileByKakaoUserId(String(user.id), table, env);
+    const payload = {
+        kakao_user_id: String(user.id),
+        provider: 'kakao',
+        nickname: user.properties?.nickname || null,
+        profile_image_url: user.properties?.profile_image || null,
+        thumbnail_image_url: user.properties?.thumbnail_image || null,
+        raw_user_json: user,
+        signup_completed_at: currentProfile?.signup_completed_at || (mode === 'signup' ? now : null),
+        signup_count: Number(currentProfile?.signup_count || 0) + (mode === 'signup' ? 1 : 0),
+        login_count: Number(currentProfile?.login_count || 0) + 1,
+        last_auth_mode: mode,
+        last_login_at: now,
+        updated_at: now
+    };
+
+    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}?on_conflict=kakao_user_id`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+            Prefer: 'resolution=merge-duplicates,return=representation'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+        throw new Error(`Supabase profile upsert failed: ${response.status} ${text}`);
+    }
+
+    const rows = text ? JSON.parse(text) : [];
+    return Array.isArray(rows) ? rows[0] || null : rows;
+}
+
+async function fetchMemberProfileByKakaoUserId(kakaoUserId, table, env) {
+    const url = new URL(env.SUPABASE_URL + '/rest/v1/' + table);
+    url.searchParams.set('select', 'id,signup_completed_at,signup_count,login_count,last_auth_mode');
+    url.searchParams.set('kakao_user_id', 'eq.' + kakaoUserId);
+    url.searchParams.set('limit', '1');
+
+    const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+            apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+            Authorization: 'Bearer ' + env.SUPABASE_SERVICE_ROLE_KEY
+        }
+    });
+
+    const text = await response.text();
+    if (!response.ok) {
+        throw new Error('Supabase profile lookup failed: ' + response.status + ' ' + text);
+    }
+
+    const rows = text ? JSON.parse(text) : [];
+    return Array.isArray(rows) ? rows[0] || null : null;
+}
+
 async function handleCurrentUser(request, env, corsHeaders) {
     assertRequiredEnv(env);
     const sessionValue = getCookie(request, 'app_session');
@@ -317,7 +409,20 @@ async function handleLogout(request, env, corsHeaders) {
     assertRequiredEnv(env);
 
     if (request.method === 'GET') {
-        const next = sanitizeNextUrl(new URL(request.url).searchParams.get('next'), env.APP_BASE_URL);
+        const url = new URL(request.url);
+        const next = sanitizeNextUrl(url.searchParams.get('next'), env.APP_BASE_URL);
+        const provider = url.searchParams.get('provider');
+
+        if (provider === 'kakao') {
+            const callbackUrl = new URL('/api/logout/kakao/callback', env.KAKAO_REDIRECT_URI);
+            callbackUrl.searchParams.set('next', next);
+
+            const logoutUrl = new URL('https://kauth.kakao.com/oauth/logout');
+            logoutUrl.searchParams.set('client_id', env.KAKAO_REST_API_KEY);
+            logoutUrl.searchParams.set('logout_redirect_uri', callbackUrl.toString());
+            return redirect(logoutUrl.toString());
+        }
+
         const headers = new Headers();
         appendSetCookies(headers, makeCookie('app_session', '', { maxAge: 0, sameSite: 'None' }));
         return redirect(withParams(next, { logged_out: '1' }), headers);
@@ -326,6 +431,15 @@ async function handleLogout(request, env, corsHeaders) {
     const headers = new Headers(corsHeaders);
     appendSetCookies(headers, makeCookie('app_session', '', { maxAge: 0, sameSite: 'None' }));
     return json({ ok: true }, 200, headers);
+}
+
+async function handleKakaoLogoutCallback(request, env) {
+    assertRequiredEnv(env);
+
+    const next = sanitizeNextUrl(new URL(request.url).searchParams.get('next'), env.APP_BASE_URL);
+    const headers = new Headers();
+    appendSetCookies(headers, makeCookie('app_session', '', { maxAge: 0, sameSite: 'None' }));
+    return redirect(withParams(next, { logged_out: '1' }), headers);
 }
 
 function sanitizeNextUrl(next, appBaseUrl) {
