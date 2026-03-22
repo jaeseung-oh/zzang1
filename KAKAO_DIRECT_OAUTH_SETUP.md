@@ -14,7 +14,7 @@
 Redirect URI는 Worker 콜백 주소로 등록해야 합니다.
 
 ```text
-https://YOUR_WORKER_SUBDOMAIN.workers.dev/api/auth/kakao/callback
+https://reset-edu-kakao-auth.cfv47.workers.dev/api/auth/kakao/callback
 ```
 
 동의항목:
@@ -44,7 +44,7 @@ SESSION_SECRET=replace_with_a_long_random_string
 
 ```js
 window.RESET_EDU_AUTH = {
-    authApiBaseUrl: 'https://YOUR_WORKER_SUBDOMAIN.workers.dev'
+    authApiBaseUrl: 'https://reset-edu-kakao-auth.cfv47.workers.dev'
 };
 ```
 

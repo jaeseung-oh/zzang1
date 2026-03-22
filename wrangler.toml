@@ -7,4 +7,4 @@ workers_dev = true
 APP_BASE_URL = "https://jaeseung-oh.github.io/zzang1"
 # KAKAO_REDIRECT_URI should match your deployed Worker URL.
 # Example: https://reset-edu-kakao-auth.your-subdomain.workers.dev/api/auth/kakao/callback
-KAKAO_REDIRECT_URI = "https://YOUR_WORKER_SUBDOMAIN.workers.dev/api/auth/kakao/callback"
+KAKAO_REDIRECT_URI = "https://reset-edu-kakao-auth.cfv47.workers.dev/api/auth/kakao/callback"
