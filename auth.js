@@ -217,12 +217,13 @@ const init = async () => {
         kakaoButton.addEventListener('click', async () => {
             try {
                 setMessage(modeCopy.pendingMessage);
+                const oauthOptions = { redirectTo };
+                if (config.kakaoScopes) {
+                    oauthOptions.scopes = config.kakaoScopes;
+                }
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'kakao',
-                    options: {
-                        redirectTo,
-                        scopes: config.kakaoScopes || 'openid profile_nickname profile_image account_email'
-                    }
+                    options: oauthOptions
                 });
                 if (error) {
                     throw error;
