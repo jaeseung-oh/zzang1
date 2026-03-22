@@ -1,0 +1,10 @@
+name = "reset-edu-kakao-auth"
+main = "worker.js"
+compatibility_date = "2026-03-22"
+workers_dev = true
+
+[vars]
+APP_BASE_URL = "https://jaeseung-oh.github.io/zzang1"
+# KAKAO_REDIRECT_URI should match your deployed Worker URL.
+# Example: https://reset-edu-kakao-auth.your-subdomain.workers.dev/api/auth/kakao/callback
+KAKAO_REDIRECT_URI = "https://YOUR_WORKER_SUBDOMAIN.workers.dev/api/auth/kakao/callback"

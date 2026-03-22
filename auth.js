@@ -1,27 +1,24 @@
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-
 const config = window.RESET_EDU_AUTH || {};
-const supabaseUrl = config.supabaseUrl || '';
-const supabasePublishableKey = config.supabasePublishableKey || config.supabaseAnonKey || '';
-const hasSupabaseConfig = Boolean(supabaseUrl && supabasePublishableKey);
+const authApiBaseUrl = (config.authApiBaseUrl || '').replace(/\/$/, '');
+const hasAuthApiConfig = Boolean(authApiBaseUrl && /^https?:\/\//.test(authApiBaseUrl));
 const authMode = document.body?.dataset.authMode === 'signup' ? 'signup' : 'login';
-const redirectTo = config.authRedirectTo || window.location.href;
+const currentUrl = window.location.href;
 
 const modeCopy = {
     signup: {
         idleTitle: '회원가입이 필요합니다',
-        idleMeta: '카카오 계정으로 회원가입을 시작할 수 있습니다. 네이버는 추가 연동 계층이 필요합니다.',
+        idleMeta: '카카오 계정으로 회원가입을 시작할 수 있습니다. 이메일 없이 닉네임과 프로필 기반으로 바로 진입합니다.',
         readyMessage: '카카오 계정으로 회원가입을 시작할 수 있습니다.',
-        disabledMessage: 'auth-config.js에 Supabase URL과 publishable key를 입력하면 회원가입 기능이 활성화됩니다.',
+        disabledMessage: 'auth-config.js에 Cloudflare Worker URL을 입력하면 카카오 회원가입이 활성화됩니다.',
         kakaoLabel: '카카오로 회원가입',
         naverLabel: '네이버 연동 준비 중',
         pendingMessage: '카카오 회원가입 화면으로 이동하는 중입니다.'
     },
     login: {
         idleTitle: '로그인이 필요합니다',
-        idleMeta: '카카오 계정으로 로그인할 수 있습니다. 네이버는 추가 연동 계층이 필요합니다.',
+        idleMeta: '카카오 계정으로 로그인할 수 있습니다. 이메일 없이 닉네임과 프로필 기반으로 바로 진입합니다.',
         readyMessage: '카카오 계정으로 로그인할 수 있습니다.',
-        disabledMessage: 'auth-config.js에 Supabase URL과 publishable key를 입력하면 로그인 기능이 활성화됩니다.',
+        disabledMessage: 'auth-config.js에 Cloudflare Worker URL을 입력하면 카카오 로그인이 활성화됩니다.',
         kakaoLabel: '카카오로 로그인',
         naverLabel: '네이버 연동 준비 중',
         pendingMessage: '카카오 로그인 화면으로 이동하는 중입니다.'
@@ -60,7 +57,7 @@ const getUserDisplayName = (user) => {
         return '회원 로그인 완료';
     }
 
-    return user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.nickname || user.email || '회원 로그인 완료';
+    return user.nickname || user.name || '회원 로그인 완료';
 };
 
 const renderSignedOut = () => {
@@ -94,7 +91,7 @@ const renderSignedIn = (user) => {
         userName.textContent = displayName;
     }
     if (userMeta) {
-        userMeta.textContent = user?.email || '이메일 정보 없음';
+        userMeta.textContent = user?.profileImage || '카카오 프로필 연동 완료';
     }
     if (authControls) {
         authControls.hidden = true;
@@ -110,19 +107,26 @@ const renderSignedIn = (user) => {
     }
 };
 
-const getUrlError = () => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('error_description') || params.get('error');
+const getApiUrl = (path, params) => {
+    const url = new URL(path, authApiBaseUrl + '/');
+    if (params) {
+        Object.entries(params).forEach(([key, value]) => {
+            if (value) {
+                url.searchParams.set(key, value);
+            }
+        });
+    }
+    return url.toString();
 };
 
-const getAuthCode = () => {
+const getUrlMessage = () => {
     const params = new URLSearchParams(window.location.search);
-    return params.get('code');
+    return params.get('auth_error');
 };
 
 const clearAuthParams = () => {
     const url = new URL(window.location.href);
-    ['code', 'error', 'error_code', 'error_description', 'state'].forEach((key) => {
+    ['auth_error', 'login', 'mode', 'logged_out'].forEach((key) => {
         url.searchParams.delete(key);
     });
     window.history.replaceState({}, document.title, url.toString());
@@ -130,7 +134,7 @@ const clearAuthParams = () => {
 
 const handleAuthError = (error) => {
     console.error(error);
-    const message = error?.message || '로그인 처리 중 문제가 발생했습니다. Supabase 설정과 OAuth Redirect URL을 확인해 주세요.';
+    const message = error?.message || '카카오 로그인 처리 중 문제가 발생했습니다. Worker URL과 Kakao Redirect URI를 확인해 주세요.';
     setMessage(message, true);
 };
 
@@ -145,109 +149,72 @@ const disableButton = (button, title) => {
     }
 };
 
-const init = async () => {
-    const urlError = getUrlError();
-    if (urlError) {
-        renderSignedOut();
-        setMessage(decodeURIComponent(urlError), true);
-        clearAuthParams();
-        return;
+const fetchCurrentUser = async () => {
+    const response = await fetch(getApiUrl('/api/me'), {
+        method: 'GET',
+        credentials: 'include'
+    });
+
+    const payload = await response.json().catch(() => ({ user: null }));
+    if (!response.ok) {
+        throw new Error(payload?.message || '현재 로그인 상태를 확인하지 못했습니다.');
     }
 
-    if (!hasSupabaseConfig) {
+    return payload.user || null;
+};
+
+const init = async () => {
+    const urlMessage = getUrlMessage();
+    if (urlMessage) {
+        renderSignedOut();
+        setMessage(decodeURIComponent(urlMessage), true);
+        clearAuthParams();
+    }
+
+    if (!hasAuthApiConfig) {
         renderSignedOut();
         setMessage(modeCopy.disabledMessage);
-        disableButton(kakaoButton);
-        disableButton(naverButton, config.naverNotice || 'Supabase Auth 호스티드 프로젝트는 네이버를 기본 provider로 직접 지원하지 않습니다.');
+        disableButton(kakaoButton, 'Cloudflare Worker URL이 설정되지 않았습니다.');
+        disableButton(naverButton, config.naverNotice || '네이버 로그인은 아직 연결되지 않았습니다.');
         return;
     }
 
-    const supabase = createClient(supabaseUrl, supabasePublishableKey, {
-        auth: {
-            flowType: 'pkce',
-            detectSessionInUrl: false,
-            persistSession: true,
-            autoRefreshToken: true,
-            storageKey: config.storageKey || 'reset-edu-auth'
-        }
-    });
-
-    const authCode = getAuthCode();
-    if (authCode) {
-        const { error } = await supabase.auth.exchangeCodeForSession(authCode);
-        if (error) {
-            throw error;
-        }
-        clearAuthParams();
+    if (naverButton) {
+        disableButton(naverButton, config.naverNotice || '네이버 로그인은 아직 연결되지 않았습니다.');
     }
 
-    supabase.auth.onAuthStateChange((event, session) => {
-        if (session?.user) {
-            renderSignedIn(session.user);
-            if (event === 'SIGNED_OUT') {
-                setMessage('로그아웃되었습니다.');
-            } else {
-                setMessage('Supabase 로그인 상태가 유지되고 있습니다.');
-            }
-            clearAuthParams();
-            return;
-        }
-
-        renderSignedOut();
-        if (event === 'SIGNED_OUT') {
-            setMessage('로그아웃되었습니다.');
-            return;
-        }
-        setMessage(modeCopy.readyMessage);
-    });
-
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) {
-        handleAuthError(sessionError);
-    } else if (sessionData.session?.user) {
-        renderSignedIn(sessionData.session.user);
-        setMessage('Supabase 로그인 상태가 유지되고 있습니다.');
-        clearAuthParams();
+    const user = await fetchCurrentUser();
+    if (user) {
+        renderSignedIn(user);
+        setMessage('카카오 로그인 상태가 유지되고 있습니다.');
     } else {
         renderSignedOut();
         setMessage(modeCopy.readyMessage);
     }
 
     if (kakaoButton) {
-        kakaoButton.addEventListener('click', async () => {
-            try {
-                setMessage(modeCopy.pendingMessage);
-                const oauthOptions = { redirectTo };
-                if (config.kakaoScopes) {
-                    oauthOptions.scopes = config.kakaoScopes;
-                }
-                const { error } = await supabase.auth.signInWithOAuth({
-                    provider: 'kakao',
-                    options: oauthOptions
-                });
-                if (error) {
-                    throw error;
-                }
-            } catch (error) {
-                handleAuthError(error);
-            }
+        kakaoButton.addEventListener('click', () => {
+            setMessage(modeCopy.pendingMessage);
+            window.location.href = getApiUrl('/api/auth/kakao/start', {
+                next: currentUrl,
+                mode: authMode
+            });
         });
-    }
-
-    if (naverButton) {
-        disableButton(
-            naverButton,
-            config.naverNotice || 'Supabase Auth 호스티드 프로젝트는 네이버를 기본 provider로 직접 지원하지 않습니다.'
-        );
     }
 
     if (logoutButton) {
         logoutButton.addEventListener('click', async () => {
             try {
-                const { error } = await supabase.auth.signOut();
-                if (error) {
-                    throw error;
+                const response = await fetch(getApiUrl('/api/logout'), {
+                    method: 'POST',
+                    credentials: 'include'
+                });
+                const payload = await response.json().catch(() => ({ ok: false }));
+                if (!response.ok || !payload.ok) {
+                    throw new Error(payload?.message || '로그아웃에 실패했습니다.');
                 }
+                renderSignedOut();
+                setMessage('로그아웃되었습니다.');
             } catch (error) {
                 handleAuthError(error);
             }
