@@ -1,6 +1,6 @@
 window.RESET_EDU_AUTH = {
-    supabaseUrl: 'YOUR_SUPABASE_URL',
-    supabasePublishableKey: 'YOUR_SUPABASE_PUBLISHABLE_KEY',
+    supabaseUrl: 'https://ghufoabtkjbizszdzies.supabase.co',
+    supabasePublishableKey: 'sb_publishable_LJW8MAdC9dTcmoO0dHqFNQ_qDqS5NdO',
     authRedirectTo: window.location.origin + window.location.pathname,
     // Legacy fallback: supabaseAnonKey can still be used if needed.
     storageKey: 'reset-edu-auth',
