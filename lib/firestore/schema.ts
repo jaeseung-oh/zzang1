@@ -26,14 +26,19 @@ export interface Course {
 }
 
 export interface Purchase {
-  uid: string;
-  courseId: string;
+  uid: string | null;
+  courseId: string | null;
+  orderId: string;
+  paymentKey: string;
   paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  paymentProvider: string;
   amount: number;
+  method?: string | null;
+  receiptUrl?: string | null;
   legalDisclaimerAccepted: boolean;
   finalReviewResponsibilityAccepted: boolean;
-  orderedAt: string;
-  expiresAt: string;
+  orderedAt: string | null;
+  approvedAt?: string | null;
 }
 
 export interface Certificate {
