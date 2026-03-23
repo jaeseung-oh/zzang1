@@ -4,6 +4,7 @@ import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { getFirebaseServices } from "@/lib/firebase/client";
+import { ensureAnonymousSession } from "@/lib/firebase/session";
 
 type DraftResponse = {
   documentId: string;
@@ -73,6 +74,7 @@ export default function AiDraftPage() {
 
     startTransition(async () => {
       try {
+        await ensureAnonymousSession();
         const { functions } = getFirebaseServices();
         const callable = httpsCallable<FormState, DraftResponse>(functions, "generateSentencingDraft");
         const response = await callable(form);

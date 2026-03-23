@@ -1,0 +1,215 @@
+"use client";
+
+import Link from "next/link";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { useEffect, useState } from "react";
+import { defaultCourse } from "@/lib/course/catalog";
+import { getFirebaseServices } from "@/lib/firebase/client";
+import { ensureAnonymousSession } from "@/lib/firebase/session";
+
+type ProgressRecord = {
+  courseId: string;
+  completionRate: number;
+  watchedSeconds: number;
+  isCompleted: boolean;
+  updatedAt?: { seconds: number };
+};
+
+type CertificateRecord = {
+  id: string;
+  documentType: string;
+  issueNumber: string;
+  downloadUrl: string;
+  issuedAt?: { seconds: number };
+};
+
+type DraftRecord = {
+  id: string;
+  documentType: string;
+  caseType: string;
+  generatedDraft: string;
+  createdAt?: { seconds: number };
+};
+
+const documentLabels: Record<string, string> = {
+  completion: "건전음주 교육 이수증",
+  "psychology-report": "인지행동 심리검사 결과지",
+  "compliance-pledge": "준법 서약서",
+};
+
+const draftLabels: Record<string, string> = {
+  "reflection-letter-guide": "AI 반성문 초안",
+  "petition-letter-guide": "AI 탄원서 초안",
+};
+
+function formatTimestamp(timestamp?: { seconds: number }) {
+  if (!timestamp?.seconds) {
+    return "기록 대기 중";
+  }
+
+  return new Date(timestamp.seconds * 1000).toLocaleString("ko-KR");
+}
+
+export default function DashboardPage() {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [progress, setProgress] = useState<ProgressRecord | null>(null);
+  const [certificates, setCertificates] = useState<CertificateRecord[]>([]);
+  const [drafts, setDrafts] = useState<DraftRecord[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      try {
+        const user = await ensureAnonymousSession();
+        const { db } = getFirebaseServices();
+
+        const [progressSnapshot, certificateSnapshot, draftSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid))),
+          getDocs(query(collection(db, "certificates"), where("uid", "==", user.uid))),
+          getDocs(query(collection(db, "aiDocuments"), where("uid", "==", user.uid))),
+        ]);
+
+        if (cancelled) {
+          return;
+        }
+
+        setProgress(progressSnapshot.docs[0]?.data() ? (progressSnapshot.docs[0].data() as ProgressRecord) : null);
+        setCertificates(
+          certificateSnapshot.docs
+            .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<CertificateRecord, "id">) }))
+            .sort((a, b) => (b.issuedAt?.seconds || 0) - (a.issuedAt?.seconds || 0))
+        );
+        setDrafts(
+          draftSnapshot.docs
+            .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<DraftRecord, "id">) }))
+            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
+        );
+      } catch (loadError) {
+        console.error(loadError);
+        if (!cancelled) {
+          setError("대시보드 데이터를 불러오지 못했습니다. Firebase 인증과 Firestore 인덱스 상태를 확인해 주세요.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return (
+    <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.3)] lg:p-8">
+        <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Learner Dashboard</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">수강 현황과 발급 문서 대시보드</h1>
+            <p className="mt-4 max-w-3xl text-sm leading-8 text-white/70">
+              결제 연동 전 단계 기준으로 익명 세션에 연결된 수강 진행률, 자동 발급 PDF, AI 초안 이력을 확인할 수 있습니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85]">
+              수강실로 이동
+            </Link>
+            <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+              AI 초안 작성
+            </Link>
+          </div>
+        </div>
+
+        {loading ? <p className="mt-8 text-sm text-white/70">대시보드 데이터를 불러오는 중입니다...</p> : null}
+        {error ? <p className="mt-8 text-sm text-[#f2a39b]">{error}</p> : null}
+
+        {!loading && !error ? (
+          <div className="mt-8 grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
+            <section className="space-y-6">
+              <div className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
+                <p className="text-sm font-semibold text-[#f0cb85]">현재 코스</p>
+                <h2 className="mt-3 text-2xl font-semibold text-white">{defaultCourse.title}</h2>
+                <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-white/60">진행률</p>
+                    <p className="mt-2 text-white">{progress?.completionRate ?? 0}%</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-white/60">수강 시간</p>
+                    <p className="mt-2 text-white">{Math.round((progress?.watchedSeconds ?? 0) / 60)}분</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-white/60">완료 여부</p>
+                    <p className="mt-2 text-white">{progress?.isCompleted ? "완료" : "진행 중"}</p>
+                  </div>
+                </div>
+                <p className="mt-5 text-sm leading-7 text-white/70">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
+              </div>
+
+              <div className="rounded-[1.75rem] border border-white/10 bg-[#111f33] p-6">
+                <p className="text-sm font-semibold text-[#f0cb85]">AI 초안 이력</p>
+                <div className="mt-4 space-y-3">
+                  {drafts.length ? (
+                    drafts.slice(0, 3).map((draft) => (
+                      <article key={draft.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="font-semibold text-white">{draftLabels[draft.documentType] ?? draft.documentType}</p>
+                          <span className="text-xs text-white/55">{formatTimestamp(draft.createdAt)}</span>
+                        </div>
+                        <p className="mt-2 text-sm text-white/65">사건 유형: {draft.caseType}</p>
+                        <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-7 text-white/80">{draft.generatedDraft}</p>
+                      </article>
+                    ))
+                  ) : (
+                    <p className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">아직 저장된 AI 초안이 없습니다.</p>
+                  )}
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
+              <p className="text-sm font-semibold text-[#f0cb85]">발급 문서</p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">PDF 3종 다운로드</h2>
+              <p className="mt-4 text-sm leading-8 text-white/70">
+                수강 완료 후 Functions가 생성한 PDF를 여기서 확인할 수 있습니다. 결제 연동은 추후 이 화면 앞단에 연결하면 됩니다.
+              </p>
+
+              <div className="mt-6 space-y-4">
+                {certificates.length ? (
+                  certificates.map((certificate) => (
+                    <a
+                      key={certificate.id}
+                      href={certificate.downloadUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center justify-between rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30"
+                    >
+                      <div>
+                        <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType] ?? certificate.documentType}</p>
+                        <p className="mt-2 text-sm text-white/65">문서번호 {certificate.issueNumber}</p>
+                        <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt)}</p>
+                      </div>
+                      <span className="rounded-full border border-[#d3ad62]/30 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f0cb85]">
+                        PDF 열기
+                      </span>
+                    </a>
+                  ))
+                ) : (
+                  <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">
+                    아직 발급된 문서가 없습니다. 수강실에서 모든 모듈을 완료한 뒤 저장하면 PDF 3종이 자동 생성됩니다.
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+        ) : null}
+      </div>
+    </main>
+  );
+}

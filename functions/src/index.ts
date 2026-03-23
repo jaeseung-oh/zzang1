@@ -1,12 +1,15 @@
 import axios from "axios";
 import { initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import OpenAI from "openai";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 initializeApp();
 
 const db = getFirestore();
+const storage = getStorage();
 const openaiApiKey = process.env.OPENAI_API_KEY;
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 const tossSecretKey = "test_sk_docs_Ovk5rk1EwkEbP0W43n07xlzm";
@@ -14,6 +17,36 @@ const tossAuthHeader = `Basic ${Buffer.from(`${tossSecretKey}:`).toString("base6
 
 const LEGAL_NOTICE =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 스스로 양형자료를 준비할 수 있도록 돕는 교육 및 보조 양식 제공 서비스입니다.";
+
+const COURSE_COMPLETION_DOCUMENTS = [
+  {
+    documentType: "completion",
+    title: "건전음주 교육 이수증",
+    subtitle: "1시간 온라인 교육 과정 이수 확인",
+    body: [
+      "신청자는 양형자료 준비를 위한 1시간 온라인 교육 과정을 수료했습니다.",
+      "본 문서는 사용자의 자기 준비와 제출 보조를 위한 교육 이수 확인 문서입니다.",
+    ],
+  },
+  {
+    documentType: "psychology-report",
+    title: "인지행동 심리검사 결과지",
+    subtitle: "자기 점검 기반 재범 방지 계획 정리",
+    body: [
+      "신청자는 사건 이후 생활 관리 계획과 재범 방지 실행 항목을 점검했습니다.",
+      "본 결과지는 자기 점검용 교육 자료이며 법률적 판단이나 의료적 진단을 의미하지 않습니다.",
+    ],
+  },
+  {
+    documentType: "compliance-pledge",
+    title: "준법 서약서",
+    subtitle: "재발 방지와 생활 관리 계획 서약",
+    body: [
+      "신청자는 향후 동일 또는 유사한 일이 반복되지 않도록 생활 관리 계획을 수립했습니다.",
+      "본 서약 문구는 사용자의 자필 서명 및 최종 검토 후 제출용으로 활용할 수 있습니다.",
+    ],
+  },
+] as const;
 
 type DraftInput = {
   documentType: "reflection-letter-guide" | "petition-letter-guide";
@@ -35,6 +68,18 @@ type ConfirmPaymentRequest = {
   courseId?: string | null;
   legalDisclaimerAccepted?: boolean;
   finalReviewResponsibilityAccepted?: boolean;
+};
+
+type SaveCourseProgressRequest = {
+  courseId?: string;
+  courseTitle?: string;
+  learnerName?: string;
+  caseType?: "dui" | "sexual" | "drug" | "violence" | "other";
+  watchedSeconds?: number;
+  completionRate?: number;
+  isCompleted?: boolean;
+  legalAccepted?: boolean;
+  userReviewAccepted?: boolean;
 };
 
 type CorsResponse = {
@@ -59,6 +104,38 @@ function assertValidInput(data: Partial<DraftInput>): asserts data is DraftInput
   if (!data.documentType || !data.caseType || !data.caseStage) {
     throw new HttpsError("invalid-argument", "필수 입력값이 누락되었습니다.");
   }
+}
+
+function assertValidProgressInput(data: SaveCourseProgressRequest): asserts data is Required<SaveCourseProgressRequest> {
+  if (!data.courseId || !data.courseTitle || !data.learnerName?.trim() || !data.caseType) {
+    throw new HttpsError("invalid-argument", "수강 저장에 필요한 필수값이 누락되었습니다.");
+  }
+
+  if (typeof data.watchedSeconds !== "number" || Number.isFinite(data.watchedSeconds) === false || data.watchedSeconds < 0) {
+    throw new HttpsError("invalid-argument", "watchedSeconds 형식이 올바르지 않습니다.");
+  }
+
+  if (typeof data.completionRate !== "number" || Number.isFinite(data.completionRate) === false) {
+    throw new HttpsError("invalid-argument", "completionRate 형식이 올바르지 않습니다.");
+  }
+
+  if (typeof data.isCompleted !== "boolean") {
+    throw new HttpsError("invalid-argument", "isCompleted 형식이 올바르지 않습니다.");
+  }
+
+  if (!data.legalAccepted || !data.userReviewAccepted) {
+    throw new HttpsError("failed-precondition", "면책 고지와 직접 검토 책임 확인이 필요합니다.");
+  }
+}
+
+function getAuthenticatedUid(request: { auth?: { uid?: string } | null }) {
+  const uid = request.auth?.uid;
+
+  if (!uid) {
+    throw new HttpsError("unauthenticated", "로그인이 필요합니다.");
+  }
+
+  return uid;
 }
 
 function buildPrompt(data: DraftInput) {
@@ -94,6 +171,198 @@ function buildFallbackDraft(data: DraftInput) {
     data.documentType === "reflection-letter-guide" ? "반성문 초안 작성 가이드" : "탄원서 초안 작성 가이드";
 
   return `${title}\n\n저는 이번 사건으로 인해 제 행동이 사회와 주변 사람들에게 미칠 수 있는 영향을 무겁게 받아들이고 있습니다. 경솔했던 판단과 부주의한 태도에 대해 깊이 반성하고 있으며, 같은 일이 반복되지 않도록 생활 전반을 다시 정비하고자 합니다.\n\n특히 ${data.remorseReason.trim()}와 같은 점을 계속 돌아보며, 단순한 후회에 그치지 않고 실제 행동 변화로 이어가야 한다고 생각하고 있습니다. ${data.familyContext.trim() || "가족과 주변 환경 또한 제게 더 신중한 태도를 요구하고 있습니다."}\n\n앞으로는 ${data.preventionPlan.trim()}와 같은 구체적인 재범 방지 계획을 실천하면서, 다시는 유사한 일이 발생하지 않도록 교육과 생활 관리를 병행하겠습니다.\n\n본 초안은 제출 준비를 돕기 위한 참고용 문안이며, 실제 제출 전에는 사건 경위와 사실관계를 직접 다시 확인하고 문구를 수정해 사용하시기 바랍니다.`;
+}
+
+function formatCaseType(caseType: SaveCourseProgressRequest["caseType"]) {
+  const labels = {
+    dui: "음주운전",
+    sexual: "성범죄",
+    drug: "마약",
+    violence: "폭행",
+    other: "기타",
+  } as const;
+
+  return caseType ? labels[caseType] : "기타";
+}
+
+function createIssueNumber(uid: string, documentType: string, issuedAt: string) {
+  const compactDate = issuedAt.slice(0, 10).replace(/-/g, "");
+  return `RLE-${compactDate}-${documentType.toUpperCase()}-${uid.slice(0, 6).toUpperCase()}`;
+}
+
+async function buildCertificatePdfBytes(args: {
+  learnerName: string;
+  courseTitle: string;
+  documentTitle: string;
+  subtitle: string;
+  issueNumber: string;
+  issuedAt: string;
+  caseTypeLabel: string;
+  body: readonly string[];
+}) {
+  const pdfDoc = await PDFDocument.create();
+  const page = pdfDoc.addPage([842, 595]);
+  const titleFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  const bodyFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
+
+  page.drawRectangle({ x: 28, y: 28, width: 786, height: 539, color: rgb(0.03, 0.07, 0.12) });
+  page.drawRectangle({ x: 46, y: 46, width: 750, height: 503, borderColor: rgb(0.83, 0.68, 0.38), borderWidth: 1.5 });
+
+  page.drawText("RESET LEGAL EDU", {
+    x: 64,
+    y: 515,
+    size: 14,
+    font: titleFont,
+    color: rgb(0.94, 0.8, 0.52),
+  });
+
+  page.drawText(args.documentTitle, {
+    x: 64,
+    y: 455,
+    size: 28,
+    font: titleFont,
+    color: rgb(0.96, 0.96, 0.96),
+  });
+
+  page.drawText(args.subtitle, {
+    x: 64,
+    y: 425,
+    size: 13,
+    font: bodyFont,
+    color: rgb(0.75, 0.78, 0.82),
+  });
+
+  page.drawText(`성명: ${args.learnerName}`, {
+    x: 64,
+    y: 370,
+    size: 16,
+    font: titleFont,
+    color: rgb(0.95, 0.95, 0.95),
+  });
+
+  page.drawText(`사건 유형: ${args.caseTypeLabel}`, {
+    x: 64,
+    y: 342,
+    size: 12,
+    font: bodyFont,
+    color: rgb(0.8, 0.83, 0.87),
+  });
+
+  page.drawText(`과정명: ${args.courseTitle}`, {
+    x: 64,
+    y: 318,
+    size: 12,
+    font: bodyFont,
+    color: rgb(0.8, 0.83, 0.87),
+  });
+
+  page.drawText(`문서번호: ${args.issueNumber}`, {
+    x: 64,
+    y: 294,
+    size: 12,
+    font: bodyFont,
+    color: rgb(0.8, 0.83, 0.87),
+  });
+
+  page.drawText(`발급시각: ${args.issuedAt}`, {
+    x: 64,
+    y: 270,
+    size: 12,
+    font: bodyFont,
+    color: rgb(0.8, 0.83, 0.87),
+  });
+
+  let y = 218;
+  for (const line of args.body) {
+    page.drawText(line, {
+      x: 64,
+      y,
+      size: 13,
+      font: bodyFont,
+      color: rgb(0.9, 0.92, 0.95),
+      maxWidth: 700,
+    });
+    y -= 28;
+  }
+
+  page.drawText(LEGAL_NOTICE, {
+    x: 64,
+    y: 92,
+    size: 10,
+    font: bodyFont,
+    color: rgb(0.76, 0.78, 0.8),
+    maxWidth: 700,
+  });
+
+  return pdfDoc.save();
+}
+
+async function storeCertificate(args: {
+  uid: string;
+  courseId: string;
+  courseTitle: string;
+  learnerName: string;
+  caseTypeLabel: string;
+  documentType: (typeof COURSE_COMPLETION_DOCUMENTS)[number]["documentType"];
+  title: string;
+  subtitle: string;
+  body: readonly string[];
+  issuedAt: string;
+}) {
+  const certificateId = `${args.uid}_${args.courseId}_${args.documentType}`;
+  const issueNumber = createIssueNumber(args.uid, args.documentType, args.issuedAt);
+  const pdfBytes = await buildCertificatePdfBytes({
+    learnerName: args.learnerName,
+    courseTitle: args.courseTitle,
+    documentTitle: args.title,
+    subtitle: args.subtitle,
+    issueNumber,
+    issuedAt: args.issuedAt,
+    caseTypeLabel: args.caseTypeLabel,
+    body: args.body,
+  });
+
+  const filePath = `certificates/${args.uid}/${args.courseId}/${args.documentType}.pdf`;
+  const bucket = storage.bucket();
+  const file = bucket.file(filePath);
+
+  await file.save(Buffer.from(pdfBytes), {
+    contentType: "application/pdf",
+    resumable: false,
+    metadata: {
+      cacheControl: "private, max-age=3600",
+      contentDisposition: `attachment; filename="${args.documentType}.pdf"`,
+    },
+  });
+
+  const [downloadUrl] = await file.getSignedUrl({
+    action: "read",
+    expires: "2035-01-01",
+  });
+
+  await db.collection("certificates").doc(certificateId).set(
+    {
+      uid: args.uid,
+      courseId: args.courseId,
+      purchaseId: `manual-${args.courseId}`,
+      documentType: args.documentType,
+      issueNumber,
+      storagePath: filePath,
+      downloadUrl,
+      submittedByUser: false,
+      issuedAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return {
+    certificateId,
+    documentType: args.documentType,
+    downloadUrl,
+    issueNumber,
+  };
 }
 
 export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (request, response) => {
@@ -183,6 +452,72 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
   }
 });
 
+export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (request) => {
+  const uid = getAuthenticatedUid(request);
+  const data = request.data as SaveCourseProgressRequest;
+  assertValidProgressInput(data);
+
+  const progressId = `${uid}_${data.courseId}`;
+  const completionRate = Math.max(0, Math.min(100, Math.round(data.completionRate)));
+  const isCompleted = data.isCompleted && completionRate >= 100;
+
+  await db.collection("courseProgress").doc(progressId).set(
+    {
+      uid,
+      courseId: data.courseId,
+      courseTitle: data.courseTitle,
+      purchaseId: `manual-${data.courseId}`,
+      learnerName: data.learnerName.trim(),
+      caseType: data.caseType,
+      watchedSeconds: Math.round(data.watchedSeconds),
+      completionRate,
+      isCompleted,
+      legalDisclaimerAccepted: data.legalAccepted,
+      userReviewAccepted: data.userReviewAccepted,
+      completedAt: isCompleted ? FieldValue.serverTimestamp() : null,
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  const issuedCertificates: Array<{
+    certificateId: string;
+    documentType: string;
+    downloadUrl: string;
+    issueNumber: string;
+  }> = [];
+
+  if (isCompleted) {
+    const issuedAt = new Date().toISOString();
+    const caseTypeLabel = formatCaseType(data.caseType);
+
+    for (const definition of COURSE_COMPLETION_DOCUMENTS) {
+      const stored = await storeCertificate({
+        uid,
+        courseId: data.courseId,
+        courseTitle: data.courseTitle,
+        learnerName: data.learnerName.trim(),
+        caseTypeLabel,
+        documentType: definition.documentType,
+        title: definition.title,
+        subtitle: definition.subtitle,
+        body: definition.body,
+        issuedAt,
+      });
+
+      issuedCertificates.push(stored);
+    }
+  }
+
+  return {
+    progressId,
+    completionRate,
+    isCompleted,
+    issuedCertificates,
+  };
+});
+
 export const generateSentencingDraft = onCall({ region: "asia-northeast3" }, async (request) => {
   const data = request.data as Partial<DraftInput>;
   assertValidInput(data);
@@ -222,6 +557,7 @@ export const generateSentencingDraft = onCall({ region: "asia-northeast3" }, asy
     legalDisclaimerAccepted: data.legalAccepted,
     legalNoticeText: LEGAL_NOTICE,
     warnings,
+    version: 1,
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
   });

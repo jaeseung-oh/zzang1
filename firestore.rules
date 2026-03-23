@@ -28,6 +28,11 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /courseProgress/{progressId} {
+      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow write: if false;
+    }
+
     match /certificates/{certificateId} {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
       allow write: if false;
