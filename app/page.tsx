@@ -246,9 +246,14 @@ export default function HomePage() {
               <a href="#faq" className="transition hover:text-[#06101b]">자주 묻는 질문</a>
             </nav>
 
-            <a href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[#06101b] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#0d1d34]">
-              교육 신청하기
-            </a>
+            <div className="flex items-center gap-3">
+              <a href="/login" className="hidden items-center justify-center rounded-full border border-slate-300/80 bg-white/85 px-5 py-3 text-sm font-semibold text-[#06101b] transition hover:-translate-y-0.5 hover:bg-white md:inline-flex">
+                로그인
+              </a>
+              <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[#06101b] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#0d1d34]">
+                회원가입
+              </a>
+            </div>
           </div>
         </div>
       </header>
@@ -275,8 +280,8 @@ export default function HomePage() {
                   사건 이후 필요한 민간 교육을 확인하고 수료증까지 원스톱으로 발급받으세요.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
-                  <a href="#courses" className="inline-flex items-center justify-center rounded-full bg-[#d8b36a] px-7 py-4 text-sm font-bold text-[#06101b] transition hover:-translate-y-1 hover:bg-[#e9c98d]">
-                    사건 유형별 교육 확인하기
+                  <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[#d8b36a] px-7 py-4 text-sm font-bold text-[#06101b] transition hover:-translate-y-1 hover:bg-[#e9c98d]">
+                    회원가입 후 시작하기
                   </a>
                   <a href="#process" className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-7 py-4 text-sm font-semibold text-white transition hover:bg-white/15">
                     수강 절차 보기
@@ -517,6 +522,8 @@ export default function HomePage() {
                     <p><a href="#courses" className="hover:text-white">교육 안내</a></p>
                     <p><a href="#documents" className="hover:text-white">발급 서류</a></p>
                     <p><a href="#faq" className="hover:text-white">자주 묻는 질문</a></p>
+                    <p><a href="/signup" className="hover:text-white">회원가입</a></p>
+                    <p><a href="/login" className="hover:text-white">로그인</a></p>
                     <p><a href="/dashboard" className="hover:text-white">수강 대시보드</a></p>
                     <p><a href="/ai-draft" className="hover:text-white">AI 초안 작성</a></p>
                   </div>
