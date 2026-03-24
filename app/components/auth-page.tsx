@@ -374,7 +374,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="font-['Space_Grotesk'] text-base font-bold uppercase tracking-[0.12em] text-[#173a34]">RESET EDU CENTER</p>
-              <p className="mt-2">민간 교육 수강과 제출용 자료 준비를 연결하는 회원 인증 화면.</p>
+              <p className="mt-2">민간 교육 수강과 성찰·실천 계획 정리를 연결하는 회원 인증 화면.</p>
             </div>
             <div className="flex flex-wrap gap-4">
               <a href="/" className="transition hover:text-[#a45127]">홈</a>

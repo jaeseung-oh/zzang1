@@ -38,8 +38,8 @@ const documentLabels: Record<string, string> = {
 };
 
 const draftLabels: Record<string, string> = {
-  "reflection-letter-guide": "AI 반성문 초안",
-  "petition-letter-guide": "AI 탄원서 초안",
+  "reflection-letter-guide": "성찰문 글쓰기 가이드",
+  "petition-letter-guide": "주변인 의견문 정리 가이드",
 };
 
 function formatTimestamp(timestamp?: { seconds: number }) {
@@ -113,7 +113,7 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Learner Dashboard</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">수강 현황과 발급 문서 대시보드</h1>
             <p className="mt-4 max-w-3xl text-sm leading-8 text-white/70">
-              결제 연동 전 단계 기준으로 익명 세션에 연결된 수강 진행률, 자동 발급 PDF, AI 초안 이력을 확인할 수 있습니다.
+              익명 세션에 연결된 수강 진행률, 민간 교육 확인 자료, 성찰문 글쓰기 가이드 이력을 한 곳에서 확인할 수 있습니다.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -121,7 +121,7 @@ export default function DashboardPage() {
               수강실로 이동
             </Link>
             <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-              AI 초안 작성
+              성찰문 글쓰기 가이드
             </Link>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function DashboardPage() {
               </div>
 
               <div className="rounded-[1.75rem] border border-white/10 bg-[#111f33] p-6">
-                <p className="text-sm font-semibold text-[#f0cb85]">AI 초안 이력</p>
+                <p className="text-sm font-semibold text-[#f0cb85]">글쓰기 가이드 이력</p>
                 <div className="mt-4 space-y-3">
                   {drafts.length ? (
                     drafts.slice(0, 3).map((draft) => (
@@ -167,7 +167,7 @@ export default function DashboardPage() {
                       </article>
                     ))
                   ) : (
-                    <p className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">아직 저장된 AI 초안이 없습니다.</p>
+                    <p className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">아직 저장된 글쓰기 가이드 이력이 없습니다.</p>
                   )}
                 </div>
               </div>

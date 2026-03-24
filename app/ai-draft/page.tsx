@@ -45,7 +45,7 @@ const caseTypeLabels: Record<FormState["caseType"], string> = {
 };
 
 const disclaimer =
-  "본 도구는 법률 검토나 상담을 제공하지 않으며, 사용자가 직접 양형자료 초안을 정리할 수 있도록 돕는 참고용 작성 도우미입니다.";
+  "본 도구는 법률 검토나 상담을 제공하지 않으며, 사용자가 자신의 경험과 생각을 바탕으로 성찰문을 스스로 정리할 수 있도록 돕는 참고용 글쓰기 가이드입니다.";
 
 export default function AiDraftPage() {
   const [form, setForm] = useState(initialState);
@@ -91,22 +91,22 @@ export default function AiDraftPage() {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-col gap-6 rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.3)] lg:flex-row lg:items-start lg:justify-between lg:p-8">
           <div className="max-w-3xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#f0cb85]">Phase 3. AI Drafting Helper</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#f0cb85]">Phase 3. Reflection Writing Guide</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
-              AI 반성문/탄원서 초안 작성 도우미
+              성찰문 글쓰기 가이드
             </h1>
             <p className="mt-5 max-w-2xl text-sm leading-8 text-white/70 sm:text-base">
-              사건 유형, 반성 사유, 가족관계, 재범 방지 계획을 바탕으로 제출용 초안 구조를 제안합니다.
-              생성된 문구는 참고용이며, 사용자가 직접 사실관계를 확인하고 수정한 뒤 사용해야 합니다.
+              사건 이후의 성찰, 생활 변화, 재발 방지 계획을 바탕으로 스스로 글의 구조를 정리할 수 있게 돕습니다.
+              생성된 문구는 참고용 예시이며, 사용자가 직접 사실관계를 확인하고 자신의 표현으로 수정한 뒤 사용해야 합니다.
             </p>
           </div>
           <div className="w-full max-w-md rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#0b1523] p-5">
             <p className="text-sm font-semibold text-[#f0cb85]">중요 고지</p>
             <p className="mt-3 text-sm leading-7 text-white/75">{disclaimer}</p>
             <div className="mt-5 space-y-2 text-sm text-white/75">
-              <div>• 결과 보장 문구 없이 사실관계 중심으로 작성</div>
+              <div>• 과장 없이 사실관계와 생활 변화 중심으로 정리</div>
               <div>• 사용자가 직접 검토 및 수정</div>
-              <div>• 법률 검토나 법률대리 기능 아님</div>
+              <div>• 법률 문서 작성 대행이나 법률대리 기능 아님</div>
             </div>
           </div>
         </div>
@@ -115,14 +115,14 @@ export default function AiDraftPage() {
           <form onSubmit={handleSubmit} className="rounded-[2rem] border border-white/10 bg-[#0d1828] p-6 lg:p-8">
             <div className="grid gap-6 md:grid-cols-2">
               <label className="space-y-2 text-sm text-white/80">
-                <span>문서 유형</span>
+                <span>가이드 유형</span>
                 <select
                   value={form.documentType}
                   onChange={(e) => updateField("documentType", e.target.value as FormState["documentType"])}
                   className="w-full rounded-2xl border border-white/10 bg-[#08111d] px-4 py-3 text-white outline-none"
                 >
-                  <option value="reflection-letter-guide">AI 반성문 초안 작성 가이드</option>
-                  <option value="petition-letter-guide">AI 탄원서 초안 작성 가이드</option>
+                  <option value="reflection-letter-guide">성찰문 글쓰기 가이드</option>
+                  <option value="petition-letter-guide">주변인 의견문 정리 가이드</option>
                 </select>
               </label>
 

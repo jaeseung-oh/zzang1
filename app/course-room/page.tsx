@@ -29,7 +29,7 @@ const caseTypeOptions: Array<{ value: CaseType; label: string }> = [
 ];
 
 const disclaimer =
-  "본 과정은 법률 검토나 상담을 제공하지 않으며, 사용자가 직접 양형자료를 정리하고 최종 검토할 수 있도록 돕는 교육 서비스입니다.";
+  "본 과정은 법률 검토나 상담을 제공하지 않으며, 사용자가 자신의 생활 변화와 재발 방지 계획을 스스로 정리할 수 있도록 돕는 민간 교육 서비스입니다.";
 
 export default function CourseRoomPage() {
   const [learnerName, setLearnerName] = useState("");

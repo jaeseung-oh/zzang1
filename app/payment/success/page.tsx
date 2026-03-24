@@ -16,7 +16,7 @@ type ConfirmResponse = {
 };
 
 const disclaimer =
-  "본 서비스는 법률 검토나 상담을 제공하지 않으며, 스스로 양형자료를 준비할 수 있도록 돕는 교육 및 보조 양식 제공 서비스입니다.";
+  "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
 function PaymentSuccessContent() {
   const searchParams = useSearchParams();
@@ -92,7 +92,7 @@ function PaymentSuccessContent() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Toss Payments</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white">결제 완료 확인</h1>
         <p className="mt-4 text-sm leading-8 text-white/70">
-          결제 승인 후 구매 이력을 저장하고, 수강 및 자료 발급 단계로 연결합니다.
+          결제 승인 후 구매 이력을 저장하고, 수강 및 민간 교육 확인 자료 단계로 연결합니다.
         </p>
 
         <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#d3ad62]/10 p-4 text-sm leading-7 text-[#f7dfab]">

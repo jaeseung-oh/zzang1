@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 const trustIndicators = [
   {
-    title: "법원·경찰서 제출용",
+    title: "자발적 이수 확인",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="1.8">
         <path d="M12 3l7 4v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V7l7-4Z" />
@@ -22,7 +22,7 @@ const trustIndicators = [
     ),
   },
   {
-    title: "전문가 검수 완료",
+    title: "체계적인 학습 구성",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="1.8">
         <path d="M4 6h16v12H4z" />
@@ -47,7 +47,7 @@ const trustIndicators = [
     ),
   },
   {
-    title: "원스톱 제출 준비",
+    title: "실천 계획 정리",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="1.8">
         <path d="M6 20h12M8 20V10m8 10V6M12 20V4" />
@@ -260,7 +260,7 @@ export default function HomePage() {
 
       <section className="relative min-h-screen overflow-hidden">
         <div className="absolute inset-0">
-          <img src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80" alt="전문 교육 배경" className="h-full w-full object-cover" />
+          <img src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80" alt="민간 교육 배경" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(6,16,27,0.88),rgba(8,20,37,0.62))]" />
           <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:32px_32px] opacity-30" />
         </div>
@@ -270,14 +270,14 @@ export default function HomePage() {
             <Reveal delay={0}>
               <div>
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e9c98d]/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#f6deb0]">
-                  민간 재범방지 교육 수료센터
+                  성찰과 재발 방지를 위한 민간 온라인 교육 플랫폼
                 </div>
                 <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-[-0.04em] text-white sm:text-5xl lg:text-7xl">
-                  당신의 새로운 시작을 응원합니다.
-                  <span className="block text-[#f6deb0]">가장 빠르고 확실한 재범방지 교육 수료센터.</span>
+                  진정성 있는 성찰과 실천을 돕습니다.
+                  <span className="block text-[#f6deb0]">민간 재발 방지 교육과 자기점검의 출발점.</span>
                 </h1>
                 <p className="mt-6 max-w-2xl text-base leading-8 text-slate-200 sm:text-lg">
-                  사건 이후 필요한 민간 교육을 확인하고 수료증까지 원스톱으로 발급받으세요.
+                  사건 이후 자신의 생활을 차분히 돌아보고, 재발 방지를 위한 학습과 실천 계획을 스스로 정리할 수 있도록 돕습니다.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
                   <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[#d8b36a] px-7 py-4 text-sm font-bold text-[#06101b] transition hover:-translate-y-1 hover:bg-[#e9c98d]">
@@ -323,11 +323,11 @@ export default function HomePage() {
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
                     <p className="text-sm text-slate-300">추천 대상</p>
-                    <p className="mt-2 text-xl font-semibold">제출용 민간 교육 이수가 필요한 분</p>
+                    <p className="mt-2 text-xl font-semibold">교육 이수 사실과 실천 의지를 정리하고 싶은 분</p>
                   </div>
                 </div>
                 <div className="mt-6 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-sm leading-7 text-[#f8e7c4]">
-                  본 센터는 교육 이수 및 제출용 서류 준비를 돕는 민간 교육 플랫폼입니다.
+                  본 서비스는 법률 자문 기관이 아닌 민간 교육 플랫폼으로, 자발적인 성찰과 생활 실천 계획 정리를 돕습니다.
                 </div>
               </div>
             </Reveal>
@@ -356,7 +356,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-4 text-center">
               <div className="mx-auto inline-flex rounded-full bg-[#d8b36a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.26em] text-[#c79b4a]">Core Courses</div>
               <h2 className="text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">사건 유형별 핵심 교육 과정</h2>
-              <p className="mx-auto max-w-2xl text-base leading-8 text-slate-600">필요한 교육 내용을 직관적으로 선택하고 빠르게 수료할 수 있도록 핵심 과정만 정교하게 구성했습니다.</p>
+              <p className="mx-auto max-w-2xl text-base leading-8 text-slate-600">각 과정은 자기점검, 생활 습관 개선, 책임 의식 회복, 실천 계획 정리에 초점을 맞춰 구성되어 있습니다.</p>
             </div>
             <div className="mt-14 grid gap-6 lg:grid-cols-3">
               {courseCards.map((card, index) => (
@@ -415,8 +415,8 @@ export default function HomePage() {
             <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]">
               <div>
                 <div className="inline-flex rounded-full bg-[#d8b36a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#c79b4a]">Documents</div>
-                <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">제출 서류를 한눈에 확인하는 발급 서류 갤러리</h2>
-                <p className="mt-6 max-w-xl text-base leading-8 text-slate-600">교육 이수 후 필요한 핵심 문서를 직관적으로 준비할 수 있도록 실제 문서형 UI로 구성했습니다.</p>
+                <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">이수 후 확인 가능한 민간 교육 자료</h2>
+                <p className="mt-6 max-w-xl text-base leading-8 text-slate-600">수강생의 자발적인 교육 참여와 실천 의지를 정리할 수 있도록 돕는 민간 교육 확인 자료 예시입니다.</p>
                 <div className="mt-8 grid gap-4">
                   {documents.map((item, index) => (
                     <Reveal key={item.title} delay={index * 100}>
@@ -502,10 +502,10 @@ export default function HomePage() {
                   </div>
                   <div>
                     <p className="text-lg font-black">리셋에듀센터</p>
-                    <p className="text-sm text-slate-400">민간 재범방지 교육 수료센터</p>
+                    <p className="text-sm text-slate-400">성찰과 재발 방지를 위한 민간 온라인 교육 플랫폼</p>
                   </div>
                 </div>
-                <p className="mt-5 max-w-xl text-sm leading-7 text-slate-400">교육 이수와 제출 준비를 보다 신뢰감 있게 연결하는 프리미엄 온라인 교육 플랫폼.</p>
+                <p className="mt-5 max-w-xl text-sm leading-7 text-slate-400">자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 온라인 교육 플랫폼.</p>
               </div>
               <div className="grid gap-6 sm:grid-cols-2">
                 <div>
@@ -525,12 +525,16 @@ export default function HomePage() {
                     <p><a href="/signup" className="hover:text-white">회원가입</a></p>
                     <p><a href="/login" className="hover:text-white">로그인</a></p>
                     <p><a href="/dashboard" className="hover:text-white">수강 대시보드</a></p>
-                    <p><a href="/ai-draft" className="hover:text-white">AI 초안 작성</a></p>
+                    <p><a href="/ai-draft" className="hover:text-white">성찰문 글쓰기 가이드</a></p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="mt-10 border-t border-white/10 pt-6 text-sm text-slate-500">© 2026 Reset Edu Center. All rights reserved.</div>
+            <div className="mt-10 border-t border-white/10 pt-6 text-sm leading-7 text-slate-500">
+              <p>본 센터의 수료확인서, 서약서 및 기타 자료는 수강생의 자발적인 교육 이수와 재발 방지 의지를 정리·확인하기 위한 순수 민간 교육 자료입니다.</p>
+              <p>특정 재판, 수사 또는 행정절차에서의 유리한 결과나 법적 효력을 보장하지 않으며, 법률 자문이나 법률사무를 제공하지 않습니다.</p>
+              <p className="mt-3">© 2026 Reset Edu Center. All rights reserved.</p>
+            </div>
           </div>
         </footer>
       </Reveal>
