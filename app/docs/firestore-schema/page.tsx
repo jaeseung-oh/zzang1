@@ -95,10 +95,10 @@ export default function FirestoreSchemaPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#f0cb85]">Phase 1</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em]">Firebase Firestore Schema</h1>
         <p className="mt-4 max-w-3xl text-sm leading-8 text-white/70">
-          법률서비스 아님 고지, 사용자 최종 검토 책임, 수강 이력, PDF 발급 이력을 함께 남기는 구조입니다.
+          민간 교육 고지, 사용자 최종 검토 책임, 수강 이력, PDF 발급 이력을 함께 남기는 구조입니다.
         </p>
         <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/30 bg-[#d3ad62]/10 p-5 text-sm leading-7 text-[#f8dfae]">
-          본 서비스는 법률 검토나 상담을 제공하지 않으며, 스스로 양형자료를 준비할 수 있도록 돕는 교육 및 보조 양식 제공 서비스입니다.
+          본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.
         </div>
         <div className="mt-10 space-y-5">
           {collections.map((collection) => (

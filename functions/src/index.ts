@@ -16,7 +16,7 @@ const tossSecretKey = "test_sk_docs_Ovk5rk1EwkEbP0W43n07xlzm";
 const tossAuthHeader = `Basic ${Buffer.from(`${tossSecretKey}:`).toString("base64")}`;
 
 const LEGAL_NOTICE =
-  "본 서비스는 법률 검토나 상담을 제공하지 않으며, 스스로 양형자료를 준비할 수 있도록 돕는 교육 및 보조 양식 제공 서비스입니다.";
+  "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
 const COURSE_COMPLETION_DOCUMENTS = [
   {
@@ -24,8 +24,8 @@ const COURSE_COMPLETION_DOCUMENTS = [
     title: "건전음주 교육 이수증",
     subtitle: "1시간 온라인 교육 과정 이수 확인",
     body: [
-      "신청자는 양형자료 준비를 위한 1시간 온라인 교육 과정을 수료했습니다.",
-      "본 문서는 사용자의 자기 준비와 제출 보조를 위한 교육 이수 확인 문서입니다.",
+      "신청자는 자기점검과 재발 방지 학습을 위한 1시간 온라인 교육 과정을 수료했습니다.",
+      "본 문서는 사용자의 자발적인 교육 참여와 이수 사실을 확인하기 위한 민간 교육 자료입니다.",
     ],
   },
   {
@@ -43,7 +43,7 @@ const COURSE_COMPLETION_DOCUMENTS = [
     subtitle: "재발 방지와 생활 관리 계획 서약",
     body: [
       "신청자는 향후 동일 또는 유사한 일이 반복되지 않도록 생활 관리 계획을 수립했습니다.",
-      "본 서약 문구는 사용자의 자필 서명 및 최종 검토 후 제출용으로 활용할 수 있습니다.",
+      "본 서약 문구는 사용자의 자필 서명과 최종 검토를 거쳐 개인 기록용 또는 교육 확인용으로 활용할 수 있습니다.",
     ],
   },
 ] as const;
@@ -140,15 +140,15 @@ function getAuthenticatedUid(request: { auth?: { uid?: string } | null }) {
 
 function buildPrompt(data: DraftInput) {
   const documentLabel =
-    data.documentType === "reflection-letter-guide" ? "반성문 초안 작성 가이드" : "탄원서 초안 작성 가이드";
+    data.documentType === "reflection-letter-guide" ? "성찰문 글쓰기 가이드" : "주변인 의견문 정리 가이드";
 
   return [
-    "당신은 대한민국 형사절차에 제출할 양형자료 초안 정리를 돕는 문서 작성 보조자입니다.",
+    "당신은 사용자가 자신의 경험과 생활 변화를 차분히 정리할 수 있도록 돕는 성찰문 글쓰기 가이드입니다.",
     "반드시 지켜야 할 원칙:",
-    "1. 법률 자문, 판결 예측, 감형 보장 표현 금지",
+    "1. 법률 자문, 판결 예측, 결과 보장 표현 금지",
     "2. 사실관계와 반성, 재범 방지 계획 중심으로 차분하고 진정성 있게 작성",
     "3. 사용자가 직접 수정할 수 있도록 과장되지 않은 문장 구조 제공",
-    "4. 변호사, 법률대리, 결과 보장처럼 읽히는 문장 금지",
+    "4. 변호사, 법률대리, 법률문서 대행처럼 읽히는 문장 금지",
     "5. 마지막 문단에는 사용자가 사실관계를 다시 확인해야 한다는 취지의 안내 한 줄 포함",
     "",
     `문서 유형: ${documentLabel}`,
@@ -168,9 +168,9 @@ function buildPrompt(data: DraftInput) {
 
 function buildFallbackDraft(data: DraftInput) {
   const title =
-    data.documentType === "reflection-letter-guide" ? "반성문 초안 작성 가이드" : "탄원서 초안 작성 가이드";
+    data.documentType === "reflection-letter-guide" ? "성찰문 글쓰기 가이드" : "주변인 의견문 정리 가이드";
 
-  return `${title}\n\n저는 이번 사건으로 인해 제 행동이 사회와 주변 사람들에게 미칠 수 있는 영향을 무겁게 받아들이고 있습니다. 경솔했던 판단과 부주의한 태도에 대해 깊이 반성하고 있으며, 같은 일이 반복되지 않도록 생활 전반을 다시 정비하고자 합니다.\n\n특히 ${data.remorseReason.trim()}와 같은 점을 계속 돌아보며, 단순한 후회에 그치지 않고 실제 행동 변화로 이어가야 한다고 생각하고 있습니다. ${data.familyContext.trim() || "가족과 주변 환경 또한 제게 더 신중한 태도를 요구하고 있습니다."}\n\n앞으로는 ${data.preventionPlan.trim()}와 같은 구체적인 재범 방지 계획을 실천하면서, 다시는 유사한 일이 발생하지 않도록 교육과 생활 관리를 병행하겠습니다.\n\n본 초안은 제출 준비를 돕기 위한 참고용 문안이며, 실제 제출 전에는 사건 경위와 사실관계를 직접 다시 확인하고 문구를 수정해 사용하시기 바랍니다.`;
+  return `${title}\n\n저는 이번 사건으로 인해 제 행동이 사회와 주변 사람들에게 미칠 수 있는 영향을 무겁게 받아들이고 있습니다. 경솔했던 판단과 부주의한 태도에 대해 깊이 반성하고 있으며, 같은 일이 반복되지 않도록 생활 전반을 다시 정비하고자 합니다.\n\n특히 ${data.remorseReason.trim()}와 같은 점을 계속 돌아보며, 단순한 후회에 그치지 않고 실제 행동 변화로 이어가야 한다고 생각하고 있습니다. ${data.familyContext.trim() || "가족과 주변 환경 또한 제게 더 신중한 태도를 요구하고 있습니다."}\n\n앞으로는 ${data.preventionPlan.trim()}와 같은 구체적인 재범 방지 계획을 실천하면서, 다시는 유사한 일이 발생하지 않도록 교육과 생활 관리를 병행하겠습니다.\n\n본 문안은 자기점검과 글 정리를 돕기 위한 참고용 예시이며, 실제 사용 전에는 사실관계와 표현을 직접 다시 확인하고 자신의 말로 수정해 사용하시기 바랍니다.`;
 }
 
 function formatCaseType(caseType: SaveCourseProgressRequest["caseType"]) {
@@ -208,7 +208,7 @@ async function buildCertificatePdfBytes(args: {
   page.drawRectangle({ x: 28, y: 28, width: 786, height: 539, color: rgb(0.03, 0.07, 0.12) });
   page.drawRectangle({ x: 46, y: 46, width: 750, height: 503, borderColor: rgb(0.83, 0.68, 0.38), borderWidth: 1.5 });
 
-  page.drawText("RESET LEGAL EDU", {
+  page.drawText("RESET EDU CENTER", {
     x: 64,
     y: 515,
     size: 14,

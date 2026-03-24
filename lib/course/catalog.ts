@@ -19,8 +19,8 @@ export type CourseDefinition = {
 export const courseCatalog: CourseDefinition[] = [
   {
     id: "rapid-sentencing-prep",
-    title: "긴급 양형자료 준비 1시간 코스",
-    subtitle: "제출 직전 사용자를 위한 핵심 교육, 체크리스트, 발급 문서 흐름",
+    title: "자기점검과 실천 계획 정리 1시간 코스",
+    subtitle: "교육 이수와 생활 실천 계획 정리를 위한 핵심 교육, 체크리스트, 확인 자료 흐름",
     durationMinutes: 60,
     priceLabel: "결제 연동 보류",
     caseTypes: ["음주운전", "성범죄", "마약", "폭행", "기타"],
@@ -28,15 +28,15 @@ export const courseCatalog: CourseDefinition[] = [
     modules: [
       {
         id: "orientation",
-        title: "오리엔테이션과 제출 전 주의사항",
+        title: "오리엔테이션과 이용 전 유의사항",
         minutes: 10,
         summary: "서비스 성격, 면책 고지, 사용자 직접 검토 책임을 먼저 확인합니다.",
       },
       {
         id: "case-organization",
-        title: "사건 정리와 일정 역산",
+        title: "상황 정리와 일정 점검",
         minutes: 15,
-        summary: "제출 마감일, 준비 서류, 우선순위를 빠르게 정리합니다.",
+        summary: "개인 일정, 준비 항목, 우선순위를 차분히 정리합니다.",
       },
       {
         id: "prevention-plan",
@@ -46,9 +46,9 @@ export const courseCatalog: CourseDefinition[] = [
       },
       {
         id: "final-review",
-        title: "최종 검토와 발급 문서 확인",
+        title: "최종 점검과 확인 자료 살펴보기",
         minutes: 15,
-        summary: "자기 검토 체크 후 발급 문서와 AI 초안을 연결합니다.",
+        summary: "자기 검토 체크 후 확인 자료와 글쓰기 가이드를 함께 살펴봅니다.",
       },
     ],
   },
