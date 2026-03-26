@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>수료증 출력 페이지</title>
+    <style>
+      :root {
+        --paper-width: 1122px;
+        --paper-height: 793px;
+        --gold: #b38a3d;
+        --gold-soft: #e6d3a4;
+        --ink: #1f2430;
+        --muted: #5f6775;
+        --paper: #fffdf8;
+        --bg: #efe8da;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Times New Roman", "Noto Serif KR", serif;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at top, rgba(179, 138, 61, 0.12), transparent 28%),
+          linear-gradient(180deg, #f6f2e9 0%, #e9dfcf 100%);
+      }
+
+      .page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 24px;
+        padding: 32px 16px 48px;
+      }
+
+      .certificate {
+        width: min(100%, var(--paper-width));
+        min-height: min(79vw, var(--paper-height));
+        position: relative;
+        background:
+          linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(255, 252, 245, 0.98)),
+          var(--paper);
+        border: 10px solid var(--gold-soft);
+        box-shadow: 0 18px 60px rgba(41, 33, 18, 0.18);
+        overflow: hidden;
+      }
+
+      .certificate::before,
+      .certificate::after {
+        content: "";
+        position: absolute;
+        inset: 18px;
+        border: 2px solid rgba(179, 138, 61, 0.9);
+        pointer-events: none;
+      }
+
+      .certificate::after {
+        inset: 34px;
+        border-color: rgba(179, 138, 61, 0.45);
+      }
+
+      .corner {
+        position: absolute;
+        width: 120px;
+        height: 120px;
+        border: 3px solid rgba(179, 138, 61, 0.55);
+      }
+
+      .corner.top-left {
+        top: 24px;
+        left: 24px;
+        border-right: 0;
+        border-bottom: 0;
+      }
+
+      .corner.top-right {
+        top: 24px;
+        right: 24px;
+        border-left: 0;
+        border-bottom: 0;
+      }
+
+      .corner.bottom-left {
+        bottom: 24px;
+        left: 24px;
+        border-right: 0;
+        border-top: 0;
+      }
+
+      .corner.bottom-right {
+        bottom: 24px;
+        right: 24px;
+        border-left: 0;
+        border-top: 0;
+      }
+
+      .inner {
+        position: relative;
+        z-index: 1;
+        min-height: var(--paper-height);
+        padding: 70px 88px 58px;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .eyebrow {
+        text-align: center;
+        font-size: 18px;
+        letter-spacing: 0.35em;
+        color: var(--gold);
+        margin: 0;
+      }
+
+      .title {
+        margin: 18px 0 8px;
+        text-align: center;
+        font-size: 62px;
+        letter-spacing: 0.18em;
+        font-weight: 700;
+      }
+
+      .subtitle {
+        margin: 0;
+        text-align: center;
+        font-size: 18px;
+        color: var(--muted);
+        letter-spacing: 0.08em;
+      }
+
+      .body {
+        margin-top: 58px;
+        text-align: center;
+        line-height: 1.9;
+      }
+
+      .body p {
+        margin: 0;
+        font-size: 24px;
+      }
+
+      .name {
+        display: inline-block;
+        margin: 28px 0 20px;
+        padding: 0 18px 8px;
+        font-size: 56px;
+        font-weight: 700;
+        border-bottom: 2px solid rgba(31, 36, 48, 0.35);
+      }
+
+      .course {
+        display: inline-block;
+        margin-top: 8px;
+        padding: 12px 28px;
+        border: 1px solid rgba(179, 138, 61, 0.45);
+        background: rgba(179, 138, 61, 0.08);
+        font-size: 28px;
+      }
+
+      .desc {
+        margin-top: 28px;
+        font-size: 20px;
+        color: var(--muted);
+      }
+
+      .footer {
+        margin-top: auto;
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 24px;
+        align-items: end;
+      }
+
+      .meta {
+        font-size: 18px;
+        line-height: 1.8;
+      }
+
+      .meta strong {
+        display: inline-block;
+        min-width: 88px;
+        color: var(--gold);
+      }
+
+      .org {
+        text-align: right;
+      }
+
+      .org-name {
+        margin: 0;
+        font-size: 32px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+      }
+
+      .seal {
+        width: 104px;
+        height: 104px;
+        margin: 14px 0 0 auto;
+        border: 3px solid rgba(179, 138, 61, 0.72);
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        color: rgba(179, 138, 61, 0.82);
+        font-size: 18px;
+        font-weight: 700;
+        line-height: 1.35;
+        text-align: center;
+      }
+
+      .actions {
+        display: flex;
+        justify-content: center;
+      }
+
+      .print-btn {
+        border: 0;
+        border-radius: 999px;
+        padding: 16px 28px;
+        background: linear-gradient(135deg, #2b2a26, #5b4522);
+        color: #fff8ea;
+        font-size: 17px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 14px 28px rgba(35, 29, 18, 0.18);
+      }
+
+      .print-btn:hover {
+        transform: translateY(-1px);
+      }
+
+      @page {
+        size: A4 landscape;
+        margin: 0;
+      }
+
+      @media (max-width: 1200px) {
+        .certificate {
+          min-height: auto;
+        }
+
+        .inner {
+          min-height: auto;
+          padding: 54px 36px 42px;
+        }
+
+        .title {
+          font-size: 44px;
+        }
+
+        .name {
+          font-size: 40px;
+        }
+
+        .course {
+          font-size: 22px;
+        }
+
+        .footer {
+          grid-template-columns: 1fr;
+        }
+
+        .org {
+          text-align: left;
+        }
+
+        .seal {
+          margin-left: 0;
+        }
+      }
+
+      @media print {
+        body {
+          background: #ffffff;
+        }
+
+        .page {
+          display: block;
+          padding: 0;
+        }
+
+        .actions {
+          display: none !important;
+        }
+
+        .certificate {
+          width: 100%;
+          min-height: 100%;
+          box-shadow: none;
+          margin: 0;
+          break-inside: avoid;
+        }
+
+        .inner {
+          min-height: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="certificate" aria-label="수료증">
+        <div class="corner top-left"></div>
+        <div class="corner top-right"></div>
+        <div class="corner bottom-left"></div>
+        <div class="corner bottom-right"></div>
+
+        <div class="inner">
+          <p class="eyebrow">CERTIFICATE OF COMPLETION</p>
+          <h1 class="title">수 료 증</h1>
+          <p class="subtitle">음주운전 예방교육 공식 수료 확인서</p>
+
+          <div class="body">
+            <p>아래의 교육생은 본 기관이 시행한</p>
+            <div class="name" id="studentName">홍길동</div>
+            <p>교육과정을 성실히 이수하였으므로</p>
+            <div class="course" id="courseTitle">음주운전 예방교육 수료</div>
+            <p class="desc">위와 같이 수료를 증명합니다.</p>
+          </div>
+
+          <div class="footer">
+            <div class="meta">
+              <div><strong>수료일자</strong><span id="issueDate"></span></div>
+              <div><strong>문서번호</strong><span id="docNumber"></span></div>
+              <div><strong>발급용도</strong>교육 수료 확인 및 제출용</div>
+            </div>
+
+            <div class="org">
+              <p class="org-name">RESET EDU CENTER</p>
+              <div class="seal">공식<br />인증</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="actions">
+        <button class="print-btn" type="button" onclick="window.print()">
+          수료증 인쇄하기 / PDF로 저장하기
+        </button>
+      </div>
+    </div>
+
+    <script>
+      const certificateData = {
+        studentName: "홍길동",
+        courseTitle: "음주운전 예방교육 수료",
+        issueDate: new Date().toLocaleDateString("ko-KR"),
+      };
+
+      const today = new Date();
+      const docNumber =
+        "CERT-" +
+        today.getFullYear() +
+        String(today.getMonth() + 1).padStart(2, "0") +
+        String(today.getDate()).padStart(2, "0") +
+        "-001";
+
+      document.getElementById("studentName").textContent = certificateData.studentName;
+      document.getElementById("courseTitle").textContent = certificateData.courseTitle;
+      document.getElementById("issueDate").textContent = certificateData.issueDate;
+      document.getElementById("docNumber").textContent = docNumber;
+    </script>
+  </body>
+</html>
