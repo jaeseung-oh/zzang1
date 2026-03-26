@@ -9,7 +9,7 @@
 ```json
 {
   "projects": {
-    "default": "your-real-project-id"
+    "default": "jaeseung-try-2-34973152-e44aa"
   }
 }
 ```
@@ -43,7 +43,7 @@ firebase deploy --only functions
 배포 후 `confirmPayment` URL 예시:
 
 ```text
-https://asia-northeast3-your-project-id.cloudfunctions.net/confirmPayment
+https://asia-northeast3-jaeseung-try-2-34973152-e44aa.cloudfunctions.net/confirmPayment
 ```
 
 ## 5. Cloudflare Pages 환경 변수
@@ -51,7 +51,7 @@ https://asia-northeast3-your-project-id.cloudfunctions.net/confirmPayment
 Cloudflare Pages에 아래 값을 넣어야 결제 성공 페이지가 Firebase Function을 호출할 수 있습니다.
 
 ```text
-NEXT_PUBLIC_TOSS_CONFIRM_URL=https://asia-northeast3-your-project-id.cloudfunctions.net/confirmPayment
+NEXT_PUBLIC_TOSS_CONFIRM_URL=https://asia-northeast3-jaeseung-try-2-34973152-e44aa.cloudfunctions.net/confirmPayment
 ```
 
 ## 6. Firestore / Storage Rules 배포

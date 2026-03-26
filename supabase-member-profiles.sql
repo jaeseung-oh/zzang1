@@ -4,6 +4,7 @@ create table if not exists public.member_profiles (
     id uuid primary key default gen_random_uuid(),
     kakao_user_id text not null unique,
     provider text not null default 'kakao',
+    provider_user_id text,
     nickname text,
     profile_image_url text,
     thumbnail_image_url text,
@@ -21,7 +22,19 @@ alter table public.member_profiles
     add column if not exists signup_completed_at timestamptz,
     add column if not exists signup_count integer not null default 0,
     add column if not exists login_count integer not null default 0,
-    add column if not exists last_auth_mode text;
+    add column if not exists last_auth_mode text,
+    add column if not exists provider text not null default 'kakao',
+    add column if not exists provider_user_id text;
+
+update public.member_profiles
+set provider = coalesce(nullif(provider, ''), 'kakao'),
+    provider_user_id = coalesce(provider_user_id, kakao_user_id)
+where provider_user_id is null
+   or provider is null
+   or provider = '';
+
+create unique index if not exists member_profiles_provider_user_id_key
+    on public.member_profiles (provider, provider_user_id);
 
 create index if not exists member_profiles_last_login_at_idx
     on public.member_profiles (last_login_at desc);

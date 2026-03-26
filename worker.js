@@ -4,6 +4,31 @@ export default {
     }
 };
 
+const PROVIDERS = {
+    kakao: {
+        id: 'kakao',
+        label: '카카오',
+        authorizeUrl: 'https://kauth.kakao.com/oauth/authorize',
+        tokenUrl: 'https://kauth.kakao.com/oauth/token',
+        userUrl: 'https://kapi.kakao.com/v2/user/me',
+        startPath: '/api/auth/kakao/start',
+        callbackPath: '/api/auth/kakao/callback',
+        logoutCallbackPath: '/api/logout/kakao/callback',
+        globalLogoutUrl: 'https://kauth.kakao.com/oauth/logout'
+    },
+    naver: {
+        id: 'naver',
+        label: '네이버',
+        authorizeUrl: 'https://nid.naver.com/oauth2.0/authorize',
+        tokenUrl: 'https://nid.naver.com/oauth2.0/token',
+        userUrl: 'https://openapi.naver.com/v1/nid/me',
+        startPath: '/api/auth/naver/start',
+        callbackPath: '/api/auth/naver/callback',
+        logoutCallbackPath: '/api/logout/naver/callback',
+        globalLogoutUrl: null
+    }
+};
+
 async function handleRequest(request, env) {
     const url = new URL(request.url);
     const corsHeaders = buildCorsHeaders(request, env);
@@ -13,24 +38,40 @@ async function handleRequest(request, env) {
     }
 
     try {
-        if (url.pathname === '/api/auth/kakao/start' && request.method === 'GET') {
-            return startKakaoLogin(request, env);
+        if (url.pathname === PROVIDERS.kakao.startPath && request.method === 'GET') {
+            return startOAuth(request, env, 'kakao');
         }
 
-        if (url.pathname === '/api/auth/kakao/callback' && request.method === 'GET') {
-            return handleKakaoCallback(request, env);
+        if (url.pathname === PROVIDERS.kakao.callbackPath && request.method === 'GET') {
+            return handleOAuthCallback(request, env, 'kakao');
+        }
+
+        if (url.pathname === PROVIDERS.naver.startPath && request.method === 'GET') {
+            return startOAuth(request, env, 'naver');
+        }
+
+        if (url.pathname === PROVIDERS.naver.callbackPath && request.method === 'GET') {
+            return handleOAuthCallback(request, env, 'naver');
         }
 
         if (url.pathname === '/api/me' && request.method === 'GET') {
             return handleCurrentUser(request, env, corsHeaders);
         }
 
-        if (url.pathname === '/api/logout/kakao/callback' && request.method === 'GET') {
-            return handleKakaoLogoutCallback(request, env);
+        if (url.pathname === PROVIDERS.kakao.logoutCallbackPath && request.method === 'GET') {
+            return handleProviderLogoutCallback(request, env);
+        }
+
+        if (url.pathname === PROVIDERS.naver.logoutCallbackPath && request.method === 'GET') {
+            return handleProviderLogoutCallback(request, env);
         }
 
         if (url.pathname === '/api/logout' && (request.method === 'POST' || request.method === 'GET')) {
             return handleLogout(request, env, corsHeaders);
+        }
+
+        if (url.pathname === '/api/stream/direct-upload' && request.method === 'POST') {
+            return handleStreamDirectUpload(request, env, corsHeaders);
         }
 
         return json({ error: 'not_found' }, 404, corsHeaders);
@@ -188,78 +229,109 @@ async function verifySessionValue(value, secret) {
     }
 }
 
-async function startKakaoLogin(request, env) {
-    assertRequiredEnv(env);
+function getProviderConfig(provider) {
+    const config = PROVIDERS[provider];
+    if (!config) {
+        throw new Error(`Unsupported auth provider: ${provider}`);
+    }
+    return config;
+}
 
+function getOAuthCookieName(provider, field) {
+    return `${provider}_oauth_${field}`;
+}
+
+function clearOAuthCookies(provider) {
+    return ['state', 'next', 'mode'].map((field) => makeCookie(getOAuthCookieName(provider, field), '', { maxAge: 0, sameSite: 'Lax' }));
+}
+
+function readOAuthContext(request, provider) {
+    return {
+        state: getCookie(request, getOAuthCookieName(provider, 'state')),
+        next: getCookie(request, getOAuthCookieName(provider, 'next')),
+        mode: getCookie(request, getOAuthCookieName(provider, 'mode'))
+    };
+}
+
+async function startOAuth(request, env, provider) {
+    assertBaseEnv(env);
+    assertProviderEnv(provider, env);
+
+    const providerConfig = getProviderConfig(provider);
     const url = new URL(request.url);
     const next = sanitizeNextUrl(url.searchParams.get('next'), env.APP_BASE_URL);
     const mode = url.searchParams.get('mode') === 'signup' ? 'signup' : 'login';
     const state = crypto.randomUUID();
     const forcePrompt = url.searchParams.get('prompt') === 'login' || mode === 'signup';
 
-    const authorizeUrl = new URL('https://kauth.kakao.com/oauth/authorize');
-    authorizeUrl.searchParams.set('client_id', env.KAKAO_REST_API_KEY);
-    authorizeUrl.searchParams.set('redirect_uri', env.KAKAO_REDIRECT_URI);
-    authorizeUrl.searchParams.set('response_type', 'code');
-    authorizeUrl.searchParams.set('scope', 'profile_nickname,profile_image');
-    authorizeUrl.searchParams.set('state', state);
-    if (forcePrompt) {
-        authorizeUrl.searchParams.set('prompt', 'login');
+    const authorizeUrl = new URL(providerConfig.authorizeUrl);
+
+    if (provider === 'kakao') {
+        authorizeUrl.searchParams.set('client_id', env.KAKAO_REST_API_KEY);
+        authorizeUrl.searchParams.set('redirect_uri', env.KAKAO_REDIRECT_URI);
+        authorizeUrl.searchParams.set('response_type', 'code');
+        authorizeUrl.searchParams.set('scope', 'profile_nickname,profile_image');
+        authorizeUrl.searchParams.set('state', state);
+        if (forcePrompt) {
+            authorizeUrl.searchParams.set('prompt', 'login');
+        }
+    } else {
+        authorizeUrl.searchParams.set('response_type', 'code');
+        authorizeUrl.searchParams.set('client_id', env.NAVER_CLIENT_ID);
+        authorizeUrl.searchParams.set('redirect_uri', env.NAVER_REDIRECT_URI);
+        authorizeUrl.searchParams.set('state', state);
     }
 
     const headers = new Headers();
     appendSetCookies(headers, [
-        makeCookie('kakao_oauth_state', state, { maxAge: 600, sameSite: 'Lax' }),
-        makeCookie('kakao_oauth_next', next, { maxAge: 600, sameSite: 'Lax' }),
-        makeCookie('kakao_oauth_mode', mode, { maxAge: 600, sameSite: 'Lax' })
+        makeCookie(getOAuthCookieName(provider, 'state'), state, { maxAge: 600, sameSite: 'Lax' }),
+        makeCookie(getOAuthCookieName(provider, 'next'), next, { maxAge: 600, sameSite: 'Lax' }),
+        makeCookie(getOAuthCookieName(provider, 'mode'), mode, { maxAge: 600, sameSite: 'Lax' })
     ]);
 
     return redirect(authorizeUrl.toString(), headers);
 }
 
-async function handleKakaoCallback(request, env) {
-    assertRequiredEnv(env);
+async function handleOAuthCallback(request, env, provider) {
+    assertBaseEnv(env);
+    assertProviderEnv(provider, env);
 
+    const providerConfig = getProviderConfig(provider);
     const url = new URL(request.url);
     const code = url.searchParams.get('code');
     const state = url.searchParams.get('state');
     const oauthError = url.searchParams.get('error');
     const oauthErrorDescription = url.searchParams.get('error_description');
-    const savedState = getCookie(request, 'kakao_oauth_state');
-    const next = sanitizeNextUrl(getCookie(request, 'kakao_oauth_next'), env.APP_BASE_URL);
-    const mode = getCookie(request, 'kakao_oauth_mode') === 'signup' ? 'signup' : 'login';
-
-    const clearCookies = [
-        makeCookie('kakao_oauth_state', '', { maxAge: 0, sameSite: 'Lax' }),
-        makeCookie('kakao_oauth_next', '', { maxAge: 0, sameSite: 'Lax' }),
-        makeCookie('kakao_oauth_mode', '', { maxAge: 0, sameSite: 'Lax' })
-    ];
+    const oauthContext = readOAuthContext(request, provider);
+    const next = sanitizeNextUrl(oauthContext.next, env.APP_BASE_URL);
+    const mode = oauthContext.mode === 'signup' ? 'signup' : 'login';
+    const clearCookies = clearOAuthCookies(provider);
 
     if (oauthError) {
-        const errorUrl = withParams(next, { auth_error: oauthErrorDescription || oauthError, mode });
+        const errorUrl = withParams(next, { auth_error: oauthErrorDescription || oauthError, mode, provider });
         const headers = new Headers();
         appendSetCookies(headers, clearCookies);
         return redirect(errorUrl, headers);
     }
 
     if (!code) {
-        const errorUrl = withParams(next, { auth_error: 'missing_code', mode });
+        const errorUrl = withParams(next, { auth_error: 'missing_code', mode, provider });
         const headers = new Headers();
         appendSetCookies(headers, clearCookies);
         return redirect(errorUrl, headers);
     }
 
-    if (!state || !savedState || state !== savedState) {
-        const errorUrl = withParams(next, { auth_error: 'invalid_state', mode });
+    if (!state || !oauthContext.state || state !== oauthContext.state) {
+        const errorUrl = withParams(next, { auth_error: 'invalid_state', mode, provider });
         const headers = new Headers();
         appendSetCookies(headers, clearCookies);
         return redirect(errorUrl, headers);
     }
 
-    const token = await exchangeCodeForToken(code, env);
-    const kakaoUser = await fetchKakaoUser(token.access_token);
-    const memberProfile = await persistMemberProfile(kakaoUser, mode, env);
-    const sessionPayload = buildSessionPayload(kakaoUser, memberProfile);
+    const token = await exchangeCodeForToken(provider, code, state, env);
+    const providerUser = await fetchProviderUser(provider, token.access_token);
+    const memberProfile = await persistMemberProfile(providerUser, provider, mode, env);
+    const sessionPayload = buildSessionPayload(providerUser, providerConfig.label, memberProfile);
     const sessionValue = await makeSessionValue(sessionPayload, env.SESSION_SECRET);
 
     const headers = new Headers();
@@ -268,15 +340,47 @@ async function handleKakaoCallback(request, env) {
         makeCookie('app_session', sessionValue, { maxAge: 60 * 60 * 24 * 30, sameSite: 'None' })
     ]);
 
-    return redirect(withParams(next, { login: 'success', mode }), headers);
+    return redirect(withParams(next, { login: 'success', mode, provider }), headers);
 }
 
-function buildSessionPayload(user, memberProfile) {
+function normalizeProviderUser(provider, rawUser) {
+    if (provider === 'kakao') {
+        return {
+            provider,
+            providerUserId: String(rawUser.id),
+            nickname: rawUser.properties?.nickname || rawUser.kakao_account?.profile?.nickname || '카카오 사용자',
+            name: rawUser.kakao_account?.name || rawUser.properties?.nickname || null,
+            profileImage: rawUser.properties?.profile_image || rawUser.kakao_account?.profile?.profile_image_url || '',
+            thumbnailImage: rawUser.properties?.thumbnail_image || rawUser.kakao_account?.profile?.thumbnail_image_url || '',
+            email: rawUser.kakao_account?.email || null,
+            rawUser
+        };
+    }
+
+    const profile = rawUser.response || {};
     return {
-        sub: String(user.id),
-        nickname: user.properties?.nickname || '카카오 사용자',
-        profileImage: user.properties?.profile_image || '',
-        thumbnailImage: user.properties?.thumbnail_image || '',
+        provider,
+        providerUserId: String(profile.id || ''),
+        nickname: profile.nickname || profile.name || '네이버 사용자',
+        name: profile.name || profile.nickname || null,
+        profileImage: profile.profile_image || '',
+        thumbnailImage: profile.profile_image || '',
+        email: profile.email || null,
+        rawUser
+    };
+}
+
+function buildSessionPayload(user, providerLabel, memberProfile) {
+    return {
+        sub: `${user.provider}:${user.providerUserId}`,
+        provider: user.provider,
+        providerLabel,
+        providerUserId: user.providerUserId,
+        nickname: user.nickname || null,
+        name: user.name || null,
+        email: user.email || null,
+        profileImage: user.profileImage || '',
+        thumbnailImage: user.thumbnailImage || '',
         memberProfileId: memberProfile?.id || null,
         profileSaved: Boolean(memberProfile),
         signupCompletedAt: memberProfile?.signup_completed_at || null,
@@ -288,36 +392,56 @@ function buildSessionPayload(user, memberProfile) {
     };
 }
 
-async function exchangeCodeForToken(code, env) {
-    const body = new URLSearchParams({
-        grant_type: 'authorization_code',
-        client_id: env.KAKAO_REST_API_KEY,
-        redirect_uri: env.KAKAO_REDIRECT_URI,
-        code
-    });
+async function exchangeCodeForToken(provider, code, state, env) {
+    if (provider === 'kakao') {
+        const body = new URLSearchParams({
+            grant_type: 'authorization_code',
+            client_id: env.KAKAO_REST_API_KEY,
+            redirect_uri: env.KAKAO_REDIRECT_URI,
+            code
+        });
 
-    if (env.KAKAO_CLIENT_SECRET) {
-        body.set('client_secret', env.KAKAO_CLIENT_SECRET);
+        if (env.KAKAO_CLIENT_SECRET) {
+            body.set('client_secret', env.KAKAO_CLIENT_SECRET);
+        }
+
+        const response = await fetch(PROVIDERS.kakao.tokenUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+            },
+            body: body.toString()
+        });
+
+        const text = await response.text();
+        if (!response.ok) {
+            throw new Error(`Kakao token exchange failed: ${response.status} ${text}`);
+        }
+
+        return JSON.parse(text);
     }
 
-    const response = await fetch('https://kauth.kakao.com/oauth/token', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
-        },
-        body: body.toString()
+    const tokenUrl = new URL(PROVIDERS.naver.tokenUrl);
+    tokenUrl.searchParams.set('grant_type', 'authorization_code');
+    tokenUrl.searchParams.set('client_id', env.NAVER_CLIENT_ID);
+    tokenUrl.searchParams.set('client_secret', env.NAVER_CLIENT_SECRET);
+    tokenUrl.searchParams.set('code', code);
+    tokenUrl.searchParams.set('state', state);
+
+    const response = await fetch(tokenUrl.toString(), {
+        method: 'GET'
     });
 
     const text = await response.text();
     if (!response.ok) {
-        throw new Error(`Kakao token exchange failed: ${response.status} ${text}`);
+        throw new Error(`Naver token exchange failed: ${response.status} ${text}`);
     }
 
     return JSON.parse(text);
 }
 
-async function fetchKakaoUser(accessToken) {
-    const response = await fetch('https://kapi.kakao.com/v2/user/me', {
+async function fetchProviderUser(provider, accessToken) {
+    const response = await fetch(getProviderConfig(provider).userUrl, {
         method: 'GET',
         headers: {
             Authorization: `Bearer ${accessToken}`
@@ -326,27 +450,38 @@ async function fetchKakaoUser(accessToken) {
 
     const text = await response.text();
     if (!response.ok) {
-        throw new Error(`Kakao user request failed: ${response.status} ${text}`);
+        throw new Error(`${getProviderConfig(provider).label} user request failed: ${response.status} ${text}`);
     }
 
-    return JSON.parse(text);
+    const rawUser = JSON.parse(text);
+    if (provider === 'naver' && rawUser.resultcode && rawUser.resultcode !== '00') {
+        throw new Error(`Naver user request failed: ${rawUser.message || rawUser.resultcode}`);
+    }
+
+    const user = normalizeProviderUser(provider, rawUser);
+    if (!user.providerUserId) {
+        throw new Error(`${getProviderConfig(provider).label} 사용자 ID를 확인하지 못했습니다.`);
+    }
+
+    return user;
 }
 
-async function persistMemberProfile(user, mode, env) {
+async function persistMemberProfile(user, provider, mode, env) {
     if (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) {
         return null;
     }
 
     const table = env.SUPABASE_PROFILE_TABLE || 'member_profiles';
     const now = new Date().toISOString();
-    const currentProfile = await fetchMemberProfileByKakaoUserId(String(user.id), table, env);
+    const currentProfile = await fetchMemberProfile(provider, user.providerUserId, table, env);
     const payload = {
-        kakao_user_id: String(user.id),
-        provider: 'kakao',
-        nickname: user.properties?.nickname || null,
-        profile_image_url: user.properties?.profile_image || null,
-        thumbnail_image_url: user.properties?.thumbnail_image || null,
-        raw_user_json: user,
+        provider,
+        provider_user_id: user.providerUserId,
+        kakao_user_id: provider === 'kakao' ? user.providerUserId : `naver:${user.providerUserId}`,
+        nickname: user.nickname || null,
+        profile_image_url: user.profileImage || null,
+        thumbnail_image_url: user.thumbnailImage || null,
+        raw_user_json: user.rawUser,
         signup_completed_at: currentProfile?.signup_completed_at || (mode === 'signup' ? now : null),
         signup_count: Number(currentProfile?.signup_count || 0) + (mode === 'signup' ? 1 : 0),
         login_count: Number(currentProfile?.login_count || 0) + 1,
@@ -355,7 +490,7 @@ async function persistMemberProfile(user, mode, env) {
         updated_at: now
     };
 
-    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}?on_conflict=kakao_user_id`, {
+    const response = await fetch(`${env.SUPABASE_URL}/rest/v1/${table}?on_conflict=provider,provider_user_id`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -375,10 +510,11 @@ async function persistMemberProfile(user, mode, env) {
     return Array.isArray(rows) ? rows[0] || null : rows;
 }
 
-async function fetchMemberProfileByKakaoUserId(kakaoUserId, table, env) {
+async function fetchMemberProfile(provider, providerUserId, table, env) {
     const url = new URL(env.SUPABASE_URL + '/rest/v1/' + table);
     url.searchParams.set('select', 'id,signup_completed_at,signup_count,login_count,last_auth_mode');
-    url.searchParams.set('kakao_user_id', 'eq.' + kakaoUserId);
+    url.searchParams.set('provider', 'eq.' + provider);
+    url.searchParams.set('provider_user_id', 'eq.' + providerUserId);
     url.searchParams.set('limit', '1');
 
     const response = await fetch(url.toString(), {
@@ -399,25 +535,96 @@ async function fetchMemberProfileByKakaoUserId(kakaoUserId, table, env) {
 }
 
 async function handleCurrentUser(request, env, corsHeaders) {
-    assertRequiredEnv(env);
+    assertBaseEnv(env);
     const sessionValue = getCookie(request, 'app_session');
     const session = await verifySessionValue(sessionValue, env.SESSION_SECRET);
     return json({ user: session }, 200, corsHeaders);
 }
 
+async function handleStreamDirectUpload(request, env, corsHeaders) {
+    assertBaseEnv(env);
+    assertStreamEnv(env);
+
+    const session = await requireAppSession(request, env);
+    const payload = await request.json().catch(() => null);
+    const requestedDuration = Number(payload?.maxDurationSeconds);
+    const maxDurationSeconds = Number.isFinite(requestedDuration)
+        ? Math.min(Math.max(Math.round(requestedDuration), 1), 36000)
+        : 3600;
+    const fileName = typeof payload?.fileName === 'string' ? payload.fileName.trim().slice(0, 128) : '';
+    const creatorId = typeof session.memberProfileId === 'string' && session.memberProfileId
+        ? session.memberProfileId
+        : String(session.sub || 'unknown');
+
+    const appOrigin = new URL(env.APP_BASE_URL).hostname;
+    const allowedOrigins = Array.isArray(payload?.allowedOrigins) && payload.allowedOrigins.length > 0
+        ? payload.allowedOrigins.filter((origin) => typeof origin === 'string' && origin.trim())
+        : [appOrigin];
+
+    const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_STREAM_ACCOUNT_ID}/stream/direct_upload`,
+        {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${env.CLOUDFLARE_STREAM_API_TOKEN}`
+            },
+            body: JSON.stringify({
+                maxDurationSeconds,
+                allowedOrigins,
+                creator: creatorId,
+                requireSignedURLs: Boolean(payload?.requireSignedURLs),
+                meta: {
+                    name: fileName || `stream-upload-${Date.now()}`
+                }
+            })
+        }
+    );
+
+    const data = await response.json().catch(() => null);
+    if (!response.ok || !data?.success || !data?.result?.uploadURL || !data?.result?.uid) {
+        const message =
+            data?.errors?.[0]?.message ||
+            data?.messages?.[0]?.message ||
+            `Cloudflare Stream direct upload failed: ${response.status}`;
+        return json({ error: 'stream_upload_init_failed', message }, response.status || 500, corsHeaders);
+    }
+
+    return json(
+        {
+            uid: data.result.uid,
+            uploadURL: data.result.uploadURL,
+            requireSignedURLs: Boolean(payload?.requireSignedURLs),
+            maxDurationSeconds,
+            maxUploadBytes: 200 * 1024 * 1024
+        },
+        200,
+        corsHeaders
+    );
+}
+
+async function requireAppSession(request, env) {
+    const sessionValue = getCookie(request, 'app_session');
+    const session = await verifySessionValue(sessionValue, env.SESSION_SECRET);
+    if (!session?.sub) {
+        throw new Error('로그인이 필요합니다.');
+    }
+    return session;
+}
+
 async function handleLogout(request, env, corsHeaders) {
-    assertRequiredEnv(env);
+    assertBaseEnv(env);
 
     if (request.method === 'GET') {
         const url = new URL(request.url);
         const next = sanitizeNextUrl(url.searchParams.get('next'), env.APP_BASE_URL);
-        const provider = url.searchParams.get('provider');
+        const provider = url.searchParams.get('provider') === 'naver' ? 'naver' : 'kakao';
 
-        if (provider === 'kakao') {
+        if (provider === 'kakao' && env.KAKAO_REST_API_KEY && env.KAKAO_REDIRECT_URI) {
             const callbackUrl = new URL('/api/logout/kakao/callback', env.KAKAO_REDIRECT_URI);
             callbackUrl.searchParams.set('next', next);
 
-            const logoutUrl = new URL('https://kauth.kakao.com/oauth/logout');
+            const logoutUrl = new URL(PROVIDERS.kakao.globalLogoutUrl);
             logoutUrl.searchParams.set('client_id', env.KAKAO_REST_API_KEY);
             logoutUrl.searchParams.set('logout_redirect_uri', callbackUrl.toString());
             return redirect(logoutUrl.toString());
@@ -425,7 +632,7 @@ async function handleLogout(request, env, corsHeaders) {
 
         const headers = new Headers();
         appendSetCookies(headers, makeCookie('app_session', '', { maxAge: 0, sameSite: 'None' }));
-        return redirect(withParams(next, { logged_out: '1' }), headers);
+        return redirect(withParams(next, { logged_out: '1', provider }), headers);
     }
 
     const headers = new Headers(corsHeaders);
@@ -433,8 +640,8 @@ async function handleLogout(request, env, corsHeaders) {
     return json({ ok: true }, 200, headers);
 }
 
-async function handleKakaoLogoutCallback(request, env) {
-    assertRequiredEnv(env);
+async function handleProviderLogoutCallback(request, env) {
+    assertBaseEnv(env);
 
     const next = sanitizeNextUrl(new URL(request.url).searchParams.get('next'), env.APP_BASE_URL);
     const headers = new Headers();
@@ -469,10 +676,30 @@ function withParams(baseUrl, values) {
     return url.toString();
 }
 
-function assertRequiredEnv(env) {
-    const required = ['KAKAO_REST_API_KEY', 'KAKAO_REDIRECT_URI', 'APP_BASE_URL', 'SESSION_SECRET'];
+function assertBaseEnv(env) {
+    const required = ['APP_BASE_URL', 'SESSION_SECRET'];
     const missing = required.filter((key) => !env[key]);
     if (missing.length > 0) {
         throw new Error(`Missing worker environment variables: ${missing.join(', ')}`);
+    }
+}
+
+function assertProviderEnv(provider, env) {
+    const requiredByProvider = {
+        kakao: ['KAKAO_REST_API_KEY', 'KAKAO_REDIRECT_URI'],
+        naver: ['NAVER_CLIENT_ID', 'NAVER_CLIENT_SECRET', 'NAVER_REDIRECT_URI']
+    };
+
+    const missing = requiredByProvider[provider].filter((key) => !env[key]);
+    if (missing.length > 0) {
+        throw new Error(`Missing ${provider} worker environment variables: ${missing.join(', ')}`);
+    }
+}
+
+function assertStreamEnv(env) {
+    const required = ['CLOUDFLARE_STREAM_ACCOUNT_ID', 'CLOUDFLARE_STREAM_API_TOKEN'];
+    const missing = required.filter((key) => !env[key]);
+    if (missing.length > 0) {
+        throw new Error(`Missing Cloudflare Stream environment variables: ${missing.join(', ')}`);
     }
 }

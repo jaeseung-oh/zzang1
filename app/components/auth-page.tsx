@@ -3,16 +3,38 @@
 import { useEffect, useMemo, useState } from "react";
 
 type AuthMode = "signup" | "login";
+type AuthProvider = "kakao" | "naver";
 
 type AuthUser = {
+  provider?: AuthProvider | null;
+  providerLabel?: string | null;
+  providerUserId?: string | null;
   nickname?: string | null;
   name?: string | null;
+  email?: string | null;
   lastAuthMode?: AuthMode | null;
   loginCount?: number | null;
   lastLoginAt?: string | null;
 };
 
 const AUTH_API_BASE_URL = (process.env.NEXT_PUBLIC_AUTH_API_BASE_URL ?? "https://reset-edu-kakao-auth.cfv47.workers.dev").replace(/\/$/, "");
+
+const providers: Array<{
+  id: AuthProvider;
+  label: string;
+  buttonClassName: string;
+}> = [
+  {
+    id: "kakao",
+    label: "카카오",
+    buttonClassName: "bg-[#fee500] text-[#191919] hover:-translate-y-0.5",
+  },
+  {
+    id: "naver",
+    label: "네이버",
+    buttonClassName: "bg-[#03c75a] text-white hover:-translate-y-0.5",
+  },
+];
 
 const modeCopy: Record<
   AuthMode,
@@ -25,41 +47,44 @@ const modeCopy: Record<
     idleMeta: string;
     readyMessage: string;
     disabledMessage: string;
-    kakaoLabel: string;
-    pendingMessage: string;
+    pendingByProvider: Record<AuthProvider, string>;
   }
 > = {
   signup: {
     eyebrow: "Create Account",
-    title: "카카오 계정으로 빠르게 가입하고 민간 교육 수강을 시작합니다",
-    intro: "카카오 계정으로 바로 회원가입을 시작하고, 이후 내 강의실과 발급 자료 화면으로 자연스럽게 연결합니다.",
+    title: "카카오와 네이버 계정으로 빠르게 가입하고 바로 수강을 시작합니다",
+    intro: "복잡한 입력 없이 카카오 또는 네이버 계정으로 회원가입을 시작하고, 이후 내 강의실과 발급 자료 화면으로 자연스럽게 연결합니다.",
     benefits: [
-      "카카오 계정으로 회원가입을 바로 시작할 수 있습니다.",
-      "가입 후에는 내 강의실, 수강 자료, 발급 문서 흐름으로 연결할 수 있습니다.",
-      "네이버는 추가 연동 계층이 필요해 현재는 카카오만 제공합니다.",
+      "카카오와 네이버 계정으로 회원가입을 바로 시작할 수 있습니다.",
+      "가입 후에는 내 강의실, 수강 자료, 발급 문서 흐름으로 곧바로 이어집니다.",
+      "로그인 상태가 유지되면 이후 방문에서도 더 빠르게 진입할 수 있습니다.",
     ],
     idleTitle: "회원가입이 필요합니다",
-    idleMeta: "카카오 계정으로 회원가입을 시작할 수 있습니다. 이메일 없이 닉네임과 프로필 기반으로 바로 진입합니다.",
-    readyMessage: "카카오 계정으로 회원가입을 시작할 수 있습니다.",
-    disabledMessage: "인증 API 주소가 설정되지 않아 카카오 회원가입을 시작할 수 없습니다.",
-    kakaoLabel: "카카오로 회원가입",
-    pendingMessage: "카카오 회원가입 화면으로 이동하는 중입니다.",
+    idleMeta: "카카오 또는 네이버 계정으로 회원가입을 시작할 수 있습니다. 이메일을 새로 입력하지 않아도 프로필 기반으로 바로 진입합니다.",
+    readyMessage: "카카오 또는 네이버 계정으로 회원가입을 시작할 수 있습니다.",
+    disabledMessage: "인증 API 주소가 설정되지 않아 소셜 회원가입을 시작할 수 없습니다.",
+    pendingByProvider: {
+      kakao: "카카오 회원가입 화면으로 이동하는 중입니다.",
+      naver: "네이버 회원가입 화면으로 이동하는 중입니다.",
+    },
   },
   login: {
     eyebrow: "Member Login",
-    title: "카카오 계정으로 로그인하고 내 강의실과 발급 현황을 확인합니다",
-    intro: "기존 회원은 카카오 계정으로 빠르게 로그인해 내 강의실, 수강 현황, 발급 자료 흐름으로 이어질 수 있습니다.",
+    title: "카카오와 네이버 계정으로 로그인하고 내 강의실과 발급 현황을 확인합니다",
+    intro: "기존 회원은 카카오 또는 네이버 계정으로 빠르게 로그인해 내 강의실, 수강 현황, 발급 자료 흐름으로 바로 이어질 수 있습니다.",
     benefits: [
-      "카카오 계정으로 간편하게 로그인할 수 있습니다.",
+      "카카오와 네이버 계정으로 간편하게 로그인할 수 있습니다.",
       "로그인 후에는 내 강의실과 발급 자료 화면으로 바로 이동할 수 있습니다.",
-      "현재 네이버 로그인은 추가 연동 계층이 필요해 비활성화되어 있습니다.",
+      "회원 상태는 Worker 세션 쿠키로 유지되어 새로고침 후에도 이어집니다.",
     ],
     idleTitle: "로그인이 필요합니다",
-    idleMeta: "카카오 계정으로 로그인할 수 있습니다. 이메일 없이 닉네임과 프로필 기반으로 바로 진입합니다.",
-    readyMessage: "카카오 계정으로 로그인할 수 있습니다.",
-    disabledMessage: "인증 API 주소가 설정되지 않아 카카오 로그인을 시작할 수 없습니다.",
-    kakaoLabel: "카카오로 로그인",
-    pendingMessage: "카카오 로그인 화면으로 이동하는 중입니다.",
+    idleMeta: "카카오 또는 네이버 계정으로 로그인할 수 있습니다. 승인 후 바로 학습 화면으로 이동할 수 있습니다.",
+    readyMessage: "카카오 또는 네이버 계정으로 로그인할 수 있습니다.",
+    disabledMessage: "인증 API 주소가 설정되지 않아 소셜 로그인을 시작할 수 없습니다.",
+    pendingByProvider: {
+      kakao: "카카오 로그인 화면으로 이동하는 중입니다.",
+      naver: "네이버 로그인 화면으로 이동하는 중입니다.",
+    },
   },
 };
 
@@ -73,6 +98,14 @@ function getApiUrl(path: string, params?: Record<string, string>) {
     });
   }
   return url.toString();
+}
+
+function getProviderLabel(provider?: string | null, providerLabel?: string | null) {
+  if (providerLabel) {
+    return providerLabel;
+  }
+
+  return providers.find((item) => item.id === provider)?.label ?? "소셜";
 }
 
 function getUserDisplayName(user: AuthUser | null) {
@@ -89,6 +122,11 @@ function formatUserMeta(user: AuthUser | null, fallback: string) {
   }
 
   const parts: string[] = [];
+  const providerLabel = getProviderLabel(user.provider, user.providerLabel);
+  if (providerLabel) {
+    parts.push(`${providerLabel} 계정 연결`);
+  }
+
   if (user.lastAuthMode === "signup") {
     parts.push("최근 인증: 회원가입");
   } else if (user.lastAuthMode === "login") {
@@ -106,7 +144,7 @@ function formatUserMeta(user: AuthUser | null, fallback: string) {
     }
   }
 
-  return parts.join(" · ") || "카카오 프로필 연동 완료";
+  return parts.join(" · ") || "소셜 프로필 연동 완료";
 }
 
 async function fetchCurrentUser() {
@@ -144,9 +182,10 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
       const url = new URL(window.location.href);
       const authError = url.searchParams.get("auth_error");
       const loggedOut = url.searchParams.get("logged_out") === "1";
+      const providerFromUrl = url.searchParams.get("provider");
 
       const clearAuthParams = () => {
-        ["auth_error", "login", "mode", "logged_out"].forEach((key) => url.searchParams.delete(key));
+        ["auth_error", "login", "mode", "logged_out", "provider"].forEach((key) => url.searchParams.delete(key));
         window.history.replaceState({}, document.title, url.toString());
       };
 
@@ -181,15 +220,15 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
         setIsError(false);
         setMessage(
           currentUser
-            ? "카카오 로그인 상태가 유지되고 있습니다."
+            ? `${getProviderLabel(currentUser.provider, currentUser.providerLabel)} 로그인 상태가 유지되고 있습니다.`
             : loggedOut
-              ? "로그아웃되었습니다. 다시 진행하려면 카카오 인증을 새로 시작해 주세요."
+              ? `${providerFromUrl ? getProviderLabel(providerFromUrl, null) + " 로그아웃이 완료되었습니다. " : ""}다시 진행하려면 인증을 새로 시작해 주세요.`
               : copy.readyMessage
         );
       } catch (error) {
         if (!cancelled) {
           setUser(null);
-          setMessage(error instanceof Error ? error.message : "카카오 로그인 처리 중 문제가 발생했습니다.");
+          setMessage(error instanceof Error ? error.message : "소셜 로그인 처리 중 문제가 발생했습니다.");
           setIsError(true);
         }
       } finally {
@@ -288,34 +327,29 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                 <p className="mt-3 text-sm leading-7 text-[#5d6762]">{user ? userMeta : copy.idleMeta}</p>
 
                 {!user ? (
-                  <div className="mt-6 flex flex-wrap gap-3">
-                    <button
-                      type="button"
-                      disabled={!hasAuthApiConfig || isLoading}
-                      onClick={() => {
-                        if (typeof window === "undefined") {
-                          return;
-                        }
-                        setMessage(copy.pendingMessage);
-                        setIsError(false);
-                        window.location.href = getApiUrl("/api/auth/kakao/start", {
-                          next: window.location.href,
-                          mode,
-                          prompt: mode === "signup" ? "login" : "",
-                        });
-                      }}
-                      className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#fee500] px-5 py-3 text-sm font-extrabold text-[#191919] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {copy.kakaoLabel}
-                    </button>
-                    <button
-                      type="button"
-                      disabled
-                      title="네이버 로그인은 아직 연결되지 않았습니다."
-                      className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/70 px-5 py-3 text-sm font-bold text-[#17211e] opacity-60"
-                    >
-                      네이버 연동 준비 중
-                    </button>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    {providers.map((provider) => (
+                      <button
+                        key={provider.id}
+                        type="button"
+                        disabled={!hasAuthApiConfig || isLoading}
+                        onClick={() => {
+                          if (typeof window === "undefined") {
+                            return;
+                          }
+                          setMessage(copy.pendingByProvider[provider.id]);
+                          setIsError(false);
+                          window.location.href = getApiUrl(`/api/auth/${provider.id}/start`, {
+                            next: window.location.href,
+                            mode,
+                            prompt: provider.id === "kakao" && mode === "signup" ? "login" : "",
+                          });
+                        }}
+                        className={`inline-flex min-h-12 items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition disabled:cursor-not-allowed disabled:opacity-60 ${provider.buttonClassName}`}
+                      >
+                        {provider.label}로 {mode === "signup" ? "회원가입" : "로그인"}
+                      </button>
+                    ))}
                   </div>
                 ) : (
                   <div className="mt-6 flex flex-wrap gap-3">
@@ -337,11 +371,16 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                         if (typeof window === "undefined") {
                           return;
                         }
-                        setMessage("카카오 로그아웃 화면으로 이동하는 중입니다. 카카오 계정까지 로그아웃하려면 해당 화면에서 함께 로그아웃을 선택해 주세요.");
+                        const providerId = user?.provider ?? "kakao";
+                        setMessage(
+                          providerId === "kakao"
+                            ? "카카오 로그아웃 화면으로 이동하는 중입니다. 카카오 계정까지 로그아웃하려면 해당 화면에서 함께 로그아웃을 선택해 주세요."
+                            : "네이버 연동 세션을 정리하는 중입니다."
+                        );
                         setIsError(false);
                         window.location.href = getApiUrl("/api/logout", {
                           next: window.location.href,
-                          provider: "kakao",
+                          provider: providerId,
                         });
                       }}
                       className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/80 px-5 py-3 text-sm font-bold text-[#17211e] transition hover:-translate-y-0.5"
@@ -361,9 +400,9 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                   민간 교육 플랫폼 특성상 사용자는 먼저 과정을 탐색한 뒤 계정을 연결하는 경우가 많습니다. 그래서 인증 화면도 내 강의실과 발급 흐름으로 이어지도록 설계했습니다.
                 </p>
                 <ul className="mt-5 list-disc space-y-3 pl-5 text-sm leading-7 text-[#fdf4e9]">
-                  <li>카카오 계정은 Cloudflare Worker를 통해 바로 연결됩니다.</li>
-                  <li>네이버는 별도 브로커나 추가 서버 연동이 필요해 현재는 비활성화 상태입니다.</li>
+                  <li>카카오와 네이버 계정 모두 Cloudflare Worker를 통해 직접 연결됩니다.</li>
                   <li>로그인 상태가 유지되면 이 화면에서 바로 대시보드와 강의실로 이동할 수 있습니다.</li>
+                  <li>네이버를 쓰려면 Worker 환경 변수와 네이버 개발자 Redirect URI를 함께 맞춰야 합니다.</li>
                 </ul>
               </div>
             </section>
