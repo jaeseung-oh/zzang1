@@ -322,16 +322,30 @@ export default function CourseRoomPage() {
                   <p className="text-sm font-semibold text-white">즉시 다운로드</p>
                   <div className="mt-4 space-y-3">
                     {result.issuedCertificates.map((certificate) => (
-                      <a
+                      <div
                         key={certificate.certificateId}
-                        href={certificate.downloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white transition hover:bg-black/30"
+                        className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white"
                       >
-                        <span>{certificate.documentType}</span>
-                        <span className="text-[#f0cb85]">PDF 열기</span>
-                      </a>
+                        <p>{certificate.documentType}</p>
+                        <div className="mt-3 flex flex-wrap gap-3">
+                          <a
+                            href={certificate.downloadUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="rounded-full border border-white/10 px-4 py-2 text-sm transition hover:bg-black/30"
+                          >
+                            PDF 열기
+                          </a>
+                          {certificate.documentType === "completion" ? (
+                            <Link
+                              href="/certificate"
+                              className="rounded-full border border-[#d3ad62]/40 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f0cb85] transition hover:bg-[#d3ad62]/15"
+                            >
+                              출력 화면 열기
+                            </Link>
+                          ) : null}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

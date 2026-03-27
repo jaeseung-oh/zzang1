@@ -183,22 +183,34 @@ export default function DashboardPage() {
               <div className="mt-6 space-y-4">
                 {certificates.length ? (
                   certificates.map((certificate) => (
-                    <a
+                    <div
                       key={certificate.id}
-                      href={certificate.downloadUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex items-center justify-between rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30"
+                      className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30"
                     >
                       <div>
                         <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType] ?? certificate.documentType}</p>
                         <p className="mt-2 text-sm text-white/65">문서번호 {certificate.issueNumber}</p>
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt)}</p>
                       </div>
-                      <span className="rounded-full border border-[#d3ad62]/30 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f0cb85]">
-                        PDF 열기
-                      </span>
-                    </a>
+                      <div className="mt-4 flex flex-wrap gap-3">
+                        <a
+                          href={certificate.downloadUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="rounded-full border border-[#d3ad62]/30 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f0cb85]"
+                        >
+                          PDF 열기
+                        </a>
+                        {certificate.documentType === "completion" ? (
+                          <Link
+                            href="/certificate"
+                            className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                          >
+                            출력 화면 열기
+                          </Link>
+                        ) : null}
+                      </div>
+                    </div>
                   ))
                 ) : (
                   <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">

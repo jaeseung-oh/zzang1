@@ -344,8 +344,10 @@ async function storeCertificate(args: {
     {
       uid: args.uid,
       courseId: args.courseId,
+      courseTitle: args.courseTitle,
       purchaseId: `manual-${args.courseId}`,
       documentType: args.documentType,
+      learnerName: args.learnerName,
       issueNumber,
       storagePath: filePath,
       downloadUrl,
