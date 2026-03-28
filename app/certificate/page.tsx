@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { Suspense, useEffect, useState } from "react";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { ensureAnonymousSession } from "@/lib/firebase/session";
@@ -10,13 +10,17 @@ type TimestampLike = {
   seconds: number;
 };
 
+type UserProfileRecord = {
+  fullName?: string;
+};
+
 type CertificateRecord = {
   id: string;
+  uid: string;
   courseId: string;
   documentType: string;
   issueNumber: string;
   downloadUrl: string;
-  learnerName?: string;
   courseTitle?: string;
   issuedAt?: TimestampLike;
 };
@@ -24,8 +28,12 @@ type CertificateRecord = {
 type ProgressRecord = {
   courseId: string;
   courseTitle: string;
-  learnerName: string;
   isCompleted: boolean;
+};
+
+type PurchaseRecord = {
+  courseId: string;
+  paymentStatus: string;
 };
 
 type CertificateViewData = {
@@ -67,33 +75,61 @@ function CertificatePageContent() {
         const user = await ensureAnonymousSession();
         const { db } = getFirebaseServices();
 
-        const [certificateSnapshot, progressSnapshot] = await Promise.all([
-          getDocs(query(collection(db, "certificates"), where("uid", "==", user.uid))),
-          getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid))),
+        const [userSnapshot, purchaseSnapshot, progressSnapshot, certificateSnapshot] = await Promise.all([
+          getDoc(doc(db, "users", user.uid)),
+          getDocs(query(collection(db, "purchases"), where("uid", "==", user.uid), where("paymentStatus", "==", "paid"))),
+          getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid), where("isCompleted", "==", true))),
+          getDocs(query(collection(db, "certificates"), where("uid", "==", user.uid), where("documentType", "==", "completion"))),
         ]);
 
         if (cancelled) {
           return;
         }
 
-        const certificates = certificateSnapshot.docs
-          .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as Omit<CertificateRecord, "id">) }))
-          .sort((a, b) => (b.issuedAt?.seconds || 0) - (a.issuedAt?.seconds || 0));
-        const progressList = progressSnapshot.docs.map((snapshot) => snapshot.data() as ProgressRecord);
-
-        const completionCertificate =
-          certificates.find((certificate) => certificate.documentType === "completion") || certificates[0];
-
-        if (!completionCertificate) {
-          setError("아직 출력할 수료증이 없습니다. 수강 완료 저장 후 다시 시도해 주세요.");
+        const userProfile = userSnapshot.exists() ? (userSnapshot.data() as UserProfileRecord) : null;
+        const fullName = userProfile?.fullName?.trim();
+        if (!fullName) {
+          setError("회원가입 화면에서 실명을 먼저 저장해야 수료증을 출력할 수 있습니다.");
           return;
         }
 
-        const matchedProgress = progressList.find((progress) => progress.courseId === completionCertificate.courseId);
+        const paidPurchases = purchaseSnapshot.docs.map((snapshot) => snapshot.data() as PurchaseRecord);
+        if (!paidPurchases.length) {
+          setError("결제 완료 이력이 없어 수료증을 출력할 수 없습니다.");
+          return;
+        }
+
+        const completedProgressList = progressSnapshot.docs.map((snapshot) => snapshot.data() as ProgressRecord);
+        if (!completedProgressList.length) {
+          setError("아직 수강 완료 상태가 아니어서 수료증을 출력할 수 없습니다.");
+          return;
+        }
+
+        const certificates = certificateSnapshot.docs
+          .map((snapshot) => ({ id: snapshot.id, ...(snapshot.data() as Omit<CertificateRecord, "id">) }))
+          .sort((a, b) => (b.issuedAt?.seconds || 0) - (a.issuedAt?.seconds || 0));
+
+        const completionCertificate = certificates[0];
+        if (!completionCertificate) {
+          setError("수료증 원본 문서가 아직 준비되지 않았습니다. 수강실에서 다시 저장해 주세요.");
+          return;
+        }
+
+        const matchedProgress = completedProgressList.find((progress) => progress.courseId === completionCertificate.courseId);
+        if (!matchedProgress) {
+          setError("완료된 수강 이력이 수료증과 연결되지 않았습니다.");
+          return;
+        }
+
+        const hasPaidPurchaseForCourse = paidPurchases.some((purchase) => purchase.courseId === completionCertificate.courseId);
+        if (!hasPaidPurchaseForCourse) {
+          setError("이 수료증에 연결된 결제 완료 이력이 확인되지 않았습니다.");
+          return;
+        }
 
         setCertificateData({
-          studentName: completionCertificate.learnerName || matchedProgress?.learnerName || "이름 확인 필요",
-          courseTitle: completionCertificate.courseTitle || matchedProgress?.courseTitle || "수료 과정 확인 필요",
+          studentName: fullName,
+          courseTitle: completionCertificate.courseTitle || matchedProgress.courseTitle || "수료 과정 확인 필요",
           issueDate: formatIssueDate(completionCertificate.issuedAt),
           docNumber: completionCertificate.issueNumber || "문서번호 확인 필요",
           downloadUrl: completionCertificate.downloadUrl,
@@ -110,7 +146,7 @@ function CertificatePageContent() {
       }
     };
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
@@ -129,7 +165,10 @@ function CertificatePageContent() {
         {error ? (
           <div className="w-full max-w-3xl rounded-[1.75rem] border border-[#d9967b] bg-[#fff6f2] p-6 text-center text-sm text-[#7f3f2c] print:hidden">
             <p>{error}</p>
-            <div className="mt-4 flex justify-center">
+            <div className="mt-4 flex justify-center gap-3">
+              <Link href="/signup" className="rounded-full border border-[#7f3f2c]/20 px-5 py-2 font-semibold">
+                회원가입 화면
+              </Link>
               <Link href="/course-room" className="rounded-full border border-[#7f3f2c]/20 px-5 py-2 font-semibold">
                 수강실로 돌아가기
               </Link>

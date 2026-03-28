@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { ensureAnonymousSession } from "@/lib/firebase/session";
+import { getUserProfile } from "@/lib/firebase/user-profile";
 
 type SaveCourseProgressResponse = {
   progressId: string;
@@ -15,6 +16,7 @@ type SaveCourseProgressResponse = {
     certificateId: string;
     documentType: string;
     downloadUrl: string;
+    issueNumber: string;
   }>;
 };
 
@@ -32,14 +34,14 @@ const disclaimer =
   "본 과정은 법률 검토나 상담을 제공하지 않으며, 사용자가 자신의 생활 변화와 재발 방지 계획을 스스로 정리할 수 있도록 돕는 민간 교육 서비스입니다.";
 
 export default function CourseRoomPage() {
-  const [learnerName, setLearnerName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [caseType, setCaseType] = useState<CaseType>("dui");
   const [moduleState, setModuleState] = useState<Record<string, boolean>>(
     Object.fromEntries(defaultCourse.modules.map((module) => [module.id, false]))
   );
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [reviewAccepted, setReviewAccepted] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("익명 세션을 준비하는 중입니다.");
+  const [statusMessage, setStatusMessage] = useState("Firebase 학습 세션을 준비하는 중입니다.");
   const [error, setError] = useState("");
   const [result, setResult] = useState<SaveCourseProgressResponse | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -47,19 +49,33 @@ export default function CourseRoomPage() {
   useEffect(() => {
     let cancelled = false;
 
-    ensureAnonymousSession()
-      .then(() => {
-        if (!cancelled) {
-          setStatusMessage("수강 진행과 발급 이력을 저장할 준비가 완료되었습니다.");
+    const load = async () => {
+      try {
+        const user = await ensureAnonymousSession();
+        const profile = await getUserProfile(user.uid);
+
+        if (cancelled) {
+          return;
         }
-      })
-      .catch((sessionError) => {
+
+        if (!profile?.fullName?.trim()) {
+          setError("수강을 저장하기 전에 회원가입 화면에서 실명을 먼저 저장해 주세요.");
+          setStatusMessage("실명 정보가 없어 수강 완료와 수료증 발급을 진행할 수 없습니다.");
+          return;
+        }
+
+        setFullName(profile.fullName.trim());
+        setStatusMessage("실명이 확인되었습니다. 이제 결제 이력과 수강 완료를 같은 Firebase UID로 저장합니다.");
+      } catch (sessionError) {
+        console.error(sessionError);
         if (!cancelled) {
-          console.error(sessionError);
-          setError("Firebase 익명 로그인에 실패했습니다. Authentication에서 Anonymous 제공자를 활성화해 주세요.");
+          setError("Firebase 세션 준비에 실패했습니다. Authentication에서 Anonymous 제공자를 활성화해 주세요.");
           setStatusMessage("세션 준비에 실패했습니다.");
         }
-      });
+      }
+    };
+
+    void load();
 
     return () => {
       cancelled = true;
@@ -85,19 +101,16 @@ export default function CourseRoomPage() {
     setModuleState(Object.fromEntries(defaultCourse.modules.map((module) => [module.id, true])));
     setLegalAccepted(true);
     setReviewAccepted(true);
-    if (!learnerName.trim()) {
-      setLearnerName("테스트 수강생");
-    }
     setError("");
-    setStatusMessage("테스트 발급용으로 전체 수강 완료와 확인 항목을 미리 채웠습니다.");
+    setStatusMessage("테스트용으로 전체 수강 완료와 필수 동의 항목을 채웠습니다. 결제 이력이 있어야 최종 저장이 완료됩니다.");
   };
 
   const handleSave = () => {
     setError("");
     setResult(null);
 
-    if (!learnerName.trim()) {
-      setError("문서 발급용 이름을 입력해 주세요.");
+    if (!fullName.trim()) {
+      setError("회원가입 화면에서 실명을 먼저 저장해 주세요.");
       return;
     }
 
@@ -114,7 +127,6 @@ export default function CourseRoomPage() {
           {
             courseId: string;
             courseTitle: string;
-            learnerName: string;
             caseType: CaseType;
             watchedSeconds: number;
             completionRate: number;
@@ -128,7 +140,6 @@ export default function CourseRoomPage() {
         const response = await callable({
           courseId: defaultCourse.id,
           courseTitle: defaultCourse.title,
-          learnerName: learnerName.trim(),
           caseType,
           watchedSeconds: completion.watchedMinutes * 60,
           completionRate: completion.completionRate,
@@ -140,12 +151,12 @@ export default function CourseRoomPage() {
         setResult(response.data);
         setStatusMessage(
           response.data.isCompleted
-            ? "수강 완료가 저장되었고 발급 문서 3종이 준비되었습니다."
-            : "현재 수강 진행률이 저장되었습니다."
+            ? "수강 완료가 저장되었고, 결제 이력이 확인되어 수료 문서가 준비되었습니다."
+            : "현재 수강 진행률이 저장되었습니다. 결제 완료 후 100% 수강을 마치면 수료증이 열립니다."
         );
       } catch (submitError) {
         console.error(submitError);
-        setError("수강 진행 저장 중 문제가 발생했습니다. Functions 배포 상태와 Firebase 인증 설정을 확인해 주세요.");
+        setError(submitError instanceof Error ? submitError.message : "수강 진행 저장 중 문제가 발생했습니다.");
       }
     });
   };
@@ -158,16 +169,18 @@ export default function CourseRoomPage() {
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#f0cb85]">Phase 3. Course Room</p>
               <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">
-                1시간 수강과 문서 발급 준비를 한 화면에서 진행
+                결제 완료 후 수강 저장과 수료증 발급 조건을 검증하는 화면
               </h1>
               <p className="mt-5 max-w-2xl text-sm leading-8 text-white/70 sm:text-base">
-                결제 연동은 마지막 단계로 미뤄 둔 상태입니다. 현재 화면에서는 익명 세션 기준으로 수강 진행률과 발급 문서 흐름을 먼저 검증할 수 있습니다.
+                이 화면은 회원 실명, 결제 이력, 수강 완료, 수료증 문서를 같은 Firebase UID로 연결합니다.
               </p>
             </div>
             <div className="w-full max-w-md rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#0b1523] p-5">
-              <p className="text-sm font-semibold text-[#f0cb85]">현재 코스</p>
-              <h2 className="mt-3 text-2xl font-semibold text-white">{defaultCourse.title}</h2>
-              <p className="mt-3 text-sm leading-7 text-white/75">{defaultCourse.subtitle}</p>
+              <p className="text-sm font-semibold text-[#f0cb85]">회원 실명</p>
+              <h2 className="mt-3 text-2xl font-semibold text-white">{fullName || "저장된 실명 없음"}</h2>
+              <p className="mt-3 text-sm leading-7 text-white/75">
+                수료증에는 이 이름만 자동 출력됩니다. 이름이 비어 있으면 회원가입 화면에서 먼저 저장해야 합니다.
+              </p>
               <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-white/60">총 길이</p>
@@ -175,7 +188,7 @@ export default function CourseRoomPage() {
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-white/60">결제 상태</p>
-                  <p className="mt-2 text-white">{defaultCourse.priceLabel}</p>
+                  <p className="mt-2 text-white">서버 검증</p>
                 </div>
               </div>
             </div>
@@ -184,15 +197,10 @@ export default function CourseRoomPage() {
           <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <section className="rounded-[2rem] border border-white/10 bg-[#0d1828] p-6 lg:p-8">
               <div className="grid gap-6 md:grid-cols-2">
-                <label className="space-y-2 text-sm text-white/80">
-                  <span>발급 문서 이름</span>
-                  <input
-                    value={learnerName}
-                    onChange={(event) => setLearnerName(event.target.value)}
-                    placeholder="홍길동"
-                    className="w-full rounded-2xl border border-white/10 bg-[#08111d] px-4 py-3 text-white outline-none"
-                  />
-                </label>
+                <div className="rounded-[1.5rem] border border-white/10 bg-[#08111d] px-4 py-3 text-sm text-white/80">
+                  <p className="text-white/55">수료증 출력 이름</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{fullName || "회원가입에서 실명 저장 필요"}</p>
+                </div>
                 <label className="space-y-2 text-sm text-white/80">
                   <span>사건 유형</span>
                   <select
@@ -263,7 +271,7 @@ export default function CourseRoomPage() {
                   disabled={isPending}
                   className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85] disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isPending ? "저장 중..." : completion.completionRate === 100 ? "수강 완료 저장 및 문서 발급" : "현재 진행률 저장"}
+                  {isPending ? "저장 중..." : completion.completionRate === 100 ? "수강 완료 저장 및 수료증 조건 검사" : "현재 진행률 저장"}
                 </button>
                 <button
                   type="button"
@@ -271,7 +279,7 @@ export default function CourseRoomPage() {
                   disabled={isPending}
                   className="inline-flex items-center justify-center rounded-full border border-[#d3ad62]/40 bg-[#d3ad62]/10 px-6 py-3 text-sm font-semibold text-[#f0cb85] transition hover:bg-[#d3ad62]/15 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  테스트용 수료증 바로 발급
+                  테스트용 완료 상태 채우기
                 </button>
                 <Link href="/dashboard" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
                   대시보드 보기
@@ -318,34 +326,20 @@ export default function CourseRoomPage() {
               </div>
 
               {result?.issuedCertificates.length ? (
-                <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-[#08111d] p-5">
-                  <p className="text-sm font-semibold text-white">즉시 다운로드</p>
-                  <div className="mt-4 space-y-3">
+                <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-black/20 p-5">
+                  <p className="text-sm font-semibold text-[#f0cb85]">방금 준비된 문서</p>
+                  <div className="mt-4 space-y-3 text-sm text-white/80">
                     {result.issuedCertificates.map((certificate) => (
-                      <div
+                      <a
                         key={certificate.certificateId}
-                        className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white"
+                        href={certificate.downloadUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block rounded-2xl border border-white/10 bg-[#0d1828] px-4 py-3 transition hover:bg-[#13233a]"
                       >
-                        <p>{certificate.documentType}</p>
-                        <div className="mt-3 flex flex-wrap gap-3">
-                          <a
-                            href={certificate.downloadUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="rounded-full border border-white/10 px-4 py-2 text-sm transition hover:bg-black/30"
-                          >
-                            PDF 열기
-                          </a>
-                          {certificate.documentType === "completion" ? (
-                            <Link
-                              href="/certificate"
-                              className="rounded-full border border-[#d3ad62]/40 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f0cb85] transition hover:bg-[#d3ad62]/15"
-                            >
-                              출력 화면 열기
-                            </Link>
-                          ) : null}
-                        </div>
-                      </div>
+                        <div className="font-semibold text-white">{certificate.documentType}</div>
+                        <div className="mt-1 text-white/60">문서번호 {certificate.issueNumber}</div>
+                      </a>
                     ))}
                   </div>
                 </div>

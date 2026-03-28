@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { ensureAnonymousSession } from "@/lib/firebase/session";
 
 type ConfirmResponse = {
   savedPurchaseId?: string;
@@ -28,11 +29,10 @@ function PaymentSuccessContent() {
     const paymentKey = searchParams.get("paymentKey");
     const orderId = searchParams.get("orderId");
     const amountValue = searchParams.get("amount");
-    const uid = searchParams.get("uid");
     const courseId = searchParams.get("courseId");
 
-    if (!paymentKey || !orderId || !amountValue) {
-      setError("결제 승인에 필요한 정보가 누락되었습니다.");
+    if (!paymentKey || !orderId || !amountValue || !courseId) {
+      setError("결제 승인에 필요한 정보가 누락되었습니다. courseId까지 함께 전달되어야 합니다.");
       setLoading(false);
       return;
     }
@@ -53,6 +53,7 @@ function PaymentSuccessContent() {
 
     const run = async () => {
       try {
+        const sessionUser = await ensureAnonymousSession();
         const response = await fetch(confirmUrl, {
           method: "POST",
           headers: {
@@ -62,7 +63,7 @@ function PaymentSuccessContent() {
             paymentKey,
             orderId,
             amount,
-            uid,
+            uid: sessionUser.uid,
             courseId,
             legalDisclaimerAccepted: true,
             finalReviewResponsibilityAccepted: true,
@@ -83,7 +84,7 @@ function PaymentSuccessContent() {
       }
     };
 
-    run();
+    void run();
   }, [searchParams]);
 
   return (
@@ -92,7 +93,7 @@ function PaymentSuccessContent() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Toss Payments</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white">결제 완료 확인</h1>
         <p className="mt-4 text-sm leading-8 text-white/70">
-          결제 승인 후 구매 이력을 저장하고, 수강 및 민간 교육 확인 자료 단계로 연결합니다.
+          결제 승인 후 구매 이력을 Firebase 사용자 계정에 저장하고, 같은 UID 기준으로 수강 완료와 수료증 발급이 이어집니다.
         </p>
 
         <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#d3ad62]/10 p-4 text-sm leading-7 text-[#f7dfab]">
@@ -101,7 +102,6 @@ function PaymentSuccessContent() {
 
         <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-[#0d1828] p-5">
           {loading ? <p className="text-sm text-white/75">결제 승인 정보를 확인하는 중입니다...</p> : null}
-
           {error ? <p className="text-sm text-[#f2a39b]">{error}</p> : null}
 
           {!loading && result ? (
@@ -117,12 +117,14 @@ function PaymentSuccessContent() {
                 </div>
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-white/60">결제 금액</p>
-                  <p className="mt-2 text-white">{typeof result.totalAmount === "number" ? `${result.totalAmount.toLocaleString("ko-KR")}원` : "확인 중"}</p>
+                  <p className="mt-2 text-white">
+                    {typeof result.totalAmount === "number" ? `${result.totalAmount.toLocaleString("ko-KR")}원` : "확인 중"}
+                  </p>
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href="/" className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85]">
-                  메인으로 돌아가기
+                <Link href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85]">
+                  수강실로 이동
                 </Link>
                 {result.receipt?.url ? (
                   <a href={result.receipt.url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">

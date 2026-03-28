@@ -9,8 +9,21 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function isNonEmptyString(value) {
+      return value is string && value.size() > 0;
+    }
+
+    function isNullableString(value) {
+      return value == null || value is string;
+    }
+
     match /users/{userId} {
-      allow read, write: if isOwner(userId);
+      allow read: if isOwner(userId);
+      allow create, update: if isOwner(userId)
+        && isNonEmptyString(request.resource.data.fullName)
+        && isNullableString(request.resource.data.email)
+        && isNullableString(request.resource.data.phoneNumber);
+      allow delete: if false;
     }
 
     match /courses/{courseId} {
@@ -20,12 +33,7 @@ service cloud.firestore {
 
     match /purchases/{purchaseId} {
       allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow create: if isSignedIn()
-        && request.resource.data.uid == request.auth.uid
-        && request.resource.data.paymentStatus in ['pending', 'paid']
-        && request.resource.data.amount is number;
-      allow update: if false;
-      allow delete: if false;
+      allow write: if false;
     }
 
     match /courseProgress/{progressId} {

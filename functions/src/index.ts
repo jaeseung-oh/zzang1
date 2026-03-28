@@ -73,7 +73,6 @@ type ConfirmPaymentRequest = {
 type SaveCourseProgressRequest = {
   courseId?: string;
   courseTitle?: string;
-  learnerName?: string;
   caseType?: "dui" | "sexual" | "drug" | "violence" | "other";
   watchedSeconds?: number;
   completionRate?: number;
@@ -107,7 +106,7 @@ function assertValidInput(data: Partial<DraftInput>): asserts data is DraftInput
 }
 
 function assertValidProgressInput(data: SaveCourseProgressRequest): asserts data is Required<SaveCourseProgressRequest> {
-  if (!data.courseId || !data.courseTitle || !data.learnerName?.trim() || !data.caseType) {
+  if (!data.courseId || !data.courseTitle || !data.caseType) {
     throw new HttpsError("invalid-argument", "수강 저장에 필요한 필수값이 누락되었습니다.");
   }
 
@@ -136,6 +135,33 @@ function getAuthenticatedUid(request: { auth?: { uid?: string } | null }) {
   }
 
   return uid;
+}
+
+async function getUserFullName(uid: string) {
+  const userSnapshot = await db.collection("users").doc(uid).get();
+  const fullName = userSnapshot.data()?.fullName;
+
+  if (typeof fullName !== "string" || !fullName.trim()) {
+    throw new HttpsError("failed-precondition", "회원가입 단계에서 저장한 실명이 필요합니다.");
+  }
+
+  return fullName.trim();
+}
+
+async function getPaidPurchase(uid: string, courseId: string) {
+  const snapshot = await db
+    .collection("purchases")
+    .where("uid", "==", uid)
+    .where("courseId", "==", courseId)
+    .where("paymentStatus", "==", "paid")
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    throw new HttpsError("failed-precondition", "결제 완료 이력이 확인되지 않아 수강 완료를 저장할 수 없습니다.");
+  }
+
+  return snapshot.docs[0];
 }
 
 function buildPrompt(data: DraftInput) {
@@ -301,6 +327,7 @@ async function storeCertificate(args: {
   uid: string;
   courseId: string;
   courseTitle: string;
+  purchaseId: string;
   learnerName: string;
   caseTypeLabel: string;
   documentType: (typeof COURSE_COMPLETION_DOCUMENTS)[number]["documentType"];
@@ -345,7 +372,7 @@ async function storeCertificate(args: {
       uid: args.uid,
       courseId: args.courseId,
       courseTitle: args.courseTitle,
-      purchaseId: `manual-${args.courseId}`,
+      purchaseId: args.purchaseId,
       documentType: args.documentType,
       learnerName: args.learnerName,
       issueNumber,
@@ -390,8 +417,8 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
     finalReviewResponsibilityAccepted = false,
   } = (request.body || {}) as ConfirmPaymentRequest;
 
-  if (!paymentKey || !orderId || typeof amount !== "number") {
-    response.status(400).json({ message: "paymentKey, orderId, amount가 모두 필요합니다." });
+  if (!paymentKey || !orderId || typeof amount !== "number" || !uid || !courseId) {
+    response.status(400).json({ message: "paymentKey, orderId, amount, uid, courseId가 모두 필요합니다." });
     return;
   }
 
@@ -459,6 +486,8 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
   const data = request.data as SaveCourseProgressRequest;
   assertValidProgressInput(data);
 
+  const learnerName = await getUserFullName(uid);
+  const paidPurchase = await getPaidPurchase(uid, data.courseId);
   const progressId = `${uid}_${data.courseId}`;
   const completionRate = Math.max(0, Math.min(100, Math.round(data.completionRate)));
   const isCompleted = data.isCompleted && completionRate >= 100;
@@ -468,8 +497,8 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
       uid,
       courseId: data.courseId,
       courseTitle: data.courseTitle,
-      purchaseId: `manual-${data.courseId}`,
-      learnerName: data.learnerName.trim(),
+      purchaseId: paidPurchase.id,
+      learnerName,
       caseType: data.caseType,
       watchedSeconds: Math.round(data.watchedSeconds),
       completionRate,
@@ -499,7 +528,8 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
         uid,
         courseId: data.courseId,
         courseTitle: data.courseTitle,
-        learnerName: data.learnerName.trim(),
+        purchaseId: paidPurchase.id,
+        learnerName,
         caseTypeLabel,
         documentType: definition.documentType,
         title: definition.title,

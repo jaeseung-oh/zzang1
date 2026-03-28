@@ -2,15 +2,20 @@ export type CaseType = "dui" | "sexual" | "drug" | "violence" | "other";
 
 export interface UserProfile {
   fullName: string;
-  phone: string;
-  birthDate: string;
-  caseType: CaseType;
-  caseStage: "police" | "prosecution" | "trial";
-  deadlineAt: string;
-  marketingConsent: boolean;
-  legalNoticeAcceptedAt: string | null;
+  email: string | null;
+  phoneNumber: string | null;
+  birthDate?: string;
+  caseType?: CaseType;
+  caseStage?: "police" | "prosecution" | "trial";
+  deadlineAt?: string;
+  marketingConsent?: boolean;
+  legalNoticeAcceptedAt?: string | null;
+  provider: string;
+  providerLabel?: string;
+  nickname?: string | null;
   createdAt: string;
-  lastLoginAt: string;
+  updatedAt?: string;
+  lastLoginAt?: string;
 }
 
 export interface Course {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import FirebaseProfileCard from "./firebase-profile-card";
 
 type AuthMode = "signup" | "login";
 type AuthProvider = "kakao" | "naver";
@@ -391,6 +392,15 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                 )}
 
                 <p className={`mt-5 text-sm leading-7 ${isError ? "text-[#a23f38]" : "text-[#5d6762]"}`}>{message}</p>
+
+                <FirebaseProfileCard
+                  mode={mode}
+                  provider={user?.provider ?? null}
+                  providerLabel={user?.providerLabel ?? null}
+                  nickname={user?.nickname ?? null}
+                  name={user?.name ?? null}
+                  email={user?.email ?? null}
+                />
               </div>
 
               <div className="rounded-[1.75rem] bg-[linear-gradient(135deg,rgba(17,39,35,0.94),rgba(38,76,69,0.9))] p-7 text-[#fdf4e9] shadow-[0_14px_36px_rgba(18,26,24,0.08)]">
