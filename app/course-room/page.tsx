@@ -298,13 +298,15 @@ export default function CourseRoomPage() {
 
         setUid(user.uid);
 
-        if (!profile?.fullName?.trim()) {
+        const resolvedName = profile?.realName?.trim() || profile?.fullName?.trim();
+
+        if (!resolvedName) {
           setError("수강을 저장하기 전에 회원가입 화면에서 실명을 먼저 저장해 주세요.");
           setStatusMessage("실명 정보가 없어 학습 저장과 수료 처리 연결을 진행할 수 없습니다.");
           return;
         }
 
-        setFullName(profile.fullName.trim());
+        setFullName(resolvedName);
 
         const { db } = getFirebaseServices();
         const progressSnapshot = await getDoc(doc(db, "courseProgress", `${user.uid}_${defaultCourse.id}`));

@@ -12,6 +12,8 @@ type TimestampLike = {
 
 type UserProfileRecord = {
   fullName?: string;
+  realName?: string;
+  dateOfBirth?: string;
 };
 
 type CertificateRecord = {
@@ -87,7 +89,7 @@ function CertificatePageContent() {
         }
 
         const userProfile = userSnapshot.exists() ? (userSnapshot.data() as UserProfileRecord) : null;
-        const fullName = userProfile?.fullName?.trim();
+        const fullName = userProfile?.realName?.trim() || userProfile?.fullName?.trim();
         if (!fullName) {
           setError("회원가입 화면에서 실명을 먼저 저장해야 수료증을 출력할 수 있습니다.");
           return;

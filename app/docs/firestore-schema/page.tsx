@@ -4,7 +4,12 @@ const collections = [
     id: "uid",
     fields: [
       "fullName",
-      "phone",
+      "realName",
+      "dateOfBirth",
+      "isEmailVerified",
+      "emailVerifiedAt",
+      "email",
+      "phoneNumber",
       "birthDate",
       "caseType",
       "caseStage",

@@ -1,5 +1,6 @@
 import axios from "axios";
 import { initializeApp } from "firebase-admin/app";
+import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
@@ -177,7 +178,8 @@ function getAuthenticatedUid(request: { auth?: { uid?: string } | null }) {
 
 async function getUserFullName(uid: string) {
   const userSnapshot = await db.collection("users").doc(uid).get();
-  const fullName = userSnapshot.data()?.fullName;
+  const userData = userSnapshot.data() ?? {};
+  const fullName = typeof userData.realName === "string" && userData.realName.trim() ? userData.realName : userData.fullName;
 
   if (typeof fullName !== "string" || !fullName.trim()) {
     throw new HttpsError("failed-precondition", "회원가입 단계에서 저장한 실명이 필요합니다.");
@@ -634,6 +636,41 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
     paymentVerified: Boolean(purchaseSnapshot),
     certificateEligible,
     issuedCertificates,
+  };
+});
+
+export const syncEmailVerificationStatus = onCall({ region: "asia-northeast3" }, async (request) => {
+  const uid = getAuthenticatedUid(request);
+  const userRecord = await getAuth().getUser(uid);
+  const isEmailVerified = Boolean(userRecord.emailVerified);
+  const userRef = db.collection("users").doc(uid);
+  const snapshot = await userRef.get();
+  const existing = snapshot.data() ?? {};
+  const resolvedName =
+    typeof existing.realName === "string" && existing.realName.trim()
+      ? existing.realName.trim()
+      : typeof existing.fullName === "string" && existing.fullName.trim()
+        ? existing.fullName.trim()
+        : null;
+
+  await userRef.set(
+    {
+      fullName: resolvedName,
+      realName: resolvedName,
+      email: userRecord.email ?? existing.email ?? null,
+      isEmailVerified,
+      emailVerifiedAt: isEmailVerified ? FieldValue.serverTimestamp() : existing.emailVerifiedAt ?? null,
+      provider: existing.provider ?? "password",
+      providerLabel: existing.providerLabel ?? "이메일 회원",
+      updatedAt: FieldValue.serverTimestamp(),
+      createdAt: existing.createdAt ?? FieldValue.serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return {
+    isEmailVerified,
+    email: userRecord.email ?? null,
   };
 });
 

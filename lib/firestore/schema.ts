@@ -2,9 +2,13 @@ export type CaseType = "dui" | "sexual" | "drug" | "violence" | "other";
 
 export interface UserProfile {
   fullName: string;
+  realName?: string;
   email: string | null;
   phoneNumber: string | null;
+  dateOfBirth?: string;
   birthDate?: string;
+  isEmailVerified?: boolean;
+  emailVerifiedAt?: string | null;
   caseType?: CaseType;
   caseStage?: "police" | "prosecution" | "trial";
   deadlineAt?: string;
