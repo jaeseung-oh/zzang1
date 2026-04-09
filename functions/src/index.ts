@@ -75,6 +75,8 @@ type SaveCourseProgressRequest = {
   courseTitle?: string;
   caseType?: "dui" | "sexual" | "drug" | "violence" | "other";
   watchedSeconds?: number;
+  durationSeconds?: number;
+  lastPlaybackPositionSeconds?: number;
   completionRate?: number;
   isCompleted?: boolean;
   legalAccepted?: boolean;
@@ -114,16 +116,24 @@ function assertValidProgressInput(data: SaveCourseProgressRequest): asserts data
     throw new HttpsError("invalid-argument", "watchedSeconds 형식이 올바르지 않습니다.");
   }
 
+  if (typeof data.durationSeconds !== "number" || Number.isFinite(data.durationSeconds) === false || data.durationSeconds <= 0) {
+    throw new HttpsError("invalid-argument", "durationSeconds 형식이 올바르지 않습니다.");
+  }
+
+  if (
+    typeof data.lastPlaybackPositionSeconds !== "number" ||
+    Number.isFinite(data.lastPlaybackPositionSeconds) === false ||
+    data.lastPlaybackPositionSeconds < 0
+  ) {
+    throw new HttpsError("invalid-argument", "lastPlaybackPositionSeconds 형식이 올바르지 않습니다.");
+  }
+
   if (typeof data.completionRate !== "number" || Number.isFinite(data.completionRate) === false) {
     throw new HttpsError("invalid-argument", "completionRate 형식이 올바르지 않습니다.");
   }
 
   if (typeof data.isCompleted !== "boolean") {
     throw new HttpsError("invalid-argument", "isCompleted 형식이 올바르지 않습니다.");
-  }
-
-  if (!data.legalAccepted || !data.userReviewAccepted) {
-    throw new HttpsError("failed-precondition", "면책 고지와 직접 검토 책임 확인이 필요합니다.");
   }
 }
 
@@ -487,24 +497,32 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
   assertValidProgressInput(data);
 
   const learnerName = await getUserFullName(uid);
-  const paidPurchase = await getPaidPurchase(uid, data.courseId);
   const progressId = `${uid}_${data.courseId}`;
-  const completionRate = Math.max(0, Math.min(100, Math.round(data.completionRate)));
-  const isCompleted = data.isCompleted && completionRate >= 100;
+  const durationSeconds = Math.max(1, Math.round(data.durationSeconds));
+  const watchedSeconds = Math.max(0, Math.min(durationSeconds, Math.round(data.watchedSeconds)));
+  const lastPlaybackPositionSeconds = Math.max(0, Math.min(durationSeconds, Math.round(data.lastPlaybackPositionSeconds)));
+  const completionRate = Math.max(0, Math.min(100, Math.floor((watchedSeconds / durationSeconds) * 100)));
+  const remainingSeconds = Math.max(durationSeconds - watchedSeconds, 0);
+  const isCompleted = data.isCompleted || completionRate >= 100;
+  const purchaseSnapshot = isCompleted ? await getPaidPurchase(uid, data.courseId).catch(() => null) : null;
+  const certificateEligible = isCompleted && Boolean(purchaseSnapshot) && Boolean(data.legalAccepted) && Boolean(data.userReviewAccepted);
 
   await db.collection("courseProgress").doc(progressId).set(
     {
       uid,
       courseId: data.courseId,
       courseTitle: data.courseTitle,
-      purchaseId: paidPurchase.id,
+      purchaseId: purchaseSnapshot?.id || null,
       learnerName,
       caseType: data.caseType,
-      watchedSeconds: Math.round(data.watchedSeconds),
+      watchedSeconds,
+      durationSeconds,
       completionRate,
+      remainingSeconds,
+      lastPlaybackPositionSeconds,
       isCompleted,
-      legalDisclaimerAccepted: data.legalAccepted,
-      userReviewAccepted: data.userReviewAccepted,
+      legalDisclaimerAccepted: Boolean(data.legalAccepted),
+      userReviewAccepted: Boolean(data.userReviewAccepted),
       completedAt: isCompleted ? FieldValue.serverTimestamp() : null,
       updatedAt: FieldValue.serverTimestamp(),
       createdAt: FieldValue.serverTimestamp(),
@@ -519,7 +537,7 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
     issueNumber: string;
   }> = [];
 
-  if (isCompleted) {
+  if (certificateEligible && purchaseSnapshot) {
     const issuedAt = new Date().toISOString();
     const caseTypeLabel = formatCaseType(data.caseType);
 
@@ -528,7 +546,7 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
         uid,
         courseId: data.courseId,
         courseTitle: data.courseTitle,
-        purchaseId: paidPurchase.id,
+        purchaseId: purchaseSnapshot.id,
         learnerName,
         caseTypeLabel,
         documentType: definition.documentType,
@@ -546,6 +564,8 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
     progressId,
     completionRate,
     isCompleted,
+    paymentVerified: Boolean(purchaseSnapshot),
+    certificateEligible,
     issuedCertificates,
   };
 });

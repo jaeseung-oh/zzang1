@@ -56,6 +56,26 @@ export interface Certificate {
   issuedAt: string;
 }
 
+export interface CourseProgress {
+  uid: string;
+  courseId: string;
+  courseTitle: string;
+  purchaseId: string | null;
+  learnerName: string;
+  caseType: CaseType;
+  watchedSeconds: number;
+  durationSeconds: number;
+  completionRate: number;
+  remainingSeconds: number;
+  lastPlaybackPositionSeconds: number;
+  isCompleted: boolean;
+  legalDisclaimerAccepted: boolean;
+  userReviewAccepted: boolean;
+  completedAt?: string | null;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 export interface AiDraftDocument {
   uid: string;
   purchaseId: string | null;

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { collection, getDocs, query, where } from "firebase/firestore";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { ensureAnonymousSession } from "@/lib/firebase/session";
@@ -11,6 +11,9 @@ type ProgressRecord = {
   courseId: string;
   completionRate: number;
   watchedSeconds: number;
+  durationSeconds?: number;
+  remainingSeconds?: number;
+  lastPlaybackPositionSeconds?: number;
   isCompleted: boolean;
   updatedAt?: { seconds: number };
 };
@@ -48,6 +51,23 @@ function formatTimestamp(timestamp?: { seconds: number }) {
   }
 
   return new Date(timestamp.seconds * 1000).toLocaleString("ko-KR");
+}
+
+function formatDuration(seconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+  const remainingSeconds = safeSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}시간 ${minutes}분 ${remainingSeconds}초`;
+  }
+
+  if (minutes > 0) {
+    return `${minutes}분 ${remainingSeconds}초`;
+  }
+
+  return `${remainingSeconds}초`;
 }
 
 export default function DashboardPage() {
@@ -98,12 +118,31 @@ export default function DashboardPage() {
       }
     };
 
-    load();
+    void load();
 
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const progressSummary = useMemo(() => {
+    const durationSeconds = Math.max(progress?.durationSeconds ?? defaultCourse.durationMinutes * 60, 1);
+    const watchedSeconds = Math.min(progress?.watchedSeconds ?? 0, durationSeconds);
+    const remainingSeconds = Math.max(progress?.remainingSeconds ?? durationSeconds - watchedSeconds, 0);
+    const currentPositionSeconds = Math.min(progress?.lastPlaybackPositionSeconds ?? watchedSeconds, durationSeconds);
+    const completionRate = progress?.completionRate ?? Math.floor((watchedSeconds / durationSeconds) * 100);
+    const statusLabel = progress?.isCompleted ? "수료 완료" : completionRate >= 80 ? "곧 수료" : "진행 중";
+
+    return {
+      durationSeconds,
+      watchedSeconds,
+      remainingSeconds,
+      currentPositionSeconds,
+      completionRate,
+      statusLabel,
+      isCompleted: Boolean(progress?.isCompleted),
+    };
+  }, [progress]);
 
   return (
     <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
@@ -113,7 +152,7 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Learner Dashboard</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">수강 현황과 발급 문서 대시보드</h1>
             <p className="mt-4 max-w-3xl text-sm leading-8 text-white/70">
-              익명 세션에 연결된 수강 진행률, 민간 교육 확인 자료, 성찰문 글쓰기 가이드 이력을 한 곳에서 확인할 수 있습니다.
+              유튜브 시청 시간 기준으로 계산된 진행률, 남은 시간, 이어보기 위치, 발급 문서를 한 곳에서 확인합니다.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -133,22 +172,50 @@ export default function DashboardPage() {
           <div className="mt-8 grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
             <section className="space-y-6">
               <div className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
-                <p className="text-sm font-semibold text-[#f0cb85]">현재 코스</p>
-                <h2 className="mt-3 text-2xl font-semibold text-white">{defaultCourse.title}</h2>
-                <div className="mt-5 grid grid-cols-3 gap-3 text-sm">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-semibold text-[#f0cb85]">현재 코스</p>
+                    <h2 className="mt-3 text-2xl font-semibold text-white">{defaultCourse.title}</h2>
+                  </div>
+                  <span className="rounded-full border border-[#d3ad62]/30 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f7dfab]">
+                    {progressSummary.statusLabel}
+                  </span>
+                </div>
+
+                <div className="mt-5 overflow-hidden rounded-full bg-white/10">
+                  <div className="h-3 rounded-full bg-gradient-to-r from-[#d3ad62] via-[#f0cb85] to-[#fff1ca]" style={{ width: `${progressSummary.completionRate}%` }} />
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">진행률</p>
-                    <p className="mt-2 text-white">{progress?.completionRate ?? 0}%</p>
+                    <p className="mt-2 text-white">{progressSummary.completionRate}%</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-white/60">수강 시간</p>
-                    <p className="mt-2 text-white">{Math.round((progress?.watchedSeconds ?? 0) / 60)}분</p>
+                    <p className="text-white/60">시청 시간</p>
+                    <p className="mt-2 text-white">{formatDuration(progressSummary.watchedSeconds)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-white/60">남은 시간</p>
+                    <p className="mt-2 text-white">{formatDuration(progressSummary.remainingSeconds)}</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-white/60">이어보기 위치</p>
+                    <p className="mt-2 text-white">{formatDuration(progressSummary.currentPositionSeconds)}</p>
+                  </div>
+                </div>
+
+                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <p className="text-white/60">총 길이</p>
+                    <p className="mt-2 text-white">{formatDuration(progressSummary.durationSeconds)}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">완료 여부</p>
-                    <p className="mt-2 text-white">{progress?.isCompleted ? "완료" : "진행 중"}</p>
+                    <p className="mt-2 text-white">{progressSummary.isCompleted ? "완료" : "진행 중"}</p>
                   </div>
                 </div>
+
                 <p className="mt-5 text-sm leading-7 text-white/70">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
               </div>
 
@@ -177,7 +244,7 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-[#f0cb85]">발급 문서</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">PDF 3종 다운로드</h2>
               <p className="mt-4 text-sm leading-8 text-white/70">
-                수강 완료 후 Functions가 생성한 PDF를 여기서 확인할 수 있습니다. 결제 연동은 추후 이 화면 앞단에 연결하면 됩니다.
+                수강 완료 후 Functions가 생성한 PDF를 여기서 확인할 수 있습니다. 진행률은 유튜브 실시간 학습 기록과 동일한 기준으로 계산됩니다.
               </p>
 
               <div className="mt-6 space-y-4">
@@ -214,7 +281,7 @@ export default function DashboardPage() {
                   ))
                 ) : (
                   <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">
-                    아직 발급된 문서가 없습니다. 수강실에서 모든 모듈을 완료한 뒤 저장하면 PDF 3종이 자동 생성됩니다.
+                    아직 발급된 문서가 없습니다. 수강실에서 영상을 끝까지 시청하고 저장하면 PDF 3종이 자동 생성됩니다.
                   </div>
                 )}
               </div>

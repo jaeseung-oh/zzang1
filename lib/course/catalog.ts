@@ -10,6 +10,8 @@ export type CourseDefinition = {
   title: string;
   subtitle: string;
   durationMinutes: number;
+  youtubeUrl?: string;
+  youtubeVideoId?: string;
   priceLabel: string;
   caseTypes: string[];
   outputs: string[];
@@ -22,6 +24,8 @@ export const courseCatalog: CourseDefinition[] = [
     title: "음주운전 예방교육 6강 코스",
     subtitle: "1강 유튜브 영상 연결을 포함해 위험 인식부터 재발방지 계획서 작성까지 이어지는 음주운전 예방교육 과정",
     durationMinutes: 60,
+    youtubeUrl: "https://youtu.be/gSY23lklEX0",
+    youtubeVideoId: "gSY23lklEX0",
     priceLabel: "결제 연동 보류",
     caseTypes: ["음주운전"],
     outputs: ["학습확인서", "금주 실천 서약서", "재발방지 계획서"],
