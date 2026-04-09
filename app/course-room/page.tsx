@@ -669,275 +669,388 @@ export default function CourseRoomPage() {
     setPlayerReady(false);
   };
 
+  const selectedRemainingSeconds = Math.max(selectedProgress.durationSeconds - selectedProgress.watchedSeconds, 0);
+  const saveStateLabel = isManualSaving ? "수동 저장 중" : isBackgroundSaving ? "자동 저장 중" : "자동 저장 대기";
+  const saveStateClassName = isManualSaving || isBackgroundSaving
+    ? "border-blue-200 bg-blue-50 text-blue-700"
+    : "border-slate-200 bg-white/90 text-slate-600";
+  const ringCircumference = 2 * Math.PI * 54;
+  const ringOffset = ringCircumference * (1 - aggregate.completionRate / 100);
+
   return (
-    <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#eef4fb_0%,#e6eef8_32%,#dde7f2_100%)] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
       <div className="mx-auto max-w-7xl">
-        <div className="rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.3)] lg:p-8">
-          <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-            <div className="max-w-3xl">
-              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#f0cb85]">Phase 3. Course Room</p>
-              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">6강 누적 수강 교육실</h1>
-              <p className="mt-5 max-w-2xl text-sm leading-8 text-white/70 sm:text-base">
-                각 강의를 따로 선택해 수강하고, 강의별 진도와 6강 누적 수강률을 함께 저장합니다. 전체 6강을 모두 완료해야 수료 상태로 전환됩니다.
+        <div className="rounded-[2rem] border border-[#d8e2ef] bg-white/90 p-4 shadow-[0_28px_80px_rgba(15,23,42,0.12)] backdrop-blur-xl sm:p-6 lg:p-8">
+          <div className="flex flex-col gap-3 border-b border-slate-200/80 pb-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.32em] text-[#2f6fed]">Reset Edu Center LMS</p>
+              <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-[#0f172a] sm:text-4xl">
+                음주운전 재발 방지 온라인 교육 수강실
+              </h1>
+              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600 sm:text-[15px]">
+                비디오 기반 진도율, 강의별 이어보기, 전체 6강 누적 수강률이 하나의 학습 대시보드에서 자동으로 관리됩니다.
               </p>
             </div>
-            <div className="w-full max-w-md rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#0b1523] p-5">
-              <p className="text-sm font-semibold text-[#f0cb85]">회원 실명</p>
-              <h2 className="mt-3 text-2xl font-semibold text-white">{fullName || "저장된 실명 없음"}</h2>
-              <p className="mt-3 text-sm leading-7 text-white/75">
-                수료증에는 이 이름이 그대로 출력됩니다. 강의별로 이어보기가 가능하며, 전체 6강 누적 수강률이 자동 계산됩니다.
-              </p>
-              <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-white/60">총 길이</p>
-                  <p className="mt-2 text-white">{formatDuration(aggregate.totalDurationSeconds)}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-white/60">완료 강의</p>
-                  <p className="mt-2 text-white">{aggregate.completedModuleCount}/{aggregate.totalModuleCount}강</p>
-                </div>
-              </div>
-            </div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
+            >
+              학습 대시보드 열기
+            </Link>
           </div>
 
-          <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-            <section className="rounded-[2rem] border border-white/10 bg-[#0d1828] p-6 lg:p-8">
-              <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f0cb85]">Selected Lesson</p>
-                  <h2 className="mt-3 text-2xl font-semibold text-white">{selectedModule?.title}</h2>
-                  <p className="mt-2 max-w-2xl text-sm leading-7 text-white/70">{selectedModule?.summary}</p>
-                </div>
-                <div className={`inline-flex items-center rounded-full border px-4 py-2 text-sm font-semibold ${progressTone.className}`}>
-                  {progressTone.label}
-                </div>
-              </div>
-
-              <div className="mt-6 overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#08111d] shadow-[0_20px_50px_rgba(0,0,0,0.35)]">
-                <div className="aspect-video w-full bg-black">
-                  {videoUrl ? (
-                    <video
-                      ref={videoRef}
-                      key={`${selectedModuleId}:${videoUrl}`}
-                      src={videoUrl}
-                      className="h-full w-full"
-                      controls
-                      controlsList="nodownload noplaybackrate"
-                      disablePictureInPicture
-                      playsInline
-                      preload="metadata"
-                      onLoadedMetadata={handleLoadedMetadata}
-                      onTimeUpdate={handleTimeUpdate}
-                      onPause={handlePause}
-                      onEnded={handleEnded}
-                      onContextMenu={(event) => event.preventDefault()}
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center px-8 text-center text-sm leading-7 text-white/65">
-                      {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : "선택한 강의 영상이 아직 준비되지 않았습니다."}
+          <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.75fr)_minmax(320px,0.95fr)]">
+            <section className="space-y-6">
+              <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(145deg,#0f1b35_0%,#13284d_42%,#17325f_100%)] shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
+                <div className="border-b border-white/10 px-5 py-4 sm:px-6">
+                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div className="max-w-3xl">
+                      <p className="text-xs font-semibold uppercase tracking-[0.24em] text-blue-200">Current Lecture</p>
+                      <h2 className="mt-2 text-2xl font-semibold text-white sm:text-[2rem]">{selectedModule?.title}</h2>
+                      <p className="mt-3 text-sm leading-7 text-slate-200/85">{selectedModule?.summary}</p>
                     </div>
-                  )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`inline-flex items-center rounded-full border px-4 py-2 text-xs font-semibold ${progressTone.className}`}>
+                        {progressTone.label}
+                      </span>
+                      <span className="inline-flex items-center rounded-full border border-white/15 bg-white/10 px-4 py-2 text-xs font-medium text-slate-100">
+                        {selectedProgress.completionRate}% 진행
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="relative bg-[#040b18]">
+                  <div className="aspect-video w-full bg-black">
+                    {videoUrl ? (
+                      <video
+                        ref={videoRef}
+                        key={`${selectedModuleId}:${videoUrl}`}
+                        src={videoUrl}
+                        className="h-full w-full"
+                        controls
+                        controlsList="nodownload noplaybackrate"
+                        disablePictureInPicture
+                        playsInline
+                        preload="metadata"
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onTimeUpdate={handleTimeUpdate}
+                        onPause={handlePause}
+                        onEnded={handleEnded}
+                        onContextMenu={(event) => event.preventDefault()}
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center px-8 text-center text-sm leading-7 text-slate-300">
+                        {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : "선택한 강의 영상이 아직 준비되지 않았습니다."}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="pointer-events-none absolute bottom-4 right-4 z-10">
+                    <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-medium shadow-[0_12px_30px_rgba(15,23,42,0.22)] ${saveStateClassName}`}>
+                      <span className={`h-2 w-2 rounded-full ${isManualSaving || isBackgroundSaving ? "bg-blue-500" : "bg-emerald-500"}`} />
+                      {saveStateLabel}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid gap-3 border-t border-white/10 bg-[linear-gradient(180deg,rgba(6,15,30,0.7),rgba(10,20,39,0.92))] px-5 py-5 sm:grid-cols-2 xl:grid-cols-4 sm:px-6">
+                  {/* selectedProgress.lastPlaybackPositionSeconds -> 현재 재생 위치 카드 */}
+                  <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-300">현재 위치</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedProgress.lastPlaybackPositionSeconds)}</p>
+                  </div>
+                  {/* selectedProgress.watchedSeconds -> 현재 강의 누적 시청 시간 */}
+                  <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-300">시청 시간</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedProgress.watchedSeconds)}</p>
+                  </div>
+                  {/* selectedProgress.completionRate -> 현재 강의 진행률 */}
+                  <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-300">강의 진도</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{selectedProgress.completionRate}%</p>
+                  </div>
+                  {/* selectedRemainingSeconds -> 현재 강의 남은 시간 */}
+                  <div className="rounded-[1.25rem] border border-white/10 bg-white/5 p-4">
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-300">남은 시간</p>
+                    <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedRemainingSeconds)}</p>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-3 md:grid-cols-4">
-                <div className="rounded-[1.25rem] border border-white/10 bg-[#08111d] p-4">
-                  <p className="text-sm text-white/60">선택 강의 위치</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedProgress.lastPlaybackPositionSeconds)}</p>
-                </div>
-                <div className="rounded-[1.25rem] border border-white/10 bg-[#08111d] p-4">
-                  <p className="text-sm text-white/60">선택 강의 수강</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedProgress.watchedSeconds)}</p>
-                </div>
-                <div className="rounded-[1.25rem] border border-white/10 bg-[#08111d] p-4">
-                  <p className="text-sm text-white/60">선택 강의 진도</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{selectedProgress.completionRate}%</p>
-                </div>
-                <div className="rounded-[1.25rem] border border-white/10 bg-[#08111d] p-4">
-                  <p className="text-sm text-white/60">남은 시간</p>
-                  <p className="mt-2 text-lg font-semibold text-white">{formatDuration(Math.max(selectedProgress.durationSeconds - selectedProgress.watchedSeconds, 0))}</p>
-                </div>
-              </div>
-
-              <div className="mt-6">
-                <div className="flex items-center justify-between text-sm text-white/65">
-                  <span>전체 6강 누적 수강률</span>
-                  <span>{aggregate.completionRate}%</span>
-                </div>
-                <div className="mt-3 overflow-hidden rounded-full bg-white/10">
-                  <div className="h-3 rounded-full bg-gradient-to-r from-[#d3ad62] via-[#f0cb85] to-[#fff1ca]" style={{ width: `${aggregate.completionRate}%` }} />
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-3 md:grid-cols-2">
-                {defaultCourse.modules.map((module, index) => {
-                  const item = moduleProgress[module.id];
-                  const active = selectedModuleId === module.id;
-                  return (
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_rgba(15,23,42,0.08)] sm:p-6">
+                <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2f6fed]">Lecture Overview</p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-900">현재 강의 정보 및 저장 설정</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">
+                      진행률은 실제 재생 시간을 기준으로 계산되며, 강의 일시정지와 종료 시점 및 10초 간격으로 자동 저장됩니다.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3">
                     <button
-                      key={module.id}
                       type="button"
-                      onClick={() => handleSelectModule(module.id)}
-                      className={
-                        active
-                          ? "rounded-[1.5rem] border border-[#d3ad62] bg-[#d3ad62]/10 p-5 text-left"
-                          : "rounded-[1.5rem] border border-white/10 bg-[#08111d] p-5 text-left transition hover:bg-[#0f1b2b]"
-                      }
+                      onClick={() => void persistProgress("manual")}
+                      disabled={isManualSaving || !playerReady}
+                      className="inline-flex items-center justify-center rounded-full bg-[#2f6fed] px-6 py-3 text-sm font-semibold text-white shadow-[0_14px_30px_rgba(47,111,237,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1f5bd3] disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                      <div className="flex items-start justify-between gap-4">
-                        <div>
-                          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f0cb85]">Module {index + 1}</p>
-                          <h3 className="mt-3 text-lg font-semibold text-white">{module.title}</h3>
-                          <p className="mt-2 text-sm leading-7 text-white/70">{module.summary}</p>
-                        </div>
-                        <span className="rounded-full border border-white/10 px-3 py-2 text-xs text-white/70">{item?.completionRate ?? 0}%</span>
-                      </div>
-                      <div className="mt-4 flex items-center justify-between text-sm text-white/65">
-                        <span>{formatDuration(item?.watchedSeconds ?? 0)} / {formatDuration(item?.durationSeconds ?? module.minutes * 60)}</span>
-                        <span>{item?.isCompleted ? "완료" : "진행 중"}</span>
-                      </div>
+                      {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                     </button>
-                  );
-                })}
-              </div>
-
-              <div className="mt-6 space-y-3 rounded-[1.5rem] border border-white/10 bg-black/20 p-5">
-                <label className="flex items-start gap-3 text-sm leading-7 text-white/85">
-                  <input
-                    type="checkbox"
-                    checked={legalAccepted}
-                    onChange={(event) => setLegalAccepted(event.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#d3ad62]"
-                  />
-                  <span>{disclaimer}</span>
-                </label>
-                <label className="flex items-start gap-3 text-sm leading-7 text-white/85">
-                  <input
-                    type="checkbox"
-                    checked={reviewAccepted}
-                    onChange={(event) => setReviewAccepted(event.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#d3ad62]"
-                  />
-                  <span>발급 문서와 AI 초안은 사용자가 직접 사실관계를 확인하고 최종 수정한 뒤 사용해야 함을 이해했습니다.</span>
-                </label>
-              </div>
-
-              <div className="mt-6 grid gap-4 md:grid-cols-[1fr_auto] md:items-end">
-                <label className="space-y-2 text-sm text-white/80">
-                  <span>사건 유형</span>
-                  <select
-                    value={caseType}
-                    onChange={(event) => setCaseType(event.target.value as CaseType)}
-                    className="w-full rounded-2xl border border-white/10 bg-[#08111d] px-4 py-3 text-white outline-none"
-                  >
-                    {caseTypeOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <div className="flex flex-wrap gap-3">
-                  <button
-                    type="button"
-                    onClick={() => void persistProgress("manual")}
-                    disabled={isManualSaving || !playerReady}
-                    className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    {isManualSaving ? "저장 중..." : "강의별 진도 저장"}
-                  </button>
-                  <Link href="/dashboard" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
-                    대시보드 보기
-                  </Link>
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:-translate-y-0.5 hover:bg-slate-100"
+                    >
+                      대시보드 보기
+                    </Link>
+                  </div>
                 </div>
-              </div>
 
-              {playerError ? <p className="mt-4 text-sm text-[#f2a39b]">{playerError}</p> : null}
-              {error ? <p className="mt-4 text-sm text-[#f2a39b]">{error}</p> : null}
+                <div className="mt-6 grid gap-4 xl:grid-cols-[1.15fr_0.85fr]">
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5">
+                    <p className="text-sm font-semibold text-slate-900">수강 규정 및 동의</p>
+                    <div className="mt-4 space-y-3">
+                      <label className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={legalAccepted}
+                          onChange={(event) => setLegalAccepted(event.target.checked)}
+                          className="mt-1 h-4 w-4 accent-[#2f6fed]"
+                        />
+                        <span>{disclaimer}</span>
+                      </label>
+                      <label className="flex items-start gap-3 rounded-[1.25rem] border border-slate-200 bg-white px-4 py-4 text-sm leading-7 text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={reviewAccepted}
+                          onChange={(event) => setReviewAccepted(event.target.checked)}
+                          className="mt-1 h-4 w-4 accent-[#2f6fed]"
+                        />
+                        <span>발급 문서와 AI 초안은 사용자가 직접 사실관계를 확인하고 최종 수정한 뒤 사용해야 함을 이해했습니다.</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5">
+                    <label className="block space-y-2 text-sm text-slate-700">
+                      <span className="font-semibold text-slate-900">사건 유형</span>
+                      <select
+                        value={caseType}
+                        onChange={(event) => setCaseType(event.target.value as CaseType)}
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#2f6fed]"
+                      >
+                        {caseTypeOptions.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <div className="mt-5 rounded-[1.25rem] border border-slate-200 bg-white p-4 text-sm leading-7 text-slate-600">
+                      <p className="font-semibold text-slate-900">학습 상태 안내</p>
+                      <p className="mt-2">{statusMessage}</p>
+                      <p className="mt-3 text-xs text-slate-500">마지막 저장 시각 {lastSavedLabel}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {playerError ? <p className="mt-4 text-sm text-rose-600">{playerError}</p> : null}
+                {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
+              </div>
             </section>
 
-            <aside className="rounded-[2rem] border border-white/10 bg-[#111f33] p-6 lg:p-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Progress</p>
-              <h2 className="mt-4 text-3xl font-semibold tracking-[-0.03em] text-white">현재 누적 수강 현황</h2>
-
-              <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-[#08111d] p-5">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm font-semibold text-white">전체 수강 요약</p>
-                  <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${progressTone.className}`}>{progressTone.label}</span>
+            <aside className="space-y-6">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-[linear-gradient(180deg,#f8fbff_0%,#eff5ff_100%)] p-5 shadow-[0_16px_42px_rgba(15,23,42,0.09)] sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2f6fed]">Learner Profile</p>
+                    <h2 className="mt-3 text-2xl font-semibold text-slate-950">{fullName || "저장된 실명 없음"}</h2>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">수료증에는 이 실명이 그대로 반영되며, 강의 완료 여부와 함께 발급 상태가 연결됩니다.</p>
+                  </div>
+                  <div className={`inline-flex rounded-full border px-4 py-2 text-xs font-semibold ${aggregate.isCompleted ? "border-emerald-200 bg-emerald-50 text-emerald-700" : "border-blue-200 bg-blue-50 text-blue-700"}`}>
+                    {aggregate.isCompleted ? "수료 완료" : "진행 중"}
+                  </div>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-white/60">전체 길이</p>
-                    <p className="mt-2 text-white">{formatDuration(aggregate.totalDurationSeconds)}</p>
+
+                <div className="relative mt-6 rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">내 학습 현황</p>
+                      <p className="mt-1 text-sm text-slate-500">6강 전체 누적 기준</p>
+                    </div>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                      {aggregate.completedModuleCount}/{aggregate.totalModuleCount} 강 완료
+                    </span>
                   </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-white/60">누적 수강</p>
-                    <p className="mt-2 text-white">{formatDuration(aggregate.watchedSeconds)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-white/60">완료 강의</p>
-                    <p className="mt-2 text-white">{aggregate.completedModuleCount}/{aggregate.totalModuleCount}강</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <p className="text-white/60">남은 시간</p>
-                    <p className="mt-2 text-white">{formatDuration(aggregate.remainingSeconds)}</p>
+
+                  <div className="mt-5 grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
+                    <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
+                      {/* aggregate.completionRate -> 도넛 차트 원형 스트로크 길이 */}
+                      <svg viewBox="0 0 140 140" className="h-40 w-40 -rotate-90">
+                        <circle cx="70" cy="70" r="54" fill="none" stroke="#dbe7f5" strokeWidth="12" />
+                        <circle
+                          cx="70"
+                          cy="70"
+                          r="54"
+                          fill="none"
+                          stroke="url(#progress-ring)"
+                          strokeWidth="12"
+                          strokeLinecap="round"
+                          strokeDasharray={ringCircumference}
+                          strokeDashoffset={ringOffset}
+                        />
+                        <defs>
+                          <linearGradient id="progress-ring" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stopColor="#2f6fed" />
+                            <stop offset="100%" stopColor="#60a5fa" />
+                          </linearGradient>
+                        </defs>
+                      </svg>
+                      <div className="pointer-events-none absolute flex flex-col items-center justify-center text-center">
+                        <span className="text-3xl font-semibold text-slate-950">{aggregate.completionRate}%</span>
+                        <span className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-500">completion</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {/* aggregate.watchedSeconds / aggregate.remainingSeconds / aggregate.totalDurationSeconds -> 우측 요약 카드 */}
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">누적 시청</p>
+                          <p className="mt-2 text-lg font-semibold text-slate-900">{formatDuration(aggregate.watchedSeconds)}</p>
+                        </div>
+                        <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">남은 시간</p>
+                          <p className="mt-2 text-lg font-semibold text-slate-900">{formatDuration(aggregate.remainingSeconds)}</p>
+                        </div>
+                        <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">총 교육 시간</p>
+                          <p className="mt-2 text-lg font-semibold text-slate-900">{formatDuration(aggregate.totalDurationSeconds)}</p>
+                        </div>
+                        <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-4">
+                          <p className="text-xs uppercase tracking-[0.18em] text-slate-500">저장 상태</p>
+                          <p className="mt-2 text-lg font-semibold text-slate-900">{isBackgroundSaving ? "저장 중" : "대기"}</p>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between text-sm text-slate-600">
+                          <span>전체 과정 진행률</span>
+                          <span>{aggregate.completionRate}%</span>
+                        </div>
+                        <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
+                          <div className="h-full rounded-full bg-[linear-gradient(90deg,#2f6fed_0%,#60a5fa_100%)]" style={{ width: `${aggregate.completionRate}%` }} />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              <div className="mt-6 overflow-hidden rounded-full bg-white/10">
-                <div className="h-3 rounded-full bg-[#d3ad62]" style={{ width: `${aggregate.completionRate}%` }} />
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.08)] sm:p-6">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2f6fed]">Curriculum</p>
+                    <h3 className="mt-2 text-xl font-semibold text-slate-950">전체 커리큘럼</h3>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600">
+                    1강 ~ {defaultCourse.modules.length}강
+                  </span>
+                </div>
+
+                <div className="mt-5 space-y-3">
+                  {defaultCourse.modules.map((module, index) => {
+                    const item = moduleProgress[module.id];
+                    const active = selectedModuleId === module.id;
+                    const state = item?.isCompleted
+                      ? {
+                          label: "수강 완료",
+                          iconClassName: "bg-emerald-100 text-emerald-600",
+                          accentClassName: "border-emerald-200 bg-emerald-50/70",
+                          icon: "✓",
+                        }
+                      : (item?.watchedSeconds ?? 0) > 0
+                        ? {
+                            label: "수강 중",
+                            iconClassName: "bg-blue-100 text-blue-600",
+                            accentClassName: active ? "border-blue-200 bg-blue-50/70" : "border-slate-200 bg-white",
+                            icon: "▶",
+                          }
+                        : {
+                            label: "미수강",
+                            iconClassName: "bg-slate-200 text-slate-500",
+                            accentClassName: active ? "border-blue-200 bg-blue-50/70" : "border-slate-200 bg-white",
+                            icon: "•",
+                          };
+
+                    return (
+                      <button
+                        key={module.id}
+                        type="button"
+                        onClick={() => handleSelectModule(module.id)}
+                        className={`group w-full rounded-[1.5rem] border p-4 text-left shadow-sm transition hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${active ? "border-blue-200 bg-blue-50/80" : state.accentClassName}`}
+                      >
+                        <div className="flex items-start gap-4">
+                          {/* moduleProgress[module.id] -> 타일 아이콘/배지 상태에 연결 */}
+                          <div className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-semibold ${state.iconClassName}`}>
+                            {state.icon}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Lesson {index + 1}</p>
+                                <h4 className="mt-1 text-base font-semibold text-slate-900">{module.title}</h4>
+                              </div>
+                              <span className={`rounded-full px-3 py-1 text-xs font-semibold ${item?.isCompleted ? "bg-emerald-100 text-emerald-700" : active ? "bg-blue-100 text-blue-700" : "bg-slate-100 text-slate-600"}`}>
+                                {state.label}
+                              </span>
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-slate-600">{module.summary}</p>
+                            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500">
+                              <span>{formatDuration(item?.watchedSeconds ?? 0)} / {formatDuration(item?.durationSeconds ?? module.minutes * 60)}</span>
+                              <span className="font-medium text-slate-700">{item?.completionRate ?? 0}%</span>
+                            </div>
+                            <div className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200">
+                              <div className={`h-full rounded-full ${item?.isCompleted ? "bg-emerald-500" : "bg-[linear-gradient(90deg,#2f6fed_0%,#60a5fa_100%)]"}`} style={{ width: `${item?.completionRate ?? 0}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-3 gap-3 text-sm">
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-white/60">누적 수강률</p>
-                  <p className="mt-2 text-white">{aggregate.completionRate}%</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-white/60">자동 저장</p>
-                  <p className="mt-2 text-white">{isBackgroundSaving ? "진행 중" : "대기"}</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                  <p className="text-white/60">수료 여부</p>
-                  <p className="mt-2 text-white">{aggregate.isCompleted ? "완료" : "진행 중"}</p>
-                </div>
-              </div>
-
-              <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#d3ad62]/10 p-4 text-sm leading-7 text-[#f7dfab]">
-                {statusMessage}
-              </div>
-
-              <div className="mt-6 rounded-[1.5rem] border border-white/10 bg-[#08111d] p-5">
-                <p className="text-sm font-semibold text-white">완료 시 자동 준비 문서</p>
-                <div className="mt-4 space-y-3 text-sm text-white/75">
+              <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.08)] sm:p-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#2f6fed]">Completion Assets</p>
+                <h3 className="mt-2 text-xl font-semibold text-slate-950">완료 시 제공 문서</h3>
+                <div className="mt-5 space-y-3 text-sm text-slate-700">
                   {defaultCourse.outputs.map((item) => (
-                    <div key={item} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+                    <div key={item} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-4">
                       {item}
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {result?.issuedCertificates.length ? (
-                <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-black/20 p-5">
-                  <p className="text-sm font-semibold text-[#f0cb85]">방금 준비된 문서</p>
-                  <div className="mt-4 space-y-3 text-sm text-white/80">
-                    {result.issuedCertificates.map((certificate) => (
-                      <a
-                        key={certificate.certificateId}
-                        href={certificate.downloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="block rounded-2xl border border-white/10 bg-[#0d1828] px-4 py-3 transition hover:bg-[#13233a]"
-                      >
-                        <div className="font-semibold text-white">{certificate.documentType}</div>
-                        <div className="mt-1 text-white/60">문서번호 {certificate.issueNumber}</div>
-                      </a>
-                    ))}
+                {result?.issuedCertificates.length ? (
+                  <div className="mt-5 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-4">
+                    <p className="text-sm font-semibold text-emerald-800">방금 준비된 문서</p>
+                    <div className="mt-3 space-y-3 text-sm text-emerald-900">
+                      {result.issuedCertificates.map((certificate) => (
+                        <a
+                          key={certificate.certificateId}
+                          href={certificate.downloadUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-2xl border border-emerald-200 bg-white px-4 py-3 transition hover:bg-emerald-50"
+                        >
+                          <div className="font-semibold">{certificate.documentType}</div>
+                          <div className="mt-1 text-emerald-700/80">문서번호 {certificate.issueNumber}</div>
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </aside>
           </div>
         </div>
