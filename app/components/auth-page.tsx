@@ -59,12 +59,33 @@ function isValidDateOfBirth(value: string) {
     return false;
   }
 
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime())) {
+  const [yearText, monthText, dayText] = value.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+
+  if (!Number.isInteger(year) || !Number.isInteger(month) || !Number.isInteger(day)) {
     return false;
   }
 
-  return date.toISOString().slice(0, 10) === value && date <= new Date();
+  const candidate = new Date(year, month - 1, day);
+  if (Number.isNaN(candidate.getTime())) {
+    return false;
+  }
+
+  const isSameCalendarDate =
+    candidate.getFullYear() === year &&
+    candidate.getMonth() === month - 1 &&
+    candidate.getDate() === day;
+
+  if (!isSameCalendarDate) {
+    return false;
+  }
+
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  return candidate <= todayStart;
 }
 
 function getProfileName(profile: StoredUserProfile | null, user: User | null) {
