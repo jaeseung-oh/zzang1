@@ -48,6 +48,17 @@ const COURSE_COMPLETION_DOCUMENTS = [
   },
 ] as const;
 
+const COURSE_VIDEO_ASSETS: Record<string, Record<string, { storagePath: string; durationHintSeconds: number }>> = {
+  "rapid-sentencing-prep": {
+    "dui-lesson-1": { storagePath: "course-videos/rapid-sentencing-prep/lesson-1.mp4", durationHintSeconds: 600 },
+    "dui-lesson-2": { storagePath: "course-videos/rapid-sentencing-prep/lesson-2.mp4", durationHintSeconds: 600 },
+    "dui-lesson-3": { storagePath: "course-videos/rapid-sentencing-prep/lesson-3.mp4", durationHintSeconds: 600 },
+    "dui-lesson-4": { storagePath: "course-videos/rapid-sentencing-prep/lesson-4.mp4", durationHintSeconds: 600 },
+    "dui-lesson-5": { storagePath: "course-videos/rapid-sentencing-prep/lesson-5.mp4", durationHintSeconds: 600 },
+    "dui-lesson-6": { storagePath: "course-videos/rapid-sentencing-prep/lesson-6.mp4", durationHintSeconds: 600 },
+  },
+};
+
 type DraftInput = {
   documentType: "reflection-letter-guide" | "petition-letter-guide";
   caseType: "dui" | "sexual" | "drug" | "violence" | "other";
@@ -70,6 +81,17 @@ type ConfirmPaymentRequest = {
   finalReviewResponsibilityAccepted?: boolean;
 };
 
+type ModuleProgressPayload = Record<
+  string,
+  {
+    watchedSeconds: number;
+    durationSeconds: number;
+    completionRate: number;
+    lastPlaybackPositionSeconds: number;
+    isCompleted: boolean;
+  }
+>;
+
 type SaveCourseProgressRequest = {
   courseId?: string;
   courseTitle?: string;
@@ -81,6 +103,12 @@ type SaveCourseProgressRequest = {
   isCompleted?: boolean;
   legalAccepted?: boolean;
   userReviewAccepted?: boolean;
+  moduleProgress?: ModuleProgressPayload;
+};
+
+type GetCourseVideoAccessRequest = {
+  courseId?: string;
+  moduleId?: string;
 };
 
 type CorsResponse = {
@@ -172,6 +200,17 @@ async function getPaidPurchase(uid: string, courseId: string) {
   }
 
   return snapshot.docs[0];
+}
+
+function getCourseVideoAsset(courseId: string, moduleId: string) {
+  const courseAssets = COURSE_VIDEO_ASSETS[courseId];
+  const asset = courseAssets?.[moduleId];
+
+  if (!asset) {
+    throw new HttpsError("not-found", "등록된 강의 영상 정보를 찾을 수 없습니다.");
+  }
+
+  return asset;
 }
 
 function buildPrompt(data: DraftInput) {
@@ -498,12 +537,37 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
 
   const learnerName = await getUserFullName(uid);
   const progressId = `${uid}_${data.courseId}`;
-  const durationSeconds = Math.max(1, Math.round(data.durationSeconds));
-  const watchedSeconds = Math.max(0, Math.min(durationSeconds, Math.round(data.watchedSeconds)));
+  const moduleProgress = Object.fromEntries(
+    Object.entries(data.moduleProgress || {}).map(([moduleId, item]) => {
+      const durationSeconds = Math.max(1, Math.round(item.durationSeconds));
+      const watchedSeconds = Math.max(0, Math.min(durationSeconds, Math.round(item.watchedSeconds)));
+      const lastPlaybackPositionSeconds = Math.max(0, Math.min(durationSeconds, Math.round(item.lastPlaybackPositionSeconds)));
+      const completionRate = Math.max(0, Math.min(100, Math.floor((watchedSeconds / durationSeconds) * 100)));
+
+      return [
+        moduleId,
+        {
+          watchedSeconds,
+          durationSeconds,
+          completionRate,
+          lastPlaybackPositionSeconds,
+          isCompleted: item.isCompleted || completionRate >= 100,
+        },
+      ];
+    })
+  ) as ModuleProgressPayload;
+  const durationSeconds = Object.values(moduleProgress).length
+    ? Object.values(moduleProgress).reduce((sum, item) => sum + item.durationSeconds, 0)
+    : Math.max(1, Math.round(data.durationSeconds));
+  const watchedSeconds = Object.values(moduleProgress).length
+    ? Object.values(moduleProgress).reduce((sum, item) => sum + item.watchedSeconds, 0)
+    : Math.max(0, Math.min(durationSeconds, Math.round(data.watchedSeconds)));
   const lastPlaybackPositionSeconds = Math.max(0, Math.min(durationSeconds, Math.round(data.lastPlaybackPositionSeconds)));
   const completionRate = Math.max(0, Math.min(100, Math.floor((watchedSeconds / durationSeconds) * 100)));
   const remainingSeconds = Math.max(durationSeconds - watchedSeconds, 0);
-  const isCompleted = data.isCompleted || completionRate >= 100;
+  const completedModuleCount = Object.values(moduleProgress).filter((item) => item.isCompleted).length;
+  const totalModuleCount = Object.keys(moduleProgress).length;
+  const isCompleted = totalModuleCount > 0 ? completedModuleCount === totalModuleCount : data.isCompleted || completionRate >= 100;
   const purchaseSnapshot = isCompleted ? await getPaidPurchase(uid, data.courseId).catch(() => null) : null;
   const certificateEligible = isCompleted && Boolean(purchaseSnapshot) && Boolean(data.legalAccepted) && Boolean(data.userReviewAccepted);
 
@@ -520,6 +584,9 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
       completionRate,
       remainingSeconds,
       lastPlaybackPositionSeconds,
+      completedModuleCount,
+      totalModuleCount,
+      moduleProgress,
       isCompleted,
       legalDisclaimerAccepted: Boolean(data.legalAccepted),
       userReviewAccepted: Boolean(data.userReviewAccepted),
@@ -567,6 +634,39 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
     paymentVerified: Boolean(purchaseSnapshot),
     certificateEligible,
     issuedCertificates,
+  };
+});
+
+export const getCourseVideoAccess = onCall({ region: "asia-northeast3" }, async (request) => {
+  getAuthenticatedUid(request);
+  const data = (request.data || {}) as GetCourseVideoAccessRequest;
+  const courseId = data.courseId?.trim();
+  const moduleId = data.moduleId?.trim();
+
+  if (!courseId || !moduleId) {
+    throw new HttpsError("invalid-argument", "courseId와 moduleId가 필요합니다.");
+  }
+
+  const asset = getCourseVideoAsset(courseId, moduleId);
+  const bucket = storage.bucket();
+  const file = bucket.file(asset.storagePath);
+  const [exists] = await file.exists();
+
+  if (!exists) {
+    throw new HttpsError("not-found", "원본 강의 파일이 아직 업로드되지 않았습니다.");
+  }
+
+  const expiresAt = Date.now() + 1000 * 60 * 15;
+  const [videoUrl] = await file.getSignedUrl({
+    action: "read",
+    expires: expiresAt,
+    version: "v4",
+  });
+
+  return {
+    videoUrl,
+    expiresAt,
+    durationHintSeconds: asset.durationHintSeconds,
   };
 });
 

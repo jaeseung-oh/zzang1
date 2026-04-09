@@ -56,6 +56,14 @@ export interface Certificate {
   issuedAt: string;
 }
 
+export interface CourseModuleProgress {
+  watchedSeconds: number;
+  durationSeconds: number;
+  completionRate: number;
+  lastPlaybackPositionSeconds: number;
+  isCompleted: boolean;
+}
+
 export interface CourseProgress {
   uid: string;
   courseId: string;
@@ -68,6 +76,9 @@ export interface CourseProgress {
   completionRate: number;
   remainingSeconds: number;
   lastPlaybackPositionSeconds: number;
+  completedModuleCount: number;
+  totalModuleCount: number;
+  moduleProgress: Record<string, CourseModuleProgress>;
   isCompleted: boolean;
   legalDisclaimerAccepted: boolean;
   userReviewAccepted: boolean;
