@@ -101,40 +101,51 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
   useEffect(() => {
-    const { auth } = getFirebaseServices();
+    let unsubscribe: () => void = () => {};
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setLoading(true);
-      setAuthUser(user);
-      setError("");
+    try {
+      const { auth } = getFirebaseServices();
 
-      if (!user) {
-        setProfile(null);
-        setLoading(false);
-        setMessage(mode === "signup" ? "실명, 생년월일, 이메일을 입력해 회원가입을 진행해 주세요." : "가입한 이메일 계정으로 로그인해 주세요.");
-        return;
-      }
+      unsubscribe = onAuthStateChanged(auth, async (user) => {
+        setLoading(true);
+        setAuthUser(user);
+        setError("");
 
-      try {
-        const storedProfile = await getUserProfile(user.uid);
-        setProfile(storedProfile);
-        setEmail(user.email ?? storedProfile?.email ?? "");
-        setRealName(storedProfile?.realName ?? storedProfile?.fullName ?? user.displayName ?? "");
-        setDateOfBirth(storedProfile?.dateOfBirth ?? storedProfile?.birthDate ?? "");
-        setMessage(
-          user.emailVerified
-            ? "이메일 인증이 완료된 계정입니다. 강의실과 수료증 발급 흐름으로 이어질 수 있습니다."
-            : "인증 메일을 확인한 뒤 아래의 인증 상태 확인 버튼을 눌러 계정을 활성화해 주세요."
-        );
-      } catch (loadError) {
-        console.error(loadError);
-        setProfile(null);
-        setMessage("회원 정보를 불러오지 못했습니다.");
-        setError(loadError instanceof Error ? loadError.message : "회원 정보를 불러오는 중 오류가 발생했습니다.");
-      } finally {
-        setLoading(false);
-      }
-    });
+        if (!user) {
+          setProfile(null);
+          setLoading(false);
+          setMessage(mode === "signup" ? "실명, 생년월일, 이메일을 입력해 회원가입을 진행해 주세요." : "가입한 이메일 계정으로 로그인해 주세요.");
+          return;
+        }
+
+        try {
+          const storedProfile = await getUserProfile(user.uid);
+          setProfile(storedProfile);
+          setEmail(user.email ?? storedProfile?.email ?? "");
+          setRealName(storedProfile?.realName ?? storedProfile?.fullName ?? user.displayName ?? "");
+          setDateOfBirth(storedProfile?.dateOfBirth ?? storedProfile?.birthDate ?? "");
+          setMessage(
+            user.emailVerified
+              ? "이메일 인증이 완료된 계정입니다. 강의실과 수료증 발급 흐름으로 이어질 수 있습니다."
+              : "인증 메일을 확인한 뒤 아래의 인증 상태 확인 버튼을 눌러 계정을 활성화해 주세요."
+          );
+        } catch (loadError) {
+          console.error(loadError);
+          setProfile(null);
+          setMessage("회원 정보를 불러오지 못했습니다.");
+          setError(loadError instanceof Error ? loadError.message : "회원 정보를 불러오는 중 오류가 발생했습니다.");
+        } finally {
+          setLoading(false);
+        }
+      });
+    } catch (initError) {
+      console.error(initError);
+      setLoading(false);
+      setAuthUser(null);
+      setProfile(null);
+      setMessage("인증 서비스를 초기화하지 못했습니다.");
+      setError(initError instanceof Error ? initError.message : "Firebase 인증 설정을 확인해 주세요.");
+    }
 
     return () => unsubscribe();
   }, [mode]);
