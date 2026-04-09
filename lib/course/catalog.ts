@@ -10,7 +10,6 @@ export type CourseDefinition = {
   title: string;
   subtitle: string;
   durationMinutes: number;
-  youtubeUrl?: string;
   youtubeVideoId?: string;
   priceLabel: string;
   caseTypes: string[];
@@ -22,9 +21,8 @@ export const courseCatalog: CourseDefinition[] = [
   {
     id: "rapid-sentencing-prep",
     title: "음주운전 예방교육 6강 코스",
-    subtitle: "1강 유튜브 영상 연결을 포함해 위험 인식부터 재발방지 계획서 작성까지 이어지는 음주운전 예방교육 과정",
-    durationMinutes: 60,
-    youtubeUrl: "https://youtu.be/gSY23lklEX0",
+    subtitle: "현재 등록된 핵심 교육 영상을 기반으로 위험 인식과 재발방지 계획 수립을 진행하는 음주운전 예방교육 과정",
+    durationMinutes: 10,
     youtubeVideoId: "gSY23lklEX0",
     priceLabel: "결제 연동 보류",
     caseTypes: ["음주운전"],
@@ -34,7 +32,7 @@ export const courseCatalog: CourseDefinition[] = [
         id: "dui-lesson-1",
         title: "음주운전 1강 강의 영상",
         minutes: 10,
-        summary: "연결된 유튜브 1강 영상을 기준으로 음주운전의 위험성과 사고 인식을 도입합니다.",
+        summary: "등록된 1강 교육 영상을 기준으로 음주운전의 위험성과 사고 인식을 도입합니다.",
       },
       {
         id: "dui-lesson-2",

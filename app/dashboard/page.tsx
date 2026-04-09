@@ -152,7 +152,7 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Learner Dashboard</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">수강 현황과 발급 문서 대시보드</h1>
             <p className="mt-4 max-w-3xl text-sm leading-8 text-white/70">
-              유튜브 시청 시간 기준으로 계산된 진행률, 남은 시간, 이어보기 위치, 발급 문서를 한 곳에서 확인합니다.
+              실제 시청 시간 기준으로 계산된 진행률, 남은 시간, 이어보기 위치, 발급 문서를 한 곳에서 확인합니다.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -244,7 +244,7 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-[#f0cb85]">발급 문서</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">PDF 3종 다운로드</h2>
               <p className="mt-4 text-sm leading-8 text-white/70">
-                수강 완료 후 Functions가 생성한 PDF를 여기서 확인할 수 있습니다. 진행률은 유튜브 실시간 학습 기록과 동일한 기준으로 계산됩니다.
+                수강 완료 후 Functions가 생성한 PDF를 여기서 확인할 수 있습니다. 진행률은 실제 학습 기록과 동일한 기준으로 계산됩니다.
               </p>
 
               <div className="mt-6 space-y-4">

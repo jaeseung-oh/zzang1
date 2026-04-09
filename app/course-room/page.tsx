@@ -92,7 +92,7 @@ const caseTypeOptions: Array<{ value: CaseType; label: string }> = [
 const disclaimer =
   "본 과정은 법률 검토나 상담을 제공하지 않으며, 사용자가 자신의 생활 변화와 재발 방지 계획을 스스로 정리할 수 있도록 돕는 민간 교육 서비스입니다.";
 
-const fallbackDurationSeconds = defaultCourse.durationMinutes * 60;
+const fallbackDurationSeconds = Math.max(defaultCourse.durationMinutes, defaultCourse.modules[0]?.minutes ?? 0) * 60;
 const localStorageKey = `course-room-progress:${defaultCourse.id}`;
 
 function formatDuration(seconds: number) {
@@ -139,7 +139,7 @@ function readLocalSnapshot(): StoredPlaybackSnapshot | null {
 
 function loadYouTubeIframeApi() {
   if (typeof window === "undefined") {
-    return Promise.reject(new Error("브라우저 환경에서만 유튜브 플레이어를 불러올 수 있습니다."));
+    return Promise.reject(new Error("브라우저 환경에서만 교육 플레이어를 불러올 수 있습니다."));
   }
 
   if (window.YT?.Player) {
@@ -157,7 +157,7 @@ function loadYouTubeIframeApi() {
       if (window.YT?.Player) {
         resolve(window.YT);
       } else {
-        reject(new Error("유튜브 플레이어 API 초기화에 실패했습니다."));
+        reject(new Error("교육 플레이어 초기화에 실패했습니다."));
       }
     };
 
@@ -165,7 +165,7 @@ function loadYouTubeIframeApi() {
       const script = document.createElement("script");
       script.src = "https://www.youtube.com/iframe_api";
       script.async = true;
-      script.onerror = () => reject(new Error("유튜브 플레이어 스크립트를 불러오지 못했습니다."));
+      script.onerror = () => reject(new Error("교육 플레이어 스크립트를 불러오지 못했습니다."));
       document.head.appendChild(script);
     }
   });
@@ -179,7 +179,7 @@ export default function CourseRoomPage() {
   const [caseType, setCaseType] = useState<CaseType>("dui");
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [reviewAccepted, setReviewAccepted] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("유튜브 학습 세션과 저장 상태를 준비하는 중입니다.");
+  const [statusMessage, setStatusMessage] = useState("학습 세션과 저장 상태를 준비하는 중입니다.");
   const [error, setError] = useState("");
   const [result, setResult] = useState<SaveCourseProgressResponse | null>(null);
   const [durationSeconds, setDurationSeconds] = useState(fallbackDurationSeconds);
@@ -323,7 +323,7 @@ export default function CourseRoomPage() {
         setStatusMessage(
           mergedWatched > 0
             ? "이전 학습 기록을 불러왔습니다. 재생하면 이어보기 위치부터 계속 진행됩니다."
-            : "실명이 확인되었습니다. 유튜브 강의 재생과 학습 진행 저장을 시작할 수 있습니다."
+            : "실명이 확인되었습니다. 강의 재생과 학습 진행 저장을 시작할 수 있습니다."
         );
       } catch (sessionError) {
         console.error(sessionError);
@@ -382,6 +382,10 @@ export default function CourseRoomPage() {
             rel: 0,
             modestbranding: 1,
             playsinline: 1,
+            controls: 1,
+            fs: 0,
+            disablekb: 1,
+            iv_load_policy: 3,
           },
           events: {
             onReady: (event) => {
@@ -456,14 +460,14 @@ export default function CourseRoomPage() {
               }
             },
             onError: () => {
-              setPlayerError("유튜브 플레이어 로딩 중 문제가 발생했습니다. 영상 공개 범위와 임베드 허용 상태를 확인해 주세요.");
+              setPlayerError("강의 플레이어 로딩 중 문제가 발생했습니다. 등록된 영상 상태를 확인해 주세요.");
             },
           },
         });
       } catch (loadError) {
         console.error(loadError);
         if (!cancelled) {
-          setPlayerError(loadError instanceof Error ? loadError.message : "유튜브 플레이어를 불러오지 못했습니다.");
+          setPlayerError(loadError instanceof Error ? loadError.message : "강의 플레이어를 불러오지 못했습니다.");
         }
       }
     };
@@ -598,9 +602,9 @@ export default function CourseRoomPage() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
             <div className="max-w-3xl">
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-[#f0cb85]">Phase 3. Course Room</p>
-              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">유튜브 실시간 진도 연동 교육 수강실</h1>
+              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">실시간 진도 연동 교육 수강실</h1>
               <p className="mt-5 max-w-2xl text-sm leading-8 text-white/70 sm:text-base">
-                유튜브 재생 시간 기준으로 수강률, 남은 시간, 수료 상태를 계산하고 Firebase에 같은 UID 기준으로 저장합니다.
+                실제 재생 시간 기준으로 수강률, 남은 시간, 수료 상태를 계산하고 Firebase에 같은 UID 기준으로 저장합니다.
               </p>
             </div>
             <div className="w-full max-w-md rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#0b1523] p-5">

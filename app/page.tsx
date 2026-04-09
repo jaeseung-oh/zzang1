@@ -59,8 +59,8 @@ const trustIndicators = [
 const courseCards = [
   {
     title: "음주운전 예방교육 6강",
-    summary: "1강 유튜브 강의 영상 연결을 포함해 위험성 인지, 금주 실천 계획, 생활 패턴 개선, 책임감 회복까지 이어지는 6강 구성.",
-    tags: ["1강 영상 연결", "금주 계획", "재발 방지"],
+    summary: "현재 등록된 핵심 교육 영상을 중심으로 위험성 인지, 금주 실천 계획, 생활 패턴 개선, 책임감 회복까지 이어지는 프로그램 구성.",
+    tags: ["핵심 영상 수강", "금주 계획", "재발 방지"],
     image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
     icon: (
       <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
