@@ -594,8 +594,8 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           </div>
         </section>
 
-        <section className="flex min-h-[42vh] items-start justify-center px-5 py-6 sm:px-7 lg:min-h-screen lg:items-center lg:px-8 lg:py-8 xl:px-12">
-          <div className="w-full max-w-[500px] rounded-[2rem] border border-[#dbe3ef] bg-white px-5 py-6 shadow-[0_28px_80px_rgba(15,23,42,0.1)] sm:px-7 sm:py-7 lg:max-h-[calc(100vh-48px)] lg:overflow-y-auto xl:max-w-[540px]">
+        <section className="flex min-h-[42vh] items-start justify-center px-4 py-5 sm:px-6 lg:min-h-screen lg:items-center lg:px-6 lg:py-6 xl:px-8">
+          <div className="w-full max-w-[680px] rounded-[2rem] border border-[#dbe3ef] bg-white px-5 py-6 shadow-[0_28px_80px_rgba(15,23,42,0.1)] sm:px-7 sm:py-7 lg:max-h-[calc(100vh-36px)] lg:overflow-y-auto xl:max-w-[760px]">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8b6a33]">{copy.eyebrow}</p>
