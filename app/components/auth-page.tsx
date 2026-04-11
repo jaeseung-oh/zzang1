@@ -841,7 +841,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Link
                       href="/dashboard"
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#10213f_0%,#1f4b8f_100%)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5"
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#d3ad62_0%,#f0cb85_100%)] px-5 py-3 text-sm font-bold text-[#2f2208] shadow-[0_12px_24px_rgba(164,126,54,0.18)] transition hover:-translate-y-0.5 hover:brightness-105"
                     >
                       내 수강현황 보기
                     </Link>
