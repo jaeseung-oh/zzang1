@@ -360,7 +360,7 @@ export default function HomePage() {
                       회원가입 후 시작하기
                     </a>
                   )}
-                  <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d8e4f7]/30 bg-[#0a1627]/55 px-7 py-4 text-sm font-semibold text-[#f8fbff] transition hover:bg-[#13233d] hover:text-white">
+                  <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-7 py-4 text-sm font-semibold text-[#10213f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
                     수강 절차 보기
                   </a>
                 </div>

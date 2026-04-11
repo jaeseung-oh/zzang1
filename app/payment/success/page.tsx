@@ -147,7 +147,7 @@ function PaymentSuccessContent() {
                   수강실로 이동
                 </Link>
                 {result.receipt?.url ? (
-                  <a href={result.receipt.url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                  <a href={result.receipt.url} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-6 py-3 text-sm font-semibold text-[#10213f] shadow-[0_10px_20px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
                     영수증 보기
                   </a>
                 ) : null}

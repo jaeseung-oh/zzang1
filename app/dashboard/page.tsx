@@ -179,10 +179,10 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85]">
+            <Link href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d3ad62_0%,#f0cb85_100%)] px-6 py-3 text-sm font-bold text-[#2f2208] shadow-[0_12px_24px_rgba(164,126,54,0.18)] transition hover:-translate-y-0.5 hover:brightness-105">
               수강실로 이동
             </Link>
-            <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-[#d6dde8] bg-[#f8fbff] px-6 py-3 text-sm font-semibold text-[#10213f] transition hover:bg-[#eef4fb]">
+            <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-6 py-3 text-sm font-semibold text-[#10213f] shadow-[0_10px_20px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
               성찰문 글쓰기 가이드
             </Link>
           </div>

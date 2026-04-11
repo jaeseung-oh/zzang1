@@ -303,7 +303,7 @@ function CertificatePageContent() {
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="rounded-full bg-[linear-gradient(135deg,#2b2a26,#5b4522)] px-7 py-4 text-[17px] font-bold text-[#fff8ea] shadow-[0_14px_28px_rgba(35,29,18,0.18)] transition hover:-translate-y-0.5"
+                className="rounded-full bg-[linear-gradient(135deg,#2b2a26,#5b4522)] px-7 py-4 text-[17px] font-bold text-white shadow-[0_14px_28px_rgba(35,29,18,0.22)] transition hover:-translate-y-0.5 hover:brightness-105"
               >
                 수료증 인쇄하기 / PDF로 저장하기
               </button>
@@ -312,7 +312,7 @@ function CertificatePageContent() {
                   href={certificateData.downloadUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="rounded-full border border-[rgba(179,138,61,0.34)] bg-white/70 px-7 py-4 text-[17px] font-bold text-[#5b4522] transition hover:bg-white"
+                  className="rounded-full border border-[#d5deeb] bg-white px-7 py-4 text-[17px] font-bold text-[#10213f] shadow-[0_10px_20px_rgba(15,23,42,0.1)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]"
                 >
                   원본 PDF 열기
                 </a>
