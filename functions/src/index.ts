@@ -176,16 +176,69 @@ function getAuthenticatedUid(request: { auth?: { uid?: string } | null }) {
   return uid;
 }
 
-async function getUserFullName(uid: string) {
-  const userSnapshot = await db.collection("users").doc(uid).get();
-  const userData = userSnapshot.data() ?? {};
-  const fullName = typeof userData.realName === "string" && userData.realName.trim() ? userData.realName : userData.fullName;
+function assertDateOfBirthText(value: unknown) {
+  if (typeof value !== "string") {
+    throw new HttpsError("failed-precondition", "회원가입 단계에서 저장한 생년월일이 필요합니다.");
+  }
 
-  if (typeof fullName !== "string" || !fullName.trim()) {
+  const matched = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!matched) {
+    throw new HttpsError("failed-precondition", "회원가입 단계에서 저장한 생년월일 형식이 올바르지 않습니다.");
+  }
+
+  return value.trim();
+}
+
+async function getCertificateIdentity(uid: string, options?: { lockIfMissing?: boolean; purchaseId?: string | null; lockSource?: "payment" | "completion" | "admin" }) {
+  const userRef = db.collection("users").doc(uid);
+  const userSnapshot = await userRef.get();
+  const userData = userSnapshot.data() ?? {};
+  const lockedIdentity = userData.certificateIdentity ?? {};
+  const lockedName = typeof lockedIdentity.realName === "string" && lockedIdentity.realName.trim() ? lockedIdentity.realName.trim() : null;
+  const lockedDateOfBirth = typeof lockedIdentity.dateOfBirth === "string" && lockedIdentity.dateOfBirth.trim() ? lockedIdentity.dateOfBirth.trim() : null;
+
+  if (lockedName && lockedDateOfBirth) {
+    return {
+      realName: lockedName,
+      dateOfBirth: assertDateOfBirthText(lockedDateOfBirth),
+      isLocked: true,
+    };
+  }
+
+  const realName =
+    typeof userData.realName === "string" && userData.realName.trim()
+      ? userData.realName.trim()
+      : typeof userData.fullName === "string" && userData.fullName.trim()
+        ? userData.fullName.trim()
+        : null;
+
+  if (!realName) {
     throw new HttpsError("failed-precondition", "회원가입 단계에서 저장한 실명이 필요합니다.");
   }
 
-  return fullName.trim();
+  const dateOfBirth = assertDateOfBirthText(userData.dateOfBirth ?? userData.birthDate ?? null);
+
+  if (options?.lockIfMissing) {
+    await userRef.set(
+      {
+        certificateIdentity: {
+          realName,
+          dateOfBirth,
+          lockedAt: FieldValue.serverTimestamp(),
+          lockSource: options.lockSource ?? "completion",
+          purchaseId: options.purchaseId ?? null,
+        },
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  return {
+    realName,
+    dateOfBirth,
+    isLocked: false,
+  };
 }
 
 async function getPaidPurchase(uid: string, courseId: string) {
@@ -269,6 +322,7 @@ function createIssueNumber(uid: string, documentType: string, issuedAt: string) 
 
 async function buildCertificatePdfBytes(args: {
   learnerName: string;
+  learnerBirthDate: string;
   courseTitle: string;
   documentTitle: string;
   subtitle: string;
@@ -317,7 +371,7 @@ async function buildCertificatePdfBytes(args: {
     color: rgb(0.95, 0.95, 0.95),
   });
 
-  page.drawText(`사건 유형: ${args.caseTypeLabel}`, {
+  page.drawText(`생년월일: ${args.learnerBirthDate}`, {
     x: 64,
     y: 342,
     size: 12,
@@ -325,7 +379,7 @@ async function buildCertificatePdfBytes(args: {
     color: rgb(0.8, 0.83, 0.87),
   });
 
-  page.drawText(`과정명: ${args.courseTitle}`, {
+  page.drawText(`사건 유형: ${args.caseTypeLabel}`, {
     x: 64,
     y: 318,
     size: 12,
@@ -333,7 +387,7 @@ async function buildCertificatePdfBytes(args: {
     color: rgb(0.8, 0.83, 0.87),
   });
 
-  page.drawText(`문서번호: ${args.issueNumber}`, {
+  page.drawText(`과정명: ${args.courseTitle}`, {
     x: 64,
     y: 294,
     size: 12,
@@ -341,7 +395,7 @@ async function buildCertificatePdfBytes(args: {
     color: rgb(0.8, 0.83, 0.87),
   });
 
-  page.drawText(`발급시각: ${args.issuedAt}`, {
+  page.drawText(`문서번호: ${args.issueNumber}`, {
     x: 64,
     y: 270,
     size: 12,
@@ -349,7 +403,15 @@ async function buildCertificatePdfBytes(args: {
     color: rgb(0.8, 0.83, 0.87),
   });
 
-  let y = 218;
+  page.drawText(`발급시각: ${args.issuedAt}`, {
+    x: 64,
+    y: 246,
+    size: 12,
+    font: bodyFont,
+    color: rgb(0.8, 0.83, 0.87),
+  });
+
+  let y = 194;
   for (const line of args.body) {
     page.drawText(line, {
       x: 64,
@@ -380,6 +442,7 @@ async function storeCertificate(args: {
   courseTitle: string;
   purchaseId: string;
   learnerName: string;
+  learnerBirthDate: string;
   caseTypeLabel: string;
   documentType: (typeof COURSE_COMPLETION_DOCUMENTS)[number]["documentType"];
   title: string;
@@ -391,6 +454,7 @@ async function storeCertificate(args: {
   const issueNumber = createIssueNumber(args.uid, args.documentType, args.issuedAt);
   const pdfBytes = await buildCertificatePdfBytes({
     learnerName: args.learnerName,
+    learnerBirthDate: args.learnerBirthDate,
     courseTitle: args.courseTitle,
     documentTitle: args.title,
     subtitle: args.subtitle,
@@ -426,6 +490,7 @@ async function storeCertificate(args: {
       purchaseId: args.purchaseId,
       documentType: args.documentType,
       learnerName: args.learnerName,
+      learnerBirthDate: args.learnerBirthDate,
       issueNumber,
       storagePath: filePath,
       downloadUrl,
@@ -513,6 +578,12 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
       { merge: true }
     );
 
+    await getCertificateIdentity(uid, {
+      lockIfMissing: true,
+      purchaseId: orderId,
+      lockSource: "payment",
+    }).catch(() => null);
+
     response.status(200).json({
       ...approved,
       savedPurchaseId: orderId,
@@ -537,7 +608,10 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
   const data = request.data as SaveCourseProgressRequest;
   assertValidProgressInput(data);
 
-  const learnerName = await getUserFullName(uid);
+  const certificateIdentity = await getCertificateIdentity(uid, {
+    lockIfMissing: false,
+  });
+  const learnerName = certificateIdentity.realName;
   const progressId = `${uid}_${data.courseId}`;
   const moduleProgress = Object.fromEntries(
     Object.entries(data.moduleProgress || {}).map(([moduleId, item]) => {
@@ -571,6 +645,13 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
   const totalModuleCount = Object.keys(moduleProgress).length;
   const isCompleted = totalModuleCount > 0 ? completedModuleCount === totalModuleCount : data.isCompleted || completionRate >= 100;
   const purchaseSnapshot = isCompleted ? await getPaidPurchase(uid, data.courseId).catch(() => null) : null;
+  const lockedCertificateIdentity = purchaseSnapshot
+    ? await getCertificateIdentity(uid, {
+        lockIfMissing: true,
+        purchaseId: purchaseSnapshot.id,
+        lockSource: "completion",
+      })
+    : certificateIdentity;
   const certificateEligible = isCompleted && Boolean(purchaseSnapshot) && Boolean(data.legalAccepted) && Boolean(data.userReviewAccepted);
 
   await db.collection("courseProgress").doc(progressId).set(
@@ -616,7 +697,8 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
         courseId: data.courseId,
         courseTitle: data.courseTitle,
         purchaseId: purchaseSnapshot.id,
-        learnerName,
+        learnerName: lockedCertificateIdentity.realName,
+        learnerBirthDate: lockedCertificateIdentity.dateOfBirth,
         caseTypeLabel,
         documentType: definition.documentType,
         title: definition.title,

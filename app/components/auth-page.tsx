@@ -15,7 +15,7 @@ import {
 } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { getFirebaseServices } from "@/lib/firebase/client";
-import { getUserProfile, upsertUserProfile, type StoredUserProfile } from "@/lib/firebase/user-profile";
+import { getCertificateIdentity, getUserProfile, upsertUserProfile, type StoredUserProfile } from "@/lib/firebase/user-profile";
 
 type AuthMode = "signup" | "login";
 
@@ -144,7 +144,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, startSubmitTransition] = useTransition();
-  const [isSavingProfile, startProfileTransition] = useTransition();
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isRefreshingVerification, startVerificationTransition] = useTransition();
   const isSignupConsentComplete = termsAccepted && privacyAccepted && sensitiveInfoAccepted;
 
@@ -176,10 +176,13 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           setEmail(user.email ?? storedProfile?.email ?? "");
           setRealName(storedProfile?.realName ?? storedProfile?.fullName ?? user.displayName ?? "");
           setDateOfBirth(storedProfile?.dateOfBirth ?? storedProfile?.birthDate ?? "");
+          const certificateIdentity = getCertificateIdentity(storedProfile);
           setMessage(
-            user.emailVerified
-              ? "이메일 인증이 완료된 계정입니다. 강의실과 수료증 발급 흐름으로 이어질 수 있습니다."
-              : "인증 메일을 확인한 뒤 아래의 인증 상태 확인 버튼을 눌러 계정을 활성화해 주세요."
+            certificateIdentity.isLocked
+              ? "결제 기준으로 수료증 발급 정보가 잠겨 있습니다. 아래 프로필 수정은 가능하지만 수료증에는 잠긴 정보가 사용됩니다."
+              : user.emailVerified
+                ? "이메일 인증이 완료된 계정입니다. 강의실과 수료증 발급 흐름으로 이어질 수 있습니다."
+                : "인증 메일을 확인한 뒤 아래의 인증 상태 확인 버튼을 눌러 계정을 활성화해 주세요."
           );
         } catch (loadError) {
           console.error(loadError);
@@ -307,7 +310,9 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
 
   const handleProfileSave = () => {
     setError("");
-    startProfileTransition(async () => {
+    setIsSavingProfile(true);
+
+    void (async () => {
       try {
         if (!authUser) {
           throw new Error("로그인 후 다시 시도해 주세요.");
@@ -332,7 +337,12 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
 
         const storedProfile = await getUserProfile(authUser.uid);
         setProfile(storedProfile);
-        setMessage("회원 정보가 저장되었습니다. 수료증에는 저장된 실명과 생년월일이 기준으로 사용됩니다.");
+        const certificateIdentity = getCertificateIdentity(storedProfile);
+        setMessage(
+          certificateIdentity.isLocked
+            ? "프로필 정보가 저장되었습니다. 다만 수료증 발급 기준 정보는 이미 잠겨 있어 기존 잠금값이 유지됩니다."
+            : "회원 정보가 저장되었습니다. 아직 결제 전이므로 수료증 발급 기준 정보도 함께 수정됩니다."
+        );
       } catch (saveError) {
         console.error(saveError);
         const message = saveError instanceof Error ? saveError.message : "";
@@ -342,8 +352,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         }
 
         setError(saveError instanceof Error ? saveError.message : "회원 정보 저장 중 오류가 발생했습니다.");
+      } finally {
+        setIsSavingProfile(false);
       }
-    });
+    })();
   };
 
   const handleResendVerification = () => {
@@ -413,7 +425,8 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   };
 
   const displayName = getProfileName(profile, authUser);
-  const profileReady = Boolean(profile?.realName?.trim() || profile?.fullName?.trim()) && Boolean(profile?.dateOfBirth || profile?.birthDate);
+  const certificateIdentity = getCertificateIdentity(profile);
+  const profileReady = Boolean(certificateIdentity.realName) && Boolean(certificateIdentity.dateOfBirth);
   const isVerified = Boolean(authUser?.emailVerified || profile?.isEmailVerified);
 
   return (
@@ -500,7 +513,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                             placeholder="홍길동"
                             className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
                           />
-                          <p className="text-xs leading-6 text-[#7a6656]">수료증 발급을 위해 반드시 실명을 입력해주세요.</p>
+                          <p className="text-xs leading-6 text-[#7a6656]">결제 전에는 수료증 기준 정보에도 반영되고, 결제 후에는 일반 프로필 정보만 수정됩니다.</p>
                         </label>
                         <label className="block space-y-2 text-sm text-[#17211e]">
                           <span>생년월일</span>
@@ -598,6 +611,17 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                       </div>
                     </div>
 
+                    {certificateIdentity.isLocked ? (
+                      <div className="rounded-[1.5rem] border border-[#d8dfeb] bg-[#f8fafc] p-5 text-sm text-[#334155]">
+                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9f4d24]">Certificate Identity Locked</p>
+                        <p className="mt-3 leading-7">결제 이후 수료증 발급 기준 정보가 잠겨 있습니다. 아래 프로필 정보는 수정할 수 있지만, 수료증과 발급 문서에는 아래 잠금 정보가 계속 사용됩니다.</p>
+                        <div className="mt-4 grid gap-3 md:grid-cols-2">
+                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">잠긴 실명: {certificateIdentity.realName}</div>
+                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">잠긴 생년월일: {certificateIdentity.dateOfBirth}</div>
+                        </div>
+                      </div>
+                    ) : null}
+
                     <div className="grid gap-4 md:grid-cols-2">
                       <label className="space-y-2 text-sm text-[#17211e]">
                         <span>실명</span>
@@ -620,7 +644,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                           placeholder="19900101 또는 1990-01-01"
                           className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
                         />
-                        <p className="text-xs leading-6 text-[#7a6656]">언제든 다시 수정 저장할 수 있습니다.</p>
+                        <p className="text-xs leading-6 text-[#7a6656]">결제 전에는 수료증 기준 정보에도 반영되고, 결제 후에는 일반 프로필 정보만 수정됩니다.</p>
                       </label>
                     </div>
 

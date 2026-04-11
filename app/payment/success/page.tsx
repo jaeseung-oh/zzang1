@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
+import { ensureCertificateIdentityLock } from "@/lib/firebase/user-profile";
 
 type ConfirmResponse = {
   savedPurchaseId?: string;
@@ -77,6 +78,17 @@ function PaymentSuccessContent() {
         }
 
         setResult(payload);
+
+        try {
+          await ensureCertificateIdentityLock({
+            uid: sessionUser.uid,
+            purchaseId: payload.savedPurchaseId || payload.orderId || orderId,
+            lockSource: "payment",
+          });
+        } catch (lockError) {
+          console.error(lockError);
+          setError(lockError instanceof Error ? lockError.message : "수료증 발급 기준 정보 잠금에 실패했습니다.");
+        }
       } catch (requestError) {
         console.error(requestError);
         const message = requestError instanceof Error ? requestError.message : "";

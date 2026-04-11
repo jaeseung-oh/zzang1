@@ -1,6 +1,14 @@
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { getFirebaseServices } from "@/lib/firebase/client";
 
+export type CertificateIdentity = {
+  realName?: string;
+  dateOfBirth?: string;
+  lockedAt?: unknown;
+  lockSource?: string | null;
+  purchaseId?: string | null;
+};
+
 export type StoredUserProfile = {
   fullName: string;
   realName?: string;
@@ -16,6 +24,7 @@ export type StoredUserProfile = {
   termsAccepted?: boolean;
   privacyAccepted?: boolean;
   sensitiveInfoAccepted?: boolean;
+  certificateIdentity?: CertificateIdentity;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -36,6 +45,12 @@ export type UpsertUserProfileInput = {
   sensitiveInfoAccepted?: boolean;
 };
 
+export type EnsureCertificateIdentityLockInput = {
+  uid: string;
+  purchaseId?: string | null;
+  lockSource?: "payment" | "completion" | "admin";
+};
+
 function assertValidDateOfBirth(value?: string | null) {
   if (!value) {
     throw new Error("생년월일을 입력해 주세요.");
@@ -54,9 +69,9 @@ function assertValidDateOfBirth(value?: string | null) {
 
   const isSameCalendarDate =
     !Number.isNaN(candidate.getTime()) &&
-    candidate.getFullYear() == year &&
-    candidate.getMonth() == month - 1 &&
-    candidate.getDate() == day;
+    candidate.getFullYear() === year &&
+    candidate.getMonth() === month - 1 &&
+    candidate.getDate() === day;
 
   if (!isSameCalendarDate) {
     throw new Error("유효한 생년월일을 입력해 주세요.");
@@ -70,6 +85,31 @@ function assertValidDateOfBirth(value?: string | null) {
   }
 }
 
+export function getCertificateIdentity(profile: StoredUserProfile | null) {
+  const lockedName = profile?.certificateIdentity?.realName?.trim();
+  const lockedDateOfBirth = profile?.certificateIdentity?.dateOfBirth?.trim();
+
+  if (lockedName && lockedDateOfBirth) {
+    return {
+      realName: lockedName,
+      dateOfBirth: lockedDateOfBirth,
+      lockedAt: profile?.certificateIdentity?.lockedAt,
+      lockSource: profile?.certificateIdentity?.lockSource ?? null,
+      purchaseId: profile?.certificateIdentity?.purchaseId ?? null,
+      isLocked: true,
+    } as const;
+  }
+
+  return {
+    realName: profile?.realName?.trim() || profile?.fullName?.trim() || "",
+    dateOfBirth: profile?.dateOfBirth?.trim() || profile?.birthDate?.trim() || "",
+    lockedAt: null,
+    lockSource: null,
+    purchaseId: null,
+    isLocked: false,
+  } as const;
+}
+
 export async function getUserProfile(uid: string) {
   const { db } = getFirebaseServices();
   const snapshot = await getDoc(doc(db, "users", uid));
@@ -79,6 +119,56 @@ export async function getUserProfile(uid: string) {
   }
 
   return snapshot.data() as StoredUserProfile;
+}
+
+export async function ensureCertificateIdentityLock(input: EnsureCertificateIdentityLockInput) {
+  const { db } = getFirebaseServices();
+  const userRef = doc(db, "users", input.uid);
+  const snapshot = await getDoc(userRef);
+
+  if (!snapshot.exists()) {
+    throw new Error("회원 정보를 먼저 저장해 주세요.");
+  }
+
+  const profile = snapshot.data() as StoredUserProfile;
+  const currentIdentity = getCertificateIdentity(profile);
+
+  if (currentIdentity.isLocked) {
+    return currentIdentity;
+  }
+
+  const realName = currentIdentity.realName.trim();
+  const dateOfBirth = currentIdentity.dateOfBirth.trim();
+
+  if (!realName) {
+    throw new Error("수료증 발급 기준 잠금을 위해 실명을 먼저 저장해 주세요.");
+  }
+
+  assertValidDateOfBirth(dateOfBirth);
+
+  await setDoc(
+    userRef,
+    {
+      certificateIdentity: {
+        realName,
+        dateOfBirth,
+        lockedAt: serverTimestamp(),
+        lockSource: input.lockSource ?? "payment",
+        purchaseId: input.purchaseId ?? null,
+      },
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
+  );
+
+  return {
+    realName,
+    dateOfBirth,
+    lockedAt: new Date().toISOString(),
+    lockSource: input.lockSource ?? "payment",
+    purchaseId: input.purchaseId ?? null,
+    isLocked: true,
+  } as const;
 }
 
 export async function upsertUserProfile(input: UpsertUserProfileInput) {

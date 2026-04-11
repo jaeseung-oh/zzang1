@@ -16,6 +16,12 @@ type UserProfileRecord = {
   fullName?: string;
   realName?: string;
   dateOfBirth?: string;
+  certificateIdentity?: {
+    realName?: string;
+    dateOfBirth?: string;
+    lockedAt?: { seconds: number };
+    purchaseId?: string | null;
+  };
 };
 
 type CertificateRecord = {
@@ -124,7 +130,8 @@ function CertificatePageContent() {
         }
 
         const userProfile = userSnapshot.exists() ? (userSnapshot.data() as UserProfileRecord) : null;
-        const fullName = userProfile?.realName?.trim() || userProfile?.fullName?.trim();
+        const lockedIdentity = userProfile?.certificateIdentity;
+        const fullName = lockedIdentity?.realName?.trim() || userProfile?.realName?.trim() || userProfile?.fullName?.trim();
         if (!fullName) {
           setError("회원가입 화면에서 실명을 먼저 저장해야 수료증을 출력할 수 있습니다.");
           return;
@@ -168,7 +175,7 @@ function CertificatePageContent() {
 
         setCertificateData({
           studentName: fullName,
-          birthDate: formatBirthDate(userProfile?.dateOfBirth),
+          birthDate: formatBirthDate(lockedIdentity?.dateOfBirth || userProfile?.dateOfBirth),
           courseTitle: (completionCertificate.courseTitle || matchedProgress.courseTitle || "수료 과정 확인 필요").replace("수료", "").trim(),
           issueDate: formatIssueDate(completionCertificate.issuedAt),
           printedDate,
