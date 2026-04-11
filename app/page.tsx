@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const trustIndicators = [
   {
@@ -206,9 +206,17 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
 
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isEducationMenuOpen, setIsEducationMenuOpen] = useState(false);
+  const educationMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 24);
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!educationMenuRef.current?.contains(event.target as Node)) {
+        setIsEducationMenuOpen(false);
+      }
+    };
+
     handleScroll();
 
     const observer = new IntersectionObserver(
@@ -225,10 +233,12 @@ export default function HomePage() {
     const nodes = document.querySelectorAll("[data-reveal]");
     nodes.forEach((node) => observer.observe(node));
     window.addEventListener("scroll", handleScroll, { passive: true });
+    window.addEventListener("pointerdown", handlePointerDown);
 
     return () => {
       observer.disconnect();
       window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("pointerdown", handlePointerDown);
     };
   }, []);
 
@@ -271,22 +281,35 @@ export default function HomePage() {
 
             <nav className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex">
               <a href="#center-intro" className="transition hover:text-[#06101b]">센터소개</a>
-              <div className="group relative">
-                <a href="#courses" className="inline-flex items-center gap-2 transition hover:text-[#06101b]">
+              <div ref={educationMenuRef} className="relative">
+                <button
+                  type="button"
+                  onClick={() => setIsEducationMenuOpen((prev) => !prev)}
+                  aria-expanded={isEducationMenuOpen}
+                  aria-haspopup="menu"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-slate-50 hover:text-[#06101b]"
+                >
                   교육과정
-                  <svg viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.8">
+                  <svg viewBox="0 0 20 20" className={`h-4 w-4 fill-none stroke-current transition ${isEducationMenuOpen ? "rotate-180" : ""}`} strokeWidth="1.8">
                     <path d="m5 7.5 5 5 5-5" />
                   </svg>
-                </a>
-                <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-3 hidden w-64 -translate-x-1/2 rounded-[1.5rem] border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-[0_18px_50px_rgba(3,10,20,0.16)] group-hover:block group-hover:pointer-events-auto">
-                  <div className="space-y-1">
-                    {educationMenuItems.map((item) => (
-                      <a key={item} href="#courses" className="block rounded-xl px-3 py-2 transition hover:bg-slate-50 hover:text-[#06101b]">
-                        {item}
-                      </a>
-                    ))}
+                </button>
+                {isEducationMenuOpen ? (
+                  <div className="absolute left-1/2 top-full z-20 mt-3 w-72 -translate-x-1/2 rounded-[1.5rem] border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-[0_18px_50px_rgba(3,10,20,0.16)]">
+                    <div className="space-y-1">
+                      {educationMenuItems.map((item) => (
+                        <a
+                          key={item}
+                          href="#courses"
+                          onClick={() => setIsEducationMenuOpen(false)}
+                          className="flex min-h-11 items-center rounded-xl px-4 py-2.5 font-medium transition hover:bg-slate-50 hover:text-[#06101b]"
+                        >
+                          {item}
+                        </a>
+                      ))}
+                    </div>
                   </div>
-                </div>
+                ) : null}
               </div>
               <a href="#documents" className="transition hover:text-[#06101b]">수료증 안내</a>
               <a href="#reviews" className="transition hover:text-[#06101b]">수강후기</a>
