@@ -347,7 +347,7 @@ export default function HomePage() {
                   <span className="block break-keep">진정성 있는 성찰과 실천을 돕습니다.</span>
                   <span className="mt-2 block break-keep text-[#f6deb0]">민간 재발 방지 교육과 자기점검의 출발점</span>
                 </h1>
-                <p className="mt-6 max-w-2xl text-base leading-8 text-slate-200 sm:text-lg">
+                <p className="mt-6 max-w-[44rem] break-keep text-base leading-8 text-slate-200 sm:text-lg">
                   사건 이후 자신의 생활을 차분히 돌아보고, 재발 방지를 위한 학습과 실천 계획을 스스로 정리할 수 있도록 돕습니다.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
@@ -379,7 +379,7 @@ export default function HomePage() {
               {currentUser ? (
                 <HomeUserSummary currentUser={currentUser} />
               ) : (
-                <div className="max-w-[420px] rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl">
+                <div className="max-w-[500px] rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl sm:p-7">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Urgent Briefing</p>
@@ -395,18 +395,18 @@ export default function HomePage() {
                   <div className="mt-6 grid gap-4">
                     <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
                       <p className="text-sm text-slate-300">교육 방식</p>
-                      <p className="mt-2 text-xl font-semibold">온라인 수강 진행</p>
+                      <p className="mt-2 break-keep text-xl font-semibold leading-snug">온라인 수강 진행</p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
                       <p className="text-sm text-slate-300">안내 서류 구성</p>
-                      <p className="mt-2 text-xl font-semibold">학습확인서 · 서약서 · 계획서</p>
+                      <p className="mt-2 break-keep text-xl font-semibold leading-snug">학습확인서 · 서약서 · 계획서</p>
                     </div>
                     <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
                       <p className="text-sm text-slate-300">추천 대상</p>
-                      <p className="mt-2 text-xl font-semibold">교육 이수 사실과 실천 의지를 정리하고 싶은 분</p>
+                      <p className="mt-2 break-keep text-xl font-semibold leading-snug">교육 이수 사실과 실천 의지를 정리하고 싶은 분</p>
                     </div>
                   </div>
-                  <div className="mt-6 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-sm leading-7 text-[#f8e7c4]">
+                  <div className="mt-6 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-sm leading-7 text-[#f8e7c4] break-keep">
                     본 서비스는 법률 자문 기관이 아닌 민간 교육 플랫폼으로, 자발적인 성찰과 생활 실천 계획 정리를 돕습니다.
                   </div>
                 </div>
@@ -423,7 +423,7 @@ export default function HomePage() {
               {trustIndicators.map((item) => (
                 <div key={item.title} className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-4">
                   <div className="rounded-xl bg-[#06101b] p-2 text-[#e9c98d]">{item.icon}</div>
-                  <span className="text-sm font-semibold text-slate-800">{item.title}</span>
+                  <span className="break-keep text-sm font-semibold text-slate-800">{item.title}</span>
                 </div>
               ))}
             </div>
@@ -437,7 +437,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-4 text-center">
               <div className="mx-auto inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.26em] text-[#6f531b]">Core Courses</div>
               <h2 className="text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">사건 유형별 핵심 교육 과정</h2>
-              <p className="mx-auto max-w-2xl text-base leading-8 text-slate-600">각 과정은 자기점검, 생활 습관 개선, 책임 의식 회복, 실천 계획 정리에 초점을 맞춰 구성되어 있습니다.</p>
+              <p className="mx-auto max-w-3xl break-keep text-base leading-8 text-slate-600">각 과정은 자기점검, 생활 습관 개선, 책임 의식 회복, 실천 계획 정리에 초점을 맞춰 구성되어 있습니다.</p>
             </div>
             <div className="mt-14 grid gap-6 lg:grid-cols-3">
               {courseCards.map((card, index) => (
@@ -453,7 +453,7 @@ export default function HomePage() {
                     </div>
                     <div className="p-7">
                       <h3 className="text-2xl font-black text-[#06101b]">{card.title}</h3>
-                      <p className="mt-4 text-sm leading-7 text-slate-600">{card.summary}</p>
+                      <p className="mt-4 break-keep text-sm leading-7 text-slate-600">{card.summary}</p>
                       <div className="mt-6 flex flex-wrap gap-2">
                         {card.tags.map((tag) => (
                           <span key={tag} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">{tag}</span>
@@ -481,7 +481,7 @@ export default function HomePage() {
                   <div className="rounded-[2rem] border border-white/10 bg-white/5 p-8">
                     <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#d8b36a] text-lg font-black text-[#06101b]">{item.step}</div>
                     <h3 className="text-2xl font-bold">{item.title}</h3>
-                    <p className="mt-4 text-sm leading-7 text-slate-300">{item.body}</p>
+                    <p className="mt-4 break-keep text-sm leading-7 text-slate-300">{item.body}</p>
                   </div>
                 </Reveal>
               ))}
@@ -497,7 +497,7 @@ export default function HomePage() {
               <div>
                 <div className="inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#6f531b]">Documents</div>
                 <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">이수 후 확인 가능한 민간 교육 자료</h2>
-                <p className="mt-6 max-w-xl text-base leading-8 text-slate-600">수강생의 자발적인 교육 참여와 실천 의지를 정리할 수 있도록 돕는 민간 교육 확인 자료 예시입니다.</p>
+                <p className="mt-6 max-w-2xl break-keep text-base leading-8 text-slate-600">수강생의 자발적인 교육 참여와 실천 의지를 정리할 수 있도록 돕는 민간 교육 확인 자료 예시입니다.</p>
                 <div className="mt-8 grid gap-4">
                   {documents.map((item, index) => (
                     <Reveal key={item.title} delay={index * 100}>
@@ -505,7 +505,7 @@ export default function HomePage() {
                         <div className="rounded-2xl bg-[#06101b] p-3 text-[#e9c98d]">{item.icon}</div>
                         <div>
                           <p className="font-bold text-[#06101b]">{item.title}</p>
-                          <p className="text-sm text-slate-500">{item.body}</p>
+                          <p className="break-keep text-sm text-slate-500">{item.body}</p>
                         </div>
                       </div>
                     </Reveal>
@@ -555,7 +555,7 @@ export default function HomePage() {
                   <div className="inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#f0cb85]">Reviews Board</div>
                   <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] sm:text-4xl">수강후기</h2>
                 </div>
-                <p className="max-w-xl text-sm leading-7 text-white/70">실제 수강생이 직접 후기를 남기고, 다른 이용자는 최근 후기를 바로 확인할 수 있는 게시판입니다.</p>
+                <p className="max-w-2xl break-keep text-sm leading-7 text-white/70">실제 수강생이 직접 후기를 남기고, 다른 이용자는 최근 후기를 바로 확인할 수 있는 게시판입니다.</p>
               </div>
               <div className="mt-8">
                 <ReviewBoard />
@@ -574,14 +574,14 @@ export default function HomePage() {
                   <div className="inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#6f531b]">FAQ</div>
                   <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-4xl">자주 묻는 질문</h2>
                 </div>
-                <p className="max-w-xl text-sm leading-7 text-slate-600">실제 신청 전에 자주 확인하는 내용을 정리했습니다.</p>
+                <p className="max-w-2xl break-keep text-sm leading-7 text-slate-600">실제 신청 전에 자주 확인하는 내용을 정리했습니다.</p>
               </div>
               <div className="mt-8 grid gap-4 lg:grid-cols-3">
                 {faqs.map((item, index) => (
                   <Reveal key={item.title} delay={index * 100}>
                     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
                       <h3 className="text-lg font-bold text-[#06101b]">{item.title}</h3>
-                      <p className="mt-3 text-sm leading-7 text-slate-600">{item.body}</p>
+                      <p className="mt-3 break-keep text-sm leading-7 text-slate-600">{item.body}</p>
                     </div>
                   </Reveal>
                 ))}

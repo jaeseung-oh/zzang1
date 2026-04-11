@@ -40,7 +40,7 @@ function ValueIcon({ accent }: { accent: "default" | "highlight" }) {
 
 export default function AboutPage() {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f5f7fb_0%,#eef2f7_100%)] text-[#0f172a]">
+    <main className="min-h-screen break-keep bg-[linear-gradient(180deg,#f5f7fb_0%,#eef2f7_100%)] text-[#0f172a]">
       <section className="relative overflow-hidden bg-[linear-gradient(145deg,#08152d_0%,#10213f_48%,#173968_100%)] text-white">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(240,203,133,0.18),transparent_22%),radial-gradient(circle_at_left_center,rgba(96,165,250,0.16),transparent_24%)]" />
         <div className="relative mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8 lg:py-32">
@@ -51,7 +51,7 @@ export default function AboutPage() {
             <h1 className="mt-8 text-4xl font-black leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
               단순한 후회를 넘어, 행동하는 반성의 증명
             </h1>
-            <p className="mt-8 max-w-3xl text-base leading-8 text-slate-200 sm:text-lg">
+            <p className="mt-8 max-w-[52rem] break-keep text-base leading-8 text-slate-200 sm:text-lg">
               리셋 에듀센터는 음주운전, 성범죄, 사기 등 각종 위법 행위의 근본적인 원인을 점검하고, 체계적인 예방 교육을 통해 당신의 진정성 있는 변화를 객관적인 기록으로 남깁니다.
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
@@ -77,7 +77,7 @@ export default function AboutPage() {
                 변화를 향한 의지, 혼자 증명하기 어렵습니다.
               </h2>
             </div>
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_18px_60px_rgba(3,10,20,0.08)]">
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_18px_60px_rgba(3,10,20,0.08)] break-keep">
               <p className="text-base leading-8 text-slate-700">
                 사건 이후 가장 중요한 것은 '다시는 같은 실수를 반복하지 않겠다'는 재발 방지의 변함없는 의지입니다. 저희 센터는 법률적, 심리적 메커니즘을 분석하여 개발된 전문 예방 교육 커리큘럼을 제공합니다. 수강생이 자신의 과오를 깊이 성찰하고, 올바른 사회 구성원으로 복귀할 수 있도록 가장 확실한 첫걸음을 돕습니다.
               </p>
@@ -88,7 +88,7 @@ export default function AboutPage() {
 
       <section className="bg-[linear-gradient(180deg,#eef3f8_0%,#f8fafc_100%)]">
         <div className="mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:px-8">
-          <div className="max-w-3xl">
+          <div className="max-w-4xl">
             <p className="inline-flex rounded-full border border-[#e5d8b5] bg-[#f9f1de] px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#7a5a1b]">
               Core Value
             </p>
@@ -110,11 +110,11 @@ export default function AboutPage() {
                 <h3 className={`mt-6 text-2xl font-black leading-[1.2] tracking-[-0.03em] ${card.accent === "highlight" ? "text-[#4a3510]" : "text-[#06101b]"}`}>
                   {card.title}
                 </h3>
-                <p className={`mt-5 text-sm leading-8 ${card.accent === "highlight" ? "text-[#5d4a21]" : "text-slate-600"}`}>
+                <p className={`mt-5 break-keep text-sm leading-8 ${card.accent === "highlight" ? "text-[#5d4a21]" : "text-slate-600"}`}>
                   {card.body}
                 </p>
                 {card.accent === "highlight" ? (
-                  <div className="mt-6 rounded-[1.5rem] border border-[#e2c57b] bg-white/70 px-5 py-4 text-sm font-semibold leading-7 text-[#4a3510]">
+                  <div className="mt-6 rounded-[1.5rem] border border-[#e2c57b] bg-white/70 px-5 py-4 text-sm font-semibold leading-7 text-[#4a3510] break-keep">
                     수강 완료 기록과 발급 서류를 통해 스스로의 변화와 노력을 객관적인 참고 자료로 정리할 수 있습니다.
                   </div>
                 ) : null}
@@ -132,7 +132,7 @@ export default function AboutPage() {
               <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] text-white sm:text-4xl">
                 신뢰할 수 있는 교육 기록과 함께, 변화의 출발점을 정리해 보세요.
               </h2>
-              <p className="mt-5 text-sm leading-8 text-slate-300 sm:text-base">
+              <p className="mt-5 break-keep text-sm leading-8 text-slate-300 sm:text-base">
                 수강 등록부터 교육 이수, 성찰 기록 정리, 발급 서류 확인까지 한 흐름으로 안내합니다. 필요한 절차를 차분히 준비할 수 있도록 플랫폼 전체를 설계했습니다.
               </p>
             </div>
@@ -146,7 +146,7 @@ export default function AboutPage() {
             </div>
           </div>
 
-          <div className="mt-10 rounded-[1.75rem] border border-[#d7dee8] bg-[#f3f5f8] px-6 py-6 text-sm leading-7 text-slate-600">
+          <div className="mt-10 rounded-[1.75rem] border border-[#d7dee8] bg-[#f3f5f8] px-6 py-6 text-sm leading-7 text-slate-600 break-keep">
             안내: 본 센터의 교육 프로그램과 발급 서류는 수강생의 자발적인 개전의 정(뉘우침)을 보여주는 객관적 참고 자료입니다. 특정 재판의 결과나 감형을 법적으로 보장하지 않으며, 개별 사건에 대한 법률 대리나 법률 자문 등의 사무는 제공하지 않습니다.
           </div>
         </div>
