@@ -763,7 +763,7 @@ export default function CourseRoomPage() {
                 href="/dashboard"
                 className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d8c18e]/42 bg-[rgba(255,255,255,0.14)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(2,6,23,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#efd7a0]/56 hover:bg-[rgba(255,255,255,0.22)]"
               >
-                학습 대시보드
+                내 수강현황
               </Link>
               <Link
                 href="/certificate"
@@ -987,7 +987,7 @@ export default function CourseRoomPage() {
               <div className="bg-[linear-gradient(135deg,#0d172a_0%,#132341_100%)] px-5 py-5 text-white sm:px-6">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#98b8f7]">Progress Dashboard</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#98b8f7]">Course Progress</p>
                     <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">전체 수강률</h2>
                     <p className="mt-2 text-sm leading-7 text-slate-300">총 요구 시간, 누적 시청 시간, 남은 시간, 발급 안내를 한눈에 확인합니다.</p>
                   </div>

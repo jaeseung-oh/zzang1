@@ -125,11 +125,11 @@ export default function DashboardPage() {
           const message = loadError instanceof Error ? loadError.message : "";
           if (message === "AUTH_LOGIN_REQUIRED") {
             router.replace("/login?next=/dashboard");
-            setError("로그인한 회원만 대시보드를 확인할 수 있습니다.");
+            setError("로그인한 회원만 내 수강현황을 확인할 수 있습니다.");
             return;
           }
 
-          setError("대시보드 데이터를 불러오지 못했습니다. Firebase 인증과 Firestore 인덱스 상태를 확인해 주세요.");
+          setError("수강현황 데이터를 불러오지 못했습니다. Firebase 인증과 Firestore 인덱스 상태를 확인해 주세요.");
         }
       } finally {
         if (!cancelled) {
@@ -168,13 +168,13 @@ export default function DashboardPage() {
   }, [progress]);
 
   return (
-    <main className="min-h-screen px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.3)] lg:p-8">
+    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(211,173,98,0.14),transparent_22%),linear-gradient(180deg,#09111d_0%,#0d1728_32%,#eef3f8_32%,#f4f7fb_100%)] px-4 py-10 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl rounded-[2rem] border border-[#d7deea] bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.14)] lg:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Learner Dashboard</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">6강 수강 현황과 발급 문서 대시보드</h1>
-            <p className="mt-4 max-w-3xl text-sm leading-8 text-white/70">
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#9b7a38]">My Course</p>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-[#0f172a] sm:text-5xl">내 수강현황과 발급 문서 확인</h1>
+            <p className="mt-4 max-w-3xl text-sm leading-8 text-slate-600">
               강의별 진도, 누적 수강 시간, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
             </p>
           </div>
@@ -182,13 +182,13 @@ export default function DashboardPage() {
             <Link href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85]">
               수강실로 이동
             </Link>
-            <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+            <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-[#d6dde8] bg-[#f8fbff] px-6 py-3 text-sm font-semibold text-[#10213f] transition hover:bg-[#eef4fb]">
               성찰문 글쓰기 가이드
             </Link>
           </div>
         </div>
 
-        {loading ? <p className="mt-8 text-sm text-white/70">대시보드 데이터를 불러오는 중입니다...</p> : null}
+        {loading ? <p className="mt-8 text-sm text-slate-600">수강현황을 불러오는 중입니다...</p> : null}
         {error ? <p className="mt-8 text-sm text-[#f2a39b]">{error}</p> : null}
 
         {!loading && !error ? (

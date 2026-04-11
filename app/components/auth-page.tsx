@@ -43,7 +43,7 @@ const modeCopy = {
     eyebrow: "Member Login",
     title: "로그인 후 바로 강의실과 수료증 발급 흐름을 이용할 수 있습니다",
     intro:
-      "이미 가입한 회원은 로그인 후 강의실, 대시보드, 수료증 발급 화면으로 이동할 수 있습니다. 인증이 끝나지 않았다면 이 화면에서 바로 처리할 수 있습니다.",
+      "이미 가입한 회원은 로그인 후 강의실, 내 수강현황, 수료증 발급 화면으로 이동할 수 있습니다. 인증이 끝나지 않았다면 이 화면에서 바로 처리할 수 있습니다.",
     benefits: [
       "인증 상태를 확인하고 즉시 수강을 시작할 수 있습니다.",
       "저장된 정보로 수료증 발급 흐름이 연결됩니다.",
@@ -445,7 +445,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
             <Link href="/" className="transition hover:text-[#a45127]">홈</Link>
             <Link href="/#courses" className="transition hover:text-[#a45127]">교육과정</Link>
             <Link href="/course-room" className="transition hover:text-[#a45127]">강의실</Link>
-            <Link href="/dashboard" className="transition hover:text-[#a45127]">대시보드</Link>
+            <Link href="/dashboard" className="transition hover:text-[#a45127]">내 수강현황</Link>
           </nav>
           <div className="flex flex-wrap gap-3">
             <Link
@@ -700,7 +700,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                           href="/dashboard"
                           className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5"
                         >
-                          내 대시보드 보기
+                          내 수강현황 보기
                         </Link>
                         <Link
                           href="/course-room"
