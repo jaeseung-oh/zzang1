@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import ReviewBoard from "./components/review-board";
+import HomeUserSummary from "./components/home-user-summary";
+import { onAuthStateChanged, type User } from "firebase/auth";
+import { getFirebaseServices } from "@/lib/firebase/client";
 
 const trustIndicators = [
   {
@@ -190,6 +193,7 @@ function Reveal({ children, delay = 0, className = "" }: { children: React.React
 export default function HomePage() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isEducationMenuOpen, setIsEducationMenuOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const educationMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -199,6 +203,17 @@ export default function HomePage() {
         setIsEducationMenuOpen(false);
       }
     };
+
+    let unsubscribeAuth = () => {};
+
+    try {
+      const { auth } = getFirebaseServices();
+      unsubscribeAuth = onAuthStateChanged(auth, (user) => {
+        setCurrentUser(user && !user.isAnonymous ? user : null);
+      });
+    } catch (error) {
+      console.error(error);
+    }
 
     handleScroll();
 
@@ -220,6 +235,7 @@ export default function HomePage() {
 
     return () => {
       observer.disconnect();
+      unsubscribeAuth();
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("pointerdown", handlePointerDown);
     };
@@ -299,14 +315,16 @@ export default function HomePage() {
               <a href="#faq" className="transition hover:text-[#06101b]">자주 묻는 질문</a>
             </nav>
 
-            <div className="flex items-center gap-3">
-              <a href="/login" className="hidden items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-5 py-3 text-sm font-bold text-[#0b1628] shadow-[0_10px_24px_rgba(7,16,32,0.08)] transition hover:-translate-y-0.5 hover:border-[#c7d3e6] hover:bg-[#f8fbff] hover:text-[#08111d] md:inline-flex">
-                로그인
-              </a>
-              <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-5 py-3 text-sm font-bold text-[#161109] shadow-[0_14px_28px_rgba(164,126,54,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
-                회원가입
-              </a>
-            </div>
+            {currentUser ? null : (
+              <div className="flex items-center gap-3">
+                <a href="/login" className="hidden items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-5 py-3 text-sm font-bold text-[#0b1628] shadow-[0_10px_24px_rgba(7,16,32,0.08)] transition hover:-translate-y-0.5 hover:border-[#c7d3e6] hover:bg-[#f8fbff] hover:text-[#08111d] md:inline-flex">
+                  로그인
+                </a>
+                <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-5 py-3 text-sm font-bold text-[#161109] shadow-[0_14px_28px_rgba(164,126,54,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
+                  회원가입
+                </a>
+              </div>
+            )}
           </div>
         </div>
       </header>
@@ -333,9 +351,15 @@ export default function HomePage() {
                   사건 이후 자신의 생활을 차분히 돌아보고, 재발 방지를 위한 학습과 실천 계획을 스스로 정리할 수 있도록 돕습니다.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
-                  <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-7 py-4 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
-                    회원가입 후 시작하기
-                  </a>
+                  {currentUser ? (
+                    <a href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-7 py-4 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
+                      내 강의실 바로가기
+                    </a>
+                  ) : (
+                    <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-7 py-4 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
+                      회원가입 후 시작하기
+                    </a>
+                  )}
                   <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d8e4f7]/30 bg-[#0a1627]/55 px-7 py-4 text-sm font-semibold text-[#f8fbff] transition hover:bg-[#13233d] hover:text-white">
                     수강 절차 보기
                   </a>
@@ -352,37 +376,41 @@ export default function HomePage() {
             </Reveal>
 
             <Reveal delay={120} className="xl:justify-self-end">
-              <div className="max-w-[420px] rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl">
-                <div className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Urgent Briefing</p>
-                    <h2 className="mt-2 break-keep text-[1.45rem] font-bold leading-tight sm:text-[1.7rem]">온라인 수강 · 발급 안내</h2>
+              {currentUser ? (
+                <HomeUserSummary currentUser={currentUser} />
+              ) : (
+                <div className="max-w-[420px] rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl">
+                  <div className="flex flex-wrap items-start justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Urgent Briefing</p>
+                      <h2 className="mt-2 break-keep text-[1.45rem] font-bold leading-tight sm:text-[1.7rem]">온라인 수강 · 발급 안내</h2>
+                    </div>
+                    <div className="shrink-0 rounded-2xl bg-[#d8b36a]/15 p-3 text-[#f6deb0]">
+                      <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
+                        <path d="M12 8v4l3 3" />
+                        <circle cx="12" cy="12" r="9" />
+                      </svg>
+                    </div>
                   </div>
-                  <div className="shrink-0 rounded-2xl bg-[#d8b36a]/15 p-3 text-[#f6deb0]">
-                    <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
-                      <path d="M12 8v4l3 3" />
-                      <circle cx="12" cy="12" r="9" />
-                    </svg>
+                  <div className="mt-6 grid gap-4">
+                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
+                      <p className="text-sm text-slate-300">교육 방식</p>
+                      <p className="mt-2 text-xl font-semibold">온라인 수강 진행</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
+                      <p className="text-sm text-slate-300">안내 서류 구성</p>
+                      <p className="mt-2 text-xl font-semibold">학습확인서 · 서약서 · 계획서</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
+                      <p className="text-sm text-slate-300">추천 대상</p>
+                      <p className="mt-2 text-xl font-semibold">교육 이수 사실과 실천 의지를 정리하고 싶은 분</p>
+                    </div>
+                  </div>
+                  <div className="mt-6 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-sm leading-7 text-[#f8e7c4]">
+                    본 서비스는 법률 자문 기관이 아닌 민간 교육 플랫폼으로, 자발적인 성찰과 생활 실천 계획 정리를 돕습니다.
                   </div>
                 </div>
-                <div className="mt-6 grid gap-4">
-                  <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
-                    <p className="text-sm text-slate-300">교육 방식</p>
-                    <p className="mt-2 text-xl font-semibold">온라인 수강 진행</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
-                    <p className="text-sm text-slate-300">안내 서류 구성</p>
-                    <p className="mt-2 text-xl font-semibold">학습확인서 · 서약서 · 계획서</p>
-                  </div>
-                  <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
-                    <p className="text-sm text-slate-300">추천 대상</p>
-                    <p className="mt-2 text-xl font-semibold">교육 이수 사실과 실천 의지를 정리하고 싶은 분</p>
-                  </div>
-                </div>
-                <div className="mt-6 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-sm leading-7 text-[#f8e7c4]">
-                  본 서비스는 법률 자문 기관이 아닌 민간 교육 플랫폼으로, 자발적인 성찰과 생활 실천 계획 정리를 돕습니다.
-                </div>
-              </div>
+              )}
             </Reveal>
           </div>
         </div>
