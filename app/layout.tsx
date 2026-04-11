@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import LegalFooter from "./components/legal-footer";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -10,7 +11,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body>{children}</body>
+      <body><div className="min-h-screen bg-white">{children}</div><LegalFooter /></body>
     </html>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
@@ -112,13 +112,16 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [realName, setRealName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [sensitiveInfoAccepted, setSensitiveInfoAccepted] = useState(false);
   const [message, setMessage] = useState("회원 계정 화면을 준비하는 중입니다.");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [isSavingProfile, startProfileTransition] = useTransition();
   const [isRefreshingVerification, startVerificationTransition] = useTransition();
-  const currentYear = useMemo(() => new Date().getFullYear(), []);
+  const isSignupConsentComplete = termsAccepted && privacyAccepted && sensitiveInfoAccepted;
 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
@@ -202,6 +205,9 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
         if (!isValidDateOfBirth(dateOfBirth)) {
           throw new Error("생년월일을 YYYY-MM-DD 형식으로 정확히 입력해 주세요.");
         }
+        if (!isSignupConsentComplete) {
+          throw new Error("필수 약관과 민감정보 수집·이용 동의에 모두 체크해 주세요.");
+        }
 
         const { auth } = getFirebaseServices();
         const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
@@ -215,6 +221,9 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
           provider: "password",
           providerLabel: "이메일 회원가입",
           isEmailVerified: credential.user.emailVerified,
+          termsAccepted: true,
+          privacyAccepted: true,
+          sensitiveInfoAccepted: true,
         });
         await sendVerificationEmail(credential.user);
 
@@ -222,6 +231,9 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
         setProfile(storedProfile);
         setPassword("");
         setPasswordConfirm("");
+        setTermsAccepted(false);
+        setPrivacyAccepted(false);
+        setSensitiveInfoAccepted(false);
         setMessage("인증 메일을 발송했습니다. 메일함에서 인증 링크를 누른 뒤 이 화면으로 돌아와 인증 상태를 확인해 주세요.");
       } catch (submitError) {
         console.error(submitError);
@@ -345,6 +357,9 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
         setProfile(null);
         setPassword("");
         setPasswordConfirm("");
+        setTermsAccepted(false);
+        setPrivacyAccepted(false);
+        setSensitiveInfoAccepted(false);
         setMessage("로그아웃되었습니다.");
       } catch (logoutError) {
         console.error(logoutError);
@@ -488,10 +503,30 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
                       </label>
                     ) : null}
 
+                    {mode === "signup" ? (
+                      <div className="rounded-[1.5rem] border border-[#d8dfeb] bg-[#f8fafc] p-5">
+                        <p className="text-sm font-bold text-[#17211e]">필수 약관 동의</p>
+                        <div className="mt-4 space-y-3">
+                          <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
+                            <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#112723]" />
+                            <span>[필수] <Link href="/terms" className="font-bold text-[#0f172a] underline underline-offset-4">이용약관 동의</Link></span>
+                          </label>
+                          <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
+                            <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#112723]" />
+                            <span>[필수] <Link href="/privacy-policy" className="font-bold text-[#0f172a] underline underline-offset-4">개인정보 수집 및 이용 동의</Link></span>
+                          </label>
+                          <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
+                            <input type="checkbox" checked={sensitiveInfoAccepted} onChange={(event) => setSensitiveInfoAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#112723]" />
+                            <span>[필수] 민감정보 수집 및 이용 동의 (수강 내역을 통한 범죄/수사 이력 유추 가능성 표기)</span>
+                          </label>
+                        </div>
+                      </div>
+                    ) : null}
+
                     <button
                       type="button"
                       onClick={mode === "signup" ? handleSignup : handleLogin}
-                      disabled={loading || isSubmitting}
+                      disabled={loading || isSubmitting || (mode === "signup" && !isSignupConsentComplete)}
                       className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#112723] px-5 py-3 text-sm font-extrabold text-[#fff9f2] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSubmitting ? "처리 중..." : copy.submitLabel}
@@ -622,20 +657,6 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
           </div>
         </section>
 
-        <footer className="mt-7 rounded-[2rem] border border-white/70 bg-[rgba(255,249,241,0.84)] p-6 text-sm text-[#5d6762] shadow-[0_14px_36px_rgba(18,26,24,0.08)] backdrop-blur-xl">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="font-['Space_Grotesk'] text-base font-bold uppercase tracking-[0.12em] text-[#173a34]">RESET EDU CENTER</p>
-              <p className="mt-2">실명 기반 수료증 발급을 위한 회원가입 및 이메일 인증 화면.</p>
-            </div>
-            <div className="flex flex-wrap gap-4">
-              <Link href="/" className="transition hover:text-[#a45127]">홈</Link>
-              <Link href="/dashboard" className="transition hover:text-[#a45127]">대시보드</Link>
-              <Link href="/course-room" className="transition hover:text-[#a45127]">강의실</Link>
-            </div>
-          </div>
-          <div className="mt-5 border-t border-black/10 pt-5">© {currentYear} Reset Edu Center. All rights reserved.</div>
-        </footer>
       </div>
     </main>
   );

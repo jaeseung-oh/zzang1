@@ -491,53 +491,6 @@ export default function HomePage() {
         </section>
       </Reveal>
 
-      <Reveal>
-        <footer className="bg-[#06101b] text-white">
-          <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-            <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr]">
-              <div>
-                <div className="flex items-center gap-3">
-                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#d8b36a] text-[#06101b]">
-                    <svg viewBox="0 0 24 24" className="h-6 w-6 fill-none stroke-current" strokeWidth="1.8"><path d="M12 3l7 4v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V7l7-4Z" /><path d="M9.5 12.5l1.8 1.8L15 10.7" /></svg>
-                  </div>
-                  <div>
-                    <p className="text-lg font-black">리셋에듀센터</p>
-                    <p className="text-sm text-slate-400">성찰과 재발 방지를 위한 민간 온라인 교육 플랫폼</p>
-                  </div>
-                </div>
-                <p className="mt-5 max-w-xl text-sm leading-7 text-slate-400">자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 온라인 교육 플랫폼.</p>
-              </div>
-              <div className="grid gap-6 sm:grid-cols-2">
-                <div>
-                  <p className="text-sm font-bold text-[#f6deb0]">업무 제휴 및 상담 문의</p>
-                  <div className="mt-4 space-y-2 text-sm text-slate-300">
-                    <p>이메일: contact@resetedu-center.kr</p>
-                    <p>운영시간: 평일 09:00 - 18:00</p>
-                    <p>상담문의: 02-1234-5678</p>
-                  </div>
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-[#f6deb0]">바로가기</p>
-                  <div className="mt-4 space-y-2 text-sm text-slate-300">
-                    <p><a href="#courses" className="hover:text-white">교육 안내</a></p>
-                    <p><a href="#documents" className="hover:text-white">발급 서류</a></p>
-                    <p><a href="#faq" className="hover:text-white">자주 묻는 질문</a></p>
-                    <p><a href="/signup" className="hover:text-white">회원가입</a></p>
-                    <p><a href="/login" className="hover:text-white">로그인</a></p>
-                    <p><a href="/dashboard" className="hover:text-white">수강 대시보드</a></p>
-                    <p><a href="/ai-draft" className="hover:text-white">성찰문 글쓰기 가이드</a></p>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <div className="mt-10 border-t border-white/10 pt-6 text-sm leading-7 text-slate-500">
-              <p>본 센터의 수료확인서, 서약서 및 기타 자료는 수강생의 자발적인 교육 이수와 재발 방지 의지를 정리·확인하기 위한 순수 민간 교육 자료입니다.</p>
-              <p>특정 재판, 수사 또는 행정절차에서의 유리한 결과나 법적 효력을 보장하지 않으며, 법률 자문이나 법률사무를 제공하지 않습니다.</p>
-              <p className="mt-3">© 2026 Reset Edu Center. All rights reserved.</p>
-            </div>
-          </div>
-        </footer>
-      </Reveal>
     </main>
   );
 }

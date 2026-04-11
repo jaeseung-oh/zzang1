@@ -13,6 +13,9 @@ export type StoredUserProfile = {
   provider: string;
   providerLabel: string;
   nickname: string | null;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  sensitiveInfoAccepted?: boolean;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -28,6 +31,9 @@ export type UpsertUserProfileInput = {
   provider?: string | null;
   providerLabel?: string | null;
   nickname?: string | null;
+  termsAccepted?: boolean;
+  privacyAccepted?: boolean;
+  sensitiveInfoAccepted?: boolean;
 };
 
 function assertValidDateOfBirth(value?: string | null) {
@@ -79,6 +85,9 @@ export async function upsertUserProfile(input: UpsertUserProfileInput) {
       provider: input.provider ?? "password",
       providerLabel: input.providerLabel ?? "이메일 회원",
       nickname: input.nickname ?? null,
+      termsAccepted: input.termsAccepted ?? false,
+      privacyAccepted: input.privacyAccepted ?? false,
+      sensitiveInfoAccepted: input.sensitiveInfoAccepted ?? false,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     },
