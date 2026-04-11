@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   reload,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
   updateProfile,
@@ -15,7 +16,12 @@ import {
 } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { getFirebaseServices } from "@/lib/firebase/client";
-import { getCertificateIdentity, getUserProfile, upsertUserProfile, type StoredUserProfile } from "@/lib/firebase/user-profile";
+import {
+  getCertificateIdentity,
+  getUserProfile,
+  upsertUserProfile,
+  type StoredUserProfile,
+} from "@/lib/firebase/user-profile";
 
 type AuthMode = "signup" | "login";
 
@@ -54,6 +60,55 @@ const modeCopy = {
     helperBody: "인증이 완료된 계정은 강의실 입장과 수료증 발급 흐름을 바로 이용할 수 있습니다.",
   },
 } as const;
+
+const trustIndicators = [
+  { value: "10,000+", label: "매년 수료 인원" },
+  { value: "100%", label: "온라인 수강" },
+  { value: "24/7", label: "PC·모바일 접속" },
+];
+
+const trustHighlights = [
+  "PC / 모바일 스트리밍 완벽 지원",
+  "이수 확인 후 수료증 양식 출력 가능",
+  "수강생 개인정보 및 수강이력 보안 처리",
+];
+
+function ShieldIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path d="M12 3l7 3v5c0 4.6-2.8 8.7-7 10-4.2-1.3-7-5.4-7-10V6l7-3z" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9 12l2 2 4-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function StreamingIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <rect x="3" y="5" width="18" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M10 9.5l4 2.5-4 2.5V9.5z" fill="currentColor" />
+      <path d="M8 21h8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function CertificateIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden="true">
+      <path d="M7 4h10a2 2 0 012 2v7a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M9 8h6M9 11h6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M10 15l-1 5 3-2 3 2-1-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden="true">
+      <path d="M5 12.5l4.2 4L19 7.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 function isValidDateOfBirth(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
@@ -140,13 +195,27 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [sensitiveInfoAccepted, setSensitiveInfoAccepted] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const [message, setMessage] = useState("회원 계정 화면을 준비하는 중입니다.");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [isSubmitting, startSubmitTransition] = useTransition();
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isRefreshingVerification, startVerificationTransition] = useTransition();
+  const [isResettingPassword, startResetTransition] = useTransition();
   const isSignupConsentComplete = termsAccepted && privacyAccepted && sensitiveInfoAccepted;
+
+  const helperStats = useMemo(() => {
+    if (!authUser) {
+      return trustIndicators;
+    }
+
+    return [
+      { value: authUser.emailVerified || profile?.isEmailVerified ? "ACTIVE" : "VERIFY", label: "계정 상태" },
+      { value: certificateIdentityForMemo(profile).isLocked ? "LOCKED" : "EDITABLE", label: "발급 기준 정보" },
+      { value: profile?.providerLabel || "EMAIL", label: "가입 방식" },
+    ];
+  }, [authUser, profile]);
 
   const handleDateOfBirthChange = (value: string) => {
     setDateOfBirth(formatDateOfBirthInput(value));
@@ -424,312 +493,377 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
     });
   };
 
+  const handlePasswordReset = () => {
+    setError("");
+    startResetTransition(async () => {
+      try {
+        if (!email.trim()) {
+          throw new Error("비밀번호 재설정을 위해 이메일을 먼저 입력해 주세요.");
+        }
+
+        const { auth } = getFirebaseServices();
+        await sendPasswordResetEmail(auth, email.trim(), { url: `${appOrigin}/login` });
+        setMessage("비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해 주세요.");
+      } catch (resetError) {
+        console.error(resetError);
+        setError(resetError instanceof Error ? resetError.message : "비밀번호 재설정 메일 발송 중 오류가 발생했습니다.");
+      }
+    });
+  };
+
   const displayName = getProfileName(profile, authUser);
   const certificateIdentity = getCertificateIdentity(profile);
   const profileReady = Boolean(certificateIdentity.realName) && Boolean(certificateIdentity.dateOfBirth);
   const isVerified = Boolean(authUser?.emailVerified || profile?.isEmailVerified);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_12%_12%,rgba(207,111,63,0.18),transparent_20%),radial-gradient(circle_at_88%_0%,rgba(23,58,52,0.16),transparent_24%),linear-gradient(180deg,#fcf7f1_0%,#f1e6d6_100%)] text-[#17211e]">
-      <div className="mx-auto w-[min(calc(100%-24px),1240px)] py-5 md:w-[min(calc(100%-36px),1240px)] md:py-8">
-        <header className="grid gap-6 rounded-[2rem] border border-white/70 bg-[rgba(255,250,244,0.82)] p-6 shadow-[0_14px_36px_rgba(18,26,24,0.08)] backdrop-blur-xl lg:grid-cols-[minmax(0,340px)_minmax(0,1fr)_auto] lg:items-center">
-          <div>
-            <Link href="/" className="font-['Space_Grotesk'] text-[1.05rem] font-bold uppercase tracking-[0.12em] text-[#173a34]">
+    <main className="min-h-screen bg-[#eef2f7] text-[#10213f] lg:h-screen lg:overflow-hidden">
+      <div className="grid min-h-screen lg:h-screen lg:grid-cols-2">
+        <section className="relative overflow-hidden bg-[linear-gradient(160deg,#08152d_0%,#10213f_42%,#173968_100%)] px-6 py-10 text-white sm:px-8 lg:flex lg:h-screen lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:px-16">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(216,178,107,0.22),transparent_24%),radial-gradient(circle_at_20%_18%,rgba(96,165,250,0.18),transparent_22%),linear-gradient(180deg,rgba(5,11,24,0.18),rgba(5,11,24,0.4))]" />
+          <div className="absolute -left-12 bottom-8 h-40 w-40 rounded-full border border-white/10 bg-white/5 blur-sm" />
+          <div className="absolute right-8 top-12 h-48 w-48 rounded-full border border-[#d8b26b]/20 bg-[#d8b26b]/8 blur-2xl" />
+
+          <div className="relative z-10 flex items-center justify-between">
+            <Link href="/" className="font-['Space_Grotesk'] text-sm font-bold uppercase tracking-[0.28em] text-white/92">
               RESET EDU CENTER
             </Link>
-            <p className="mt-2 max-w-[420px] text-sm leading-7 text-[#5d6762]">
-              인증을 완료하면 강의 수강과 수료증 발급을 바로 진행할 수 있습니다.
+            <div className="hidden items-center gap-3 rounded-full border border-white/15 bg-white/6 px-4 py-2 text-xs text-white/72 lg:flex">
+              <ShieldIcon />
+              <span>전문 교육 수료 LMS</span>
+            </div>
+          </div>
+
+          <div className="relative z-10 mt-12 lg:mt-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#d8b26b]">Premium Education Access</p>
+            <h1 className="mt-5 max-w-[560px] text-4xl font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-5xl xl:text-[3.75rem]">
+              가장 확실한 자기 성찰과 실천의 시작, 리셋 에듀센터
+            </h1>
+            <p className="mt-6 max-w-[560px] text-[15px] leading-8 text-slate-200 sm:text-base">
+              공신력 있는 온라인 교육 환경에서 수강 등록, 학습 진행, 수료증 발급 안내까지 한 번에 이어집니다. PC와 모바일 어디서든 동일한 기준으로 이용할 수 있습니다.
             </p>
-          </div>
-          <nav className="flex flex-wrap items-center gap-4 text-sm text-[#17211e]">
-            <Link href="/" className="transition hover:text-[#a45127]">홈</Link>
-            <Link href="/#courses" className="transition hover:text-[#a45127]">교육과정</Link>
-            <Link href="/course-room" className="transition hover:text-[#a45127]">강의실</Link>
-            <Link href="/dashboard" className="transition hover:text-[#a45127]">내 수강현황</Link>
-          </nav>
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href="/signup"
-              className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${mode === "signup" ? "bg-gradient-to-br from-[#cf6f3f] to-[#a45127] text-[#fff9f2]" : "border border-black/10 bg-white/70 text-[#17211e]"}`}
-            >
-              회원가입
-            </Link>
-            <Link
-              href="/login"
-              className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${mode === "login" ? "bg-gradient-to-br from-[#10213f] to-[#284b84] text-white shadow-[0_12px_24px_rgba(16,33,63,0.2)]" : "border border-black/10 bg-white/70 text-[#17211e]"}`}
-            >
-              로그인
-            </Link>
-          </div>
-        </header>
 
-        <section className="mt-7 rounded-[2rem] border border-white/70 bg-[rgba(255,249,241,0.84)] p-6 shadow-[0_14px_36px_rgba(18,26,24,0.08)] backdrop-blur-xl md:p-8">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
-            <section className="relative">
-              <div className="absolute left-0 top-0 h-28 w-28 rounded-[28px] bg-[radial-gradient(circle,rgba(207,111,63,0.16),transparent_70%)] blur-sm" />
-              <div className="relative">
-                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#a45127]">{copy.eyebrow}</p>
-                <h1 className="mt-4 max-w-[560px] font-['Space_Grotesk'] text-4xl font-bold leading-[0.94] tracking-[-0.05em] text-[#17211e] sm:text-5xl lg:text-6xl">
-                  {copy.title}
-                </h1>
-                <p className="mt-5 max-w-[580px] text-base leading-8 text-[#5d6762]">{copy.intro}</p>
-                <ul className="mt-7 list-disc space-y-3 pl-5 text-sm leading-7 text-[#5d6762]">
-                  {copy.benefits.map((benefit) => (
-                    <li key={benefit}>{benefit}</li>
-                  ))}
-                </ul>
-                <div className="mt-7 rounded-[1.75rem] border border-[#173a34]/12 bg-white/70 p-6">
-                  <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#a45127]">{copy.helperTitle}</p>
-                  <p className="mt-3 text-sm leading-7 text-[#5d6762]">{copy.helperBody}</p>
-                  <div className="mt-5 grid gap-3 text-sm text-[#17211e] sm:grid-cols-2">
-                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">실명·생년월일: 수료증 발급 기준</div>
-                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">이메일 인증 완료 후 강의실 이용 가능</div>
-                  </div>
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+              {helperStats.map((item) => (
+                <div key={item.label} className="rounded-[1.4rem] border border-white/12 bg-white/8 px-4 py-4 backdrop-blur-sm">
+                  <p className="text-2xl font-semibold tracking-[-0.04em] text-white">{item.value}</p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-300">{item.label}</p>
                 </div>
+              ))}
+            </div>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] p-5 backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8b26b]/18 text-[#f7d9a0]">
+                  <StreamingIcon />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-white">모바일 수강 지원</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">언제 어디서든 끊김 없이 접속할 수 있는 온라인 수강 환경</p>
               </div>
-            </section>
-
-            <section className="space-y-6">
-              <div className="rounded-[1.75rem] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(244,234,219,0.96))] p-7 shadow-[0_14px_36px_rgba(18,26,24,0.08)]">
-                <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#a45127]">{mode === "signup" ? "회원가입" : "로그인"}</p>
-                <h2 className="mt-3 font-['Space_Grotesk'] text-3xl font-bold tracking-[-0.05em] text-[#17211e]">
-                  {authUser ? `${displayName} 계정` : mode === "signup" ? "회원 정보를 입력해 주세요" : "가입한 계정으로 로그인해 주세요"}
-                </h2>
-                <p className="mt-3 text-sm leading-7 text-[#5d6762]">
-                  {loading ? "회원 상태를 확인하는 중입니다." : message}
-                </p>
-
-                {!authUser ? (
-                  <div className="mt-6 space-y-4">
-                    {mode === "signup" ? (
-                      <>
-                        <label className="block space-y-2 text-sm text-[#17211e]">
-                          <span>실명</span>
-                          <input
-                            value={realName}
-                            onChange={(event) => setRealName(event.target.value)}
-                            placeholder="홍길동"
-                            className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
-                          />
-                          <p className="text-xs leading-6 text-[#7a6656]">수료증 발급 기준이 되므로 정확히 입력해 주세요.</p>
-                        </label>
-                        <label className="block space-y-2 text-sm text-[#17211e]">
-                          <span>생년월일</span>
-                          <input
-                            type="text"
-                            value={dateOfBirth}
-                            onChange={(event) => handleDateOfBirthChange(event.target.value)}
-                            inputMode="numeric"
-                            maxLength={10}
-                            placeholder="19900101 또는 1990-01-01"
-                            className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
-                          />
-                          <p className="text-xs leading-6 text-[#7a6656]">숫자만 이어서 입력하면 자동으로 날짜 형식이 적용됩니다.</p>
-                        </label>
-                      </>
-                    ) : null}
-
-                    <label className="block space-y-2 text-sm text-[#17211e]">
-                      <span>이메일</span>
-                      <input
-                        type="email"
-                        value={email}
-                        onChange={(event) => setEmail(event.target.value)}
-                        placeholder="name@example.com"
-                        className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
-                      />
-                    </label>
-                    <label className="block space-y-2 text-sm text-[#17211e]">
-                      <span>비밀번호</span>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(event) => setPassword(event.target.value)}
-                        placeholder="8자 이상 입력"
-                        className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
-                      />
-                    </label>
-                    {mode === "signup" ? (
-                      <label className="block space-y-2 text-sm text-[#17211e]">
-                        <span>비밀번호 확인</span>
-                        <input
-                          type="password"
-                          value={passwordConfirm}
-                          onChange={(event) => setPasswordConfirm(event.target.value)}
-                          placeholder="비밀번호를 다시 입력"
-                          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
-                        />
-                      </label>
-                    ) : null}
-
-                    {mode === "signup" ? (
-                      <div className="rounded-[1.5rem] border border-[#d8dfeb] bg-[#f8fafc] p-5">
-                        <p className="text-sm font-bold text-[#17211e]">필수 약관 동의</p>
-                        <div className="mt-4 space-y-3">
-                          <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
-                            <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1d4b8f]" />
-                            <span>[필수] <Link href="/terms" className="font-bold text-[#0f172a] underline underline-offset-4">이용약관 동의</Link></span>
-                          </label>
-                          <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
-                            <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1d4b8f]" />
-                            <span>[필수] <Link href="/privacy-policy" className="font-bold text-[#0f172a] underline underline-offset-4">개인정보 수집 및 이용 동의</Link></span>
-                          </label>
-                          <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
-                            <input type="checkbox" checked={sensitiveInfoAccepted} onChange={(event) => setSensitiveInfoAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1d4b8f]" />
-                            <span>[필수] 민감정보 수집 및 이용 동의 (수강 내역을 통한 범죄/수사 이력 유추 가능성 표기)</span>
-                          </label>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <button
-                      type="button"
-                      onClick={mode === "signup" ? handleSignup : handleLogin}
-                      disabled={loading || isSubmitting || (mode === "signup" && !isSignupConsentComplete)}
-                      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                      {isSubmitting ? "처리 중..." : copy.submitLabel}
-                    </button>
-                  </div>
-                ) : (
-                  <div className="mt-6 space-y-5">
-                    <div className="rounded-[1.5rem] border border-black/10 bg-white/80 p-5">
-                      <div className="flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="text-sm font-bold text-[#17211e]">이용 상태</p>
-                          <p className="mt-2 text-sm leading-7 text-[#5d6762]">
-                            이메일: {authUser.email || "없음"}
-                            <br />
-                            인증 상태: {isVerified ? "인증 완료" : "인증 대기"}
-                          </p>
-                        </div>
-                        <span className={`rounded-full px-4 py-2 text-xs font-extrabold ${isVerified ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                          {isVerified ? "ACTIVE" : "VERIFY EMAIL"}
-                        </span>
-                      </div>
-                    </div>
-
-                    {certificateIdentity.isLocked ? (
-                      <div className="rounded-[1.5rem] border border-[#d8dfeb] bg-[#f8fafc] p-5 text-sm text-[#334155]">
-                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9f4d24]">수료증 기준 정보 잠금</p>
-                        <p className="mt-3 leading-7">결제 이후에는 아래 정보가 수료증 발급 기준으로 고정됩니다. 강의 수강과 발급은 이 기준으로 진행됩니다.</p>
-                        <div className="mt-4 grid gap-3 md:grid-cols-2">
-                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">발급 기준 실명: {certificateIdentity.realName}</div>
-                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">발급 기준 생년월일: {certificateIdentity.dateOfBirth}</div>
-                        </div>
-                      </div>
-                    ) : null}
-
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <label className="space-y-2 text-sm text-[#17211e]">
-                        <span>실명</span>
-                        <input
-                          value={realName}
-                          onChange={(event) => setRealName(event.target.value)}
-                          placeholder="홍길동"
-                          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
-                        />
-                        <p className="text-xs leading-6 text-[#7a6656]">수료증 발급을 위해 반드시 실명을 입력해주세요.</p>
-                      </label>
-                      <label className="space-y-2 text-sm text-[#17211e]">
-                        <span>생년월일</span>
-                        <input
-                          type="text"
-                          value={dateOfBirth}
-                          onChange={(event) => handleDateOfBirthChange(event.target.value)}
-                          inputMode="numeric"
-                          maxLength={10}
-                          placeholder="19900101 또는 1990-01-01"
-                          className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
-                        />
-                        <p className="text-xs leading-6 text-[#7a6656]">결제 전에는 발급 기준에도 반영되고, 결제 후에는 일반 프로필만 수정됩니다.</p>
-                      </label>
-                    </div>
-
-                    <div className="flex flex-wrap gap-3">
-                      <button
-                        type="button"
-                        onClick={handleProfileSave}
-                        disabled={isSavingProfile}
-                        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#c96b39_0%,#9f4d24_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(159,77,36,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        {isSavingProfile ? "저장 중..." : "실명/생년월일 저장"}
-                      </button>
-                      {!isVerified ? (
-                        <>
-                          <button
-                            type="button"
-                            onClick={handleResendVerification}
-                            disabled={isRefreshingVerification}
-                            className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/80 px-5 py-3 text-sm font-bold text-[#17211e] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            인증 메일 다시 보내기
-                          </button>
-                          <button
-                            type="button"
-                            onClick={handleRefreshVerification}
-                            disabled={isRefreshingVerification}
-                            className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/80 px-5 py-3 text-sm font-bold text-[#17211e] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {isRefreshingVerification ? "확인 중..." : "인증 상태 확인"}
-                          </button>
-                        </>
-                      ) : null}
-                      <button
-                        type="button"
-                        onClick={handleLogout}
-                        disabled={isRefreshingVerification}
-                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/80 px-5 py-3 text-sm font-bold text-[#17211e] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        로그아웃
-                      </button>
-                    </div>
-
-                    <div className="grid gap-3 text-sm text-[#5d6762] md:grid-cols-2">
-                      <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">
-                        저장된 실명: {profile?.realName || profile?.fullName || "아직 없음"}
-                      </div>
-                      <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">
-                        저장된 생년월일: {profile?.dateOfBirth || profile?.birthDate || "아직 없음"}
-                      </div>
-                    </div>
-
-                    {profileReady && isVerified ? (
-                      <div className="flex flex-wrap gap-3">
-                        <Link
-                          href="/dashboard"
-                          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5"
-                        >
-                          내 수강현황 보기
-                        </Link>
-                        <Link
-                          href="/course-room"
-                          className="inline-flex min-h-12 items-center justify-center rounded-full border border-black/10 bg-white/80 px-5 py-3 text-sm font-bold text-[#17211e] transition hover:-translate-y-0.5"
-                        >
-                          내 강의실 열기
-                        </Link>
-                      </div>
-                    ) : null}
-                  </div>
-                )}
-
-                {error ? <p className="mt-5 text-sm leading-7 text-[#a23f38]">{error}</p> : null}
+              <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] p-5 backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8b26b]/18 text-[#f7d9a0]">
+                  <CertificateIcon />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-white">수료증 발급 흐름 안내</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">등록 정보 확인 후 발급 문서 화면까지 자연스럽게 연결되는 구조</p>
               </div>
-
-              <div className="rounded-[1.75rem] bg-[linear-gradient(135deg,rgba(17,39,35,0.94),rgba(38,76,69,0.9))] p-7 text-[#fdf4e9] shadow-[0_14px_36px_rgba(18,26,24,0.08)]">
-                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#d8b26b]">Next Step</p>
-                <h2 className="mt-4 font-['Space_Grotesk'] text-3xl font-bold tracking-[-0.05em]">수강 시작 전 확인하면 되는 핵심만 안내합니다</h2>
-                <ul className="mt-5 space-y-3 text-sm leading-7 text-[#fdf4e9]">
-                  <li>실명과 생년월일은 수료증 발급 기준 정보로 사용됩니다.</li>
-                  <li>이메일 인증이 끝나면 강의실과 발급 기능을 바로 이용할 수 있습니다.</li>
-                  <li>결제 후에는 발급 기준 정보가 잠길 수 있으니 수강 시작 전 한 번 확인해 주세요.</li>
-                </ul>
+              <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] p-5 backdrop-blur-sm">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8b26b]/18 text-[#f7d9a0]">
+                  <ShieldIcon />
+                </div>
+                <p className="mt-4 text-sm font-semibold text-white">계정 정보 보안 관리</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">민감할 수 있는 수강 이력과 회원 정보를 분리 저장하고 보호</p>
               </div>
-            </section>
+            </div>
+
+            <ul className="mt-8 space-y-3 rounded-[1.7rem] border border-white/12 bg-white/6 p-6 backdrop-blur-sm">
+              {trustHighlights.map((item) => (
+                <li key={item} className="flex items-start gap-3 text-sm leading-7 text-slate-100">
+                  <span className="mt-1 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#d8b26b] text-[#10213f]">
+                    <CheckIcon />
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="relative z-10 mt-10 rounded-[1.6rem] border border-white/12 bg-white/7 p-5 text-sm text-slate-200 backdrop-blur-sm lg:mt-12">
+            <p className="font-semibold text-white">이용 전 안내</p>
+            <p className="mt-2 leading-7 text-slate-300">{copy.helperBody}</p>
           </div>
         </section>
 
+        <section className="flex min-h-[48vh] items-center justify-center px-5 py-8 sm:px-7 lg:h-screen lg:px-10 lg:py-10 xl:px-14">
+          <div className="w-full max-w-[420px] rounded-[2rem] border border-[#dbe3ef] bg-white px-5 py-6 shadow-[0_28px_80px_rgba(15,23,42,0.1)] sm:px-7 sm:py-8">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8b6a33]">{copy.eyebrow}</p>
+                <h2 className="mt-2 text-[1.85rem] font-semibold tracking-[-0.04em] text-[#0f172a]">
+                  {authUser ? `${displayName} 님` : mode === "signup" ? "회원가입" : "로그인"}
+                </h2>
+              </div>
+              <Link href="/" className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">
+                홈으로
+              </Link>
+            </div>
+
+            <p className="mt-3 text-sm leading-7 text-slate-500">{loading ? "회원 상태를 확인하는 중입니다." : message}</p>
+
+            {!authUser ? (
+              <div className="mt-6 space-y-4">
+                <div className="grid grid-cols-2 rounded-full bg-[#eef3fa] p-1 text-sm font-semibold text-slate-600">
+                  <Link href="/login" className={`rounded-full px-4 py-2 text-center transition ${mode === "login" ? "bg-white text-[#10213f] shadow-sm" : "hover:text-[#10213f]"}`}>
+                    로그인
+                  </Link>
+                  <Link href="/signup" className={`rounded-full px-4 py-2 text-center transition ${mode === "signup" ? "bg-white text-[#10213f] shadow-sm" : "hover:text-[#10213f]"}`}>
+                    회원가입
+                  </Link>
+                </div>
+
+                {mode === "signup" ? (
+                  <>
+                    <label className="block space-y-2 text-sm text-slate-700">
+                      <span className="font-medium">실명</span>
+                      <input
+                        value={realName}
+                        onChange={(event) => setRealName(event.target.value)}
+                        placeholder="홍길동"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                      />
+                    </label>
+                    <label className="block space-y-2 text-sm text-slate-700">
+                      <span className="font-medium">생년월일</span>
+                      <input
+                        type="text"
+                        value={dateOfBirth}
+                        onChange={(event) => handleDateOfBirthChange(event.target.value)}
+                        inputMode="numeric"
+                        maxLength={10}
+                        placeholder="19900101"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                      />
+                      <p className="text-xs leading-6 text-slate-500">숫자만 이어서 입력하면 자동으로 날짜 형식이 적용됩니다.</p>
+                    </label>
+                  </>
+                ) : null}
+
+                <label className="block space-y-2 text-sm text-slate-700">
+                  <span className="font-medium">이메일</span>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="name@example.com"
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                  />
+                </label>
+                <label className="block space-y-2 text-sm text-slate-700">
+                  <span className="font-medium">비밀번호</span>
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    placeholder={mode === "signup" ? "8자 이상 입력" : "비밀번호 입력"}
+                    className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                  />
+                </label>
+                {mode === "signup" ? (
+                  <label className="block space-y-2 text-sm text-slate-700">
+                    <span className="font-medium">비밀번호 확인</span>
+                    <input
+                      type="password"
+                      value={passwordConfirm}
+                      onChange={(event) => setPasswordConfirm(event.target.value)}
+                      placeholder="비밀번호를 다시 입력"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                    />
+                  </label>
+                ) : null}
+
+                {mode === "login" ? (
+                  <div className="flex items-center justify-between gap-3 text-sm">
+                    <label className="flex items-center gap-2 text-slate-600">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(event) => setRememberMe(event.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300 accent-[#1f4b8f]"
+                      />
+                      <span>자동 로그인</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handlePasswordReset}
+                      disabled={isResettingPassword}
+                      className="font-semibold text-[#1f4b8f] transition hover:text-[#10213f] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isResettingPassword ? "발송 중..." : "비밀번호 찾기"}
+                    </button>
+                  </div>
+                ) : null}
+
+                {mode === "signup" ? (
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-[#f8fafc] p-5">
+                    <p className="text-sm font-semibold text-slate-900">필수 약관 동의</p>
+                    <div className="mt-4 space-y-3">
+                      <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
+                        <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
+                        <span>[필수] <Link href="/terms" className="font-semibold text-slate-900 underline underline-offset-4">이용약관 동의</Link></span>
+                      </label>
+                      <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
+                        <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
+                        <span>[필수] <Link href="/privacy-policy" className="font-semibold text-slate-900 underline underline-offset-4">개인정보 수집 및 이용 동의</Link></span>
+                      </label>
+                      <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
+                        <input type="checkbox" checked={sensitiveInfoAccepted} onChange={(event) => setSensitiveInfoAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
+                        <span>[필수] 민감정보 수집 및 이용 동의 (수강 내역을 통한 범죄/수사 이력 유추 가능성 표기)</span>
+                      </label>
+                    </div>
+                  </div>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={mode === "signup" ? handleSignup : handleLogin}
+                  disabled={loading || isSubmitting || (mode === "signup" && !isSignupConsentComplete)}
+                  className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#10213f_0%,#1f4b8f_100%)] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(16,33,63,0.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isSubmitting ? "처리 중..." : copy.submitLabel}
+                </button>
+
+                <p className="text-center text-sm text-slate-500">
+                  {mode === "login" ? "아직 회원이 아니신가요? " : "이미 회원이신가요? "}
+                  <Link href={mode === "login" ? "/signup" : "/login"} className="font-semibold text-[#1f4b8f] hover:text-[#10213f]">
+                    {mode === "login" ? "회원가입" : "로그인"}
+                  </Link>
+                </p>
+              </div>
+            ) : (
+              <div className="mt-6 space-y-4">
+                <div className="rounded-[1.5rem] border border-slate-200 bg-[#f8fafc] p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">계정 상태</p>
+                      <p className="mt-2 text-sm leading-7 text-slate-600">
+                        이메일: {authUser.email || "없음"}
+                        <br />
+                        인증 상태: {isVerified ? "인증 완료" : "인증 대기"}
+                      </p>
+                    </div>
+                    <span className={`rounded-full px-4 py-2 text-xs font-semibold ${isVerified ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
+                      {isVerified ? "ACTIVE" : "VERIFY EMAIL"}
+                    </span>
+                  </div>
+                </div>
+
+                {certificateIdentity.isLocked ? (
+                  <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 text-sm text-slate-600">
+                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#8b6a33]">수료증 기준 정보 잠금</p>
+                    <p className="mt-3 leading-7">결제 이후에는 아래 정보가 수료증 발급 기준으로 고정됩니다.</p>
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">발급 기준 실명: {certificateIdentity.realName}</div>
+                      <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">발급 기준 생년월일: {certificateIdentity.dateOfBirth}</div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <label className="space-y-2 text-sm text-slate-700">
+                    <span className="font-medium">실명</span>
+                    <input
+                      value={realName}
+                      onChange={(event) => setRealName(event.target.value)}
+                      placeholder="홍길동"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                    />
+                  </label>
+                  <label className="space-y-2 text-sm text-slate-700">
+                    <span className="font-medium">생년월일</span>
+                    <input
+                      type="text"
+                      value={dateOfBirth}
+                      onChange={(event) => handleDateOfBirthChange(event.target.value)}
+                      inputMode="numeric"
+                      maxLength={10}
+                      placeholder="19900101"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                    />
+                  </label>
+                </div>
+
+                <div className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
+                  <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">저장된 실명: {profile?.realName || profile?.fullName || "아직 없음"}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">저장된 생년월일: {profile?.dateOfBirth || profile?.birthDate || "아직 없음"}</div>
+                </div>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <button
+                    type="button"
+                    onClick={handleProfileSave}
+                    disabled={isSavingProfile}
+                    className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#10213f_0%,#1f4b8f_100%)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isSavingProfile ? "저장 중..." : "정보 저장"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleLogout}
+                    disabled={isRefreshingVerification}
+                    className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+
+                {!isVerified ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={isRefreshingVerification}
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      인증 메일 다시 보내기
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRefreshVerification}
+                      disabled={isRefreshingVerification}
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isRefreshingVerification ? "확인 중..." : "인증 상태 확인"}
+                    </button>
+                  </div>
+                ) : null}
+
+                {profileReady && isVerified ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <Link
+                      href="/dashboard"
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#10213f_0%,#1f4b8f_100%)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5"
+                    >
+                      내 수강현황 보기
+                    </Link>
+                    <Link
+                      href="/course-room"
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                    >
+                      내 강의실 열기
+                    </Link>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {error ? <p className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-7 text-red-700">{error}</p> : null}
+          </div>
+        </section>
       </div>
     </main>
   );
+}
+
+function certificateIdentityForMemo(profile: StoredUserProfile | null) {
+  return getCertificateIdentity(profile);
 }
