@@ -214,16 +214,26 @@ export default function ReviewBoard() {
             <input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} className="mt-2 w-full rounded-2xl border border-white/10 bg-[#08111d] px-4 py-3 text-white outline-none" placeholder="예: 화면이 정돈되어 수강하기 편했습니다." />
           </label>
 
-          <label className="block text-sm text-white/80">
+          <div className="block text-sm text-white/80">
             <span>별점</span>
-            <select value={rating} onChange={(event) => setRating(Number(event.target.value))} className="mt-2 w-full rounded-2xl border border-white/10 bg-[#08111d] px-4 py-3 text-white outline-none">
-              {[5,4,3,2,1].map((score) => (
-                <option key={score} value={score} className="text-slate-900">
-                  {score}점
-                </option>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[1, 2, 3, 4, 5].map((score) => (
+                <button
+                  key={score}
+                  type="button"
+                  onClick={() => setRating(score)}
+                  className={
+                    rating === score
+                      ? "inline-flex min-h-11 items-center gap-2 rounded-full border border-[#efd9aa] bg-[rgba(239,217,170,0.18)] px-4 py-2 text-sm font-bold text-[#fff1ce]"
+                      : "inline-flex min-h-11 items-center gap-2 rounded-full border border-white/10 bg-[#08111d] px-4 py-2 text-sm font-medium text-white/75 transition hover:border-white/20 hover:text-white"
+                  }
+                >
+                  <span>{"★".repeat(score)}<span className="text-white/25">{"★".repeat(5 - score)}</span></span>
+                  <span>{score}점</span>
+                </button>
               ))}
-            </select>
-          </label>
+            </div>
+          </div>
 
           <label className="block text-sm text-white/80">
             <span>후기 내용</span>
