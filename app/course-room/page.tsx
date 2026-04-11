@@ -755,13 +755,13 @@ export default function CourseRoomPage() {
             <div className="flex flex-col items-stretch gap-3 sm:flex-row lg:flex-col lg:items-end">
               <Link
                 href="/"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d7e2ef] bg-[rgba(248,251,255,0.96)] px-6 py-3 text-sm font-bold text-[#10213f] shadow-[0_14px_28px_rgba(2,6,23,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#c4d3e6] hover:bg-white"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105"
               >
                 홈으로 이동
               </Link>
               <Link
                 href="/dashboard"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d7e2ef] bg-[rgba(248,251,255,0.96)] px-6 py-3 text-sm font-bold text-[#10213f] shadow-[0_14px_28px_rgba(2,6,23,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#c4d3e6] hover:bg-white"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105"
               >
                 내 수강현황
               </Link>

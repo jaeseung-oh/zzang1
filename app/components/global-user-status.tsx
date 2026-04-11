@@ -105,10 +105,10 @@ export default function GlobalUserStatus() {
               <p className="mt-1.5 truncate text-sm font-bold text-[#10213f]">{displayName}님 환영합니다</p>
             </div>
             <div className="space-y-2.5 p-3">
-              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border-2 border-[#c7d6e8] bg-[#f7fbff] px-3.5 text-sm font-bold text-[#08182f] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#9fb5d0] hover:bg-[#e9f2fc]">
+              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-3.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
                 내 강의실
               </Link>
-              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border-2 border-[#c7d6e8] bg-[#f7fbff] px-3.5 text-sm font-bold text-[#08182f] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#9fb5d0] hover:bg-[#e9f2fc]">
+              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-3.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
                 정보 수정
               </Link>
               <button

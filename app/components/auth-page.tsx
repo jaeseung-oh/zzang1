@@ -603,7 +603,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                   {authUser ? `${displayName} 님` : mode === "signup" ? "회원가입" : "로그인"}
                 </h2>
               </div>
-              <Link href="/" className="rounded-full border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:border-slate-300 hover:text-slate-900">
+              <Link href="/" className="rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-4 py-2 text-xs font-bold text-white shadow-[0_10px_20px_rgba(16,33,63,0.18)] transition hover:-translate-y-0.5 hover:brightness-105">
                 홈으로
               </Link>
             </div>
@@ -847,7 +847,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                     </Link>
                     <Link
                       href="/course-room"
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900"
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_12px_24px_rgba(16,33,63,0.18)] transition hover:-translate-y-0.5 hover:brightness-105"
                     >
                       내 강의실 열기
                     </Link>
