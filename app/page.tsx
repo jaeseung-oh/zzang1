@@ -435,7 +435,7 @@ export default function HomePage() {
         <section id="courses" className="py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 text-center">
-              <div className="mx-auto inline-flex rounded-full bg-[#d8b36a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.26em] text-[#c79b4a]">Core Courses</div>
+              <div className="mx-auto inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.26em] text-[#6f531b]">Core Courses</div>
               <h2 className="text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">사건 유형별 핵심 교육 과정</h2>
               <p className="mx-auto max-w-2xl text-base leading-8 text-slate-600">각 과정은 자기점검, 생활 습관 개선, 책임 의식 회복, 실천 계획 정리에 초점을 맞춰 구성되어 있습니다.</p>
             </div>
@@ -495,7 +495,7 @@ export default function HomePage() {
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="grid items-center gap-10 lg:grid-cols-[0.95fr_1.05fr]">
               <div>
-                <div className="inline-flex rounded-full bg-[#d8b36a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#c79b4a]">Documents</div>
+                <div className="inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#6f531b]">Documents</div>
                 <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">이수 후 확인 가능한 민간 교육 자료</h2>
                 <p className="mt-6 max-w-xl text-base leading-8 text-slate-600">수강생의 자발적인 교육 참여와 실천 의지를 정리할 수 있도록 돕는 민간 교육 확인 자료 예시입니다.</p>
                 <div className="mt-8 grid gap-4">
@@ -517,7 +517,7 @@ export default function HomePage() {
                   <div className="absolute inset-0 rounded-[2rem] border border-[#d8b36a]/15" />
                   <div className="absolute left-10 top-16 w-56 rotate-[-7deg] rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
                     <div className="mb-4 flex items-center justify-between">
-                      <span className="rounded-full bg-[#d8b36a]/15 px-3 py-1 text-xs font-bold text-[#c79b4a]">Document 01</span>
+                      <span className="rounded-full border border-[#e4d7bb] bg-[#fbf5e8] px-3 py-1 text-xs font-bold text-[#6f531b]">Document 01</span>
                       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-slate-400" strokeWidth="1.8"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /></svg>
                     </div>
                     <h3 className="text-lg font-black text-[#06101b]">학습확인서</h3>
@@ -525,7 +525,7 @@ export default function HomePage() {
                   </div>
                   <div className="absolute top-10 z-10 w-64 rotate-[2deg] rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
                     <div className="mb-4 flex items-center justify-between">
-                      <span className="rounded-full bg-[#d8b36a]/15 px-3 py-1 text-xs font-bold text-[#c79b4a]">Document 02</span>
+                      <span className="rounded-full border border-[#e4d7bb] bg-[#fbf5e8] px-3 py-1 text-xs font-bold text-[#6f531b]">Document 02</span>
                       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-slate-400" strokeWidth="1.8"><path d="M12 21c4-4 7-6.8 7-11a4 4 0 0 0-7-2.5A4 4 0 0 0 5 10c0 4.2 3 7 7 11Z" /></svg>
                     </div>
                     <h3 className="text-lg font-black text-[#06101b]">금주 실천 서약서</h3>
@@ -533,7 +533,7 @@ export default function HomePage() {
                   </div>
                   <div className="absolute bottom-14 right-10 w-56 rotate-[8deg] rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl">
                     <div className="mb-4 flex items-center justify-between">
-                      <span className="rounded-full bg-[#d8b36a]/15 px-3 py-1 text-xs font-bold text-[#c79b4a]">Document 03</span>
+                      <span className="rounded-full border border-[#e4d7bb] bg-[#fbf5e8] px-3 py-1 text-xs font-bold text-[#6f531b]">Document 03</span>
                       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-slate-400" strokeWidth="1.8"><path d="M6 4h12v16H6z" /><path d="M9 9h6M9 13h6M9 17h4" /></svg>
                     </div>
                     <h3 className="text-lg font-black text-[#06101b]">재발방지 계획서</h3>
@@ -571,7 +571,7 @@ export default function HomePage() {
             <div className="rounded-[2rem] bg-white p-8 shadow-[0_18px_60px_rgba(3,10,20,0.14)] lg:p-10">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <div className="inline-flex rounded-full bg-[#d8b36a]/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#c79b4a]">FAQ</div>
+                  <div className="inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#6f531b]">FAQ</div>
                   <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-4xl">자주 묻는 질문</h2>
                 </div>
                 <p className="max-w-xl text-sm leading-7 text-slate-600">실제 신청 전에 자주 확인하는 내용을 정리했습니다.</p>
