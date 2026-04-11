@@ -517,9 +517,9 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   const isVerified = Boolean(authUser?.emailVerified || profile?.isEmailVerified);
 
   return (
-    <main className="min-h-screen bg-[#eef2f7] text-[#10213f] lg:h-screen lg:overflow-hidden">
-      <div className="grid min-h-screen lg:h-screen lg:grid-cols-2">
-        <section className="relative overflow-hidden bg-[linear-gradient(160deg,#08152d_0%,#10213f_42%,#173968_100%)] px-6 py-10 text-white sm:px-8 lg:flex lg:h-screen lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:px-16">
+    <main className="min-h-screen bg-[#eef2f7] text-[#10213f]">
+      <div className="grid min-h-screen lg:grid-cols-2">
+        <section className="relative overflow-hidden bg-[linear-gradient(160deg,#08152d_0%,#10213f_42%,#173968_100%)] px-6 py-10 text-white sm:px-8 lg:flex lg:min-h-screen lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:px-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(216,178,107,0.22),transparent_24%),radial-gradient(circle_at_20%_18%,rgba(96,165,250,0.18),transparent_22%),linear-gradient(180deg,rgba(5,11,24,0.18),rgba(5,11,24,0.4))]" />
           <div className="absolute -left-12 bottom-8 h-40 w-40 rounded-full border border-white/10 bg-white/5 blur-sm" />
           <div className="absolute right-8 top-12 h-48 w-48 rounded-full border border-[#d8b26b]/20 bg-[#d8b26b]/8 blur-2xl" />
@@ -594,8 +594,8 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           </div>
         </section>
 
-        <section className="flex min-h-[48vh] items-center justify-center px-5 py-8 sm:px-7 lg:h-screen lg:px-10 lg:py-10 xl:px-14">
-          <div className="w-full max-w-[420px] rounded-[2rem] border border-[#dbe3ef] bg-white px-5 py-6 shadow-[0_28px_80px_rgba(15,23,42,0.1)] sm:px-7 sm:py-8">
+        <section className="flex min-h-[48vh] items-start justify-center px-5 py-8 sm:px-7 lg:min-h-screen lg:items-center lg:px-10 lg:py-12 xl:px-14">
+          <div className="w-full max-w-[420px] rounded-[2rem] border border-[#dbe3ef] bg-white px-5 py-6 shadow-[0_28px_80px_rgba(15,23,42,0.1)] sm:px-7 sm:py-8 lg:max-h-[calc(100vh-64px)] lg:overflow-y-auto">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8b6a33]">{copy.eyebrow}</p>
