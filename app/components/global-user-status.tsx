@@ -100,23 +100,23 @@ export default function GlobalUserStatus() {
         </button>
 
         {isMenuOpen ? (
-          <div className="absolute right-0 top-full mt-3 w-56 overflow-hidden rounded-[1.4rem] border border-[#d7deea] bg-white shadow-[0_20px_44px_rgba(15,23,42,0.16)]">
-            <div className="border-b border-slate-100 px-4 py-4">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">My Account</p>
+          <div className="absolute right-0 top-full mt-3 w-56 overflow-hidden rounded-[1.4rem] border border-[#cfd8e6] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] shadow-[0_20px_44px_rgba(15,23,42,0.18)]">
+            <div className="border-b border-[#dde5f0] bg-[#f4f8fd] px-4 py-4">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5a6b85]">My Account</p>
               <p className="mt-2 truncate text-sm font-bold text-[#10213f]">{displayName}님 환영합니다</p>
             </div>
-            <div className="p-2">
-              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#10213f] transition hover:bg-[#f3f7fc]">
+            <div className="space-y-2 p-3">
+              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#d9e4f2] bg-[#eef4fb] px-3 text-sm font-semibold text-[#10213f] transition hover:border-[#bfd0e6] hover:bg-[#e4eef9]">
                 내 강의실
               </Link>
-              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl px-3 text-sm font-medium text-[#10213f] transition hover:bg-[#f3f7fc]">
+              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#d9e4f2] bg-[#eef4fb] px-3 text-sm font-semibold text-[#10213f] transition hover:border-[#bfd0e6] hover:bg-[#e4eef9]">
                 정보 수정
               </Link>
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="flex min-h-11 w-full items-center rounded-xl px-3 text-sm font-medium text-[#a33b24] transition hover:bg-[#fff4f1] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex min-h-11 w-full items-center rounded-xl border border-[#f0d7d0] bg-[#fff5f1] px-3 text-sm font-semibold text-[#a33b24] transition hover:border-[#e7c0b5] hover:bg-[#ffede7] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
               </button>

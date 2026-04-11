@@ -286,7 +286,7 @@ export default function HomePage() {
                   onClick={() => setIsEducationMenuOpen((prev) => !prev)}
                   aria-expanded={isEducationMenuOpen}
                   aria-haspopup="menu"
-                  className="inline-flex min-h-11 items-center gap-2 rounded-full px-3 py-2 transition hover:bg-slate-50 hover:text-[#06101b]"
+                  className="inline-flex min-h-11 items-center gap-2 rounded-full border border-transparent px-3 py-2 text-[#24364f] transition hover:border-[#d7e1ee] hover:bg-[#f5f9ff] hover:text-[#06101b]"
                 >
                   교육과정
                   <svg viewBox="0 0 20 20" className={`h-4 w-4 fill-none stroke-current transition ${isEducationMenuOpen ? "rotate-180" : ""}`} strokeWidth="1.8">
@@ -294,14 +294,14 @@ export default function HomePage() {
                   </svg>
                 </button>
                 {isEducationMenuOpen ? (
-                  <div className="absolute left-1/2 top-full z-20 mt-3 w-72 -translate-x-1/2 rounded-[1.5rem] border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-[0_18px_50px_rgba(3,10,20,0.16)]">
+                  <div className="absolute left-1/2 top-full z-20 mt-3 w-72 -translate-x-1/2 rounded-[1.5rem] border border-[#d6e0ec] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-3 text-[13px] text-[#24364f] shadow-[0_18px_50px_rgba(3,10,20,0.16)]">
                     <div className="space-y-1">
                       {educationMenuItems.map((item) => (
                         <a
                           key={item}
                           href="#courses"
                           onClick={() => setIsEducationMenuOpen(false)}
-                          className="flex min-h-11 items-center rounded-xl px-4 py-2.5 font-medium transition hover:bg-slate-50 hover:text-[#06101b]"
+                          className="flex min-h-11 items-center rounded-xl border border-transparent px-4 py-2.5 font-semibold text-[#24364f] transition hover:border-[#d7e1ee] hover:bg-[#eef5ff] hover:text-[#06101b]"
                         >
                           {item}
                         </a>

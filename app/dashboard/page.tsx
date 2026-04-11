@@ -301,11 +301,11 @@ export default function DashboardPage() {
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt)}</p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <a href={certificate.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[#d3ad62]/30 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f0cb85]">
+                        <a href={certificate.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[#d9c18b] bg-[#fff6df] px-4 py-2 text-sm font-semibold text-[#6f531b] transition hover:bg-[#ffefc5]">
                           PDF 열기
                         </a>
                         {certificate.documentType === "completion" ? (
-                          <Link href="/certificate" className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10">
+                          <Link href="/certificate" className="rounded-full border border-[#d5deeb] bg-[#f8fbff] px-4 py-2 text-sm font-semibold text-[#10213f] transition hover:border-[#c4d2e4] hover:bg-white">
                             출력 화면 열기
                           </Link>
                         ) : null}
