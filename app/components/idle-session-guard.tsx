@@ -2,11 +2,11 @@
 
 import { onAuthStateChanged, signOut, type User } from "firebase/auth";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getFirebaseServices } from "@/lib/firebase/client";
 
 const IDLE_TIMEOUT_MS = 60 * 60 * 1000;
-const CHECK_INTERVAL_MS = 30 * 1000;
+const CHECK_INTERVAL_MS = 1000;
 const ACTIVITY_THROTTLE_MS = 1000;
 const ACTIVITY_EVENTS: Array<keyof WindowEventMap> = [
   "pointerdown",
@@ -22,6 +22,14 @@ type LectureActivityDetail = {
   active?: boolean;
 };
 
+function formatRemainingTime(milliseconds: number) {
+  const totalSeconds = Math.max(0, Math.ceil(milliseconds / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+}
+
 export default function IdleSessionGuard() {
   const router = useRouter();
   const pathname = usePathname();
@@ -30,6 +38,8 @@ export default function IdleSessionGuard() {
   const lastActivityEventAtRef = useRef(0);
   const lectureActiveRef = useRef(false);
   const logoutInFlightRef = useRef(false);
+  const [displayUser, setDisplayUser] = useState<User | null>(null);
+  const [remainingLabel, setRemainingLabel] = useState(formatRemainingTime(IDLE_TIMEOUT_MS));
 
   useEffect(() => {
     let intervalId: number | null = null;
@@ -39,8 +49,11 @@ export default function IdleSessionGuard() {
 
       const unsubscribe = onAuthStateChanged(auth, (user) => {
         userRef.current = user;
+        setDisplayUser(user && !user.isAnonymous ? user : null);
         logoutInFlightRef.current = false;
+        lectureActiveRef.current = false;
         lastActivityAtRef.current = Date.now();
+        setRemainingLabel(formatRemainingTime(IDLE_TIMEOUT_MS));
       });
 
       const markActivity = () => {
@@ -51,6 +64,7 @@ export default function IdleSessionGuard() {
 
         lastActivityEventAtRef.current = now;
         lastActivityAtRef.current = now;
+        setRemainingLabel(formatRemainingTime(IDLE_TIMEOUT_MS));
       };
 
       const handleVisibilityChange = () => {
@@ -65,6 +79,7 @@ export default function IdleSessionGuard() {
 
         if (lectureActiveRef.current) {
           lastActivityAtRef.current = Date.now();
+          setRemainingLabel(formatRemainingTime(IDLE_TIMEOUT_MS));
         }
       };
 
@@ -74,16 +89,21 @@ export default function IdleSessionGuard() {
         }
 
         const activeUser = userRef.current;
-        if (!activeUser) {
+        if (!activeUser || activeUser.isAnonymous) {
+          setRemainingLabel(formatRemainingTime(IDLE_TIMEOUT_MS));
           return;
         }
 
         if (lectureActiveRef.current) {
           lastActivityAtRef.current = Date.now();
+          setRemainingLabel(formatRemainingTime(IDLE_TIMEOUT_MS));
           return;
         }
 
-        if (Date.now() - lastActivityAtRef.current < IDLE_TIMEOUT_MS) {
+        const remainingMs = IDLE_TIMEOUT_MS - (Date.now() - lastActivityAtRef.current);
+        setRemainingLabel(formatRemainingTime(remainingMs));
+
+        if (remainingMs > 0) {
           return;
         }
 
@@ -126,5 +146,15 @@ export default function IdleSessionGuard() {
     }
   }, [pathname, router]);
 
-  return null;
+  if (!displayUser) {
+    return null;
+  }
+
+  return (
+    <div className="pointer-events-none fixed inset-x-0 top-3 z-[60] flex justify-center px-4">
+      <div className="rounded-full border border-[#d6deef] bg-[rgba(255,255,255,0.94)] px-4 py-2 text-[11px] font-semibold tracking-[0.08em] text-[#24364f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] backdrop-blur">
+        자동 로그아웃까지 {remainingLabel}
+      </div>
+    </div>
+  );
 }
