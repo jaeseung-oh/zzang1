@@ -114,7 +114,7 @@ export default function HomeUserSummary({ currentUser }: HomeUserSummaryProps) {
         <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-5 py-3 text-sm font-bold text-[#161109] shadow-[0_14px_28px_rgba(164,126,54,0.24)] transition hover:-translate-y-0.5 hover:brightness-105">
           최근 강의 이어서 보기
         </Link>
-        <Link href="/certificate" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d5deeb] bg-white px-5 py-3 text-sm font-semibold text-[#10213f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
+        <Link href="/certificate" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#f0cb85] bg-[linear-gradient(135deg,#f0cb85_0%,#ffe6b7_100%)] px-5 py-3 text-sm font-bold text-[#2f2208] shadow-[0_16px_30px_rgba(164,126,54,0.28)] transition hover:-translate-y-0.5 hover:brightness-105">
           수료증 및 서류 발급
         </Link>
       </div>
