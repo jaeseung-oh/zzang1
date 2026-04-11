@@ -242,7 +242,7 @@ export default function HomePage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(216,179,106,0.16),transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef3f8_100%)] text-slate-900">
+    <main className="min-h-screen break-keep bg-[radial-gradient(circle_at_top_left,rgba(216,179,106,0.16),transparent_28%),linear-gradient(180deg,#f8fafc_0%,#eef3f8_100%)] text-slate-900">
       <style jsx>{`
         [data-reveal] {
           opacity: 0;
