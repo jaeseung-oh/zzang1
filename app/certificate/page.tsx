@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { Suspense, useEffect, useState } from "react";
+import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { ensureAnonymousSession } from "@/lib/firebase/session";
 
@@ -40,8 +41,10 @@ type PurchaseRecord = {
 
 type CertificateViewData = {
   studentName: string;
+  birthDate: string;
   courseTitle: string;
   issueDate: string;
+  printedDate: string;
   docNumber: string;
   downloadUrl: string;
 };
@@ -54,11 +57,41 @@ function formatIssueDate(timestamp?: TimestampLike) {
   return new Date(timestamp.seconds * 1000).toLocaleDateString("ko-KR");
 }
 
+function formatBirthDate(value?: string) {
+  if (!value) {
+    return "생년월일 정보 없음";
+  }
+
+  const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!matched) {
+    return value;
+  }
+
+  const [, year, month, day] = matched;
+  return `${Number(year)}년 ${Number(month)}월 ${Number(day)}일`;
+}
+
+function formatDuration(seconds: number) {
+  const safeSeconds = Math.max(0, Math.floor(seconds));
+  const hours = Math.floor(safeSeconds / 3600);
+  const minutes = Math.floor((safeSeconds % 3600) / 60);
+
+  if (hours > 0) {
+    return minutes > 0 ? `${hours}시간 ${minutes}분` : `${hours}시간`;
+  }
+
+  return `${minutes}분`;
+}
+
 function buildFallbackData(): CertificateViewData {
+  const today = new Date().toLocaleDateString("ko-KR");
+
   return {
     studentName: "홍길동",
-    courseTitle: "음주운전 예방교육 수료",
-    issueDate: new Date().toLocaleDateString("ko-KR"),
+    birthDate: "1990년 1월 1일",
+    courseTitle: "음주운전 예방 교육",
+    issueDate: today,
+    printedDate: today,
     docNumber: "발급 대기 중",
     downloadUrl: "",
   };
@@ -129,10 +162,14 @@ function CertificatePageContent() {
           return;
         }
 
+        const printedDate = new Date().toLocaleDateString("ko-KR");
+
         setCertificateData({
           studentName: fullName,
-          courseTitle: completionCertificate.courseTitle || matchedProgress.courseTitle || "수료 과정 확인 필요",
+          birthDate: formatBirthDate(userProfile?.dateOfBirth),
+          courseTitle: (completionCertificate.courseTitle || matchedProgress.courseTitle || "수료 과정 확인 필요").replace("수료", "").trim(),
           issueDate: formatIssueDate(completionCertificate.issuedAt),
+          printedDate,
           docNumber: completionCertificate.issueNumber || "문서번호 확인 필요",
           downloadUrl: completionCertificate.downloadUrl,
         });
@@ -183,75 +220,64 @@ function CertificatePageContent() {
               style={{ maxWidth: "1122px" }}
             >
               <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[linear-gradient(180deg,rgba(10,20,39,0.06),transparent)]" />
-              <div className="pointer-events-none absolute left-8 top-8 h-24 w-24 rounded-full border border-[rgba(172,138,70,0.28)]" />
-              <div className="pointer-events-none absolute right-8 top-8 h-24 w-24 rounded-full border border-[rgba(172,138,70,0.28)]" />
-
               <div className="relative z-10 flex min-h-[793px] flex-col px-8 py-10 sm:px-[72px] sm:py-[60px] print:min-h-0">
-                <div className="flex flex-col gap-8 border-b border-[rgba(15,23,42,0.08)] pb-8 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-[12px] font-semibold uppercase tracking-[0.34em] text-[#9c7b3b]">Professional Training Certificate</p>
-                    <h1 className="mt-4 text-[34px] font-bold tracking-[0.12em] text-[#101826] sm:text-[48px]">교육 수료증</h1>
-                    <p className="mt-3 max-w-xl text-[15px] leading-7 text-[#556070]">리셋에듀센터의 재발 방지 전문 교육과정을 이수한 교육생에게 발급되는 공식 수료 확인서</p>
-                  </div>
-
-                  <div className="rounded-[1.35rem] border border-[rgba(15,23,42,0.08)] bg-white/75 px-5 py-4 text-sm leading-6 text-[#4f5a69] shadow-[0_12px_24px_rgba(15,23,42,0.05)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#9c7b3b]">Issuer</p>
-                    <p className="mt-2 text-xl font-bold tracking-[0.08em] text-[#0d1728]">RESET EDU CENTER</p>
-                    <p>민간 재발 방지 전문교육 운영기관</p>
-                  </div>
+                <div className="border-b border-[rgba(15,23,42,0.08)] pb-8 text-center">
+                  <p className="text-[12px] font-semibold uppercase tracking-[0.34em] text-[#9c7b3b]">Certificate Of Completion</p>
+                  <h1 className="mt-5 text-[40px] font-bold tracking-[0.18em] text-[#101826] sm:text-[58px]">수 료 증</h1>
+                  <p className="mt-4 text-[15px] leading-7 text-[#556070]">리셋에듀센터 전문 교육과정 이수 확인서</p>
                 </div>
 
-                <div className="mt-10 text-center">
-                  <p className="text-[16px] font-medium tracking-[0.18em] text-[#8c6d35]">CERTIFICATE OF COMPLETION</p>
-                  <div className="mx-auto mt-6 h-px w-28 bg-[linear-gradient(90deg,transparent,#c8a969,transparent)]" />
-                  <p className="mt-10 text-[18px] leading-8 text-[#4f5968] sm:text-[21px]">아래 교육생은 리셋에듀센터가 운영하는 전문 교육과정을 성실히 이수하였기에 본 수료증을 발급합니다.</p>
-                  <div className="mx-auto mt-8 max-w-[700px] rounded-[1.5rem] border border-[rgba(172,138,70,0.26)] bg-white/78 px-6 py-8 shadow-[0_18px_38px_rgba(15,23,42,0.05)]">
-                    <p className="text-[13px] font-semibold uppercase tracking-[0.28em] text-[#9c7b3b]">Recipient</p>
-                    <div className="mt-4 text-[34px] font-bold tracking-[0.04em] text-[#0f172a] sm:text-[54px]">{certificateData.studentName}</div>
-                    <div className="mx-auto mt-5 h-px w-full max-w-[420px] bg-[linear-gradient(90deg,transparent,rgba(15,23,42,0.28),transparent)]" />
-                    <p className="mt-6 text-[13px] font-semibold uppercase tracking-[0.28em] text-[#9c7b3b]">Completed Program</p>
-                    <div className="mt-4 inline-flex max-w-full items-center justify-center rounded-full border border-[rgba(172,138,70,0.38)] bg-[rgba(199,169,105,0.1)] px-7 py-3 text-[20px] font-semibold leading-8 text-[#182233] sm:text-[28px]">
-                      {certificateData.courseTitle}
+                <div className="mt-10 space-y-7 text-[#172131]">
+                  <div className="grid gap-4 rounded-[1.5rem] border border-[rgba(15,23,42,0.08)] bg-white/75 px-6 py-6 shadow-[0_16px_32px_rgba(15,23,42,0.05)] sm:grid-cols-2">
+                    <div>
+                      <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">성명</p>
+                      <p className="mt-3 text-[28px] font-bold tracking-[0.04em] text-[#0f172a] sm:text-[36px]">{certificateData.studentName}</p>
+                    </div>
+                    <div>
+                      <p className="text-[13px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">생년월일</p>
+                      <p className="mt-3 text-[24px] font-semibold text-[#0f172a] sm:text-[30px]">{certificateData.birthDate}</p>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-10 grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="rounded-[1.25rem] border border-[rgba(15,23,42,0.08)] bg-white/72 px-5 py-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">Issue Date</p>
+                  <div className="px-2 text-center text-[20px] leading-[2.0] text-[#2a3342] sm:px-8 sm:text-[24px]">
+                    <p>위 사람은 본 기관이 운영하는</p>
+                    <p className="mt-2 text-[24px] font-bold text-[#0f172a] sm:text-[34px]">「{certificateData.courseTitle}」</p>
+                    <p className="mt-3">과정을 성실히 이수하고,</p>
+                    <p>총 {defaultCourse.modules.length}강의 교육 전 과정을 수료하였음을 증명합니다.</p>
+                  </div>
+
+                  <div className="grid gap-4 rounded-[1.5rem] border border-[rgba(15,23,42,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(249,244,233,0.96))] px-6 py-6 sm:grid-cols-2 lg:grid-cols-4">
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">과정명</p>
+                      <p className="mt-3 text-lg font-semibold text-[#0f172a]">{certificateData.courseTitle}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">수료시간</p>
+                      <p className="mt-3 text-lg font-semibold text-[#0f172a]">총 {formatDuration(defaultCourse.durationMinutes * 60)}</p>
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">수료일자</p>
                       <p className="mt-3 text-lg font-semibold text-[#0f172a]">{certificateData.issueDate}</p>
                     </div>
-                    <div className="rounded-[1.25rem] border border-[rgba(15,23,42,0.08)] bg-white/72 px-5 py-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">Certificate No.</p>
+                    <div>
+                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">문서번호</p>
                       <p className="mt-3 text-lg font-semibold text-[#0f172a]">{certificateData.docNumber}</p>
                     </div>
-                    <div className="rounded-[1.25rem] border border-[rgba(15,23,42,0.08)] bg-white/72 px-5 py-4">
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">Completion Scope</p>
-                      <p className="mt-3 text-lg font-semibold text-[#0f172a]">교육 수료 확인</p>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[1.5rem] border border-[rgba(15,23,42,0.08)] bg-[linear-gradient(180deg,rgba(255,255,255,0.86),rgba(250,246,237,0.95))] px-6 py-5 text-left shadow-[0_14px_34px_rgba(15,23,42,0.05)]">
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[#8d6f39]">Verification</p>
-                    <p className="mt-3 text-sm leading-7 text-[#566272]">본 문서는 교육생 실명, 결제 이력, 수강 완료 상태를 기준으로 발급된 민간 교육 수료 확인서입니다. 문서번호를 통해 발급 이력을 확인할 수 있습니다.</p>
                   </div>
                 </div>
 
-                <div className="mt-auto grid gap-8 pt-10 sm:grid-cols-[1fr_auto] sm:items-end">
-                  <div className="grid gap-3 text-[15px] leading-7 text-[#4f5968]">
-                    <p>본 수료증은 해당 교육생이 지정된 온라인 교육과정을 완료하였음을 확인하기 위한 공식 발급 문서입니다.</p>
-                    <div>
-                      <p className="text-[12px] font-semibold uppercase tracking-[0.2em] text-[#8d6f39]">Authorized By</p>
-                      <p className="mt-2 text-[28px] font-bold tracking-[0.06em] text-[#111827]">리셋에듀센터 교육운영본부</p>
-                    </div>
+                <div className="mt-auto grid gap-8 pt-12 sm:grid-cols-[1fr_auto] sm:items-end">
+                  <div className="space-y-3 text-[15px] leading-7 text-[#4f5968]">
+                    <p>출력일자: {certificateData.printedDate}</p>
+                    <p>본 문서는 교육생 실명, 결제 이력 및 수강 완료 상태를 기준으로 발급된 공식 교육 수료 확인서입니다.</p>
                   </div>
 
                   <div className="text-left sm:text-right">
-                    <div className="inline-grid h-[128px] w-[128px] place-items-center rounded-full border-[5px] border-[rgba(166,126,51,0.55)] bg-[radial-gradient(circle,rgba(239,224,187,0.58)_0%,rgba(232,210,154,0.28)_52%,transparent_70%)] text-center text-[15px] font-bold leading-[1.45] tracking-[0.18em] text-[rgba(130,93,28,0.92)] shadow-[inset_0_0_0_8px_rgba(255,255,255,0.55)]">
-                      RESET<br />EDU<br />CERTIFIED
+                    <p className="text-[28px] font-bold tracking-[0.04em] text-[#111827]">리셋에듀센터장</p>
+                    <p className="mt-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#8d6f39]">Director / Official Seal</p>
+                    <div className="mt-4 inline-grid h-[132px] w-[132px] place-items-center rounded-full border-[5px] border-[rgba(166,126,51,0.58)] bg-[radial-gradient(circle,rgba(239,224,187,0.58)_0%,rgba(232,210,154,0.28)_52%,transparent_70%)] text-center text-[15px] font-bold leading-[1.45] tracking-[0.16em] text-[rgba(130,93,28,0.92)] shadow-[inset_0_0_0_8px_rgba(255,255,255,0.55)]">
+                      리셋<br />에듀센터<br />직인
                     </div>
-                    <p className="mt-4 text-sm font-semibold uppercase tracking-[0.22em] text-[#8d6f39]">Official Seal</p>
                   </div>
                 </div>
               </div>

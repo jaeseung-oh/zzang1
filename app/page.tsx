@@ -300,12 +300,12 @@ export default function HomePage() {
 
             <Reveal delay={120} className="lg:justify-self-end">
               <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl">
-                <div className="flex items-center justify-between">
-                  <div>
+                <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1">
                     <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Urgent Briefing</p>
-                    <h2 className="mt-2 text-2xl font-bold">빠른 수료 · 빠른 제출 준비</h2>
+                    <h2 className="mt-2 break-keep text-[1.65rem] font-bold leading-tight sm:text-2xl">빠른 수료 · 빠른 제출 준비</h2>
                   </div>
-                  <div className="rounded-2xl bg-[#d8b36a]/15 p-3 text-[#f6deb0]">
+                  <div className="shrink-0 rounded-2xl bg-[#d8b36a]/15 p-3 text-[#f6deb0]">
                     <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
                       <path d="M12 8v4l3 3" />
                       <circle cx="12" cy="12" r="9" />

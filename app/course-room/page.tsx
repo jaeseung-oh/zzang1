@@ -722,7 +722,7 @@ export default function CourseRoomPage() {
             <div className="flex flex-col items-stretch gap-3 sm:flex-row lg:flex-col lg:items-end">
               <Link
                 href="/dashboard"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/14 bg-white px-6 py-3 text-sm font-semibold text-[#0f172a] transition hover:-translate-y-0.5 hover:bg-[#f8fafc]"
+                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d8c18e]/42 bg-[rgba(255,255,255,0.14)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(2,6,23,0.16)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#efd7a0]/56 hover:bg-[rgba(255,255,255,0.22)]"
               >
                 학습 대시보드
               </Link>
