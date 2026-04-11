@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import GlobalUserStatus from "./components/global-user-status";
 import IdleSessionGuard from "./components/idle-session-guard";
 import GlobalHomeButton from "./components/global-home-button";
 import LegalFooter from "./components/legal-footer";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body><IdleSessionGuard /><GlobalHomeButton /><div className="min-h-screen bg-white">{children}</div><LegalFooter /></body>
+      <body><IdleSessionGuard /><GlobalUserStatus /><GlobalHomeButton /><div className="min-h-screen bg-white">{children}</div><LegalFooter /></body>
     </html>
   );
 }
