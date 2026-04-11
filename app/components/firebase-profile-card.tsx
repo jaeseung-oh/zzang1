@@ -126,9 +126,9 @@ export default function FirebaseProfileCard({
           type="button"
           onClick={handleSave}
           disabled={loading || isPending}
-          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#112723] px-5 py-3 text-sm font-extrabold text-[#fff9f2] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? "저장 중..." : isSaved ? "실명 다시 저장" : "실명 저장"}
+          {isPending ? "저장 중..." : isSaved ? "실명 수정 저장" : "실명 저장"}
         </button>
       </div>
 

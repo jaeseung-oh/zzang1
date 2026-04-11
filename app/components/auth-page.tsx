@@ -93,6 +93,20 @@ function getProfileName(profile: StoredUserProfile | null, user: User | null) {
   return profile?.realName?.trim() || profile?.fullName?.trim() || user?.displayName?.trim() || "회원";
 }
 
+function formatDateOfBirthInput(value: string) {
+  const digits = value.replace(/\D/g, "").slice(0, 8);
+
+  if (digits.length <= 4) {
+    return digits;
+  }
+
+  if (digits.length <= 6) {
+    return `${digits.slice(0, 4)}-${digits.slice(4)}`;
+  }
+
+  return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
+}
+
 const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "https://zzang1.pages.dev";
 
 function resolveNextPath(value: string | null) {
@@ -133,6 +147,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   const [isSavingProfile, startProfileTransition] = useTransition();
   const [isRefreshingVerification, startVerificationTransition] = useTransition();
   const isSignupConsentComplete = termsAccepted && privacyAccepted && sensitiveInfoAccepted;
+
+  const handleDateOfBirthChange = (value: string) => {
+    setDateOfBirth(formatDateOfBirthInput(value));
+  };
 
   useEffect(() => {
     let unsubscribe: () => void = () => {};
@@ -425,7 +443,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
             </Link>
             <Link
               href="/login"
-              className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${mode === "login" ? "bg-gradient-to-br from-[#112723] to-[#244b44] text-[#fff9f2]" : "border border-black/10 bg-white/70 text-[#17211e]"}`}
+              className={`inline-flex min-h-11 items-center justify-center rounded-full px-5 py-3 text-sm font-extrabold transition hover:-translate-y-0.5 ${mode === "login" ? "bg-gradient-to-br from-[#10213f] to-[#284b84] text-white shadow-[0_12px_24px_rgba(16,33,63,0.2)]" : "border border-black/10 bg-white/70 text-[#17211e]"}`}
             >
               로그인
             </Link>
@@ -487,11 +505,15 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                         <label className="block space-y-2 text-sm text-[#17211e]">
                           <span>생년월일</span>
                           <input
-                            type="date"
+                            type="text"
                             value={dateOfBirth}
-                            onChange={(event) => setDateOfBirth(event.target.value)}
+                            onChange={(event) => handleDateOfBirthChange(event.target.value)}
+                            inputMode="numeric"
+                            maxLength={10}
+                            placeholder="19900101 또는 1990-01-01"
                             className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
                           />
+                          <p className="text-xs leading-6 text-[#7a6656]">숫자만 이어서 입력하면 자동으로 날짜 형식이 적용됩니다.</p>
                         </label>
                       </>
                     ) : null}
@@ -534,15 +556,15 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                         <p className="text-sm font-bold text-[#17211e]">필수 약관 동의</p>
                         <div className="mt-4 space-y-3">
                           <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
-                            <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#112723]" />
+                            <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1d4b8f]" />
                             <span>[필수] <Link href="/terms" className="font-bold text-[#0f172a] underline underline-offset-4">이용약관 동의</Link></span>
                           </label>
                           <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
-                            <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#112723]" />
+                            <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1d4b8f]" />
                             <span>[필수] <Link href="/privacy-policy" className="font-bold text-[#0f172a] underline underline-offset-4">개인정보 수집 및 이용 동의</Link></span>
                           </label>
                           <label className="flex items-start gap-3 text-sm leading-7 text-[#425466]">
-                            <input type="checkbox" checked={sensitiveInfoAccepted} onChange={(event) => setSensitiveInfoAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#112723]" />
+                            <input type="checkbox" checked={sensitiveInfoAccepted} onChange={(event) => setSensitiveInfoAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1d4b8f]" />
                             <span>[필수] 민감정보 수집 및 이용 동의 (수강 내역을 통한 범죄/수사 이력 유추 가능성 표기)</span>
                           </label>
                         </div>
@@ -553,7 +575,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                       type="button"
                       onClick={mode === "signup" ? handleSignup : handleLogin}
                       disabled={loading || isSubmitting || (mode === "signup" && !isSignupConsentComplete)}
-                      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[#112723] px-5 py-3 text-sm font-extrabold text-[#fff9f2] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {isSubmitting ? "처리 중..." : copy.submitLabel}
                     </button>
@@ -590,11 +612,15 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                       <label className="space-y-2 text-sm text-[#17211e]">
                         <span>생년월일</span>
                         <input
-                          type="date"
+                          type="text"
                           value={dateOfBirth}
-                          onChange={(event) => setDateOfBirth(event.target.value)}
+                          onChange={(event) => handleDateOfBirthChange(event.target.value)}
+                          inputMode="numeric"
+                          maxLength={10}
+                          placeholder="19900101 또는 1990-01-01"
                           className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
                         />
+                        <p className="text-xs leading-6 text-[#7a6656]">언제든 다시 수정 저장할 수 있습니다.</p>
                       </label>
                     </div>
 
@@ -603,9 +629,9 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                         type="button"
                         onClick={handleProfileSave}
                         disabled={isSavingProfile}
-                        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#cf6f3f] px-5 py-3 text-sm font-extrabold text-[#fff9f2] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#c96b39_0%,#9f4d24_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(159,77,36,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        {isSavingProfile ? "저장 중..." : "회원 정보 저장"}
+                        {isSavingProfile ? "저장 중..." : "실명/생년월일 저장"}
                       </button>
                       {!isVerified ? (
                         <>
@@ -650,7 +676,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                       <div className="flex flex-wrap gap-3">
                         <Link
                           href="/dashboard"
-                          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#112723] px-5 py-3 text-sm font-extrabold text-[#fff9f2] transition hover:-translate-y-0.5"
+                          className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-extrabold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5"
                         >
                           내 대시보드 보기
                         </Link>
