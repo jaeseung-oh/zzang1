@@ -41,12 +41,31 @@ function assertValidDateOfBirth(value?: string | null) {
     throw new Error("생년월일을 입력해 주세요.");
   }
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!matched) {
     throw new Error("생년월일은 YYYY-MM-DD 형식이어야 합니다.");
   }
 
-  const date = new Date(`${value}T00:00:00`);
-  if (Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value || date > new Date()) {
+  const [, yearText, monthText, dayText] = matched;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const candidate = new Date(year, month - 1, day);
+
+  const isSameCalendarDate =
+    !Number.isNaN(candidate.getTime()) &&
+    candidate.getFullYear() == year &&
+    candidate.getMonth() == month - 1 &&
+    candidate.getDate() == day;
+
+  if (!isSameCalendarDate) {
+    throw new Error("유효한 생년월일을 입력해 주세요.");
+  }
+
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+
+  if (candidate > todayStart) {
     throw new Error("유효한 생년월일을 입력해 주세요.");
   }
 }
