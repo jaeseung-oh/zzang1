@@ -279,7 +279,7 @@ export default function HomePage() {
             </a>
 
             <nav className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex">
-              <a href="#center-intro" className="transition hover:text-[#06101b]">센터소개</a>
+              <a href="/about" className="transition hover:text-[#06101b]">센터소개</a>
               <div ref={educationMenuRef} className="relative">
                 <button
                   type="button"
