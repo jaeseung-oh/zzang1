@@ -266,15 +266,15 @@ export default function HomePage() {
         </div>
 
         <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 pb-20 pt-36 sm:px-6 lg:px-8">
-          <div className="grid w-full items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="grid w-full items-center gap-10 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]">
             <Reveal delay={0}>
               <div>
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e9c98d]/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#f6deb0]">
                   성찰과 재발 방지를 위한 민간 온라인 교육 플랫폼
                 </div>
-                <h1 className="max-w-4xl text-4xl font-black leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-[5.3rem]">
-                  <span className="block">진정성 있는 성찰과 실천을 돕습니다.</span>
-                  <span className="mt-2 block text-[#f6deb0] sm:whitespace-nowrap">민간 재발 방지 교육과 자기점검의 출발점</span>
+                <h1 className="max-w-4xl text-4xl font-black leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl xl:text-[5.15rem]">
+                  <span className="block break-keep">진정성 있는 성찰과 실천을 돕습니다.</span>
+                  <span className="mt-2 block break-keep text-[#f6deb0]">민간 재발 방지 교육과 자기점검의 출발점</span>
                 </h1>
                 <p className="mt-6 max-w-2xl text-base leading-8 text-slate-200 sm:text-lg">
                   사건 이후 자신의 생활을 차분히 돌아보고, 재발 방지를 위한 학습과 실천 계획을 스스로 정리할 수 있도록 돕습니다.
@@ -298,12 +298,12 @@ export default function HomePage() {
               </div>
             </Reveal>
 
-            <Reveal delay={120} className="lg:justify-self-end">
-              <div className="rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl">
+            <Reveal delay={120} className="xl:justify-self-end">
+              <div className="max-w-[420px] rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Urgent Briefing</p>
-                    <h2 className="mt-2 break-keep text-[1.65rem] font-bold leading-tight sm:text-2xl">빠른 수료 · 빠른 제출 준비</h2>
+                    <h2 className="mt-2 break-keep text-[1.45rem] font-bold leading-tight sm:text-[1.7rem]">빠른 수료 · 빠른 제출 준비</h2>
                   </div>
                   <div className="shrink-0 rounded-2xl bg-[#d8b36a]/15 p-3 text-[#f6deb0]">
                     <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
