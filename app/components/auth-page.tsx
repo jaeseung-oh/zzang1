@@ -317,6 +317,12 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setMessage("회원 정보가 저장되었습니다. 수료증에는 저장된 실명과 생년월일이 기준으로 사용됩니다.");
       } catch (saveError) {
         console.error(saveError);
+        const message = saveError instanceof Error ? saveError.message : "";
+        if (message.includes("offline")) {
+          setError("회원 정보 저장 중 Firestore 연결에 실패했습니다. 새로고침 후 다시 시도해 주세요. 계속 같으면 Firestore 데이터베이스 활성화 상태를 확인해야 합니다.");
+          return;
+        }
+
         setError(saveError instanceof Error ? saveError.message : "회원 정보 저장 중 오류가 발생했습니다.");
       }
     });

@@ -1,6 +1,6 @@
 import { FirebaseApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { Firestore, getFirestore, initializeFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
@@ -12,6 +12,8 @@ const defaultFirebaseConfig = {
   messagingSenderId: "385012475164",
   appId: "1:385012475164:web:a09491f1654c6e1ac486d9",
 };
+
+let firestoreInstance: Firestore | null = null;
 
 function getFirebaseConfig() {
   return {
@@ -47,13 +49,29 @@ export function getFirebaseApp(): FirebaseApp {
   return initializeApp(assertFirebaseConfig());
 }
 
+function getFirestoreInstance(app: FirebaseApp) {
+  if (firestoreInstance) {
+    return firestoreInstance;
+  }
+
+  try {
+    firestoreInstance = initializeFirestore(app, {
+      experimentalAutoDetectLongPolling: true,
+    });
+  } catch {
+    firestoreInstance = getFirestore(app);
+  }
+
+  return firestoreInstance;
+}
+
 export function getFirebaseServices() {
   const app = getFirebaseApp();
 
   return {
     app,
     auth: getAuth(app),
-    db: getFirestore(app),
+    db: getFirestoreInstance(app),
     functions: getFunctions(app, "asia-northeast3"),
     storage: getStorage(app),
   };
