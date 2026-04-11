@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import {
   createUserWithEmailAndPassword,
@@ -94,6 +95,14 @@ function getProfileName(profile: StoredUserProfile | null, user: User | null) {
 
 const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "https://zzang1.pages.dev";
 
+function resolveNextPath(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  return value.startsWith("/") ? value : null;
+}
+
 async function sendVerificationEmail(user: User) {
   const actionSettings = {
     url: `${appOrigin}/login`,
@@ -103,8 +112,10 @@ async function sendVerificationEmail(user: User) {
   await sendEmailVerification(user, actionSettings);
 }
 
-export default function AuthPage({ mode }: { mode: AuthMode }) {
+export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode: AuthMode; nextPath?: string | null }) {
+  const router = useRouter();
   const copy = modeCopy[mode];
+  const nextPath = resolveNextPath(nextPathProp);
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<StoredUserProfile | null>(null);
   const [email, setEmail] = useState("");
@@ -172,6 +183,14 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
 
     return () => unsubscribe();
   }, [mode]);
+
+  useEffect(() => {
+    if (mode !== "login" || !nextPath || !authUser) {
+      return;
+    }
+
+    router.replace(nextPath);
+  }, [authUser, mode, nextPath, router]);
 
   const syncVerificationStatus = async () => {
     const { functions } = getFirebaseServices();
@@ -260,6 +279,7 @@ export default function AuthPage({ mode }: { mode: AuthMode }) {
             : "로그인은 되었지만 이메일 인증이 아직 완료되지 않았습니다. 인증 메일을 확인해 주세요."
         );
         setPassword("");
+        router.replace(nextPath ?? "/dashboard");
       } catch (submitError) {
         console.error(submitError);
         setError(submitError instanceof Error ? submitError.message : "로그인 처리 중 오류가 발생했습니다.");

@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
-import { ensureAnonymousSession } from "@/lib/firebase/session";
+import { requireAuthenticatedUser } from "@/lib/firebase/session";
 
 type ConfirmResponse = {
   savedPurchaseId?: string;
@@ -20,6 +20,7 @@ const disclaimer =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
 function PaymentSuccessContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -53,7 +54,7 @@ function PaymentSuccessContent() {
 
     const run = async () => {
       try {
-        const sessionUser = await ensureAnonymousSession();
+        const sessionUser = await requireAuthenticatedUser();
         const response = await fetch(confirmUrl, {
           method: "POST",
           headers: {
@@ -78,6 +79,13 @@ function PaymentSuccessContent() {
         setResult(payload);
       } catch (requestError) {
         console.error(requestError);
+        const message = requestError instanceof Error ? requestError.message : "";
+        if (message === "AUTH_LOGIN_REQUIRED") {
+          router.replace(`/login?next=${encodeURIComponent(`/payment/success?${searchParams.toString()}`)}`);
+          setError("로그인한 회원만 결제 완료를 계정에 연결할 수 있습니다.");
+          return;
+        }
+
         setError(requestError instanceof Error ? requestError.message : "결제 승인 중 오류가 발생했습니다.");
       } finally {
         setLoading(false);
@@ -85,7 +93,7 @@ function PaymentSuccessContent() {
     };
 
     void run();
-  }, [searchParams]);
+  }, [router, searchParams]);
 
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#07111f_0%,#09111d_45%,#050a12_100%)] px-4 py-10 text-white sm:px-6 lg:px-8">

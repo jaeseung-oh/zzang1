@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import AuthPage from "../components/auth-page";
+import { Suspense } from "react";
+import LoginContent from "./login-content";
 
 export const metadata: Metadata = {
   title: "로그인 | 리셋에듀센터",
@@ -7,5 +8,9 @@ export const metadata: Metadata = {
 };
 
 export default function LoginPage() {
-  return <AuthPage mode="login" />;
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
+  );
 }

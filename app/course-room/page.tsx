@@ -3,10 +3,11 @@
 import { doc, getDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
-import { ensureAnonymousSession } from "@/lib/firebase/session";
+import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 
 type SaveCourseProgressResponse = {
@@ -76,6 +77,16 @@ const disclaimer =
   "본 과정은 법률 검토나 상담을 제공하지 않으며, 사용자가 자신의 생활 변화와 재발 방지 계획을 스스로 정리할 수 있도록 돕는 민간 교육 서비스입니다.";
 
 const localStorageKey = `course-room-progress:${defaultCourse.id}`;
+
+const lectureActivityEvent = "resetedu:lecture-activity";
+
+function dispatchLectureActivity(active: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new CustomEvent(lectureActivityEvent, { detail: { active } }));
+}
 
 function formatDuration(seconds: number) {
   const safeSeconds = Math.max(0, Math.floor(seconds));
@@ -207,6 +218,7 @@ function getModuleState(item: ModuleProgressState | undefined, active: boolean) 
 }
 
 export default function CourseRoomPage() {
+  const router = useRouter();
   const [fullName, setFullName] = useState("");
   const [uid, setUid] = useState("");
   const [caseType, setCaseType] = useState<CaseType>("dui");
@@ -307,7 +319,7 @@ export default function CourseRoomPage() {
 
     const load = async () => {
       try {
-        const user = await ensureAnonymousSession();
+        const user = await requireAuthenticatedUser();
         const profile = await getUserProfile(user.uid);
 
         if (cancelled) {
@@ -349,6 +361,14 @@ export default function CourseRoomPage() {
       } catch (sessionError) {
         console.error(sessionError);
         if (!cancelled) {
+          const message = sessionError instanceof Error ? sessionError.message : "";
+          if (message === "AUTH_LOGIN_REQUIRED") {
+            router.replace("/login?next=/course-room");
+            setError("로그인한 회원만 강의실에 접근할 수 있습니다.");
+            setStatusMessage("로그인이 필요합니다.");
+            return;
+          }
+
           setError("Firebase 세션 준비에 실패했습니다. Authentication과 Firestore 연결 상태를 확인해 주세요.");
           setStatusMessage("세션 준비에 실패했습니다.");
         }
@@ -360,7 +380,7 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -379,6 +399,12 @@ export default function CourseRoomPage() {
       } satisfies StoredPlaybackSnapshot)
     );
   }, [caseType, selectedModuleId, legalAccepted, reviewAccepted, moduleProgress]);
+
+  useEffect(() => {
+    return () => {
+      dispatchLectureActivity(false);
+    };
+  }, []);
 
   useEffect(() => {
     if (!uid || !selectedModule) {
@@ -655,11 +681,17 @@ export default function CourseRoomPage() {
     });
   };
 
+  const handlePlay = () => {
+    dispatchLectureActivity(true);
+  };
+
   const handlePause = () => {
+    dispatchLectureActivity(false);
     void persistProgress("pause");
   };
 
   const handleEnded = () => {
+    dispatchLectureActivity(false);
     const player = videoRef.current;
     const durationSeconds = Math.max(Math.round(player?.duration || 0), selectedProgress.durationSeconds, 1);
     updateSelectedModuleProgress({
@@ -682,6 +714,7 @@ export default function CourseRoomPage() {
     if (player && !player.paused) {
       player.pause();
     }
+    dispatchLectureActivity(false);
     setSelectedModuleId(moduleId);
     setVideoUrl("");
     setPlayerReady(false);
@@ -790,6 +823,7 @@ export default function CourseRoomPage() {
                           playsInline
                           preload="metadata"
                           onLoadedMetadata={handleLoadedMetadata}
+                          onPlay={handlePlay}
                           onTimeUpdate={handleTimeUpdate}
                           onPause={handlePause}
                           onEnded={handleEnded}

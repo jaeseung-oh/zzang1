@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { Suspense, useEffect, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
-import { ensureAnonymousSession } from "@/lib/firebase/session";
+import { requireAuthenticatedUser } from "@/lib/firebase/session";
 
 type TimestampLike = {
   seconds: number;
@@ -98,6 +99,7 @@ function buildFallbackData(): CertificateViewData {
 }
 
 function CertificatePageContent() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [certificateData, setCertificateData] = useState<CertificateViewData>(buildFallbackData);
@@ -107,7 +109,7 @@ function CertificatePageContent() {
 
     const load = async () => {
       try {
-        const user = await ensureAnonymousSession();
+        const user = await requireAuthenticatedUser();
         const { db } = getFirebaseServices();
 
         const [userSnapshot, purchaseSnapshot, progressSnapshot, certificateSnapshot] = await Promise.all([
@@ -176,6 +178,13 @@ function CertificatePageContent() {
       } catch (loadError) {
         console.error(loadError);
         if (!cancelled) {
+          const message = loadError instanceof Error ? loadError.message : "";
+          if (message === "AUTH_LOGIN_REQUIRED") {
+            router.replace("/login?next=/certificate");
+            setError("로그인한 회원만 수료증을 확인할 수 있습니다.");
+            return;
+          }
+
           setError("수료증 정보를 불러오지 못했습니다. Firebase 인증과 Firestore 데이터를 확인해 주세요.");
         }
       } finally {
@@ -190,7 +199,7 @@ function CertificatePageContent() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(179,138,61,0.12),transparent_28%),linear-gradient(180deg,#f6f2e9_0%,#e9dfcf_100%)] px-4 py-8 text-[#1f2430] print:bg-white print:p-0">

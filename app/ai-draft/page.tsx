@@ -2,9 +2,10 @@
 
 import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { getFirebaseServices } from "@/lib/firebase/client";
-import { ensureAnonymousSession } from "@/lib/firebase/session";
+import { requireAuthenticatedUser } from "@/lib/firebase/session";
 
 type DraftResponse = {
   documentId: string;
@@ -48,6 +49,7 @@ const disclaimer =
   "본 도구는 법률 검토나 상담을 제공하지 않으며, 사용자가 자신의 경험과 생각을 바탕으로 성찰문을 스스로 정리할 수 있도록 돕는 참고용 글쓰기 가이드입니다.";
 
 export default function AiDraftPage() {
+  const router = useRouter();
   const [form, setForm] = useState(initialState);
   const [result, setResult] = useState<DraftResponse | null>(null);
   const [error, setError] = useState<string>("");
@@ -74,13 +76,20 @@ export default function AiDraftPage() {
 
     startTransition(async () => {
       try {
-        await ensureAnonymousSession();
+        await requireAuthenticatedUser();
         const { functions } = getFirebaseServices();
         const callable = httpsCallable<FormState, DraftResponse>(functions, "generateSentencingDraft");
         const response = await callable(form);
         setResult(response.data);
       } catch (submitError) {
         console.error(submitError);
+        const message = submitError instanceof Error ? submitError.message : "";
+        if (message === "AUTH_LOGIN_REQUIRED") {
+          router.replace("/login?next=/ai-draft");
+          setError("로그인한 회원만 AI 글쓰기 가이드를 사용할 수 있습니다.");
+          return;
+        }
+
         setError("초안 작성 중 문제가 발생했습니다. Firebase Functions 설정과 OpenAI API 키를 확인해 주세요.");
       }
     });

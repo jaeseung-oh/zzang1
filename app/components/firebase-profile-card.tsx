@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
-import { ensureAnonymousSession } from "@/lib/firebase/session";
+import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile, upsertUserProfile } from "@/lib/firebase/user-profile";
 
 type AuthMode = "signup" | "login";
@@ -36,7 +36,7 @@ export default function FirebaseProfileCard({
 
     const load = async () => {
       try {
-        const sessionUser = await ensureAnonymousSession();
+        const sessionUser = await requireAuthenticatedUser();
         const profile = await getUserProfile(sessionUser.uid);
 
         if (cancelled) {
@@ -60,7 +60,7 @@ export default function FirebaseProfileCard({
       } catch (loadError) {
         console.error(loadError);
         if (!cancelled) {
-          setError("Firebase 세션을 준비하지 못했습니다. Authentication의 Anonymous 제공자를 확인해 주세요.");
+          setError("로그인한 회원 계정이 필요합니다. 먼저 로그인한 뒤 다시 시도해 주세요.");
         }
       } finally {
         if (!cancelled) {
@@ -81,7 +81,7 @@ export default function FirebaseProfileCard({
 
     startTransition(async () => {
       try {
-        const sessionUser = await ensureAnonymousSession();
+        const sessionUser = await requireAuthenticatedUser();
         await upsertUserProfile({
           uid: sessionUser.uid,
           fullName,

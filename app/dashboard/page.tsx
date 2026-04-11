@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
-import { ensureAnonymousSession } from "@/lib/firebase/session";
+import { requireAuthenticatedUser } from "@/lib/firebase/session";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -82,6 +83,7 @@ function formatDuration(seconds: number) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<ProgressRecord | null>(null);
@@ -93,7 +95,7 @@ export default function DashboardPage() {
 
     const load = async () => {
       try {
-        const user = await ensureAnonymousSession();
+        const user = await requireAuthenticatedUser();
         const { db } = getFirebaseServices();
 
         const [progressSnapshot, certificateSnapshot, draftSnapshot] = await Promise.all([
@@ -120,6 +122,13 @@ export default function DashboardPage() {
       } catch (loadError) {
         console.error(loadError);
         if (!cancelled) {
+          const message = loadError instanceof Error ? loadError.message : "";
+          if (message === "AUTH_LOGIN_REQUIRED") {
+            router.replace("/login?next=/dashboard");
+            setError("로그인한 회원만 대시보드를 확인할 수 있습니다.");
+            return;
+          }
+
           setError("대시보드 데이터를 불러오지 못했습니다. Firebase 인증과 Firestore 인덱스 상태를 확인해 주세요.");
         }
       } finally {
@@ -134,7 +143,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [router]);
 
   const progressSummary = useMemo(() => {
     const durationSeconds = Math.max(progress?.durationSeconds ?? defaultCourse.durationMinutes * 60, 1);
