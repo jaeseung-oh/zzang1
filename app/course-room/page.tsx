@@ -596,11 +596,11 @@ export default function CourseRoomPage() {
       setResult(response.data);
 
       if (response.data.issuedCertificates.length) {
-        setStatusMessage("전체 수강 완료가 저장되었고 결제 및 필수 동의가 확인되어 수료 문서가 준비되었습니다.");
+        setStatusMessage("수강 정보가 저장되었고 결제 및 필수 동의가 확인되어 수료 문서가 준비되었습니다.");
       } else if (response.data.isCompleted && !response.data.paymentVerified) {
-        setStatusMessage("전체 수강은 완료되었습니다. 수료 문서 발급은 결제 확인 이후 자동으로 이어집니다.");
+        setStatusMessage("수강 정보가 확인되면 수료 문서 발급이 자동으로 이어집니다.");
       } else if (response.data.isCompleted && !response.data.certificateEligible) {
-        setStatusMessage("전체 수강은 완료되었습니다. 수료 문서 발급을 위해 필수 동의 항목을 확인해 주세요.");
+        setStatusMessage("수료 문서 발급을 위해 필수 동의 항목을 확인해 주세요.");
       } else if (mode === "manual") {
         setStatusMessage("현재 강의별 진도와 전체 누적 수강률이 저장되었습니다.");
       }
@@ -729,10 +729,10 @@ export default function CourseRoomPage() {
   const ringCircumference = 2 * Math.PI * 54;
   const ringOffset = ringCircumference * (1 - aggregate.completionRate / 100);
   const certificateStatus = result?.issuedCertificates.length
-    ? "수료 문서 발급 가능"
+    ? "수료 문서 안내 확인"
     : aggregate.isCompleted
       ? "결제 및 필수 동의 확인 후 발급"
-      : "진도 100% 달성 시 발급 가능";
+      : "강의 수강 시 발급 안내";
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(198,168,106,0.14),transparent_20%),linear-gradient(180deg,#08101c_0%,#0c1524_16%,#e8edf4_16%,#edf2f7_100%)] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
@@ -748,7 +748,7 @@ export default function CourseRoomPage() {
                 {defaultCourse.title}
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
-                {defaultCourse.subtitle}. 결제 확인, 강의별 재생 이력, 전체 진도율, 수료 가능 여부를 하나의 학습 화면에서 관리합니다.
+                {defaultCourse.subtitle}. 결제 확인, 강의별 재생 이력, 전체 진도율, 발급 안내를 하나의 학습 화면에서 관리합니다.
               </p>
             </div>
 
@@ -782,7 +782,7 @@ export default function CourseRoomPage() {
               <p className="mt-2 text-lg font-semibold text-white">{formatDuration(aggregate.watchedSeconds)}</p>
             </div>
             <div className="rounded-[1.4rem] border border-white/10 bg-white/6 p-4 backdrop-blur">
-              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">수료 상태</p>
+              <p className="text-xs uppercase tracking-[0.22em] text-slate-400">발급 안내</p>
               <p className="mt-2 text-lg font-semibold text-[#f0d59c]">{certificateStatus}</p>
             </div>
           </div>
@@ -965,7 +965,7 @@ export default function CourseRoomPage() {
                   </label>
 
                   <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
-                    <p className="font-semibold text-white">수료 가능 상태</p>
+                    <p className="font-semibold text-white">수료 문서 안내</p>
                     <p className="mt-2">{certificateStatus}</p>
                   </div>
                 </div>
@@ -983,7 +983,7 @@ export default function CourseRoomPage() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#98b8f7]">Progress Dashboard</p>
                     <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">전체 수강률</h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">총 요구 시간, 누적 시청 시간, 남은 시간, 수료 가능 여부를 한눈에 확인합니다.</p>
+                    <p className="mt-2 text-sm leading-7 text-slate-300">총 요구 시간, 누적 시청 시간, 남은 시간, 발급 안내를 한눈에 확인합니다.</p>
                   </div>
                   <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-semibold text-[#f0d59c]">
                     {aggregate.completedModuleCount}/{aggregate.totalModuleCount} 완료

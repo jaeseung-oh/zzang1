@@ -175,7 +175,7 @@ export default function DashboardPage() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Learner Dashboard</p>
             <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl">6강 수강 현황과 발급 문서 대시보드</h1>
             <p className="mt-4 max-w-3xl text-sm leading-8 text-white/70">
-              강의별 진도, 전체 6강 누적 수강률, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
+              강의별 진도, 누적 수강 시간, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
@@ -288,7 +288,7 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-[#f0cb85]">발급 문서</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">PDF 3종 다운로드</h2>
               <p className="mt-4 text-sm leading-8 text-white/70">
-                6강 전체 수강 완료 후 Functions가 생성한 PDF를 여기서 확인할 수 있습니다. 전체 6강 누적 수강률이 수료 기준입니다.
+                수강 정보와 발급 절차가 확인되면 Functions가 생성한 PDF를 여기서 확인할 수 있습니다.
               </p>
 
               <div className="mt-6 space-y-4">
@@ -314,7 +314,7 @@ export default function DashboardPage() {
                   ))
                 ) : (
                   <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">
-                    아직 발급된 문서가 없습니다. 6강 전체를 모두 수강하고 저장하면 PDF 3종이 자동 생성됩니다.
+                    아직 발급된 문서가 없습니다. 수강 정보와 필수 확인 절차가 반영되면 PDF 3종이 자동 생성됩니다.
                   </div>
                 )}
               </div>

@@ -13,7 +13,7 @@ const trustIndicators = [
     ),
   },
   {
-    title: "가장 빠른 수료증 발급",
+    title: "수강 후 수료증 안내",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="1.8">
         <path d="M12 8v4l3 3" />
@@ -31,7 +31,7 @@ const trustIndicators = [
     ),
   },
   {
-    title: "온라인 100% 수강",
+    title: "온라인 수강 진행",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="1.8">
         <path d="M4 7h16M7 4v6m10-6v6M5 11h14v8H5z" />
@@ -104,8 +104,8 @@ const processSteps = [
   },
   {
     step: "02",
-    title: "온라인 100% 수강",
-    body: "별도 방문 없이 온라인으로 교육을 수강하며 제출 준비를 동시에 진행합니다.",
+    title: "온라인 수강 진행",
+    body: "별도 방문 없이 온라인으로 교육을 수강하며 필요한 준비를 함께 진행합니다.",
   },
   {
     step: "03",
@@ -163,7 +163,7 @@ const faqs = [
 
 const stats = [
   { label: "상시 접수 운영", value: "24H" },
-  { label: "온라인 수강", value: "100%" },
+  { label: "온라인 수강", value: "간편" },
   { label: "발급 서류", value: "3종" },
 ];
 
@@ -303,7 +303,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Urgent Briefing</p>
-                    <h2 className="mt-2 break-keep text-[1.45rem] font-bold leading-tight sm:text-[1.7rem]">빠른 수료 · 빠른 제출 준비</h2>
+                    <h2 className="mt-2 break-keep text-[1.45rem] font-bold leading-tight sm:text-[1.7rem]">온라인 수강 · 발급 안내</h2>
                   </div>
                   <div className="shrink-0 rounded-2xl bg-[#d8b36a]/15 p-3 text-[#f6deb0]">
                     <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
@@ -315,10 +315,10 @@ export default function HomePage() {
                 <div className="mt-6 grid gap-4">
                   <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
                     <p className="text-sm text-slate-300">교육 방식</p>
-                    <p className="mt-2 text-xl font-semibold">온라인 100% 수강</p>
+                    <p className="mt-2 text-xl font-semibold">온라인 수강 진행</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
-                    <p className="text-sm text-slate-300">발급 가능 서류</p>
+                    <p className="text-sm text-slate-300">안내 서류 구성</p>
                     <p className="mt-2 text-xl font-semibold">학습확인서 · 서약서 · 계획서</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
