@@ -247,10 +247,10 @@ export default function HomePage() {
             </nav>
 
             <div className="flex items-center gap-3">
-              <a href="/login" className="hidden items-center justify-center rounded-full border border-slate-300/80 bg-white/85 px-5 py-3 text-sm font-semibold text-[#06101b] transition hover:-translate-y-0.5 hover:bg-white md:inline-flex">
+              <a href="/login" className="hidden items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-5 py-3 text-sm font-bold text-[#0b1628] shadow-[0_10px_24px_rgba(7,16,32,0.08)] transition hover:-translate-y-0.5 hover:border-[#c7d3e6] hover:bg-[#f8fbff] hover:text-[#08111d] md:inline-flex">
                 로그인
               </a>
-              <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[#06101b] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 hover:bg-[#0d1d34]">
+              <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-5 py-3 text-sm font-bold text-[#161109] shadow-[0_14px_28px_rgba(164,126,54,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
                 회원가입
               </a>
             </div>
@@ -272,18 +272,18 @@ export default function HomePage() {
                 <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e9c98d]/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#f6deb0]">
                   성찰과 재발 방지를 위한 민간 온라인 교육 플랫폼
                 </div>
-                <h1 className="max-w-4xl text-4xl font-black leading-tight tracking-[-0.04em] text-white sm:text-5xl lg:text-7xl">
-                  진정성 있는 성찰과 실천을 돕습니다.
-                  <span className="block text-[#f6deb0]">민간 재발 방지 교육과 자기점검의 출발점.</span>
+                <h1 className="max-w-4xl text-4xl font-black leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-[5.3rem]">
+                  <span className="block">진정성 있는 성찰과 실천을 돕습니다.</span>
+                  <span className="mt-2 block text-[#f6deb0] sm:whitespace-nowrap">민간 재발 방지 교육과 자기점검의 출발점</span>
                 </h1>
                 <p className="mt-6 max-w-2xl text-base leading-8 text-slate-200 sm:text-lg">
                   사건 이후 자신의 생활을 차분히 돌아보고, 재발 방지를 위한 학습과 실천 계획을 스스로 정리할 수 있도록 돕습니다.
                 </p>
                 <div className="mt-8 flex flex-wrap gap-4">
-                  <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[#d8b36a] px-7 py-4 text-sm font-bold text-[#06101b] transition hover:-translate-y-1 hover:bg-[#e9c98d]">
+                  <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-7 py-4 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
                     회원가입 후 시작하기
                   </a>
-                  <a href="#process" className="inline-flex items-center justify-center rounded-full border border-white/20 bg-white/10 px-7 py-4 text-sm font-semibold text-white transition hover:bg-white/15">
+                  <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d8e4f7]/30 bg-[#0a1627]/55 px-7 py-4 text-sm font-semibold text-[#f8fbff] transition hover:bg-[#13233d] hover:text-white">
                     수강 절차 보기
                   </a>
                 </div>
