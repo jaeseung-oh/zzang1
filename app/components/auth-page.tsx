@@ -92,14 +92,13 @@ function getProfileName(profile: StoredUserProfile | null, user: User | null) {
   return profile?.realName?.trim() || profile?.fullName?.trim() || user?.displayName?.trim() || "회원";
 }
 
+const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "https://zzang1.pages.dev";
+
 async function sendVerificationEmail(user: User) {
-  const actionSettings =
-    typeof window === "undefined"
-      ? undefined
-      : {
-          url: `${window.location.origin}/login`,
-          handleCodeInApp: false,
-        };
+  const actionSettings = {
+    url: `${appOrigin}/login`,
+    handleCodeInApp: false,
+  };
 
   await sendEmailVerification(user, actionSettings);
 }
