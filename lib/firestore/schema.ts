@@ -104,3 +104,14 @@ export interface AiDraftDocument {
   userConfirmedManualReview: boolean;
   createdAt: string;
 }
+
+export interface ReviewDocument {
+  uid: string;
+  authorName: string;
+  courseLabel: string;
+  title: string;
+  body: string;
+  rating: number;
+  createdAt: string;
+  updatedAt?: string;
+}

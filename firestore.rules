@@ -56,6 +56,20 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /reviews/{reviewId} {
+      allow read: if true;
+      allow create: if isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && isNonEmptyString(request.resource.data.authorName)
+        && isNonEmptyString(request.resource.data.courseLabel)
+        && isNonEmptyString(request.resource.data.title)
+        && isNonEmptyString(request.resource.data.body)
+        && request.resource.data.rating is int
+        && request.resource.data.rating >= 1
+        && request.resource.data.rating <= 5;
+      allow update, delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

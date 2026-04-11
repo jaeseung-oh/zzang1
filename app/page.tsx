@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ReviewBoard from "./components/review-board";
 
 const trustIndicators = [
   {
@@ -176,24 +177,6 @@ const educationMenuItems = [
   "도박 예방교육",
   "폭력 예방교육",
   "재범방지 종합교육",
-];
-
-const reviews = [
-  {
-    title: "음주운전 예방교육 수강",
-    body: "강의 흐름이 차분하고 정리가 잘 되어 있어서 생활 습관을 다시 점검하는 데 도움이 됐습니다. 복잡하지 않게 수강을 진행할 수 있었습니다.",
-    author: "수강생 김OO",
-  },
-  {
-    title: "사기 예방교육 수강",
-    body: "단순한 설명이 아니라 재발 방지를 위해 무엇을 바꿔야 하는지 구체적으로 생각해 볼 수 있었고, 제출 준비도 한결 수월했습니다.",
-    author: "수강생 박OO",
-  },
-  {
-    title: "성폭력 예방교육 수강",
-    body: "무겁지만 필요한 내용을 정리된 화면에서 차분히 볼 수 있었고, 수강 기록과 안내 문서 흐름도 한눈에 확인할 수 있었습니다.",
-    author: "수강생 이OO",
-  },
 ];
 
 function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
@@ -541,21 +524,13 @@ export default function HomePage() {
             <div className="rounded-[2rem] bg-[linear-gradient(135deg,#0b1424_0%,#13223d_100%)] p-8 text-white shadow-[0_20px_70px_rgba(6,16,27,0.22)] lg:p-10">
               <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
                 <div>
-                  <div className="inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#f0cb85]">Reviews</div>
+                  <div className="inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#f0cb85]">Reviews Board</div>
                   <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] sm:text-4xl">수강후기</h2>
                 </div>
-                <p className="max-w-xl text-sm leading-7 text-white/70">실제 수강 흐름과 화면 구성이 어떠했는지 참고할 수 있도록 후기를 정리했습니다.</p>
+                <p className="max-w-xl text-sm leading-7 text-white/70">실제 수강생이 직접 후기를 남기고, 다른 이용자는 최근 후기를 바로 확인할 수 있는 게시판입니다.</p>
               </div>
-              <div className="mt-8 grid gap-4 lg:grid-cols-3">
-                {reviews.map((item, index) => (
-                  <Reveal key={item.author} delay={index * 100}>
-                    <article className="rounded-[1.7rem] border border-white/10 bg-white/5 p-6">
-                      <p className="text-sm font-semibold text-[#f0cb85]">{item.title}</p>
-                      <p className="mt-4 text-sm leading-8 text-white/80">{item.body}</p>
-                      <p className="mt-6 text-sm font-bold text-white">{item.author}</p>
-                    </article>
-                  </Reveal>
-                ))}
+              <div className="mt-8">
+                <ReviewBoard />
               </div>
             </div>
           </div>
