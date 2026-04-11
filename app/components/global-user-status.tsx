@@ -99,23 +99,23 @@ export default function GlobalUserStatus() {
         </button>
 
         {isMenuOpen ? (
-          <div className="absolute right-0 top-full mt-2 w-52 overflow-hidden rounded-[1.2rem] border border-[#cfd8e6] bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] shadow-[0_18px_36px_rgba(15,23,42,0.16)]">
-            <div className="border-b border-[#dde5f0] bg-[#f4f8fd] px-3.5 py-3">
+          <div className="absolute right-0 top-full mt-2 w-56 overflow-hidden rounded-[1.2rem] border-2 border-[#b7c7dc] bg-white shadow-[0_22px_40px_rgba(15,23,42,0.2)]">
+            <div className="border-b border-[#d4dfec] bg-[#eef4fb] px-3.5 py-3">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#5a6b85]">My Account</p>
               <p className="mt-1.5 truncate text-sm font-bold text-[#10213f]">{displayName}님 환영합니다</p>
             </div>
-            <div className="space-y-2 p-2.5">
-              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#d9e4f2] bg-[#eef4fb] px-3 text-sm font-semibold text-[#10213f] transition hover:border-[#bfd0e6] hover:bg-[#e4eef9]">
+            <div className="space-y-2.5 p-3">
+              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border-2 border-[#c7d6e8] bg-[#f7fbff] px-3.5 text-sm font-bold text-[#08182f] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#9fb5d0] hover:bg-[#e9f2fc]">
                 내 강의실
               </Link>
-              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#d9e4f2] bg-[#eef4fb] px-3 text-sm font-semibold text-[#10213f] transition hover:border-[#bfd0e6] hover:bg-[#e4eef9]">
+              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border-2 border-[#c7d6e8] bg-[#f7fbff] px-3.5 text-sm font-bold text-[#08182f] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:border-[#9fb5d0] hover:bg-[#e9f2fc]">
                 정보 수정
               </Link>
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="flex min-h-11 w-full items-center rounded-xl border border-[#f0d7d0] bg-[#fff5f1] px-3 text-sm font-semibold text-[#a33b24] transition hover:border-[#e7c0b5] hover:bg-[#ffede7] disabled:cursor-not-allowed disabled:opacity-60"
+                className="flex min-h-11 w-full items-center rounded-xl border-2 border-[#efc9bf] bg-[#fff5f1] px-3.5 text-sm font-bold text-[#922f1b] transition hover:border-[#dfa899] hover:bg-[#ffebe4] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
               </button>
