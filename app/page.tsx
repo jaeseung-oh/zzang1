@@ -167,6 +167,35 @@ const stats = [
   { label: "발급 서류", value: "3종" },
 ];
 
+
+const educationMenuItems = [
+  "음주운전 예방교육",
+  "사기 예방교육",
+  "성폭력 예방교육",
+  "마약 예방교육",
+  "도박 예방교육",
+  "폭력 예방교육",
+  "재범방지 종합교육",
+];
+
+const reviews = [
+  {
+    title: "음주운전 예방교육 수강",
+    body: "강의 흐름이 차분하고 정리가 잘 되어 있어서 생활 습관을 다시 점검하는 데 도움이 됐습니다. 복잡하지 않게 수강을 진행할 수 있었습니다.",
+    author: "수강생 김OO",
+  },
+  {
+    title: "사기 예방교육 수강",
+    body: "단순한 설명이 아니라 재발 방지를 위해 무엇을 바꿔야 하는지 구체적으로 생각해 볼 수 있었고, 제출 준비도 한결 수월했습니다.",
+    author: "수강생 박OO",
+  },
+  {
+    title: "성폭력 예방교육 수강",
+    body: "무겁지만 필요한 내용을 정리된 화면에서 차분히 볼 수 있었고, 수강 기록과 안내 문서 흐름도 한눈에 확인할 수 있었습니다.",
+    author: "수강생 이OO",
+  },
+];
+
 function Reveal({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
   return (
     <div data-reveal style={{ ["--delay" as string]: `${delay}ms` }} className={className}>
@@ -241,8 +270,26 @@ export default function HomePage() {
             </a>
 
             <nav className="hidden items-center gap-8 text-sm font-medium text-slate-700 md:flex">
-              <a href="#courses" className="transition hover:text-[#06101b]">교육 안내</a>
-              <a href="#documents" className="transition hover:text-[#06101b]">발급 서류</a>
+              <a href="#center-intro" className="transition hover:text-[#06101b]">센터소개</a>
+              <div className="group relative">
+                <a href="#courses" className="inline-flex items-center gap-2 transition hover:text-[#06101b]">
+                  교육과정
+                  <svg viewBox="0 0 20 20" className="h-4 w-4 fill-none stroke-current" strokeWidth="1.8">
+                    <path d="m5 7.5 5 5 5-5" />
+                  </svg>
+                </a>
+                <div className="pointer-events-none absolute left-1/2 top-full z-20 mt-3 hidden w-64 -translate-x-1/2 rounded-[1.5rem] border border-slate-200 bg-white p-3 text-[13px] text-slate-700 shadow-[0_18px_50px_rgba(3,10,20,0.16)] group-hover:block group-hover:pointer-events-auto">
+                  <div className="space-y-1">
+                    {educationMenuItems.map((item) => (
+                      <a key={item} href="#courses" className="block rounded-xl px-3 py-2 transition hover:bg-slate-50 hover:text-[#06101b]">
+                        {item}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <a href="#documents" className="transition hover:text-[#06101b]">수료증 안내</a>
+              <a href="#reviews" className="transition hover:text-[#06101b]">수강후기</a>
               <a href="#faq" className="transition hover:text-[#06101b]">자주 묻는 질문</a>
             </nav>
 
@@ -258,7 +305,7 @@ export default function HomePage() {
         </div>
       </header>
 
-      <section className="relative min-h-screen overflow-hidden">
+      <section id="center-intro" className="relative min-h-screen overflow-hidden">
         <div className="absolute inset-0">
           <img src="https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?auto=format&fit=crop&w=1600&q=80" alt="민간 교육 배경" className="h-full w-full object-cover" />
           <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(6,16,27,0.88),rgba(8,20,37,0.62))]" />
@@ -459,6 +506,33 @@ export default function HomePage() {
                     <div className="mt-4 space-y-2"><div className="h-2 rounded-full bg-slate-200" /><div className="h-2 w-5/6 rounded-full bg-slate-200" /><div className="h-2 w-3/6 rounded-full bg-slate-200" /></div>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </Reveal>
+
+      <Reveal>
+        <section id="reviews" className="pb-24">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="rounded-[2rem] bg-[linear-gradient(135deg,#0b1424_0%,#13223d_100%)] p-8 text-white shadow-[0_20px_70px_rgba(6,16,27,0.22)] lg:p-10">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+                <div>
+                  <div className="inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#f0cb85]">Reviews</div>
+                  <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] sm:text-4xl">수강후기</h2>
+                </div>
+                <p className="max-w-xl text-sm leading-7 text-white/70">실제 수강 흐름과 화면 구성이 어떠했는지 참고할 수 있도록 후기를 정리했습니다.</p>
+              </div>
+              <div className="mt-8 grid gap-4 lg:grid-cols-3">
+                {reviews.map((item, index) => (
+                  <Reveal key={item.author} delay={index * 100}>
+                    <article className="rounded-[1.7rem] border border-white/10 bg-white/5 p-6">
+                      <p className="text-sm font-semibold text-[#f0cb85]">{item.title}</p>
+                      <p className="mt-4 text-sm leading-8 text-white/80">{item.body}</p>
+                      <p className="mt-6 text-sm font-bold text-white">{item.author}</p>
+                    </article>
+                  </Reveal>
+                ))}
               </div>
             </div>
           </div>
