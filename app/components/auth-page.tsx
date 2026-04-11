@@ -27,31 +27,31 @@ type VerificationSyncResponse = {
 const modeCopy = {
   signup: {
     eyebrow: "Member Registration",
-    title: "실명과 생년월일을 확인한 뒤 이메일 인증으로 회원가입을 완료합니다",
+    title: "수강 시작 전, 수료증 발급 정보를 정확히 등록해 주세요",
     intro:
-      "교육 수료 후 발급되는 수료증에는 회원가입 시 입력한 실명과 생년월일이 연결됩니다. 가입 직후 인증 메일을 확인해야 계정이 정상 활성화됩니다.",
+      "실명과 생년월일은 수료증 발급 기준 정보로 사용됩니다. 가입 후 이메일 인증까지 완료해야 강의실과 발급 기능을 정상 이용할 수 있습니다.",
     benefits: [
-      "실명과 생년월일을 회원가입 단계에서 필수로 저장합니다.",
-      "이메일 인증이 끝나야 정상적인 회원 계정으로 활성화됩니다.",
-      "가입 후에는 내 강의실, 수강 저장, 수료증 발급 흐름이 같은 계정으로 연결됩니다.",
+      "등록 정보는 수료증 발급 기준으로 연결됩니다.",
+      "이메일 인증 완료 후 바로 강의실 이용이 가능합니다.",
+      "결제 이후에는 발급 기준 정보가 잠길 수 있습니다.",
     ],
     submitLabel: "회원가입 및 인증메일 발송",
-    helperTitle: "회원가입 필수 정보",
-    helperBody: "실명과 생년월일은 수료증 발급 정보와 직접 연결되므로 정확히 입력해야 합니다.",
+    helperTitle: "등록 안내",
+    helperBody: "필수 정보만 정확히 입력하면 바로 강의 수강과 수료증 발급 흐름으로 이어집니다.",
   },
   login: {
     eyebrow: "Member Login",
-    title: "이메일로 로그인하고 인증 상태를 확인한 뒤 강의실과 발급 화면으로 이동합니다",
+    title: "로그인 후 바로 강의실과 수료증 발급 흐름을 이용할 수 있습니다",
     intro:
-      "이미 가입한 회원은 이메일과 비밀번호로 로그인할 수 있습니다. 이메일 인증이 아직 끝나지 않았다면 이 화면에서 다시 인증 메일을 보내고 확인 상태를 갱신할 수 있습니다.",
+      "이미 가입한 회원은 로그인 후 강의실, 대시보드, 수료증 발급 화면으로 이동할 수 있습니다. 인증이 끝나지 않았다면 이 화면에서 바로 처리할 수 있습니다.",
     benefits: [
-      "이메일과 비밀번호로 로그인합니다.",
-      "인증 메일 재발송과 인증 완료 확인을 바로 처리할 수 있습니다.",
-      "인증이 완료되면 대시보드, 강의실, 수료증 흐름과 연결됩니다.",
+      "인증 상태를 확인하고 즉시 수강을 시작할 수 있습니다.",
+      "저장된 정보로 수료증 발급 흐름이 연결됩니다.",
+      "결제 이후에는 발급 기준 정보가 잠길 수 있습니다.",
     ],
     submitLabel: "로그인",
-    helperTitle: "로그인 안내",
-    helperBody: "이메일 인증이 끝나지 않은 계정은 로그인 후에도 수강 및 발급 흐름이 제한될 수 있습니다.",
+    helperTitle: "이용 안내",
+    helperBody: "인증이 완료된 계정은 강의실 입장과 수료증 발급 흐름을 바로 이용할 수 있습니다.",
   },
 } as const;
 
@@ -166,7 +166,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         if (!user) {
           setProfile(null);
           setLoading(false);
-          setMessage(mode === "signup" ? "실명, 생년월일, 이메일을 입력해 회원가입을 진행해 주세요." : "가입한 이메일 계정으로 로그인해 주세요.");
+          setMessage(mode === "signup" ? "필수 정보 등록 후 바로 회원가입을 진행할 수 있습니다." : "로그인 후 바로 강의실과 수료증 발급 흐름을 이용할 수 있습니다.");
           return;
         }
 
@@ -179,10 +179,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           const certificateIdentity = getCertificateIdentity(storedProfile);
           setMessage(
             certificateIdentity.isLocked
-              ? "결제 기준으로 수료증 발급 정보가 잠겨 있습니다. 아래 프로필 수정은 가능하지만 수료증에는 잠긴 정보가 사용됩니다."
+              ? "수료증 발급 기준 정보가 잠겨 있습니다. 결제 이후에는 잠긴 정보가 발급에 사용됩니다."
               : user.emailVerified
-                ? "이메일 인증이 완료된 계정입니다. 강의실과 수료증 발급 흐름으로 이어질 수 있습니다."
-                : "인증 메일을 확인한 뒤 아래의 인증 상태 확인 버튼을 눌러 계정을 활성화해 주세요."
+                ? "수강을 시작할 준비가 되었습니다. 강의실과 발급 기능을 바로 이용할 수 있습니다."
+                : "인증 메일 확인 후 계정을 활성화하면 강의실과 발급 기능을 이용할 수 있습니다."
           );
         } catch (loadError) {
           console.error(loadError);
@@ -274,7 +274,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setTermsAccepted(false);
         setPrivacyAccepted(false);
         setSensitiveInfoAccepted(false);
-        setMessage("인증 메일을 발송했습니다. 메일함에서 인증 링크를 누른 뒤 이 화면으로 돌아와 인증 상태를 확인해 주세요.");
+        setMessage("인증 메일을 발송했습니다. 인증을 완료하면 바로 수강을 시작할 수 있습니다.");
       } catch (submitError) {
         console.error(submitError);
         setError(submitError instanceof Error ? submitError.message : "회원가입 처리 중 오류가 발생했습니다.");
@@ -296,8 +296,8 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setProfile(storedProfile);
         setMessage(
           credential.user.emailVerified
-            ? "로그인되었습니다. 인증이 완료된 계정입니다."
-            : "로그인은 되었지만 이메일 인증이 아직 완료되지 않았습니다. 인증 메일을 확인해 주세요."
+            ? "로그인되었습니다. 바로 강의실 이용이 가능합니다."
+            : "로그인은 완료됐지만 이메일 인증이 필요합니다. 인증 후 강의실 이용이 가능합니다."
         );
         setPassword("");
         router.replace(nextPath ?? "/dashboard");
@@ -340,8 +340,8 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         const certificateIdentity = getCertificateIdentity(storedProfile);
         setMessage(
           certificateIdentity.isLocked
-            ? "프로필 정보가 저장되었습니다. 다만 수료증 발급 기준 정보는 이미 잠겨 있어 기존 잠금값이 유지됩니다."
-            : "회원 정보가 저장되었습니다. 아직 결제 전이므로 수료증 발급 기준 정보도 함께 수정됩니다."
+            ? "프로필 정보가 저장되었습니다. 수료증에는 기존 잠금 정보가 계속 사용됩니다."
+            : "회원 정보가 저장되었습니다. 결제 전에는 발급 기준 정보도 함께 수정됩니다."
         );
       } catch (saveError) {
         console.error(saveError);
@@ -367,7 +367,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         }
 
         await sendVerificationEmail(authUser);
-        setMessage("인증 메일을 다시 보냈습니다. 받은편지함 또는 스팸함에서 인증 링크를 확인해 주세요.");
+        setMessage("인증 메일을 다시 보냈습니다. 인증을 완료하면 바로 수강을 시작할 수 있습니다.");
       } catch (verificationError) {
         console.error(verificationError);
         setError(verificationError instanceof Error ? verificationError.message : "인증 메일 재발송 중 오류가 발생했습니다.");
@@ -394,7 +394,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setAuthUser(refreshedUser);
         setMessage(
           synced.isEmailVerified
-            ? "이메일 인증이 확인되었습니다. 이제 정상적인 회원 계정으로 활성화되었습니다."
+            ? "이메일 인증이 확인되었습니다. 이제 강의실과 발급 기능을 이용할 수 있습니다."
             : "아직 인증이 확인되지 않았습니다. 메일의 인증 링크를 먼저 완료해 주세요."
         );
       } catch (verificationError) {
@@ -438,7 +438,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
               RESET EDU CENTER
             </Link>
             <p className="mt-2 max-w-[420px] text-sm leading-7 text-[#5d6762]">
-              교육 이수 계정을 만들고, 실명 기반 수료증 발급과 수강 기록을 하나의 회원 정보로 연결합니다.
+              인증을 완료하면 강의 수강과 수료증 발급을 바로 진행할 수 있습니다.
             </p>
           </div>
           <nav className="flex flex-wrap items-center gap-4 text-sm text-[#17211e]">
@@ -482,10 +482,8 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                   <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#a45127]">{copy.helperTitle}</p>
                   <p className="mt-3 text-sm leading-7 text-[#5d6762]">{copy.helperBody}</p>
                   <div className="mt-5 grid gap-3 text-sm text-[#17211e] sm:grid-cols-2">
-                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">실명: 수료증 성명으로 사용</div>
-                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">생년월일: 수료증 본인 식별 정보</div>
-                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">이메일: 인증 및 계정 복구 기준</div>
-                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">이메일 인증: 계정 활성화 필수</div>
+                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">실명·생년월일: 수료증 발급 기준</div>
+                    <div className="rounded-2xl border border-black/10 bg-white/80 px-4 py-3">이메일 인증 완료 후 강의실 이용 가능</div>
                   </div>
                 </div>
               </div>
@@ -513,7 +511,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                             placeholder="홍길동"
                             className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
                           />
-                          <p className="text-xs leading-6 text-[#7a6656]">결제 전에는 수료증 기준 정보에도 반영되고, 결제 후에는 일반 프로필 정보만 수정됩니다.</p>
+                          <p className="text-xs leading-6 text-[#7a6656]">수료증 발급 기준이 되므로 정확히 입력해 주세요.</p>
                         </label>
                         <label className="block space-y-2 text-sm text-[#17211e]">
                           <span>생년월일</span>
@@ -598,7 +596,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                     <div className="rounded-[1.5rem] border border-black/10 bg-white/80 p-5">
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
-                          <p className="text-sm font-bold text-[#17211e]">계정 상태</p>
+                          <p className="text-sm font-bold text-[#17211e]">이용 상태</p>
                           <p className="mt-2 text-sm leading-7 text-[#5d6762]">
                             이메일: {authUser.email || "없음"}
                             <br />
@@ -613,11 +611,11 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
 
                     {certificateIdentity.isLocked ? (
                       <div className="rounded-[1.5rem] border border-[#d8dfeb] bg-[#f8fafc] p-5 text-sm text-[#334155]">
-                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9f4d24]">Certificate Identity Locked</p>
-                        <p className="mt-3 leading-7">결제 이후 수료증 발급 기준 정보가 잠겨 있습니다. 아래 프로필 정보는 수정할 수 있지만, 수료증과 발급 문서에는 아래 잠금 정보가 계속 사용됩니다.</p>
+                        <p className="text-xs font-extrabold uppercase tracking-[0.16em] text-[#9f4d24]">수료증 기준 정보 잠금</p>
+                        <p className="mt-3 leading-7">결제 이후에는 아래 정보가 수료증 발급 기준으로 고정됩니다. 강의 수강과 발급은 이 기준으로 진행됩니다.</p>
                         <div className="mt-4 grid gap-3 md:grid-cols-2">
-                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">잠긴 실명: {certificateIdentity.realName}</div>
-                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">잠긴 생년월일: {certificateIdentity.dateOfBirth}</div>
+                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">발급 기준 실명: {certificateIdentity.realName}</div>
+                          <div className="rounded-2xl border border-black/10 bg-white px-4 py-3">발급 기준 생년월일: {certificateIdentity.dateOfBirth}</div>
                         </div>
                       </div>
                     ) : null}
@@ -644,7 +642,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                           placeholder="19900101 또는 1990-01-01"
                           className="w-full rounded-2xl border border-black/10 bg-white px-4 py-3 outline-none transition focus:border-[#a45127]"
                         />
-                        <p className="text-xs leading-6 text-[#7a6656]">결제 전에는 수료증 기준 정보에도 반영되고, 결제 후에는 일반 프로필 정보만 수정됩니다.</p>
+                        <p className="text-xs leading-6 text-[#7a6656]">결제 전에는 발급 기준에도 반영되고, 결제 후에는 일반 프로필만 수정됩니다.</p>
                       </label>
                     </div>
 
@@ -719,15 +717,13 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
               </div>
 
               <div className="rounded-[1.75rem] bg-[linear-gradient(135deg,rgba(17,39,35,0.94),rgba(38,76,69,0.9))] p-7 text-[#fdf4e9] shadow-[0_14px_36px_rgba(18,26,24,0.08)]">
-                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#d8b26b]">Activation Flow</p>
-                <h2 className="mt-4 font-['Space_Grotesk'] text-3xl font-bold tracking-[-0.05em]">회원가입 후 계정이 활성화되는 순서</h2>
-                <ol className="mt-5 list-decimal space-y-3 pl-5 text-sm leading-7 text-[#fdf4e9]">
-                  <li>실명, 생년월일, 이메일, 비밀번호를 입력해 계정을 생성합니다.</li>
-                  <li>가입 즉시 인증 메일이 발송됩니다.</li>
-                  <li>메일의 인증 링크를 누른 뒤 다시 로그인 화면으로 돌아옵니다.</li>
-                  <li>인증 상태 확인 버튼으로 계정 활성화 여부를 갱신합니다.</li>
-                  <li>활성화가 끝나면 강의실과 수료증 발급 흐름을 정상 이용할 수 있습니다.</li>
-                </ol>
+                <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#d8b26b]">Next Step</p>
+                <h2 className="mt-4 font-['Space_Grotesk'] text-3xl font-bold tracking-[-0.05em]">수강 시작 전 확인하면 되는 핵심만 안내합니다</h2>
+                <ul className="mt-5 space-y-3 text-sm leading-7 text-[#fdf4e9]">
+                  <li>실명과 생년월일은 수료증 발급 기준 정보로 사용됩니다.</li>
+                  <li>이메일 인증이 끝나면 강의실과 발급 기능을 바로 이용할 수 있습니다.</li>
+                  <li>결제 후에는 발급 기준 정보가 잠길 수 있으니 수강 시작 전 한 번 확인해 주세요.</li>
+                </ul>
               </div>
             </section>
           </div>
