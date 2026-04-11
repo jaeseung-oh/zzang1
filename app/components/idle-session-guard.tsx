@@ -151,9 +151,9 @@ export default function IdleSessionGuard() {
   }
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 top-3 z-[60] flex justify-center px-4">
-      <div className="rounded-full border border-[#d6deef] bg-[rgba(255,255,255,0.94)] px-4 py-2 text-[11px] font-semibold tracking-[0.08em] text-[#24364f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] backdrop-blur">
-        자동 로그아웃까지 {remainingLabel}
+    <div className="pointer-events-none fixed right-3 top-3 z-[60] px-3 sm:right-4 sm:top-4">
+      <div className="rounded-full border border-[#d6deef] bg-[rgba(255,255,255,0.92)] px-3 py-1.5 text-[10px] font-semibold tracking-[0.04em] text-[#24364f] shadow-[0_10px_20px_rgba(15,23,42,0.1)] backdrop-blur sm:text-[11px]">
+        로그아웃 {remainingLabel}
       </div>
     </div>
   );
