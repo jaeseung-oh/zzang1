@@ -317,7 +317,7 @@ export default function HomePage() {
 
             {currentUser ? null : (
               <div className="flex items-center gap-3">
-                <a href="/login" className="hidden items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-5 py-3 text-sm font-bold text-[#0b1628] shadow-[0_10px_24px_rgba(7,16,32,0.08)] transition hover:-translate-y-0.5 hover:border-[#c7d3e6] hover:bg-[#f8fbff] hover:text-[#08111d] md:inline-flex">
+                <a href="/login" className="inline-flex items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-4 py-3 text-sm font-bold text-[#0b1628] shadow-[0_10px_24px_rgba(7,16,32,0.08)] transition hover:-translate-y-0.5 hover:border-[#c7d3e6] hover:bg-[#f8fbff] hover:text-[#08111d] sm:px-5">
                   로그인
                 </a>
                 <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-5 py-3 text-sm font-bold text-[#161109] shadow-[0_14px_28px_rgba(164,126,54,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
