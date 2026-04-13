@@ -1040,12 +1040,12 @@ export default function CourseRoomPage() {
 
           <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
             <section className="overflow-hidden rounded-[2rem] border border-[#d7deea] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-              <div className="bg-[linear-gradient(135deg,#0d172a_0%,#132341_100%)] px-5 py-5 text-white sm:px-6">
+              <div className="bg-[linear-gradient(135deg,#0d172a_0%,#132341_100%)] px-4 py-4 text-white sm:px-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#98b8f7]">Course Progress</p>
-                    <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">전체 수강률</h2>
-                    <p className="mt-2 text-sm leading-6 text-slate-300">핵심 진행 지표만 간결하게 확인합니다.</p>
+                    <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">전체 수강률</h2>
+                    <p className="mt-1.5 text-xs leading-5 text-slate-300">핵심 진행 지표만 간결하게 확인합니다.</p>
                   </div>
                   <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-semibold text-[#f0d59c]">
                     {aggregate.completedModuleCount}/{aggregate.totalModuleCount} 완료
@@ -1053,12 +1053,12 @@ export default function CourseRoomPage() {
                 </div>
               </div>
 
-              <div className="p-4 sm:p-5">
-                <div className="grid gap-4">
-                  <div className="grid gap-3 rounded-[1.45rem] border border-[#dce3ef] bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_100%)] p-4">
-                    <div className="mx-auto relative flex h-36 w-36 items-center justify-center">
-                      <svg viewBox="0 0 140 140" className="h-36 w-36 -rotate-90">
-                        <circle cx="70" cy="70" r="54" fill="none" stroke="#d8e2ef" strokeWidth="12" />
+              <div className="p-3.5 sm:p-4">
+                <div className="grid gap-3">
+                  <div className="grid gap-2.5 rounded-[1.2rem] border border-[#dce3ef] bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_100%)] p-3">
+                    <div className="mx-auto relative flex h-24 w-24 items-center justify-center">
+                      <svg viewBox="0 0 140 140" className="h-24 w-24 -rotate-90">
+                        <circle cx="70" cy="70" r="54" fill="none" stroke="#d8e2ef" strokeWidth="10" />
                         <circle
                           cx="70"
                           cy="70"
@@ -1079,17 +1079,17 @@ export default function CourseRoomPage() {
                         </defs>
                       </svg>
                       <div className="pointer-events-none absolute text-center">
-                        <p className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{aggregate.completionRate}%</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">completion</p>
+                        <p className="text-xl font-semibold tracking-[-0.04em] text-slate-950">{aggregate.completionRate}%</p>
+                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-500">completion</p>
                       </div>
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between text-sm text-slate-600">
+                      <div className="flex items-center justify-between text-xs text-slate-600">
                         <span>과정 진행률</span>
                         <span className="font-semibold text-slate-900">{aggregate.completionRate}%</span>
                       </div>
-                      <div className="mt-3 h-3 overflow-hidden rounded-full bg-slate-200">
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div
                           className="h-full rounded-full bg-[linear-gradient(90deg,#0f2a57_0%,#1d4ed8_58%,#d3b271_100%)]"
                           style={{ width: `${aggregate.completionRate}%` }}
