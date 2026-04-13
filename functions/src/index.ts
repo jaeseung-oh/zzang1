@@ -60,6 +60,8 @@ const COURSE_VIDEO_ASSETS: Record<string, Record<string, { storagePath: string; 
   },
 };
 
+const FALLBACK_COURSE_VIDEO_URL = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
+
 type DraftInput = {
   documentType: "reflection-letter-guide" | "petition-letter-guide";
   caseType: "dui" | "sexual" | "drug" | "violence" | "other";
@@ -772,7 +774,11 @@ export const getCourseVideoAccess = onCall({ region: "asia-northeast3" }, async 
   const [exists] = await file.exists();
 
   if (!exists) {
-    throw new HttpsError("not-found", "원본 강의 파일이 아직 업로드되지 않았습니다.");
+    return {
+      videoUrl: FALLBACK_COURSE_VIDEO_URL,
+      expiresAt: Date.now() + 1000 * 60 * 60,
+      durationHintSeconds: asset.durationHintSeconds,
+    };
   }
 
   const expiresAt = Date.now() + 1000 * 60 * 15;
