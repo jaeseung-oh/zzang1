@@ -113,6 +113,14 @@ function formatTimestamp(timestamp?: { seconds: number }) {
   return new Date(timestamp.seconds * 1000).toLocaleString("ko-KR");
 }
 
+function truncateText(value: string, maxLength: number) {
+  if (value.length <= maxLength) {
+    return value;
+  }
+
+  return value.slice(0, maxLength).trimEnd() + "...";
+}
+
 function buildEmptyModuleProgress() {
   return Object.fromEntries(
     defaultCourse.modules.map((module) => [
@@ -1037,7 +1045,7 @@ export default function CourseRoomPage() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#98b8f7]">Course Progress</p>
                     <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">전체 수강률</h2>
-                    <p className="mt-2 text-sm leading-7 text-slate-300">총 요구 시간, 누적 시청 시간, 남은 시간, 발급 안내를 한눈에 확인합니다.</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-300">핵심 진행 지표만 간결하게 확인합니다.</p>
                   </div>
                   <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-semibold text-[#f0d59c]">
                     {aggregate.completedModuleCount}/{aggregate.totalModuleCount} 완료
@@ -1045,11 +1053,11 @@ export default function CourseRoomPage() {
                 </div>
               </div>
 
-              <div className="p-5 sm:p-6">
-                <div className="grid gap-5">
-                  <div className="grid gap-4 rounded-[1.6rem] border border-[#dce3ef] bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_100%)] p-5">
-                    <div className="mx-auto relative flex h-44 w-44 items-center justify-center">
-                      <svg viewBox="0 0 140 140" className="h-44 w-44 -rotate-90">
+              <div className="p-4 sm:p-5">
+                <div className="grid gap-4">
+                  <div className="grid gap-3 rounded-[1.45rem] border border-[#dce3ef] bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_100%)] p-4">
+                    <div className="mx-auto relative flex h-36 w-36 items-center justify-center">
+                      <svg viewBox="0 0 140 140" className="h-36 w-36 -rotate-90">
                         <circle cx="70" cy="70" r="54" fill="none" stroke="#d8e2ef" strokeWidth="12" />
                         <circle
                           cx="70"
@@ -1071,7 +1079,7 @@ export default function CourseRoomPage() {
                         </defs>
                       </svg>
                       <div className="pointer-events-none absolute text-center">
-                        <p className="text-4xl font-semibold tracking-[-0.04em] text-slate-950">{aggregate.completionRate}%</p>
+                        <p className="text-3xl font-semibold tracking-[-0.04em] text-slate-950">{aggregate.completionRate}%</p>
                         <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-500">completion</p>
                       </div>
                     </div>
@@ -1090,29 +1098,29 @@ export default function CourseRoomPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
-                    <div className="rounded-[1.35rem] border border-[#dce3ef] bg-[#f8fafc] px-4 py-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
                       <p className="text-xs uppercase tracking-[0.18em] text-slate-500">총 요구 교육 시간</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-950">{formatDuration(aggregate.totalDurationSeconds)}</p>
+                      <p className="mt-1.5 text-base font-semibold text-slate-950">{formatDuration(aggregate.totalDurationSeconds)}</p>
                     </div>
-                    <div className="rounded-[1.35rem] border border-[#dce3ef] bg-[#f8fafc] px-4 py-4">
+                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
                       <p className="text-xs uppercase tracking-[0.18em] text-slate-500">현재 누적 수강 시간</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-950">{formatDuration(aggregate.watchedSeconds)}</p>
+                      <p className="mt-1.5 text-base font-semibold text-slate-950">{formatDuration(aggregate.watchedSeconds)}</p>
                     </div>
-                    <div className="rounded-[1.35rem] border border-[#dce3ef] bg-[#f8fafc] px-4 py-4">
+                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
                       <p className="text-xs uppercase tracking-[0.18em] text-slate-500">남은 시간</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-950">{formatDuration(aggregate.remainingSeconds)}</p>
+                      <p className="mt-1.5 text-base font-semibold text-slate-950">{formatDuration(aggregate.remainingSeconds)}</p>
                     </div>
-                    <div className="rounded-[1.35rem] border border-[#dce3ef] bg-[#f8fafc] px-4 py-4">
+                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
                       <p className="text-xs uppercase tracking-[0.18em] text-slate-500">수료증 발급 상태</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-950">{certificateStatus}</p>
+                      <p className="mt-1.5 text-base font-semibold text-slate-950">{certificateStatus}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-[#d7deea] bg-[linear-gradient(180deg,#0c1526_0%,#0f1b31_100%)] p-5 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:p-6">
+            <section className="rounded-[2rem] border border-[#d7deea] bg-[linear-gradient(180deg,#0c1526_0%,#0f1b31_100%)] p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9dbef8]">Curriculum</p>
@@ -1123,7 +1131,7 @@ export default function CourseRoomPage() {
                 </span>
               </div>
 
-              <div className="mt-5 space-y-3">
+              <div className="mt-4 space-y-2.5">
                 {defaultCourse.modules.map((module, index) => {
                   const item = moduleProgress[module.id];
                   const active = selectedModuleId === module.id;
@@ -1134,28 +1142,28 @@ export default function CourseRoomPage() {
                       key={module.id}
                       type="button"
                       onClick={() => handleSelectModule(module.id)}
-                      className={`group w-full rounded-[1.45rem] border p-4 text-left transition hover:-translate-y-0.5 hover:border-[#5f8fff]/45 ${state.toneClassName}`}
+                      className={`group w-full rounded-[1.2rem] border p-3 text-left transition hover:-translate-y-0.5 hover:border-[#5f8fff]/45 ${state.toneClassName}`}
                     >
-                      <div className="flex items-start gap-4">
-                        <div className={`mt-1 flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl text-base font-semibold ${state.iconClassName}`}>
+                      <div className="flex items-start gap-3">
+                        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${state.iconClassName}`}>
                           {state.icon}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Lesson {index + 1}</p>
-                              <h4 className="mt-1 text-base font-semibold text-white">{module.title}</h4>
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Lesson {index + 1}</p>
+                              <h4 className="mt-1 text-sm font-semibold leading-5 text-white">{module.title}</h4>
                             </div>
-                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${active ? "bg-[#1e3a6b] text-[#c8dcff]" : "bg-white/8 text-slate-300"}`}>
+                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${active ? "bg-[#1e3a6b] text-[#c8dcff]" : "bg-white/8 text-slate-300"}`}>
                               {state.label}
                             </span>
                           </div>
-                          <p className="mt-2 text-sm leading-6 text-slate-300">{module.summary}</p>
-                          <div className="mt-4 flex items-center justify-between gap-3 text-sm text-slate-400">
+                          <p className="mt-1.5 text-xs leading-5 text-slate-300">{truncateText(module.summary, 56)}</p>
+                          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-400">
                             <span>{formatDuration(item?.watchedSeconds ?? 0)} / {formatDuration(item?.durationSeconds ?? module.minutes * 60)}</span>
                             <span className="font-semibold text-slate-200">{item?.completionRate ?? 0}%</span>
                           </div>
-                          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/10">
+                          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
                             <div className={`h-full rounded-full ${state.progressClassName}`} style={{ width: `${item?.completionRate ?? 0}%` }} />
                           </div>
                         </div>
@@ -1169,7 +1177,7 @@ export default function CourseRoomPage() {
             <section className="rounded-[2rem] border border-[#d7deea] bg-white p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Completion Assets</p>
               <h3 className="mt-2 text-xl font-semibold text-[#0f172a]">과정 완료 후 제공 문서</h3>
-              <div className="mt-5 space-y-3">
+              <div className="mt-4 space-y-2.5">
                 {defaultCourse.outputs.map((item) => (
                   <div key={item} className="rounded-[1.25rem] border border-[#dce3ef] bg-[#f8fafc] px-4 py-4 text-sm font-medium text-slate-700">
                     {item}
