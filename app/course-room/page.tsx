@@ -721,7 +721,35 @@ export default function CourseRoomPage() {
   };
 
   const handleDownloadHandout = () => {
-    setStatusMessage(`${selectedModule?.title ?? "선택 강의"} 교안은 관리자 업로드 후 다운로드할 수 있도록 연결됩니다.`);
+    if (!selectedModule || typeof window === "undefined") {
+      return;
+    }
+
+    const lines = [
+      defaultCourse.title,
+      "",
+      selectedModule.title,
+      "",
+      "강의 개요",
+      selectedModule.summary,
+      "",
+      "핵심 학습 포인트",
+      ...selectedModule.highlights.map((item, index) => `${index + 1}. ${item}`),
+      "",
+      "실천 체크리스트",
+      ...selectedModule.actionChecklist.map((item, index) => `${index + 1}. ${item}`),
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
+    const objectUrl = window.URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = objectUrl;
+    anchor.download = `${selectedModule.id}-handout.txt`;
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.URL.revokeObjectURL(objectUrl);
+    setStatusMessage(`${selectedModule.title} 교안을 텍스트 파일로 내려받았습니다.`);
   };
 
   const selectedRemainingSeconds = Math.max(selectedProgress.durationSeconds - selectedProgress.watchedSeconds, 0);
@@ -806,6 +834,9 @@ export default function CourseRoomPage() {
                       <p className="mt-3 text-sm leading-7 text-slate-300">{selectedModule?.summary}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                      <span className="rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-medium text-slate-200">
+                        {selectedModule?.minutes}분 구성
+                      </span>
                       <span className="rounded-full border border-[#d3b271]/35 bg-[#d3b271]/12 px-4 py-2 text-xs font-semibold text-[#f3ddb2]">
                         {selectedProgress.completionRate}% 진행
                       </span>
@@ -879,9 +910,26 @@ export default function CourseRoomPage() {
                         <p className="mt-2 font-semibold text-slate-900">{caseTypeOptions.find((option) => option.value === caseType)?.label ?? "음주운전"} 재발 방지 전문 과정</p>
                       </div>
                       <div className="rounded-[1.2rem] border border-[#e2e8f0] bg-white px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">강사 및 운영</p>
-                        <p className="mt-2 font-semibold text-slate-900">리셋 에듀센터 전문교육팀</p>
-                        <p className="mt-1 text-slate-600">실무형 예방교육 커리큘럼과 수료 연동형 LMS 운영 기준을 따릅니다.</p>
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">핵심 학습 포인트</p>
+                        <div className="mt-3 space-y-3 text-slate-700">
+                          {selectedModule?.highlights.map((item, index) => (
+                            <div key={item} className="flex items-start gap-3">
+                              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#10213f] text-xs font-bold text-white">{index + 1}</span>
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="rounded-[1.2rem] border border-[#eadbb9] bg-[linear-gradient(180deg,#fffaf0_0%,#fff5df_100%)] px-4 py-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-[#7a5622]">실천 체크리스트</p>
+                        <div className="mt-3 space-y-3 text-slate-700">
+                          {selectedModule?.actionChecklist.map((item, index) => (
+                            <div key={item} className="flex items-start gap-3">
+                              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d3ad62] text-xs font-bold text-[#1c1408]">{index + 1}</span>
+                              <span>{item}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                       <div className="rounded-[1.2rem] border border-[#e2e8f0] bg-white px-4 py-4">
                         <p className="text-xs uppercase tracking-[0.16em] text-slate-500">학습 메모</p>
