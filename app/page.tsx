@@ -63,7 +63,7 @@ const trustIndicators = [
 const courseCards = [
   {
     title: "음주운전 예방교육 6강",
-    summary: "현재 등록된 핵심 교육 영상을 중심으로 위험성 인지, 금주 실천 계획, 생활 패턴 개선, 책임감 회복까지 이어지는 프로그램 구성.",
+    summary: "현재 등록된 교육 영상을 중심으로 위험성 인지, 금주 실천 계획, 생활 패턴 점검, 책임 의식 정리를 돕는 구성입니다.",
     tags: ["핵심 영상 수강", "금주 계획", "재발 방지"],
     image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
     icon: (
@@ -77,7 +77,7 @@ const courseCards = [
   },
   {
     title: "성범죄 예방 교육",
-    summary: "경계 인식, 관계 윤리, 피해 공감, 재발 방지 책임 교육을 중심으로 구성된 집중형 프로그램.",
+    summary: "경계 인식, 관계 윤리, 피해 공감, 재발 방지 책임 인식을 중심으로 구성한 교육 프로그램입니다.",
     tags: ["관계 인식", "윤리 교육", "재발 방지"],
     image: "https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?auto=format&fit=crop&w=1200&q=80",
     icon: (
@@ -88,7 +88,7 @@ const courseCards = [
   },
   {
     title: "사기 예방 교육",
-    summary: "신뢰 회복, 문서 책임, 거래 윤리, 재발방지 계획 수립을 다루는 실무형 교육 과정.",
+    summary: "신뢰 회복, 문서 책임, 거래 윤리, 재발방지 계획 정리를 다루는 교육 과정입니다.",
     tags: ["문서 책임", "신뢰 회복", "계획 수립"],
     image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=80",
     icon: (
@@ -157,7 +157,7 @@ const faqs = [
   },
   {
     title: "발급 서류는 어떤 용도인가요?",
-    body: "민간 교육 이수 및 제출 준비를 돕기 위한 확인용 서류로 활용할 수 있습니다.",
+    body: "민간 교육 이수 사실과 실천 계획을 정리하는 확인용 자료로 안내됩니다. 실제 제출 필요성과 활용 가능성은 제출처 기준을 먼저 확인해 주세요.",
   },
   {
     title: "신청 후 절차는 복잡하지 않나요?",
@@ -555,7 +555,7 @@ export default function HomePage() {
                   <div className="inline-flex rounded-full bg-white/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.24em] text-[#f0cb85]">Reviews Board</div>
                   <h2 className="mt-5 text-3xl font-black tracking-[-0.03em] sm:text-4xl">수강후기</h2>
                 </div>
-                <p className="max-w-2xl break-keep text-sm leading-7 text-white/70">실제 수강생이 직접 후기를 남기고, 다른 이용자는 최근 후기를 바로 확인할 수 있는 게시판입니다.</p>
+                <p className="max-w-2xl break-keep text-sm leading-7 text-white/70">로그인한 회원이 직접 등록한 후기 게시판입니다. 후기는 작성자 개인 경험이며, 운영자가 결과를 보증하지 않습니다.</p>
               </div>
               <div className="mt-8">
                 <ReviewBoard />

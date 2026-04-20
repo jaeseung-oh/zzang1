@@ -4,23 +4,23 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "센터소개 | 리셋 에듀센터",
   description:
-    "리셋 에듀센터의 설립 취지와 전문 예방 교육, 성찰 및 객관적 증빙 자료 안내를 담은 센터 소개 페이지",
+    "리셋 에듀센터의 설립 취지와 민간 예방 교육, 성찰 및 이수 확인 자료 안내를 담은 센터 소개 페이지",
 };
 
 const valueCards = [
   {
-    title: "전문적이고 체계적인 예방 교육",
-    body: "각 범죄 유형(음주운전, 금융사기, 성폭력 방지 등)에 맞춘 세분화된 교육 모듈로, 단순한 시청을 넘어 본질적인 문제 인식을 돕습니다.",
+    title: "체계적으로 구성한 예방 교육",
+    body: "각 유형에 맞춰 구성한 교육 모듈을 통해 스스로 문제를 돌아보고 재발 방지 계획을 정리할 수 있도록 돕습니다.",
     accent: "default",
   },
   {
     title: "진정성 있는 성찰과 자가 점검",
-    body: "교육 이수 과정에서 본인의 행동을 되돌아보고, 구체적이고 실천 가능한 '재발방지 계획서'와 '금주/준법 서약서'를 스스로 작성하도록 안내합니다.",
+    body: "교육 이수 과정에서 본인의 행동을 되돌아보고, 실천 계획서와 서약서 초안을 스스로 정리할 수 있도록 안내합니다.",
     accent: "default",
   },
   {
-    title: "객관적이고 확실한 노력의 증빙",
-    body: "100% 온라인 수강 완료 즉시, 수사기관 및 법원 등에서 요구하는 '노력과 반성의 태도'를 소명할 수 있는 객관적 자료(교육 수료증, 학습 확인서)를 발급합니다. 이 자료는 변호인 제출용 양형 참고 자료로 유용하게 활용됩니다.",
+    title: "이수 사실과 학습 기록 정리",
+    body: "수강 완료 후 교육 이수 확인서와 학습 확인 자료를 발급 안내합니다. 해당 자료는 민간 교육 이수 사실을 정리하는 용도이며, 실제 제출 가능 여부와 해석은 제출처 판단에 따라 달라질 수 있습니다.",
     accent: "highlight",
   },
 ] as const;
@@ -49,10 +49,10 @@ export default function AboutPage() {
               Reset Edu Center
             </p>
             <h1 className="mt-8 text-4xl font-black leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl lg:text-6xl">
-              단순한 후회를 넘어, 행동하는 반성의 증명
+              성찰과 재발 방지 계획을 정리하는 민간 교육 안내
             </h1>
             <p className="mt-8 max-w-[52rem] break-keep text-base leading-8 text-slate-200 sm:text-lg">
-              리셋 에듀센터는 음주운전, 성범죄, 사기 등 각종 위법 행위의 근본적인 원인을 점검하고, 체계적인 예방 교육을 통해 당신의 진정성 있는 변화를 객관적인 기록으로 남깁니다.
+              리셋 에듀센터는 사건 이후 생활을 돌아보고 재발 방지 계획을 정리하려는 이용자를 위해 민간 교육 과정과 이수 확인 자료 안내를 제공합니다.
             </p>
             <div className="mt-10 flex flex-wrap gap-4">
               <Link href="/signup" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#f0cb85_0%,#ffe4b1_100%)] px-7 py-4 text-sm font-bold text-[#2f2208] shadow-[0_16px_30px_rgba(164,126,54,0.28)] transition hover:-translate-y-0.5 hover:brightness-105">
@@ -79,7 +79,7 @@ export default function AboutPage() {
             </div>
             <div className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-[0_18px_60px_rgba(3,10,20,0.08)] break-keep">
               <p className="text-base leading-8 text-slate-700">
-                사건 이후 가장 중요한 것은 '다시는 같은 실수를 반복하지 않겠다'는 재발 방지의 변함없는 의지입니다. 저희 센터는 법률적, 심리적 메커니즘을 분석하여 개발된 전문 예방 교육 커리큘럼을 제공합니다. 수강생이 자신의 과오를 깊이 성찰하고, 올바른 사회 구성원으로 복귀할 수 있도록 가장 확실한 첫걸음을 돕습니다.
+                사건 이후 스스로의 생활을 점검하고 재발 방지 계획을 정리하는 과정이 중요할 수 있습니다. 저희 센터는 온라인 교육 수강과 이수 확인 자료 정리를 한 흐름으로 안내해, 이용자가 필요한 기록을 직접 준비할 수 있도록 돕습니다.
               </p>
             </div>
           </div>
@@ -93,7 +93,7 @@ export default function AboutPage() {
               Core Value
             </p>
             <h2 className="mt-6 text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">
-              수강생이 실제로 가져가는 핵심 결과를 명확하게 설계했습니다.
+              수강 후 확인할 수 있는 핵심 안내를 정리했습니다.
             </h2>
           </div>
 
@@ -115,7 +115,7 @@ export default function AboutPage() {
                 </p>
                 {card.accent === "highlight" ? (
                   <div className="mt-6 rounded-[1.5rem] border border-[#e2c57b] bg-white/70 px-5 py-4 text-sm font-semibold leading-7 text-[#4a3510] break-keep">
-                    수강 완료 기록과 발급 서류를 통해 스스로의 변화와 노력을 객관적인 참고 자료로 정리할 수 있습니다.
+                    수강 완료 기록과 발급 서류를 통해 교육 이수 사실과 실천 계획을 참고용 자료로 정리할 수 있습니다.
                   </div>
                 ) : null}
               </article>
@@ -147,7 +147,7 @@ export default function AboutPage() {
           </div>
 
           <div className="mt-10 rounded-[1.75rem] border border-[#d7dee8] bg-[#f3f5f8] px-6 py-6 text-sm leading-7 text-slate-600 break-keep">
-            안내: 본 센터의 교육 프로그램과 발급 서류는 수강생의 자발적인 개전의 정(뉘우침)을 보여주는 객관적 참고 자료입니다. 특정 재판의 결과나 감형을 법적으로 보장하지 않으며, 개별 사건에 대한 법률 대리나 법률 자문 등의 사무는 제공하지 않습니다.
+            안내: 본 센터의 교육 프로그램과 발급 서류는 수강생의 자발적인 교육 이수와 실천 계획을 정리하는 참고 자료입니다. 특정 절차에서의 결과나 법적 효력을 보장하지 않으며, 개별 사건에 대한 법률 대리나 법률 자문 등의 사무는 제공하지 않습니다.
           </div>
         </div>
       </section>

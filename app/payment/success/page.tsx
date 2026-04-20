@@ -113,11 +113,23 @@ function PaymentSuccessContent() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Toss Payments</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white">결제 완료 확인</h1>
         <p className="mt-4 text-sm leading-8 text-white/70">
-          결제 승인 후 구매 이력을 Firebase 사용자 계정에 저장하고, 같은 UID 기준으로 수강 완료와 수료증 발급이 이어집니다.
+          결제 승인 후 구매 이력을 Firebase 사용자 계정에 저장합니다. 수료 문서는 결제만으로 자동 발급되지 않으며, 수강 완료와 필수 동의 확인이 모두 충족되어야 발급 안내가 이어집니다.
         </p>
 
         <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#d3ad62]/10 p-4 text-sm leading-7 text-[#f7dfab]">
           {disclaimer}
+        </div>
+
+        <div className="mt-4 flex flex-wrap gap-3 text-sm text-white/75">
+          <Link href="/terms" className="underline underline-offset-4 hover:text-white">
+            이용약관 확인
+          </Link>
+          <Link href="/privacy-policy" className="underline underline-offset-4 hover:text-white">
+            개인정보처리방침 확인
+          </Link>
+          <Link href="/refund-policy" className="underline underline-offset-4 hover:text-white">
+            환불규정 확인
+          </Link>
         </div>
 
         <div className="mt-8 rounded-[1.5rem] border border-white/10 bg-[#0d1828] p-5">
@@ -129,6 +141,7 @@ function PaymentSuccessContent() {
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <p className="text-white">결제가 정상 승인되었습니다.</p>
                 <p className="mt-2 text-white/70">저장된 구매 ID: {result.savedPurchaseId || result.orderId}</p>
+                <p className="mt-2 text-white/70">다음 단계에서 강의 수강과 필수 동의를 완료하면 이수 확인 자료 안내를 받을 수 있습니다.</p>
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">

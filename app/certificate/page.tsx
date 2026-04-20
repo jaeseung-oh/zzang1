@@ -240,7 +240,7 @@ function CertificatePageContent() {
                 <div className="border-b border-[rgba(15,23,42,0.08)] pb-8 text-center">
                   <p className="text-[12px] font-semibold uppercase tracking-[0.34em] text-[#9c7b3b]">Certificate Of Completion</p>
                   <h1 className="mt-5 text-[40px] font-bold tracking-[0.18em] text-[#101826] sm:text-[58px]">수 료 증</h1>
-                  <p className="mt-4 text-[15px] leading-7 text-[#556070]">리셋에듀센터 전문 교육과정 이수 확인서</p>
+                  <p className="mt-4 text-[15px] leading-7 text-[#556070]">리셋에듀센터 민간 교육과정 이수 확인서</p>
                 </div>
 
                 <div className="mt-10 space-y-7 text-[#172131]">
@@ -285,12 +285,12 @@ function CertificatePageContent() {
                 <div className="mt-auto grid gap-8 pt-12 sm:grid-cols-[1fr_auto] sm:items-end">
                   <div className="space-y-3 text-[15px] leading-7 text-[#4f5968]">
                     <p>출력일자: {certificateData.printedDate}</p>
-                    <p>본 문서는 교육생 실명, 결제 이력 및 수강 완료 상태를 기준으로 발급된 공식 교육 수료 확인서입니다.</p>
+                    <p>본 문서는 교육생 실명, 결제 이력 및 수강 완료 상태를 기준으로 발급된 민간 교육 이수 확인서입니다.</p>
                   </div>
 
                   <div className="text-left sm:text-right">
                     <p className="text-[28px] font-bold tracking-[0.04em] text-[#111827]">리셋에듀센터장</p>
-                    <p className="mt-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#8d6f39]">Director / Official Seal</p>
+                    <p className="mt-2 text-sm font-semibold uppercase tracking-[0.18em] text-[#8d6f39]">Director / Center Seal</p>
                     <div className="mt-4 inline-grid h-[132px] w-[132px] place-items-center rounded-full border-[5px] border-[rgba(166,126,51,0.58)] bg-[radial-gradient(circle,rgba(239,224,187,0.58)_0%,rgba(232,210,154,0.28)_52%,transparent_70%)] text-center text-[15px] font-bold leading-[1.45] tracking-[0.16em] text-[rgba(130,93,28,0.92)] shadow-[inset_0_0_0_8px_rgba(255,255,255,0.55)]">
                       리셋<br />에듀센터<br />직인
                     </div>

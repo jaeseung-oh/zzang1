@@ -159,7 +159,7 @@ export default function ReviewBoard() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold text-[#f0cb85]">최근 등록된 후기</p>
-            <p className="mt-2 text-sm leading-7 text-white/70">실제 수강 경험을 기반으로 한 후기들을 확인할 수 있습니다.</p>
+            <p className="mt-2 text-sm leading-7 text-white/70">회원이 직접 등록한 후기들을 시간순으로 확인할 수 있습니다.</p>
           </div>
           <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-white/70">최신 6건 표시</div>
         </div>

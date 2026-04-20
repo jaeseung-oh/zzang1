@@ -15,7 +15,9 @@ export default function TermsPage() {
           <section><h2 className="text-lg font-bold text-slate-950">제1조 목적</h2><p className="mt-2">본 약관은 리셋 에듀센터가 제공하는 민간 온라인 교육 서비스의 이용조건, 권리와 의무, 책임 범위를 정하는 것을 목적으로 합니다.</p></section>
           <section><h2 className="text-lg font-bold text-slate-950">제2조 서비스 성격</h2><p className="mt-2">본 서비스는 범죄 예방 및 자기점검을 위한 민간 교육 서비스이며 법률 자문, 법률대리, 사건 수임 또는 행정사 업무를 제공하지 않습니다.</p></section>
           <section><h2 className="text-lg font-bold text-slate-950">제3조 회원의 의무</h2><p className="mt-2">회원은 정확한 본인 정보를 제공해야 하며, 수강 후 생성되거나 발급되는 자료는 본인이 직접 확인하고 본인의 책임 아래 사용해야 합니다.</p></section>
-          <section><h2 className="text-lg font-bold text-slate-950">제4조 책임 제한</h2><p className="mt-2">회사는 교육 자료의 참고적 활용을 전제로 하며, 특정 재판·수사·행정 절차에서의 결과를 보장하지 않습니다.</p></section>
+          <section><h2 className="text-lg font-bold text-slate-950">제4조 결제 및 환불</h2><p className="mt-2">결제, 청약철회 및 환불은 관련 법령, 디지털 콘텐츠 제공 여부, 실제 이용 내역, 별도 환불규정에 따라 판단합니다. 회사는 법령에 반하는 방식으로 환불을 일괄 제한하지 않습니다.</p></section>
+          <section><h2 className="text-lg font-bold text-slate-950">제5조 책임 제한</h2><p className="mt-2">회사는 교육 자료의 참고적 활용을 전제로 하며, 특정 재판·수사·행정 절차에서의 결과나 법적 효력을 보장하지 않습니다.</p></section>
+          <section><h2 className="text-lg font-bold text-slate-950">제6조 운영자 정보 고지</h2><p className="mt-2">정식 오픈 시 전자상거래 등에서의 소비자보호에 관한 법률 등 관련 법령에 따라 상호, 대표자, 주소, 연락처, 사업자등록번호, 통신판매업 신고번호 등 필요한 정보를 공개합니다.</p></section>
         </div>
       </div>
     </main>

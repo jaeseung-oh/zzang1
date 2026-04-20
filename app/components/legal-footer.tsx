@@ -14,10 +14,9 @@ export default function LegalFooter() {
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b56c]">Reset Edu Center</p>
             <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-white">리셋 에듀센터 운영 정보</h2>
             <div className="mt-5 space-y-2 text-sm leading-7 text-slate-300">
-              <p>상호명: 리셋 에듀센터 | 대표자: OOO</p>
-              <p>사업장 소재지: 서울특별시 OO구 OO로 123 (임시주소)</p>
-              <p>사업자등록번호: 000-00-00000 | 통신판매업신고번호: 제 2026-서울OO-0000호</p>
-              <p>고객센터: 02-1234-5678 | 이메일: contact@resetedu-center.kr</p>
+              <p>상호명, 대표자명, 사업장 소재지, 사업자등록번호, 통신판매업 신고번호는 정식 등록 후 실제 정보로 공개됩니다.</p>
+              <p>정식 오픈 전에는 임시 또는 예시 사업자 정보를 기재하지 않습니다.</p>
+              <p>문의 이메일: contact@resetedu-center.kr</p>
             </div>
           </div>
 

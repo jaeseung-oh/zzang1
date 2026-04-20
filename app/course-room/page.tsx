@@ -45,6 +45,7 @@ type StoredPlaybackSnapshot = {
   selectedModuleId: string;
   legalAccepted: boolean;
   reviewAccepted: boolean;
+  purchaseNoticeAccepted: boolean;
   moduleProgress: Record<string, ModuleProgressState>;
   savedAt: string;
 };
@@ -234,6 +235,7 @@ export default function CourseRoomPage() {
   const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>(buildEmptyModuleProgress);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [reviewAccepted, setReviewAccepted] = useState(false);
+  const [purchaseNoticeAccepted, setPurchaseNoticeAccepted] = useState(false);
   const [statusMessage, setStatusMessage] = useState("6강 수강 세션과 저장 상태를 준비하는 중입니다.");
   const [error, setError] = useState("");
   const [result, setResult] = useState<SaveCourseProgressResponse | null>(null);
@@ -265,6 +267,7 @@ export default function CourseRoomPage() {
   const caseTypeRef = useRef(caseType);
   const legalAcceptedRef = useRef(legalAccepted);
   const reviewAcceptedRef = useRef(reviewAccepted);
+  const purchaseNoticeAcceptedRef = useRef(purchaseNoticeAccepted);
   const selectedModuleIdRef = useRef(selectedModuleId);
   const moduleProgressRef = useRef(moduleProgress);
 
@@ -287,6 +290,10 @@ export default function CourseRoomPage() {
   useEffect(() => {
     reviewAcceptedRef.current = reviewAccepted;
   }, [reviewAccepted]);
+
+  useEffect(() => {
+    purchaseNoticeAcceptedRef.current = purchaseNoticeAccepted;
+  }, [purchaseNoticeAccepted]);
 
   useEffect(() => {
     selectedModuleIdRef.current = selectedModuleId;
@@ -360,6 +367,7 @@ export default function CourseRoomPage() {
         setCaseType(remote?.caseType ?? local?.caseType ?? "dui");
         setLegalAccepted(Boolean(remote?.legalDisclaimerAccepted ?? local?.legalAccepted ?? false));
         setReviewAccepted(Boolean(remote?.userReviewAccepted ?? local?.reviewAccepted ?? false));
+        setPurchaseNoticeAccepted(Boolean(local?.purchaseNoticeAccepted ?? false));
         setLastSavedLabel(remote?.updatedAt ? formatTimestamp(remote.updatedAt) : local?.savedAt ?? "저장 대기 중");
         setStatusMessage(
           remote?.moduleProgress || local?.moduleProgress
@@ -402,11 +410,12 @@ export default function CourseRoomPage() {
         selectedModuleId,
         legalAccepted,
         reviewAccepted,
+        purchaseNoticeAccepted,
         moduleProgress,
         savedAt: new Date().toLocaleString("ko-KR"),
       } satisfies StoredPlaybackSnapshot)
     );
-  }, [caseType, selectedModuleId, legalAccepted, reviewAccepted, moduleProgress]);
+  }, [caseType, selectedModuleId, legalAccepted, reviewAccepted, purchaseNoticeAccepted, moduleProgress]);
 
   useEffect(() => {
     return () => {
@@ -764,6 +773,7 @@ export default function CourseRoomPage() {
   const saveStateLabel = isManualSaving ? "수동 저장 중" : isBackgroundSaving ? "자동 저장 중" : "자동 저장 대기";
   const ringCircumference = 2 * Math.PI * 54;
   const ringOffset = ringCircumference * (1 - aggregate.completionRate / 100);
+  const purchaseChecklistReady = purchaseNoticeAccepted && legalAccepted && reviewAccepted;
   const certificateStatus = result?.issuedCertificates.length
     ? "수료 문서 안내 확인"
     : aggregate.isCompleted
@@ -980,7 +990,7 @@ export default function CourseRoomPage() {
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#274690]">Compliance & Enrollment</p>
                   <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0f172a]">수료 연동 필수 설정</h3>
                   <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
-                    필수 동의와 사건 유형 설정은 수료 문서 발급, 진행 저장, 추후 문서 연동 상태에 직접 반영됩니다.
+                    필수 동의와 사건 유형 설정은 수강 진행 저장과 이수 확인 자료 안내에 반영됩니다. 결제만으로 문서가 자동 발급되지는 않으며, 수강 완료 여부와 동의 상태를 함께 확인합니다.
                   </p>
                 </div>
                 <div className="rounded-full border border-[#d8dfeb] bg-[#f6f8fb] px-4 py-2 text-sm font-semibold text-slate-700">
@@ -997,7 +1007,7 @@ export default function CourseRoomPage() {
                       onChange={(event) => setLegalAccepted(event.target.checked)}
                       className="mt-1 h-4 w-4 accent-[#1f4db8]"
                     />
-                    <span>{disclaimer}</span>
+                    <span>{disclaimer} 또한 이수 확인 자료는 민간 교육 자료이며, 특정 절차에서의 결과나 효력을 보장하지 않음을 이해했습니다.</span>
                   </label>
                   <label className="flex items-start gap-3 rounded-[1.35rem] border border-[#dce4ef] bg-[#f9fbfd] px-4 py-4 text-sm leading-7 text-slate-700">
                     <input
@@ -1029,6 +1039,7 @@ export default function CourseRoomPage() {
                   <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
                     <p className="font-semibold text-white">수료 문서 안내</p>
                     <p className="mt-2">{certificateStatus}</p>
+                    <p className="mt-2 text-slate-300">환불 기준과 이용 조건은 결제 전 안내와 환불규정, 이용약관을 함께 확인해 주세요.</p>
                   </div>
                 </div>
               </div>
@@ -1039,6 +1050,104 @@ export default function CourseRoomPage() {
           </section>
 
           <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
+            <section className="overflow-hidden rounded-[2rem] border border-[#d7deea] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+              <div className="bg-[linear-gradient(135deg,#6b4f1d_0%,#8a6a2d_100%)] px-4 py-4 text-white sm:px-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f6e1b1]">Order Summary</p>
+                    <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">결제 전 주문 확인</h2>
+                    <p className="mt-1.5 text-xs leading-5 text-white/75">실제 결제 기능 연결 전에도 필요한 확인 사항을 먼저 검토할 수 있습니다.</p>
+                  </div>
+                  <span className={`rounded-full px-3 py-1 text-xs font-semibold ${purchaseChecklistReady ? "bg-[#f3ddb2] text-[#3d2b08]" : "bg-white/12 text-white"}`}>
+                    {purchaseChecklistReady ? "확인 완료" : "확인 필요"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-4 p-4 sm:p-5">
+                <div className="rounded-[1.3rem] border border-[#e5d9bf] bg-[#fcf7ed] p-4 text-sm leading-7 text-slate-700">
+                  <div className="flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-xs uppercase tracking-[0.18em] text-[#8a6a2d]">주문 과정</p>
+                      <p className="mt-2 font-semibold text-slate-900">{defaultCourse.title}</p>
+                    </div>
+                    <span className="rounded-full border border-[#e2c57b] bg-white px-3 py-1 text-xs font-semibold text-[#7a5a1b]">
+                      {defaultCourse.priceLabel}
+                    </span>
+                  </div>
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-xl border border-[#eadfcb] bg-white px-3.5 py-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">제공 내용</p>
+                      <p className="mt-1.5 text-slate-900">온라인 강의 {defaultCourse.modules.length}강, 학습확인 자료 안내</p>
+                    </div>
+                    <div className="rounded-xl border border-[#eadfcb] bg-white px-3.5 py-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">발급 기준</p>
+                      <p className="mt-1.5 text-slate-900">결제 확인, 수강 완료, 필수 동의 확인 후 이수 자료 안내</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={purchaseNoticeAccepted}
+                      onChange={(event) => setPurchaseNoticeAccepted(event.target.checked)}
+                      className="mt-1 h-4 w-4 accent-[#8a6a2d]"
+                    />
+                    <span>결제만으로 수료 문서가 자동 발급되지 않으며, 수강 완료와 필수 동의 확인이 함께 필요하다는 점을 확인했습니다.</span>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={legalAccepted}
+                      onChange={(event) => setLegalAccepted(event.target.checked)}
+                      className="mt-1 h-4 w-4 accent-[#8a6a2d]"
+                    />
+                    <span>본 서비스가 민간 교육 서비스이며 법률 자문이나 결과 보장을 제공하지 않는다는 점을 확인했습니다.</span>
+                  </label>
+                  <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={reviewAccepted}
+                      onChange={(event) => setReviewAccepted(event.target.checked)}
+                      className="mt-1 h-4 w-4 accent-[#8a6a2d]"
+                    />
+                    <span>환불 기준과 이용 조건은 결제 전 안내, 이용약관, 환불규정을 직접 확인해야 한다는 점을 이해했습니다.</span>
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap gap-3 text-sm">
+                  <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
+                    이용약관
+                  </Link>
+                  <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
+                    개인정보처리방침
+                  </Link>
+                  <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
+                    환불규정
+                  </Link>
+                </div>
+
+                {purchaseChecklistReady ? (
+                  <Link
+                    href="/checkout"
+                    className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a6a2d_0%,#d3ad62_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(138,106,45,0.18)] transition hover:-translate-y-0.5"
+                  >
+                    주문서로 이동
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a6a2d_0%,#d3ad62_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(138,106,45,0.18)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    필수 확인 후 주문서 이동
+                  </button>
+                )}
+              </div>
+            </section>
+
             <section className="overflow-hidden rounded-[2rem] border border-[#d7deea] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
               <div className="bg-[linear-gradient(135deg,#0d172a_0%,#132341_100%)] px-4 py-4 text-white sm:px-5">
                 <div className="flex items-start justify-between gap-4">

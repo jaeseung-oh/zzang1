@@ -122,7 +122,7 @@ export default function AiDraftPage() {
 
         <div className="mt-8 rounded-[1.75rem] border border-[#f3c97a]/30 bg-[linear-gradient(180deg,rgba(255,214,128,0.18),rgba(255,214,128,0.08))] p-5 text-[#fff4d8] shadow-[0_14px_34px_rgba(0,0,0,0.18)]">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#f5d48d]">Warning Alert</p>
-          <p className="mt-3 text-sm leading-8 text-[#fff6e5]">⚠️ 주의: 본 가이드와 템플릿은 사용자의 자발적인 성찰을 돕기 위한 예시이며, 개별 사건에 대한 법률적 검토를 거친 서면이 아닙니다. 법원 및 수사기관 제출 시 법적 방어를 위한 대필/첨삭 등 법률 사무 기능을 제공하지 않으니, 오직 개인의 진심을 담는 참고 용도로만 활용하시기 바랍니다.</p>
+          <p className="mt-3 text-sm leading-8 text-[#fff6e5]">⚠️ 주의: 본 가이드와 템플릿은 사용자의 자발적인 성찰을 돕기 위한 예시이며, 개별 사건에 대한 법률적 검토를 거친 서면이 아닙니다. 운영자는 대필·첨삭 등 법률 사무 기능을 제공하지 않으므로, 본문은 사용자 본인이 직접 작성하는 참고 자료로만 활용해 주세요.</p>
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">

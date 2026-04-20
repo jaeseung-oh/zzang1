@@ -13,8 +13,6 @@ const db = getFirestore();
 const storage = getStorage();
 const openaiApiKey = process.env.OPENAI_API_KEY;
 const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
-const tossSecretKey = "test_sk_docs_Ovk5rk1EwkEbP0W43n07xlzm";
-const tossAuthHeader = `Basic ${Buffer.from(`${tossSecretKey}:`).toString("base64")}`;
 
 const LEGAL_NOTICE =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
@@ -22,10 +20,10 @@ const LEGAL_NOTICE =
 const COURSE_COMPLETION_DOCUMENTS = [
   {
     documentType: "completion",
-    title: "건전음주 교육 이수증",
-    subtitle: "1시간 온라인 교육 과정 이수 확인",
+    title: "건전음주 교육 이수 확인서",
+    subtitle: "온라인 교육 과정 이수 사실 확인",
     body: [
-      "신청자는 자기점검과 재발 방지 학습을 위한 1시간 온라인 교육 과정을 수료했습니다.",
+      "신청자는 자기점검과 재발 방지 학습을 위한 온라인 교육 과정을 이수했습니다.",
       "본 문서는 사용자의 자발적인 교육 참여와 이수 사실을 확인하기 위한 민간 교육 자료입니다.",
     ],
   },
@@ -122,6 +120,16 @@ function applyCors(response: CorsResponse) {
   response.set("Access-Control-Allow-Origin", "*");
   response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
   response.set("Access-Control-Allow-Headers", "Content-Type");
+}
+
+function getTossAuthHeader() {
+  const tossSecretKey = process.env.TOSS_SECRET_KEY;
+
+  if (!tossSecretKey) {
+    throw new Error("TOSS_SECRET_KEY is not configured.");
+  }
+
+  return `Basic ${Buffer.from(`${tossSecretKey}:`).toString("base64")}`;
 }
 
 function assertValidInput(data: Partial<DraftInput>): asserts data is DraftInput {
@@ -541,6 +549,7 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
   }
 
   try {
+    const tossAuthHeader = getTossAuthHeader();
     const tossResponse = await axios.post(
       "https://api.tosspayments.com/v1/payments/confirm",
       {

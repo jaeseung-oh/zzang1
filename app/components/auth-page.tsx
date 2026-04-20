@@ -62,15 +62,15 @@ const modeCopy = {
 } as const;
 
 const trustIndicators = [
-  { value: "10,000+", label: "매년 수료 인원" },
-  { value: "100%", label: "온라인 수강" },
-  { value: "24/7", label: "PC·모바일 접속" },
+  { value: "6강", label: "현재 운영 강의" },
+  { value: "ONLINE", label: "온라인 수강" },
+  { value: "PC·모바일", label: "접속 환경" },
 ];
 
 const trustHighlights = [
-  "PC / 모바일 스트리밍 완벽 지원",
-  "이수 확인 후 수료증 양식 출력 가능",
-  "수강생 개인정보 및 수강이력 보안 처리",
+  "PC와 모바일에서 수강할 수 있는 온라인 환경",
+  "이수 확인 후 발급 화면 안내 제공",
+  "수강 정보와 회원 정보를 분리 저장하도록 설계",
 ];
 
 function ShieldIcon() {
@@ -530,17 +530,17 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
             </Link>
             <div className="hidden items-center gap-3 rounded-full border border-white/15 bg-white/6 px-4 py-2 text-xs text-white/72 lg:flex">
               <ShieldIcon />
-              <span>전문 교육 수료 LMS</span>
+              <span>민간 교육 수강 시스템</span>
             </div>
           </div>
 
           <div className="relative z-10 mt-12 lg:mt-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#d8b26b]">Premium Education Access</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#d8b26b]">Online Course Access</p>
             <h1 className="mt-5 max-w-[560px] text-4xl font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-5xl xl:text-[3.75rem]">
-              가장 확실한 자기 성찰과 실천의 시작, 리셋 에듀센터
+              자기 점검과 교육 이수 과정을 차분히 시작할 수 있는 리셋 에듀센터
             </h1>
             <p className="mt-6 max-w-[560px] text-[15px] leading-8 text-slate-200 sm:text-base">
-              공신력 있는 온라인 교육 환경에서 수강 등록, 학습 진행, 수료증 발급 안내까지 한 번에 이어집니다. PC와 모바일 어디서든 동일한 기준으로 이용할 수 있습니다.
+              회원가입, 수강 진행, 이수 확인 자료 안내까지 한 흐름으로 확인할 수 있는 민간 온라인 교육 서비스입니다. 이용 환경과 발급 기준은 각 화면에서 순차적으로 안내됩니다.
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
