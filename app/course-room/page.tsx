@@ -464,24 +464,41 @@ export default function CourseRoomPage() {
         setPlayerReady(false);
         restoreAppliedRef.current = false;
 
-        const { functions } = getFirebaseServices();
-        const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
-        const response = await callable({ courseId: defaultCourse.id, moduleId: selectedModule.id });
+        if (selectedModule.cloudflareStreamUid) {
+          if (cancelled) {
+            return;
+          }
 
-        if (cancelled) {
-          return;
+          setVideoProvider("cloudflare-stream");
+          setVideoUrl(`https://iframe.videodelivery.net/${selectedModule.cloudflareStreamUid}`);
+          setVideoExpiresAt(null);
+          setModuleProgress((prev) => ({
+            ...prev,
+            [selectedModule.id]: {
+              ...prev[selectedModule.id],
+              durationSeconds: Math.max(prev[selectedModule.id]?.durationSeconds ?? 0, selectedModule.minutes * 60),
+            },
+          }));
+        } else {
+          const { functions } = getFirebaseServices();
+          const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
+          const response = await callable({ courseId: defaultCourse.id, moduleId: selectedModule.id });
+
+          if (cancelled) {
+            return;
+          }
+
+          setVideoProvider(response.data.provider ?? "storage");
+          setVideoUrl(response.data.videoUrl);
+          setVideoExpiresAt(response.data.expiresAt);
+          setModuleProgress((prev) => ({
+            ...prev,
+            [selectedModule.id]: {
+              ...prev[selectedModule.id],
+              durationSeconds: Math.max(prev[selectedModule.id]?.durationSeconds ?? 0, response.data.durationHintSeconds || 0),
+            },
+          }));
         }
-
-        setVideoProvider(response.data.provider ?? "storage");
-        setVideoUrl(response.data.videoUrl);
-        setVideoExpiresAt(response.data.expiresAt);
-        setModuleProgress((prev) => ({
-          ...prev,
-          [selectedModule.id]: {
-            ...prev[selectedModule.id],
-            durationSeconds: Math.max(prev[selectedModule.id]?.durationSeconds ?? 0, response.data.durationHintSeconds || 0),
-          },
-        }));
         setStatusMessage(`${selectedModule.title} 재생 준비가 완료되었습니다. 강의별 진도와 전체 누적 수강률이 함께 저장됩니다.`);
       } catch (videoLoadError) {
         console.error(videoLoadError);

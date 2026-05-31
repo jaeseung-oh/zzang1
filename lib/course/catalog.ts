@@ -6,6 +6,7 @@ export type CourseModule = {
   highlights: string[];
   actionChecklist: string[];
   secureVideoPath?: string;
+  cloudflareStreamUid?: string;
 };
 
 export type CourseDefinition = {
@@ -47,6 +48,7 @@ export const courseCatalog: CourseDefinition[] = [
           "다시 같은 상황이 오면 선택을 바꿀 대안을 한 문장으로 정리하기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-1.mp4",
+        cloudflareStreamUid: "22193ede6a22e4b27b2dc1d3ecce214c",
       },
       {
         id: "dui-lesson-2",
@@ -64,6 +66,7 @@ export const courseCatalog: CourseDefinition[] = [
           "숙취 운전 가능성까지 포함한 개인 금지 기준 세우기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-2.mp4",
+        cloudflareStreamUid: "b002bb63a6c9c854a267e95a29ab648f",
       },
       {
         id: "dui-lesson-3",
@@ -81,6 +84,7 @@ export const courseCatalog: CourseDefinition[] = [
           "책임 회피성 표현 대신 사용할 문장 2개 적어보기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-3.mp4",
+        cloudflareStreamUid: "6aaf94b5c70b938de49809e8d4e50a74",
       },
       {
         id: "dui-lesson-4",
@@ -98,6 +102,7 @@ export const courseCatalog: CourseDefinition[] = [
           "대리운전 실패 시 사용할 2차, 3차 대안 만들기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-4.mp4",
+        cloudflareStreamUid: "7c452891a700328cdb8f56cb39260970",
       },
       {
         id: "dui-lesson-5",
@@ -115,6 +120,7 @@ export const courseCatalog: CourseDefinition[] = [
           "한 달 동안 유지할 생활관리 항목 정리하기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-5.mp4",
+        cloudflareStreamUid: "afa89d104a50e779ee12112f1ec59655",
       },
     ],
   },
