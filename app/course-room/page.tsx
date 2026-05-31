@@ -932,7 +932,7 @@ export default function CourseRoomPage() {
   const saveStateLabel = isManualSaving ? "수동 저장 중" : isBackgroundSaving ? "자동 저장 중" : "자동 저장 대기";
   const ringCircumference = 2 * Math.PI * 54;
   const ringOffset = ringCircumference * (1 - aggregate.completionRate / 100);
-  const purchaseChecklistReady = purchaseNoticeAccepted && legalAccepted && reviewAccepted;
+  const purchaseChecklistReady = purchaseNoticeAccepted;
   const certificateStatus = result?.issuedCertificates.length
     ? "수료 문서 안내 확인"
     : aggregate.isCompleted
@@ -1345,7 +1345,7 @@ export default function CourseRoomPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
                     <input
                       type="checkbox"
@@ -1353,38 +1353,17 @@ export default function CourseRoomPage() {
                       onChange={(event) => setPurchaseNoticeAccepted(event.target.checked)}
                       className="mt-1 h-4 w-4 accent-[#8a6a2d]"
                     />
-                    <span>결제만으로 수료 문서가 자동 발급되지 않으며, 수강 완료와 필수 동의 확인이 함께 필요하다는 점을 확인했습니다.</span>
+                    <span className="font-semibold text-slate-900">결제 전 안내와 수료 문서 발급 조건을 확인했습니다.</span>
                   </label>
-                  <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={legalAccepted}
-                      onChange={(event) => setLegalAccepted(event.target.checked)}
-                      className="mt-1 h-4 w-4 accent-[#8a6a2d]"
-                    />
-                    <span>본 서비스가 민간 교육 서비스이며 법률 자문이나 결과 보장을 제공하지 않는다는 점을 확인했습니다.</span>
-                  </label>
-                  <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
-                    <input
-                      type="checkbox"
-                      checked={reviewAccepted}
-                      onChange={(event) => setReviewAccepted(event.target.checked)}
-                      className="mt-1 h-4 w-4 accent-[#8a6a2d]"
-                    />
-                    <span>환불 기준과 이용 조건은 결제 전 안내, 이용약관, 환불규정을 직접 확인해야 한다는 점을 이해했습니다.</span>
-                  </label>
-                </div>
 
-                <div className="flex flex-wrap gap-3 text-sm">
-                  <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
-                    이용약관
-                  </Link>
-                  <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
-                    개인정보처리방침
-                  </Link>
-                  <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
-                    환불규정
-                  </Link>
+                  <div className="rounded-[1.1rem] border border-[#e2e8f0] bg-[#f8fafc] px-4 py-4 text-sm leading-7 text-slate-600">
+                    <p>수료 문서는 결제 완료와 수강 완료 후 안내됩니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
+                    <div className="mt-3 flex flex-wrap gap-3 font-semibold">
+                      <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
+                      <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
+                      <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">환불규정</Link>
+                    </div>
+                  </div>
                 </div>
 
                 {purchaseChecklistReady ? (

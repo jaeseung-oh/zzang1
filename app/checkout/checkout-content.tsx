@@ -100,11 +100,9 @@ export default function CheckoutContent() {
   const [isReady, setIsReady] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [serviceChecked, setServiceChecked] = useState(false);
-  const [issueChecked, setIssueChecked] = useState(false);
-  const [refundChecked, setRefundChecked] = useState(false);
+  const [checkoutNoticeChecked, setCheckoutNoticeChecked] = useState(false);
 
-  const canSubmit = isReady && !isSubmitting && serviceChecked && issueChecked && refundChecked && courseAmount > 0;
+  const canSubmit = isReady && !isSubmitting && checkoutNoticeChecked && courseAmount > 0;
 
   const paymentSummary = useMemo(
     () => [
@@ -328,45 +326,24 @@ export default function CheckoutContent() {
                 <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">결제 전 필수 확인</h2>
               </div>
 
-              <div className="space-y-3 p-4 sm:p-5">
+              <div className="space-y-4 p-4 sm:p-5">
                 <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
                   <input
                     type="checkbox"
-                    checked={serviceChecked}
-                    onChange={(event) => setServiceChecked(event.target.checked)}
+                    checked={checkoutNoticeChecked}
+                    onChange={(event) => setCheckoutNoticeChecked(event.target.checked)}
                     className="mt-1 h-4 w-4 accent-[#173968]"
                   />
-                  <span>본 서비스가 민간 교육 서비스이며 법률 자문이나 결과 보장을 제공하지 않는다는 점을 확인했습니다.</span>
-                </label>
-                <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={issueChecked}
-                    onChange={(event) => setIssueChecked(event.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#173968]"
-                  />
-                  <span>결제만으로 수료 문서가 자동 발급되지 않으며, 수강 완료와 필수 동의 확인이 함께 필요하다는 점을 확인했습니다.</span>
-                </label>
-                <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={refundChecked}
-                    onChange={(event) => setRefundChecked(event.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#173968]"
-                  />
-                  <span>환불 기준과 이용 조건은 결제 전 안내, 이용약관, 환불규정을 직접 확인해야 한다는 점을 이해했습니다.</span>
+                  <span className="font-semibold text-slate-900">결제 전 안내, 이용약관, 환불규정 및 수료 문서 발급 조건을 확인했습니다.</span>
                 </label>
 
-                <div className="flex flex-wrap gap-3 text-sm">
-                  <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
-                    이용약관
-                  </Link>
-                  <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
-                    개인정보처리방침
-                  </Link>
-                  <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">
-                    환불규정
-                  </Link>
+                <div className="rounded-[1.1rem] border border-[#e2e8f0] bg-white px-4 py-4 text-sm leading-7 text-slate-600">
+                  <p>수료 문서는 결제 완료, 수강 완료, 필수 동의 확인 후 안내됩니다. 본 서비스는 법률 자문이나 결과 보장을 제공하지 않는 민간 교육 서비스입니다.</p>
+                  <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
+                    <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
+                    <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
+                    <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">환불규정</Link>
+                  </div>
                 </div>
 
                 <button
