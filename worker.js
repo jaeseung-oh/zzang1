@@ -100,18 +100,31 @@ async function handleRequest(request, env) {
     }
 }
 
+function getAllowedOrigins(env) {
+    const values = [env.APP_BASE_URL, env.APP_EXTRA_ORIGINS]
+        .filter(Boolean)
+        .flatMap((value) => String(value).split(','))
+        .map((value) => value.trim())
+        .filter(Boolean);
+
+    const origins = new Set();
+    values.forEach((value) => {
+        try {
+            origins.add(new URL(value).origin);
+        } catch {
+            // Ignore malformed origin values.
+        }
+    });
+
+    return origins;
+}
+
 function buildCorsHeaders(request, env) {
     const headers = new Headers();
     const origin = request.headers.get('Origin');
-    let allowedOrigin = '';
+    const allowedOrigins = getAllowedOrigins(env);
 
-    try {
-        allowedOrigin = env.APP_BASE_URL ? new URL(env.APP_BASE_URL).origin : '';
-    } catch {
-        allowedOrigin = '';
-    }
-
-    if (origin && allowedOrigin && origin === allowedOrigin) {
+    if (origin && allowedOrigins.has(origin)) {
         headers.set('Access-Control-Allow-Origin', origin);
         headers.set('Access-Control-Allow-Credentials', 'true');
         headers.set('Vary', 'Origin');
@@ -559,9 +572,11 @@ async function handleStreamToken(request, env, corsHeaders) {
 
     const requestOrigin = request.headers.get('Origin') || '';
     const requestReferer = request.headers.get('Referer') || '';
-    const appOrigin = new URL(env.APP_BASE_URL).origin;
+    const allowedOrigins = getAllowedOrigins(env);
+    const allowedByOrigin = requestOrigin && allowedOrigins.has(requestOrigin);
+    const allowedByReferer = Array.from(allowedOrigins).some((origin) => requestReferer.startsWith(origin + '/'));
 
-    if (requestOrigin !== appOrigin && !requestReferer.startsWith(appOrigin + '/')) {
+    if (!allowedByOrigin && !allowedByReferer) {
         return json({ error: 'forbidden_origin' }, 403, corsHeaders);
     }
 
