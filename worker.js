@@ -4,6 +4,14 @@ export default {
     }
 };
 
+const COURSE_STREAM_UIDS = new Set([
+    '22193ede6a22e4b27b2dc1d3ecce214c',
+    'b002bb63a6c9c854a267e95a29ab648f',
+    '6aaf94b5c70b938de49809e8d4e50a74',
+    '7c452891a700328cdb8f56cb39260970',
+    'afa89d104a50e779ee12112f1ec59655'
+]);
+
 const PROVIDERS = {
     kakao: {
         id: 'kakao',
@@ -72,6 +80,10 @@ async function handleRequest(request, env) {
 
         if (url.pathname === '/api/stream/direct-upload' && request.method === 'POST') {
             return handleStreamDirectUpload(request, env, corsHeaders);
+        }
+
+        if (url.pathname === '/api/stream/token' && request.method === 'GET') {
+            return handleStreamToken(request, env, corsHeaders);
         }
 
         return json({ error: 'not_found' }, 404, corsHeaders);
@@ -539,6 +551,57 @@ async function handleCurrentUser(request, env, corsHeaders) {
     const sessionValue = getCookie(request, 'app_session');
     const session = await verifySessionValue(sessionValue, env.SESSION_SECRET);
     return json({ user: session }, 200, corsHeaders);
+}
+
+async function handleStreamToken(request, env, corsHeaders) {
+    assertBaseEnv(env);
+    assertStreamEnv(env);
+
+    const requestOrigin = request.headers.get('Origin') || '';
+    const requestReferer = request.headers.get('Referer') || '';
+    const appOrigin = new URL(env.APP_BASE_URL).origin;
+
+    if (requestOrigin !== appOrigin && !requestReferer.startsWith(appOrigin + '/')) {
+        return json({ error: 'forbidden_origin' }, 403, corsHeaders);
+    }
+
+    const url = new URL(request.url);
+    const uid = (url.searchParams.get('uid') || '').trim();
+
+    if (!COURSE_STREAM_UIDS.has(uid)) {
+        return json({ error: 'invalid_stream_uid' }, 400, corsHeaders);
+    }
+
+    const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_STREAM_ACCOUNT_ID}/stream/${uid}/token`,
+        {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${env.CLOUDFLARE_STREAM_API_TOKEN}`
+            }
+        }
+    );
+
+    const data = await response.json().catch(() => null);
+    const token = data?.result?.token;
+
+    if (!response.ok || !data?.success || !token) {
+        const message =
+            data?.errors?.[0]?.message ||
+            data?.messages?.[0]?.message ||
+            `Cloudflare Stream token failed: ${response.status}`;
+        return json({ error: 'stream_token_failed', message }, response.status || 500, corsHeaders);
+    }
+
+    return json(
+        {
+            token,
+            videoUrl: `https://iframe.videodelivery.net/${token}`,
+            expiresInSeconds: 3600
+        },
+        200,
+        corsHeaders
+    );
 }
 
 async function handleStreamDirectUpload(request, env, corsHeaders) {

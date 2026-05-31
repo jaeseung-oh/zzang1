@@ -140,6 +140,32 @@ function truncateText(value: string, maxLength: number) {
   return value.slice(0, maxLength).trimEnd() + "...";
 }
 
+
+async function resolveCloudflareStreamUrl(uid: string) {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
+
+  if (!apiBaseUrl) {
+    return `https://iframe.videodelivery.net/${uid}`;
+  }
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Stream token request failed: ${response.status}`);
+    }
+
+    const data = (await response.json()) as { videoUrl?: string };
+    return data.videoUrl || `https://iframe.videodelivery.net/${uid}`;
+  } catch (error) {
+    console.error(error);
+    return `https://iframe.videodelivery.net/${uid}`;
+  }
+}
+
 function buildEmptyModuleProgress() {
   return Object.fromEntries(
     defaultCourse.modules.map((module) => [
@@ -469,9 +495,15 @@ export default function CourseRoomPage() {
             return;
           }
 
+          const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid);
+
+          if (cancelled) {
+            return;
+          }
+
           setVideoProvider("cloudflare-stream");
-          setVideoUrl(`https://iframe.videodelivery.net/${selectedModule.cloudflareStreamUid}`);
-          setVideoExpiresAt(null);
+          setVideoUrl(streamUrl);
+          setVideoExpiresAt(Date.now() + 1000 * 60 * 55);
           setModuleProgress((prev) => ({
             ...prev,
             [selectedModule.id]: {

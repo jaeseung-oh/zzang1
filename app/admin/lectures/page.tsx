@@ -1,11 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 
 function buildStreamUrl(uid?: string) {
   return uid ? `https://iframe.videodelivery.net/${uid}` : "";
+}
+
+async function resolveCloudflareStreamUrl(uid: string) {
+  const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
+
+  if (!apiBaseUrl) {
+    return buildStreamUrl(uid);
+  }
+
+  try {
+    const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}`, {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error(`Stream token request failed: ${response.status}`);
+    }
+
+    const data = (await response.json()) as { videoUrl?: string };
+    return data.videoUrl || buildStreamUrl(uid);
+  } catch (error) {
+    console.error(error);
+    return buildStreamUrl(uid);
+  }
 }
 
 export default function AdminLecturesPage() {
@@ -15,8 +40,35 @@ export default function AdminLecturesPage() {
     () => modules.find((module) => module.id === selectedModuleId) ?? modules[0],
     [modules, selectedModuleId]
   );
-  const selectedStreamUrl = buildStreamUrl(selectedModule?.cloudflareStreamUid);
+  const [selectedStreamUrl, setSelectedStreamUrl] = useState(buildStreamUrl(selectedModule?.cloudflareStreamUid));
+  const [streamStatus, setStreamStatus] = useState("재생 URL 준비 중");
   const configuredCount = modules.filter((module) => module.cloudflareStreamUid).length;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadStreamUrl = async () => {
+      if (!selectedModule?.cloudflareStreamUid) {
+        setSelectedStreamUrl("");
+        setStreamStatus("Stream UID 없음");
+        return;
+      }
+
+      setStreamStatus("Signed token 발급 중");
+      const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid);
+
+      if (!cancelled) {
+        setSelectedStreamUrl(streamUrl);
+        setStreamStatus(streamUrl.includes(selectedModule.cloudflareStreamUid) ? "공개 UID URL 사용 중" : "Signed token URL 사용 중");
+      }
+    };
+
+    void loadStreamUrl();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedModule]);
 
   return (
     <main className="min-h-screen bg-[#eef3f8] px-4 py-8 text-[#0f172a] sm:px-6 lg:px-8">
@@ -136,6 +188,10 @@ export default function AdminLecturesPage() {
               <div className="rounded-[1rem] border border-[#e2e8f0] bg-[#f8fafc] p-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-slate-500">분량</p>
                 <p className="mt-2 font-semibold text-slate-950">{selectedModule?.minutes}분</p>
+              </div>
+              <div className="rounded-[1rem] border border-[#e2e8f0] bg-[#f8fafc] p-4">
+                <p className="text-xs uppercase tracking-[0.16em] text-slate-500">재생 방식</p>
+                <p className="mt-2 font-semibold text-slate-950">{streamStatus}</p>
               </div>
               <div className="rounded-[1rem] border border-[#e2e8f0] bg-[#f8fafc] p-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Stream UID</p>
