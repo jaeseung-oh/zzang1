@@ -3,6 +3,7 @@
 import { doc, getDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
+import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
@@ -25,10 +26,27 @@ type SaveCourseProgressResponse = {
 };
 
 type GetCourseVideoAccessResponse = {
+  provider?: "storage" | "cloudflare-stream";
   videoUrl: string;
+  streamUid?: string;
   expiresAt: number;
   durationHintSeconds: number;
 };
+
+type CloudflareStreamPlayer = {
+  currentTime: number;
+  duration: number;
+  paused: boolean;
+  ended: boolean;
+  addEventListener: (eventName: string, listener: () => void) => void;
+  removeEventListener: (eventName: string, listener: () => void) => void;
+};
+
+declare global {
+  interface Window {
+    Stream?: (element: HTMLIFrameElement) => CloudflareStreamPlayer;
+  }
+}
 
 type CaseType = "dui" | "sexual" | "drug" | "violence" | "other";
 
@@ -236,7 +254,7 @@ export default function CourseRoomPage() {
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [purchaseNoticeAccepted, setPurchaseNoticeAccepted] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("6강 수강 세션과 저장 상태를 준비하는 중입니다.");
+  const [statusMessage, setStatusMessage] = useState("5강 수강 세션과 저장 상태를 준비하는 중입니다.");
   const [error, setError] = useState("");
   const [result, setResult] = useState<SaveCourseProgressResponse | null>(null);
   const [lastSavedLabel, setLastSavedLabel] = useState("저장 대기 중");
@@ -245,10 +263,14 @@ export default function CourseRoomPage() {
   const [isManualSaving, setIsManualSaving] = useState(false);
   const [isBackgroundSaving, setIsBackgroundSaving] = useState(false);
   const [videoUrl, setVideoUrl] = useState("");
+  const [videoProvider, setVideoProvider] = useState<"storage" | "cloudflare-stream">("storage");
   const [videoExpiresAt, setVideoExpiresAt] = useState<number | null>(null);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [streamSdkReady, setStreamSdkReady] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamIframeRef = useRef<HTMLIFrameElement | null>(null);
+  const streamPlayerRef = useRef<CloudflareStreamPlayer | null>(null);
   const saveInFlightRef = useRef(false);
   const restoreAppliedRef = useRef(false);
   const refreshTimeoutRef = useRef<number | null>(null);
@@ -328,6 +350,11 @@ export default function CourseRoomPage() {
   }, [moduleProgress]);
 
   const selectedProgress = moduleProgress[selectedModuleId] ?? buildEmptyModuleProgress()[selectedModuleId];
+  const selectedProgressRef = useRef(selectedProgress);
+
+  useEffect(() => {
+    selectedProgressRef.current = selectedProgress;
+  }, [selectedProgress]);
 
   useEffect(() => {
     let cancelled = false;
@@ -372,7 +399,7 @@ export default function CourseRoomPage() {
         setStatusMessage(
           remote?.moduleProgress || local?.moduleProgress
             ? "이전 학습 기록을 불러왔습니다. 원하는 강의를 선택해 이어서 수강할 수 있습니다."
-            : "실명이 확인되었습니다. 6강 강의실에서 강의별 진도와 전체 누적 수강률을 저장할 수 있습니다."
+            : "실명이 확인되었습니다. 5강 강의실에서 강의별 진도와 전체 누적 수강률을 저장할 수 있습니다."
         );
       } catch (sessionError) {
         console.error(sessionError);
@@ -445,6 +472,7 @@ export default function CourseRoomPage() {
           return;
         }
 
+        setVideoProvider(response.data.provider ?? "storage");
         setVideoUrl(response.data.videoUrl);
         setVideoExpiresAt(response.data.expiresAt);
         setModuleProgress((prev) => ({
@@ -461,6 +489,7 @@ export default function CourseRoomPage() {
           const message = videoLoadError instanceof Error ? videoLoadError.message : "강의 영상을 불러오지 못했습니다.";
           setPlayerError(message);
           setStatusMessage(message);
+          setVideoProvider("storage");
           setVideoUrl("");
         }
       } finally {
@@ -476,6 +505,85 @@ export default function CourseRoomPage() {
       cancelled = true;
     };
   }, [uid, selectedModule]);
+
+  useEffect(() => {
+    if (videoProvider !== "cloudflare-stream" || !videoUrl || !streamSdkReady || !selectedModule) {
+      return;
+    }
+
+    const iframe = streamIframeRef.current;
+    const createPlayer = typeof window !== "undefined" ? window.Stream : undefined;
+
+    if (!iframe || !createPlayer) {
+      return;
+    }
+
+    const player = createPlayer(iframe);
+    streamPlayerRef.current = player;
+
+    const handleStreamLoadedMetadata = () => {
+      const progress = selectedProgressRef.current;
+      const actualDuration = Math.max(Math.round(player.duration || 0), progress.durationSeconds, selectedModule.minutes * 60, 1);
+      updateSelectedModuleProgress({ durationSeconds: actualDuration });
+      setPlayerReady(true);
+
+      if (!restoreAppliedRef.current) {
+        restoreAppliedRef.current = true;
+        player.currentTime = Math.min(progress.lastPlaybackPositionSeconds, actualDuration);
+      }
+    };
+
+    const handleStreamTimeUpdate = () => {
+      const progress = selectedProgressRef.current;
+      const durationSeconds = Math.max(Math.round(player.duration || 0), progress.durationSeconds, selectedModule.minutes * 60, 1);
+      const currentSeconds = Math.min(Math.max(player.currentTime || 0, 0), durationSeconds);
+      updateSelectedModuleProgress({
+        durationSeconds,
+        watchedSeconds: Math.max(progress.watchedSeconds, currentSeconds),
+        lastPlaybackPositionSeconds: currentSeconds,
+      });
+    };
+
+    const handleStreamPlay = () => {
+      dispatchLectureActivity(true);
+    };
+
+    const handleStreamPause = () => {
+      dispatchLectureActivity(false);
+      void persistProgress("pause");
+    };
+
+    const handleStreamEnded = () => {
+      dispatchLectureActivity(false);
+      const progress = selectedProgressRef.current;
+      const durationSeconds = Math.max(Math.round(player.duration || 0), progress.durationSeconds, selectedModule.minutes * 60, 1);
+      updateSelectedModuleProgress({
+        durationSeconds,
+        watchedSeconds: durationSeconds,
+        lastPlaybackPositionSeconds: durationSeconds,
+        isCompleted: true,
+      });
+      setTimeout(() => {
+        void persistProgress("ended");
+      }, 0);
+    };
+
+    player.addEventListener("loadedmetadata", handleStreamLoadedMetadata);
+    player.addEventListener("timeupdate", handleStreamTimeUpdate);
+    player.addEventListener("play", handleStreamPlay);
+    player.addEventListener("pause", handleStreamPause);
+    player.addEventListener("ended", handleStreamEnded);
+
+    return () => {
+      player.removeEventListener("loadedmetadata", handleStreamLoadedMetadata);
+      player.removeEventListener("timeupdate", handleStreamTimeUpdate);
+      player.removeEventListener("play", handleStreamPlay);
+      player.removeEventListener("pause", handleStreamPause);
+      player.removeEventListener("ended", handleStreamEnded);
+      streamPlayerRef.current = null;
+      dispatchLectureActivity(false);
+    };
+  }, [videoProvider, videoUrl, streamSdkReady, selectedModule]);
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -507,6 +615,7 @@ export default function CourseRoomPage() {
           const { functions } = getFirebaseServices();
           const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
           const response = await callable({ courseId: defaultCourse.id, moduleId: selectedModule.id });
+          setVideoProvider(response.data.provider ?? "storage");
           setVideoUrl(response.data.videoUrl);
           setVideoExpiresAt(response.data.expiresAt);
           window.setTimeout(() => {
@@ -733,6 +842,7 @@ export default function CourseRoomPage() {
     }
     dispatchLectureActivity(false);
     setSelectedModuleId(moduleId);
+    setVideoProvider("storage");
     setVideoUrl("");
     setPlayerReady(false);
   };
@@ -867,23 +977,39 @@ export default function CourseRoomPage() {
                   <div className="relative bg-black">
                     <div className="aspect-video w-full">
                       {videoUrl ? (
-                        <video
-                          ref={videoRef}
-                          key={`${selectedModuleId}:${videoUrl}`}
-                          src={videoUrl}
-                          className="h-full w-full"
-                          controls
-                          controlsList="nodownload noplaybackrate"
-                          disablePictureInPicture
-                          playsInline
-                          preload="metadata"
-                          onLoadedMetadata={handleLoadedMetadata}
-                          onPlay={handlePlay}
-                          onTimeUpdate={handleTimeUpdate}
-                          onPause={handlePause}
-                          onEnded={handleEnded}
-                          onContextMenu={(event) => event.preventDefault()}
-                        />
+                        videoProvider === "cloudflare-stream" ? (
+                          <iframe
+                            ref={streamIframeRef}
+                            key={`${selectedModuleId}:${videoUrl}`}
+                            src={videoUrl}
+                            title={selectedModule?.title ?? "강의 영상"}
+                            className="h-full w-full border-0"
+                            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture"
+                            allowFullScreen
+                            onLoad={() => {
+                              setPlayerReady(true);
+                              setStatusMessage(`${selectedModule?.title ?? "선택한 강의"} Cloudflare Stream 재생 준비가 완료되었습니다.`);
+                            }}
+                          />
+                        ) : (
+                          <video
+                            ref={videoRef}
+                            key={`${selectedModuleId}:${videoUrl}`}
+                            src={videoUrl}
+                            className="h-full w-full"
+                            controls
+                            controlsList="nodownload noplaybackrate"
+                            disablePictureInPicture
+                            playsInline
+                            preload="metadata"
+                            onLoadedMetadata={handleLoadedMetadata}
+                            onPlay={handlePlay}
+                            onTimeUpdate={handleTimeUpdate}
+                            onPause={handlePause}
+                            onEnded={handleEnded}
+                            onContextMenu={(event) => event.preventDefault()}
+                          />
+                        )
                       ) : (
                         <div className="flex h-full items-center justify-center px-8 text-center text-sm leading-7 text-slate-300">
                           {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : "선택한 강의 영상이 아직 준비되지 않았습니다."}

@@ -47,13 +47,36 @@ const COURSE_COMPLETION_DOCUMENTS = [
   },
 ] as const;
 
-const COURSE_VIDEO_ASSETS: Record<string, Record<string, { storagePath: string; durationHintSeconds: number }>> = {
+const COURSE_VIDEO_ASSETS: Record<
+  string,
+  Record<string, { storagePath: string; durationHintSeconds: number; streamUidEnvKey?: string }>
+> = {
   "rapid-sentencing-prep": {
-    "dui-lesson-1": { storagePath: "course-videos/rapid-sentencing-prep/lesson-1.mp4", durationHintSeconds: 600 },
-    "dui-lesson-2": { storagePath: "course-videos/rapid-sentencing-prep/lesson-2.mp4", durationHintSeconds: 600 },
-    "dui-lesson-3": { storagePath: "course-videos/rapid-sentencing-prep/lesson-3.mp4", durationHintSeconds: 600 },
-    "dui-lesson-4": { storagePath: "course-videos/rapid-sentencing-prep/lesson-4.mp4", durationHintSeconds: 600 },
-    "dui-lesson-5": { storagePath: "course-videos/rapid-sentencing-prep/lesson-5.mp4", durationHintSeconds: 600 },
+    "dui-lesson-1": {
+      storagePath: "course-videos/rapid-sentencing-prep/lesson-1.mp4",
+      durationHintSeconds: 600,
+      streamUidEnvKey: "CLOUDFLARE_STREAM_DUI_LESSON_1_UID",
+    },
+    "dui-lesson-2": {
+      storagePath: "course-videos/rapid-sentencing-prep/lesson-2.mp4",
+      durationHintSeconds: 600,
+      streamUidEnvKey: "CLOUDFLARE_STREAM_DUI_LESSON_2_UID",
+    },
+    "dui-lesson-3": {
+      storagePath: "course-videos/rapid-sentencing-prep/lesson-3.mp4",
+      durationHintSeconds: 600,
+      streamUidEnvKey: "CLOUDFLARE_STREAM_DUI_LESSON_3_UID",
+    },
+    "dui-lesson-4": {
+      storagePath: "course-videos/rapid-sentencing-prep/lesson-4.mp4",
+      durationHintSeconds: 600,
+      streamUidEnvKey: "CLOUDFLARE_STREAM_DUI_LESSON_4_UID",
+    },
+    "dui-lesson-5": {
+      storagePath: "course-videos/rapid-sentencing-prep/lesson-5.mp4",
+      durationHintSeconds: 600,
+      streamUidEnvKey: "CLOUDFLARE_STREAM_DUI_LESSON_5_UID",
+    },
     "dui-lesson-6": { storagePath: "course-videos/rapid-sentencing-prep/lesson-6.mp4", durationHintSeconds: 600 },
   },
 };
@@ -778,12 +801,25 @@ export const getCourseVideoAccess = onCall({ region: "asia-northeast3" }, async 
   }
 
   const asset = getCourseVideoAsset(courseId, moduleId);
+  const streamUid = asset.streamUidEnvKey ? process.env[asset.streamUidEnvKey]?.trim() : "";
+
+  if (streamUid) {
+    return {
+      provider: "cloudflare-stream",
+      streamUid,
+      videoUrl: `https://iframe.videodelivery.net/${streamUid}`,
+      expiresAt: Date.now() + 1000 * 60 * 60,
+      durationHintSeconds: asset.durationHintSeconds,
+    };
+  }
+
   const bucket = storage.bucket();
   const file = bucket.file(asset.storagePath);
   const [exists] = await file.exists();
 
   if (!exists) {
     return {
+      provider: "storage",
       videoUrl: FALLBACK_COURSE_VIDEO_URL,
       expiresAt: Date.now() + 1000 * 60 * 60,
       durationHintSeconds: asset.durationHintSeconds,
@@ -798,6 +834,7 @@ export const getCourseVideoAccess = onCall({ region: "asia-northeast3" }, async 
   });
 
   return {
+    provider: "storage",
     videoUrl,
     expiresAt,
     durationHintSeconds: asset.durationHintSeconds,

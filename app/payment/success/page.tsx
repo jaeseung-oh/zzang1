@@ -56,10 +56,12 @@ function PaymentSuccessContent() {
     const run = async () => {
       try {
         const sessionUser = await requireAuthenticatedUser();
+        const idToken = await sessionUser.getIdToken();
         const response = await fetch(confirmUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${idToken}`,
           },
           body: JSON.stringify({
             paymentKey,

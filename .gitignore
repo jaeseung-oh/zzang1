@@ -6,3 +6,6 @@ firebase-debug.log
 .env.local
 .dev.vars
 out/
+.env
+*.env
+*.tsbuildinfo

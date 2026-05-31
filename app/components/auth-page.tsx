@@ -62,7 +62,7 @@ const modeCopy = {
 } as const;
 
 const trustIndicators = [
-  { value: "6강", label: "현재 운영 강의" },
+  { value: "5강", label: "현재 운영 강의" },
   { value: "ONLINE", label: "온라인 수강" },
   { value: "PC·모바일", label: "접속 환경" },
 ];

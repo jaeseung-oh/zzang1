@@ -62,7 +62,7 @@ const trustIndicators = [
 
 const courseCards = [
   {
-    title: "음주운전 예방교육 6강",
+    title: "음주운전 예방교육 5강",
     summary: "현재 등록된 교육 영상을 중심으로 위험성 인지, 금주 실천 계획, 생활 패턴 점검, 책임 의식 정리를 돕는 구성입니다.",
     tags: ["핵심 영상 수강", "금주 계획", "재발 방지"],
     image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
@@ -448,7 +448,7 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-[#06101b]/85 to-transparent" />
                       <div className="absolute left-6 top-6 rounded-2xl bg-white/15 p-3 text-[#f6deb0] backdrop-blur-xl">{card.icon}</div>
                       <div className="absolute bottom-6 left-6">
-                        <span className="rounded-full bg-[#d8b36a] px-3 py-1 text-xs font-bold text-[#06101b]">6강 구성</span>
+                        <span className="rounded-full bg-[#d8b36a] px-3 py-1 text-xs font-bold text-[#06101b]">5강 구성</span>
                       </div>
                     </div>
                     <div className="p-7">

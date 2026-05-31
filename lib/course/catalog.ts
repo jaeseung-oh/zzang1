@@ -13,6 +13,7 @@ export type CourseDefinition = {
   title: string;
   subtitle: string;
   durationMinutes: number;
+  priceKrw: number;
   priceLabel: string;
   caseTypes: string[];
   outputs: string[];
@@ -22,10 +23,11 @@ export type CourseDefinition = {
 export const courseCatalog: CourseDefinition[] = [
   {
     id: "rapid-sentencing-prep",
-    title: "음주운전 예방교육 6강 코스",
+    title: "음주운전 예방교육 5강 코스",
     subtitle: "위험 신호 인식, 판단력 저하 이해, 관계 회복, 생활 관리 계획까지 단계적으로 정리하는 자기점검형 음주운전 예방교육 과정",
-    durationMinutes: 60,
-    priceLabel: "결제 준비 중",
+    durationMinutes: 50,
+    priceKrw: 39000,
+    priceLabel: "39,000원",
     caseTypes: ["음주운전"],
     outputs: ["학습확인서", "금주 실천 서약서", "재발방지 계획서"],
     modules: [
@@ -113,23 +115,6 @@ export const courseCatalog: CourseDefinition[] = [
           "한 달 동안 유지할 생활관리 항목 정리하기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-5.mp4",
-      },
-      {
-        id: "dui-lesson-6",
-        title: "6강. 개인 재발방지 계획서 작성과 생활 복귀 점검",
-        minutes: 10,
-        summary: "앞선 강의 내용을 바탕으로 개인 재발방지 계획서를 완성합니다. 금주·절주 판단, 이동수단 대안, 도움 요청 대상, 위험 신호 대응 절차를 실제 생활 계획으로 연결합니다.",
-        highlights: [
-          "재발방지 계획서는 선언이 아니라 실행 절차라는 점 정리",
-          "위험 신호를 느꼈을 때 즉시 실행할 행동 순서 구성",
-          "교육 이후 1주, 1개월, 3개월 점검 항목 설계",
-        ],
-        actionChecklist: [
-          "술자리 전, 중, 후 행동 원칙을 단계별로 적기",
-          "도움 요청 가능한 사람 2명 이상 지정하기",
-          "다음 달 점검 일정과 확인 항목 캘린더에 넣기",
-        ],
-        secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-6.mp4",
       },
     ],
   },

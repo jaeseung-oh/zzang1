@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { httpsCallable } from "firebase/functions";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
+import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 
@@ -29,21 +31,26 @@ type TossWidgets = {
   }): Promise<void> | void;
 };
 
+type CreatePaymentOrderRequest = {
+  courseId: string;
+};
+
+type CreatePaymentOrderResponse = {
+  orderId: string;
+  amount: number;
+  courseId: string;
+  courseTitle: string;
+};
+
 const tossScriptUrl = "https://js.tosspayments.com/v2/standard";
 const clientKey = process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY || "";
 const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-const coursePrice = Number(process.env.NEXT_PUBLIC_DEFAULT_COURSE_PRICE || "0");
+const fallbackCoursePrice = Number(process.env.NEXT_PUBLIC_DEFAULT_COURSE_PRICE || defaultCourse.priceKrw || "0");
+const paymentMethodVariantKey = process.env.NEXT_PUBLIC_TOSS_PAYMENT_METHOD_VARIANT_KEY || "DEFAULT";
+const agreementVariantKey = process.env.NEXT_PUBLIC_TOSS_AGREEMENT_VARIANT_KEY || "DEFAULT";
 
 function formatWon(value: number) {
   return `${value.toLocaleString("ko-KR")}원`;
-}
-
-function createOrderId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return `order_${crypto.randomUUID().replace(/-/g, "").slice(0, 24)}`;
-  }
-
-  return `order_${Date.now()}`;
 }
 
 async function buildCustomerKey(uid: string) {
@@ -89,6 +96,7 @@ export default function CheckoutContent() {
   const widgetsRef = useRef<TossWidgets | null>(null);
   const renderStartedRef = useRef(false);
   const [orderId, setOrderId] = useState("");
+  const [courseAmount, setCourseAmount] = useState(0);
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
@@ -99,15 +107,15 @@ export default function CheckoutContent() {
   const [issueChecked, setIssueChecked] = useState(false);
   const [refundChecked, setRefundChecked] = useState(false);
 
-  const canSubmit = isReady && !isSubmitting && serviceChecked && issueChecked && refundChecked && coursePrice > 0;
+  const canSubmit = isReady && !isSubmitting && serviceChecked && issueChecked && refundChecked && courseAmount > 0;
 
   const paymentSummary = useMemo(
     () => [
       { label: "주문 과정", value: defaultCourse.title },
       { label: "총 교육 시간", value: `${defaultCourse.durationMinutes}분` },
-      { label: "결제 금액", value: coursePrice > 0 ? formatWon(coursePrice) : "가격 설정 필요" },
+      { label: "결제 금액", value: courseAmount > 0 ? formatWon(courseAmount) : "가격 설정 필요" },
     ],
-    []
+    [courseAmount]
   );
 
   useEffect(() => {
@@ -117,6 +125,8 @@ export default function CheckoutContent() {
       try {
         const user = await requireAuthenticatedUser();
         const profile = await getUserProfile(user.uid);
+        const { functions } = getFirebaseServices();
+        const createOrder = httpsCallable<CreatePaymentOrderRequest, CreatePaymentOrderResponse>(functions, "createPaymentOrder");
 
         if (cancelled) {
           return;
@@ -124,18 +134,25 @@ export default function CheckoutContent() {
 
         const resolvedName = profile?.realName?.trim() || profile?.fullName?.trim() || "회원";
         const resolvedEmail = user.email || profile?.email || "";
-        const nextOrderId = createOrderId();
+        const orderResult = await createOrder({
+          courseId: defaultCourse.id,
+        });
+
+        if (cancelled) {
+          return;
+        }
 
         setCustomerName(resolvedName);
         setCustomerEmail(resolvedEmail);
-        setOrderId(nextOrderId);
+        setOrderId(orderResult.data.orderId);
+        setCourseAmount(orderResult.data.amount);
 
         if (!clientKey) {
           throw new Error("NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY가 설정되지 않았습니다.");
         }
 
-        if (!Number.isFinite(coursePrice) || coursePrice <= 0) {
-          throw new Error("NEXT_PUBLIC_DEFAULT_COURSE_PRICE가 설정되지 않았습니다.");
+        if (!Number.isFinite(orderResult.data.amount) || orderResult.data.amount <= 0) {
+          throw new Error("결제 금액 설정이 올바르지 않습니다.");
         }
 
         await loadTossScript();
@@ -155,15 +172,15 @@ export default function CheckoutContent() {
         const widgets = await tossPayments.widgets({ customerKey });
         await widgets.setAmount({
           currency: "KRW",
-          value: coursePrice,
+          value: orderResult.data.amount,
         });
         await widgets.renderPaymentMethods({
           selector: "#payment-method",
-          variantKey: "DEFAULT",
+          variantKey: paymentMethodVariantKey,
         });
         await widgets.renderAgreement({
           selector: "#agreement",
-          variantKey: "DEFAULT",
+          variantKey: agreementVariantKey,
         });
 
         widgetsRef.current = widgets;
@@ -233,7 +250,7 @@ export default function CheckoutContent() {
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0d59c]">Toss Checkout</p>
           <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">주문서 및 결제</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
-            토스 결제위젯으로 카드, 계좌이체, 가상계좌(무통장입금) 등 계약 및 어드민 설정에 따라 제공되는 결제수단을 한 주문서에서 처리합니다.
+            토스 결제위젯으로 카드, 계좌이체, 가상계좌와 토스페이·카카오페이 같은 간편결제를 계약 및 어드민 활성화 범위 안에서 한 주문서로 처리합니다.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-200">
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">민간 교육 서비스</span>
