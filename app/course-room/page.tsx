@@ -999,6 +999,89 @@ export default function CourseRoomPage() {
           </div>
         </section>
 
+        <section className="mt-5 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
+          <div className="rounded-[1.5rem] border border-[#d7deea] bg-white p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">전체 수강률</p>
+                <p className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-slate-950">{aggregate.completionRate}%</p>
+              </div>
+              <div className="text-right text-sm text-slate-600">
+                <p className="font-semibold text-slate-950">{aggregate.completedModuleCount}/{aggregate.totalModuleCount}강 완료</p>
+                <p className="mt-1">남은 시간 {formatDuration(aggregate.remainingSeconds)}</p>
+              </div>
+            </div>
+            <div className="mt-4 h-3 overflow-hidden rounded-full bg-slate-200">
+              <div
+                className="h-full rounded-full bg-[linear-gradient(90deg,#0f2a57_0%,#1d4ed8_58%,#d3b271_100%)]"
+                style={{ width: `${aggregate.completionRate}%` }}
+              />
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-slate-600">
+              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-2 py-3">
+                <p className="font-semibold text-slate-950">{formatDuration(aggregate.watchedSeconds)}</p>
+                <p className="mt-1">누적 수강</p>
+              </div>
+              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-2 py-3">
+                <p className="font-semibold text-slate-950">{formatDuration(aggregate.totalDurationSeconds)}</p>
+                <p className="mt-1">총 분량</p>
+              </div>
+              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-2 py-3">
+                <p className="font-semibold text-slate-950">{saveStateLabel}</p>
+                <p className="mt-1">저장 상태</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[1.5rem] border border-[#d7deea] bg-white p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">강의 바로가기</p>
+                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-slate-950">1강부터 5강까지 한눈에 보기</h2>
+              </div>
+              <span className="rounded-full border border-[#d7deea] bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-slate-700">현재 {selectedModule?.title.split(".")[0] ?? "선택 대기"}</span>
+            </div>
+
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {defaultCourse.modules.map((module, index) => {
+                const progress = moduleProgress[module.id];
+                const active = module.id === selectedModuleId;
+                const rate = progress?.completionRate ?? 0;
+                const completed = Boolean(progress?.isCompleted);
+
+                return (
+                  <button
+                    key={module.id}
+                    type="button"
+                    onClick={() => handleSelectModule(module.id)}
+                    className={`min-h-[128px] rounded-[1.15rem] border p-4 text-left transition hover:-translate-y-0.5 ${
+                      active
+                        ? "border-[#1d4ed8] bg-[#eef4ff] shadow-[0_12px_28px_rgba(29,78,216,0.14)]"
+                        : completed
+                          ? "border-emerald-200 bg-emerald-50"
+                          : "border-[#e2e8f0] bg-[#f8fafc] hover:border-[#9bb8ef]"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${active ? "bg-[#1d4ed8] text-white" : "bg-white text-slate-700"}`}>
+                        {index + 1}강
+                      </span>
+                      <span className={`text-xs font-semibold ${completed ? "text-emerald-700" : active ? "text-[#1d4ed8]" : "text-slate-500"}`}>
+                        {completed ? "완료" : active ? "재생 중" : `${rate}%`}
+                      </span>
+                    </div>
+                    <h3 className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-slate-950">{module.title.replace(/^\d+강\.\s*/, "")}</h3>
+                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-slate-200">
+                      <div className="h-full rounded-full bg-[linear-gradient(90deg,#1d4ed8_0%,#d3b271_100%)]" style={{ width: `${rate}%` }} />
+                    </div>
+                    <p className="mt-2 text-xs text-slate-500">{formatDuration(progress?.watchedSeconds ?? 0)} / {formatDuration(progress?.durationSeconds ?? module.minutes * 60)}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
         <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.9fr)_380px]">
           <section className="space-y-6">
             <section className="rounded-[2rem] border border-[#d7deea] bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7">

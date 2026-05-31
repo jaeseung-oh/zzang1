@@ -1,11 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { httpsCallable } from "firebase/functions";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
-import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 
@@ -31,17 +29,6 @@ type TossWidgets = {
   }): Promise<void> | void;
 };
 
-type CreatePaymentOrderRequest = {
-  courseId: string;
-};
-
-type CreatePaymentOrderResponse = {
-  orderId: string;
-  amount: number;
-  courseId: string;
-  courseTitle: string;
-};
-
 const tossScriptUrl = "https://js.tosspayments.com/v2/standard";
 const clientKey = process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY || "";
 const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
@@ -51,6 +38,16 @@ const agreementVariantKey = process.env.NEXT_PUBLIC_TOSS_AGREEMENT_VARIANT_KEY |
 
 function formatWon(value: number) {
   return `${value.toLocaleString("ko-KR")}원`;
+}
+
+function createLocalOrderId(uid: string) {
+  const randomValue = crypto.getRandomValues(new Uint32Array(2));
+  const randomSuffix = Array.from(randomValue)
+    .map((value) => value.toString(36))
+    .join("")
+    .slice(0, 12);
+
+  return `order_${Date.now()}_${uid.slice(0, 8)}_${randomSuffix}`;
 }
 
 async function buildCustomerKey(uid: string) {
@@ -125,33 +122,25 @@ export default function CheckoutContent() {
       try {
         const user = await requireAuthenticatedUser();
         const profile = await getUserProfile(user.uid);
-        const { functions } = getFirebaseServices();
-        const createOrder = httpsCallable<CreatePaymentOrderRequest, CreatePaymentOrderResponse>(functions, "createPaymentOrder");
-
         if (cancelled) {
           return;
         }
 
         const resolvedName = profile?.realName?.trim() || profile?.fullName?.trim() || "회원";
         const resolvedEmail = user.email || profile?.email || "";
-        const orderResult = await createOrder({
-          courseId: defaultCourse.id,
-        });
-
-        if (cancelled) {
-          return;
-        }
+        const resolvedOrderId = createLocalOrderId(user.uid);
+        const resolvedAmount = fallbackCoursePrice;
 
         setCustomerName(resolvedName);
         setCustomerEmail(resolvedEmail);
-        setOrderId(orderResult.data.orderId);
-        setCourseAmount(orderResult.data.amount);
+        setOrderId(resolvedOrderId);
+        setCourseAmount(resolvedAmount);
 
         if (!clientKey) {
           throw new Error("NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY가 설정되지 않았습니다.");
         }
 
-        if (!Number.isFinite(orderResult.data.amount) || orderResult.data.amount <= 0) {
+        if (!Number.isFinite(resolvedAmount) || resolvedAmount <= 0) {
           throw new Error("결제 금액 설정이 올바르지 않습니다.");
         }
 
@@ -172,7 +161,7 @@ export default function CheckoutContent() {
         const widgets = await tossPayments.widgets({ customerKey });
         await widgets.setAmount({
           currency: "KRW",
-          value: orderResult.data.amount,
+          value: resolvedAmount,
         });
         await widgets.renderPaymentMethods({
           selector: "#payment-method",
@@ -250,12 +239,13 @@ export default function CheckoutContent() {
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0d59c]">Toss Checkout</p>
           <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">주문서 및 결제</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
-            토스 결제위젯으로 카드, 계좌이체, 가상계좌와 토스페이·카카오페이 같은 간편결제를 계약 및 어드민 활성화 범위 안에서 한 주문서로 처리합니다.
+            토스 결제위젯으로 카드, 계좌이체, 가상계좌와 토스페이·네이버페이·카카오페이 같은 간편결제를 계약 및 어드민 활성화 범위 안에서 한 주문서로 처리합니다.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-200">
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">민간 교육 서비스</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">결제 후 수강 완료 시 이수 확인 자료 안내</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">환불 기준 별도 확인</span>
+            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">네이버페이/간편결제는 Toss 어드민 활성화 필요</span>
           </div>
         </section>
 
@@ -274,7 +264,15 @@ export default function CheckoutContent() {
             <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
               <div className="space-y-5">
                 <div className="rounded-[1.5rem] border border-[#dce4ef] bg-[#f9fbfd] p-4">
-                  <p className="text-sm font-semibold text-slate-900">결제수단 선택</p>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm font-semibold text-slate-900">결제수단 선택</p>
+                    <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
+                      <span className="rounded-full bg-[#eef4ff] px-2.5 py-1 text-[#1d4ed8]">Toss</span>
+                      <span className="rounded-full bg-[#eafaf0] px-2.5 py-1 text-emerald-700">Naver Pay</span>
+                      <span className="rounded-full bg-[#fff7e6] px-2.5 py-1 text-[#8a5a0a]">Kakao Pay</span>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">Google Pay 별도 설정</span>
+                    </div>
+                  </div>
                   <div id="payment-method" className="mt-4 min-h-[220px]" />
                 </div>
 
@@ -298,6 +296,7 @@ export default function CheckoutContent() {
                 <div className="mt-5 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
                   <p className="font-semibold text-white">결제 전 안내</p>
                   <p className="mt-2">결제 승인 후 구매 이력이 저장됩니다. 결제만으로 문서가 자동 발급되지 않으며, 수강 완료와 필수 동의 확인이 모두 충족되어야 이수 확인 자료 안내가 이어집니다.</p>
+                  <p className="mt-3 text-[#f4d79e]">네이버페이 등 간편결제 노출은 Toss 상점관리자 결제위젯 설정에서 활성화된 항목을 따릅니다.</p>
                 </div>
               </div>
             </div>
