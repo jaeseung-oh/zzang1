@@ -132,6 +132,18 @@ function formatTimestamp(timestamp?: { seconds: number }) {
   return new Date(timestamp.seconds * 1000).toLocaleString("ko-KR");
 }
 
+function formatDurationOrPending(seconds?: number | null) {
+  if (!seconds || seconds <= 0) {
+    return "영상 로딩 후 표시";
+  }
+
+  return formatDuration(seconds);
+}
+
+function formatProgressTime(currentSeconds: number, durationSeconds: number) {
+  return formatDuration(currentSeconds) + " / " + formatDurationOrPending(durationSeconds);
+}
+
 function truncateText(value: string, maxLength: number) {
   if (value.length <= maxLength) {
     return value;
@@ -172,7 +184,7 @@ function buildEmptyModuleProgress() {
       module.id,
       {
         watchedSeconds: 0,
-        durationSeconds: module.minutes * 60,
+        durationSeconds: 0,
         completionRate: 0,
         lastPlaybackPositionSeconds: 0,
         isCompleted: false,
@@ -278,6 +290,7 @@ export default function CourseRoomPage() {
   const [selectedModuleId, setSelectedModuleId] = useState(defaultCourse.modules[0]?.id ?? "");
   const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>(buildEmptyModuleProgress);
   const [legalAccepted, setLegalAccepted] = useState(false);
+  const [legalGateChecked, setLegalGateChecked] = useState(false);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [purchaseNoticeAccepted, setPurchaseNoticeAccepted] = useState(false);
   const [statusMessage, setStatusMessage] = useState("5강 수강 세션과 저장 상태를 준비하는 중입니다.");
@@ -353,7 +366,7 @@ export default function CourseRoomPage() {
 
   const aggregate = useMemo(() => {
     const totalDurationSeconds = defaultCourse.modules.reduce(
-      (sum, module) => sum + (moduleProgress[module.id]?.durationSeconds ?? module.minutes * 60),
+      (sum, module) => sum + (moduleProgress[module.id]?.durationSeconds ?? 0),
       0
     );
     const watchedSeconds = defaultCourse.modules.reduce(
@@ -361,7 +374,7 @@ export default function CourseRoomPage() {
       0
     );
     const completedModuleCount = defaultCourse.modules.filter((module) => moduleProgress[module.id]?.isCompleted).length;
-    const completionRate = Math.floor((watchedSeconds / Math.max(totalDurationSeconds, 1)) * 100);
+    const completionRate = totalDurationSeconds > 0 ? Math.floor((watchedSeconds / totalDurationSeconds) * 100) : 0;
     const remainingSeconds = Math.max(totalDurationSeconds - watchedSeconds, 0);
 
     return {
@@ -508,7 +521,7 @@ export default function CourseRoomPage() {
             ...prev,
             [selectedModule.id]: {
               ...prev[selectedModule.id],
-              durationSeconds: Math.max(prev[selectedModule.id]?.durationSeconds ?? 0, selectedModule.minutes * 60),
+              durationSeconds: prev[selectedModule.id]?.durationSeconds ?? 0,
             },
           }));
         } else {
@@ -572,7 +585,7 @@ export default function CourseRoomPage() {
 
     const handleStreamLoadedMetadata = () => {
       const progress = selectedProgressRef.current;
-      const actualDuration = Math.max(Math.round(player.duration || 0), progress.durationSeconds, selectedModule.minutes * 60, 1);
+      const actualDuration = Math.max(Math.round(player.duration || 0), progress.durationSeconds, 1);
       updateSelectedModuleProgress({ durationSeconds: actualDuration });
       setPlayerReady(true);
 
@@ -584,7 +597,7 @@ export default function CourseRoomPage() {
 
     const handleStreamTimeUpdate = () => {
       const progress = selectedProgressRef.current;
-      const durationSeconds = Math.max(Math.round(player.duration || 0), progress.durationSeconds, selectedModule.minutes * 60, 1);
+      const durationSeconds = Math.max(Math.round(player.duration || 0), progress.durationSeconds, 1);
       const currentSeconds = Math.min(Math.max(player.currentTime || 0, 0), durationSeconds);
       updateSelectedModuleProgress({
         durationSeconds,
@@ -605,7 +618,7 @@ export default function CourseRoomPage() {
     const handleStreamEnded = () => {
       dispatchLectureActivity(false);
       const progress = selectedProgressRef.current;
-      const durationSeconds = Math.max(Math.round(player.duration || 0), progress.durationSeconds, selectedModule.minutes * 60, 1);
+      const durationSeconds = Math.max(Math.round(player.duration || 0), progress.durationSeconds, 1);
       updateSelectedModuleProgress({
         durationSeconds,
         watchedSeconds: durationSeconds,
@@ -700,14 +713,14 @@ export default function CourseRoomPage() {
     const activeModuleId = selectedModuleIdRef.current;
     const activeProgress = moduleProgressRef.current[activeModuleId];
     const totalDurationSeconds = defaultCourse.modules.reduce(
-      (sum, module) => sum + (moduleProgressRef.current[module.id]?.durationSeconds ?? module.minutes * 60),
+      (sum, module) => sum + (moduleProgressRef.current[module.id]?.durationSeconds ?? 0),
       0
     );
     const totalWatchedSeconds = defaultCourse.modules.reduce(
       (sum, module) => sum + (moduleProgressRef.current[module.id]?.watchedSeconds ?? 0),
       0
     );
-    const completionRate = Math.floor((totalWatchedSeconds / Math.max(totalDurationSeconds, 1)) * 100);
+    const completionRate = totalDurationSeconds > 0 ? Math.floor((totalWatchedSeconds / totalDurationSeconds) * 100) : 0;
     const isCompleted = defaultCourse.modules.every((module) => moduleProgressRef.current[module.id]?.isCompleted);
 
     if (
@@ -831,7 +844,7 @@ export default function CourseRoomPage() {
       return;
     }
 
-    const actualDuration = Math.max(Math.round(player.duration || 0), selectedProgress.durationSeconds, selectedModule.minutes * 60, 1);
+    const actualDuration = Math.max(Math.round(player.duration || 0), selectedProgress.durationSeconds, 1);
     updateSelectedModuleProgress({ durationSeconds: actualDuration });
     setPlayerReady(true);
 
@@ -885,6 +898,18 @@ export default function CourseRoomPage() {
       return;
     }
 
+    if (!legalAccepted) {
+      setStatusMessage("수강 전 법적 고지와 민간 교육 서비스 동의를 먼저 확인해 주세요.");
+      return;
+    }
+
+    const moduleIndex = defaultCourse.modules.findIndex((module) => module.id === moduleId);
+    const previousModule = moduleIndex > 0 ? defaultCourse.modules[moduleIndex - 1] : null;
+    if (previousModule && !moduleProgress[previousModule.id]?.isCompleted) {
+      setStatusMessage("잠금 강의입니다. 바로 이전 강의를 완료하면 순차적으로 열립니다.");
+      return;
+    }
+
     const player = videoRef.current;
     if (player && !player.paused) {
       player.pause();
@@ -928,11 +953,12 @@ export default function CourseRoomPage() {
     setStatusMessage(`${selectedModule.title} 교안을 텍스트 파일로 내려받았습니다.`);
   };
 
-  const selectedRemainingSeconds = Math.max(selectedProgress.durationSeconds - selectedProgress.watchedSeconds, 0);
+  const selectedRemainingSeconds = selectedProgress.durationSeconds > 0 ? Math.max(selectedProgress.durationSeconds - selectedProgress.watchedSeconds, 0) : 0;
   const saveStateLabel = isManualSaving ? "수동 저장 중" : isBackgroundSaving ? "자동 저장 중" : "자동 저장 대기";
   const ringCircumference = 2 * Math.PI * 54;
   const ringOffset = ringCircumference * (1 - aggregate.completionRate / 100);
   const purchaseChecklistReady = purchaseNoticeAccepted;
+  const legalGateOpen = !legalAccepted;
   const certificateStatus = result?.issuedCertificates.length
     ? "수료 문서 안내 확인"
     : aggregate.isCompleted
@@ -940,8 +966,52 @@ export default function CourseRoomPage() {
       : "강의 수강 시 발급 안내";
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(198,168,106,0.14),transparent_20%),linear-gradient(180deg,#08101c_0%,#0c1524_16%,#e8edf4_16%,#edf2f7_100%)] px-4 py-5 sm:px-6 lg:px-8 lg:py-8">
-      <div className="mx-auto max-w-[1520px]">
+    <main className="relative min-h-screen overflow-hidden bg-[#06080c] px-4 py-5 text-white sm:px-6 lg:px-8 lg:py-8">
+      <div className="pointer-events-none absolute inset-0 opacity-80">
+        <div className="absolute left-[-12rem] top-[-10rem] h-[32rem] w-[32rem] rounded-full bg-indigo-600/22 blur-[110px]" />
+        <div className="absolute right-[-10rem] top-[18rem] h-[30rem] w-[30rem] rounded-full bg-purple-600/20 blur-[120px]" />
+        <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-indigo-300/50 to-transparent" />
+      </div>
+
+      {legalGateOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#06080c]/86 px-4 backdrop-blur-xl">
+          <div className="w-full max-w-2xl overflow-hidden rounded-[1.75rem] border border-white/14 bg-white/[0.08] shadow-[0_30px_120px_rgba(0,0,0,0.55)] ring-1 ring-indigo-300/12">
+            <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(79,70,229,0.28),rgba(147,51,234,0.22))] px-6 py-5 sm:px-8">
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-100/80">Legal Consent Required</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">수강 전 법적 고지 확인</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-200">이 과정은 민간 교육 서비스이며 법률 자문, 사건 결과, 양형 효과를 보장하지 않습니다. 동의 후 강의실과 영상 재생 기능이 열립니다.</p>
+            </div>
+            <div className="space-y-4 px-6 py-6 sm:px-8">
+              <div className="rounded-2xl border border-white/12 bg-[#06080c]/55 p-5 text-sm leading-7 text-slate-200">
+                <p>{disclaimer}</p>
+                <p className="mt-3">이수 확인 자료는 수강 사실을 정리하는 참고 자료이며, 제출 여부와 사용 방식은 수강자가 직접 판단해야 합니다.</p>
+              </div>
+              <label className="flex items-start gap-3 rounded-2xl border border-indigo-300/18 bg-indigo-300/[0.07] px-4 py-4 text-sm leading-7 text-slate-100">
+                <input
+                  type="checkbox"
+                  checked={legalGateChecked}
+                  onChange={(event) => setLegalGateChecked(event.target.checked)}
+                  className="mt-1 h-4 w-4 accent-indigo-400"
+                />
+                <span>위 법적 고지와 민간 교육 서비스의 한계를 확인했고, 동의 후 수강을 시작합니다.</span>
+              </label>
+              <button
+                type="button"
+                disabled={!legalGateChecked}
+                onClick={() => {
+                  setLegalAccepted(true);
+                  setStatusMessage("법적 고지 동의가 확인되었습니다. 강의실 이용을 시작할 수 있습니다.");
+                }}
+                className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#6366f1_0%,#a855f7_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_18px_40px_rgba(99,102,241,0.34)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                동의하고 강의실 입장
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="relative mx-auto max-w-[1520px]">
         <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,#0a1424_0%,#0f1c33_45%,#162847_100%)] shadow-[0_30px_90px_rgba(2,6,23,0.34)]">
           <div className="grid gap-8 px-6 py-7 sm:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:px-10 lg:py-9">
             <div>
@@ -986,7 +1056,7 @@ export default function CourseRoomPage() {
             </div>
             <div className="rounded-[1.4rem] border border-white/10 bg-white/6 p-4 backdrop-blur">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-400">총 요구 시간</p>
-              <p className="mt-2 text-lg font-semibold text-white">{formatDuration(aggregate.totalDurationSeconds)}</p>
+              <p className="mt-2 text-lg font-semibold text-white">{formatDurationOrPending(aggregate.totalDurationSeconds)}</p>
             </div>
             <div className="rounded-[1.4rem] border border-white/10 bg-white/6 p-4 backdrop-blur">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-400">누적 수강</p>
@@ -1000,14 +1070,14 @@ export default function CourseRoomPage() {
         </section>
 
         <section className="mt-5 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
-          <div className="rounded-[1.5rem] border border-[#d7deea] bg-white p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+          <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">전체 수강률</p>
-                <p className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-slate-950">{aggregate.completionRate}%</p>
+                <p className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-white">{aggregate.completionRate}%</p>
               </div>
-              <div className="text-right text-sm text-slate-600">
-                <p className="font-semibold text-slate-950">{aggregate.completedModuleCount}/{aggregate.totalModuleCount}강 완료</p>
+              <div className="text-right text-sm text-slate-300">
+                <p className="font-semibold text-white">{aggregate.completedModuleCount}/{aggregate.totalModuleCount}강 완료</p>
                 <p className="mt-1">남은 시간 {formatDuration(aggregate.remainingSeconds)}</p>
               </div>
             </div>
@@ -1017,29 +1087,29 @@ export default function CourseRoomPage() {
                 style={{ width: `${aggregate.completionRate}%` }}
               />
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-slate-600">
-              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-2 py-3">
-                <p className="font-semibold text-slate-950">{formatDuration(aggregate.watchedSeconds)}</p>
+            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-slate-300">
+              <div className="rounded-xl border border-white/12 bg-white/[0.06] px-2 py-3">
+                <p className="font-semibold text-white">{formatDuration(aggregate.watchedSeconds)}</p>
                 <p className="mt-1">누적 수강</p>
               </div>
-              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-2 py-3">
-                <p className="font-semibold text-slate-950">{formatDuration(aggregate.totalDurationSeconds)}</p>
+              <div className="rounded-xl border border-white/12 bg-white/[0.06] px-2 py-3">
+                <p className="font-semibold text-white">{formatDurationOrPending(aggregate.totalDurationSeconds)}</p>
                 <p className="mt-1">총 분량</p>
               </div>
-              <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-2 py-3">
-                <p className="font-semibold text-slate-950">{saveStateLabel}</p>
+              <div className="rounded-xl border border-white/12 bg-white/[0.06] px-2 py-3">
+                <p className="font-semibold text-white">{saveStateLabel}</p>
                 <p className="mt-1">저장 상태</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[1.5rem] border border-[#d7deea] bg-white p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+          <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">강의 바로가기</p>
-                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-slate-950">1강부터 5강까지 한눈에 보기</h2>
+                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">1강부터 5강까지 한눈에 보기</h2>
               </div>
-              <span className="rounded-full border border-[#d7deea] bg-[#f8fafc] px-3 py-1 text-xs font-semibold text-slate-700">현재 {selectedModule?.title.split(".")[0] ?? "선택 대기"}</span>
+              <span className="rounded-full border border-[#d7deea] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-slate-200">현재 {selectedModule?.title.split(".")[0] ?? "선택 대기"}</span>
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -1048,6 +1118,7 @@ export default function CourseRoomPage() {
                 const active = module.id === selectedModuleId;
                 const rate = progress?.completionRate ?? 0;
                 const completed = Boolean(progress?.isCompleted);
+                const locked = index > 0 && !moduleProgress[defaultCourse.modules[index - 1].id]?.isCompleted;
 
                 return (
                   <button
@@ -1056,25 +1127,27 @@ export default function CourseRoomPage() {
                     onClick={() => handleSelectModule(module.id)}
                     className={`min-h-[128px] rounded-[1.15rem] border p-4 text-left transition hover:-translate-y-0.5 ${
                       active
-                        ? "border-[#1d4ed8] bg-[#eef4ff] shadow-[0_12px_28px_rgba(29,78,216,0.14)]"
-                        : completed
-                          ? "border-emerald-200 bg-emerald-50"
-                          : "border-[#e2e8f0] bg-[#f8fafc] hover:border-[#9bb8ef]"
+                        ? "border-indigo-300/60 bg-indigo-500/18 shadow-[0_12px_34px_rgba(79,70,229,0.22)]"
+                        : locked
+                          ? "border-white/8 bg-white/[0.035] opacity-55"
+                          : completed
+                            ? "border-emerald-300/40 bg-emerald-400/10"
+                            : "border-white/10 bg-white/[0.06] hover:border-indigo-300/45"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${active ? "bg-[#1d4ed8] text-white" : "bg-white text-slate-700"}`}>
-                        {index + 1}강
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${active ? "bg-indigo-500 text-white" : "bg-white/10 text-slate-200"}`}>
+                        {locked ? "잠금" : `${index + 1}강`}
                       </span>
-                      <span className={`text-xs font-semibold ${completed ? "text-emerald-700" : active ? "text-[#1d4ed8]" : "text-slate-500"}`}>
-                        {completed ? "완료" : active ? "재생 중" : `${rate}%`}
+                      <span className={`text-xs font-semibold ${completed ? "text-emerald-300" : active ? "text-indigo-200" : "text-slate-400"}`}>
+                        {locked ? "Locked" : completed ? "완료" : active ? "재생 중" : `${rate}%`}
                       </span>
                     </div>
-                    <h3 className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-slate-950">{module.title.replace(/^\d+강\.\s*/, "")}</h3>
+                    <h3 className="mt-3 line-clamp-2 text-sm font-semibold leading-5 text-white">{module.title.replace(/^\d+강\.\s*/, "")}</h3>
                     <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/80 ring-1 ring-slate-200">
                       <div className="h-full rounded-full bg-[linear-gradient(90deg,#1d4ed8_0%,#d3b271_100%)]" style={{ width: `${rate}%` }} />
                     </div>
-                    <p className="mt-2 text-xs text-slate-500">{formatDuration(progress?.watchedSeconds ?? 0)} / {formatDuration(progress?.durationSeconds ?? module.minutes * 60)}</p>
+                    <p className="mt-2 text-xs text-slate-400">{formatProgressTime(progress?.watchedSeconds ?? 0, progress?.durationSeconds ?? 0)}</p>
                   </button>
                 );
               })}
@@ -1082,11 +1155,11 @@ export default function CourseRoomPage() {
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.9fr)_380px]">
-          <section className="space-y-6">
-            <section className="rounded-[2rem] border border-[#d7deea] bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7">
+        <div className="mt-6 grid gap-6 xl:grid-cols-[380px_minmax(0,1.9fr)]">
+          <section className="space-y-6 xl:order-2">
+            <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7">
               <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_340px]">
-                <div className="rounded-[1.8rem] border border-[#d9e2ee] bg-[linear-gradient(180deg,#091221_0%,#0d1730_100%)] shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
+                <div className="rounded-[1.8rem] border border-white/12 bg-[linear-gradient(180deg,#091221_0%,#0d1730_100%)] shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
                     <div className="max-w-3xl">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9fbef9]">현재 재생 중인 강의</p>
@@ -1095,7 +1168,7 @@ export default function CourseRoomPage() {
                     </div>
                     <div className="flex flex-wrap gap-2">
                       <span className="rounded-full border border-white/10 bg-white/8 px-4 py-2 text-xs font-medium text-slate-200">
-                        {selectedModule?.minutes}분 구성
+                        영상 시간 {formatDurationOrPending(selectedProgress.durationSeconds)}
                       </span>
                       <span className="rounded-full border border-[#d3b271]/35 bg-[#d3b271]/12 px-4 py-2 text-xs font-semibold text-[#f3ddb2]">
                         {selectedProgress.completionRate}% 진행
@@ -1151,18 +1224,18 @@ export default function CourseRoomPage() {
 
                     <div className="pointer-events-none absolute bottom-4 left-4">
                       <div className="rounded-full border border-white/10 bg-[#09182c]/90 px-4 py-2 text-xs font-medium text-slate-200 shadow-[0_10px_24px_rgba(2,6,23,0.28)] backdrop-blur">
-                        마지막 위치 {formatDuration(selectedProgress.lastPlaybackPositionSeconds)}
+                        현재 {formatProgressTime(selectedProgress.lastPlaybackPositionSeconds, selectedProgress.durationSeconds)}
                       </div>
                     </div>
                   </div>
 
                   <div className="grid gap-3 border-t border-white/10 bg-[linear-gradient(180deg,rgba(10,19,36,0.94),rgba(13,25,47,0.98))] px-5 py-5 sm:grid-cols-2 xl:grid-cols-4 sm:px-6">
                     <div className="rounded-[1.25rem] border border-white/10 bg-white/6 p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">현재 위치</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedProgress.lastPlaybackPositionSeconds)}</p>
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">현재 / 전체</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{formatProgressTime(selectedProgress.lastPlaybackPositionSeconds, selectedProgress.durationSeconds)}</p>
                     </div>
                     <div className="rounded-[1.25rem] border border-white/10 bg-white/6 p-4">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">누적 시청</p>
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">들은 시간</p>
                       <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedProgress.watchedSeconds)}</p>
                     </div>
                     <div className="rounded-[1.25rem] border border-white/10 bg-white/6 p-4">
@@ -1171,23 +1244,23 @@ export default function CourseRoomPage() {
                     </div>
                     <div className="rounded-[1.25rem] border border-white/10 bg-white/6 p-4">
                       <p className="text-xs uppercase tracking-[0.18em] text-slate-400">남은 시간</p>
-                      <p className="mt-2 text-lg font-semibold text-white">{formatDuration(selectedRemainingSeconds)}</p>
+                      <p className="mt-2 text-lg font-semibold text-white">{selectedProgress.durationSeconds > 0 ? formatDuration(selectedRemainingSeconds) : "영상 로딩 후 표시"}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-5">
-                  <div className="rounded-[1.6rem] border border-[#dae2ef] bg-[linear-gradient(180deg,#f9fbfe_0%,#f2f6fb_100%)] p-5">
+                  <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.07] backdrop-blur-2xl p-5">
                     <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Lecture Summary</p>
-                    <h3 className="mt-3 text-xl font-semibold text-[#0f172a]">강의 개요와 학습 정보</h3>
-                    <div className="mt-5 space-y-4 text-sm leading-7 text-slate-600">
-                      <div className="rounded-[1.2rem] border border-[#e2e8f0] bg-white px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">교육 카테고리</p>
-                        <p className="mt-2 font-semibold text-slate-900">{caseTypeOptions.find((option) => option.value === caseType)?.label ?? "음주운전"} 재발 방지 전문 과정</p>
+                    <h3 className="mt-3 text-xl font-semibold text-white">강의 개요와 학습 정보</h3>
+                    <div className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
+                      <div className="rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">교육 카테고리</p>
+                        <p className="mt-2 font-semibold text-slate-100">{caseTypeOptions.find((option) => option.value === caseType)?.label ?? "음주운전"} 재발 방지 전문 과정</p>
                       </div>
-                      <div className="rounded-[1.2rem] border border-[#e2e8f0] bg-white px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">핵심 학습 포인트</p>
-                        <div className="mt-3 space-y-3 text-slate-700">
+                      <div className="rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">핵심 학습 포인트</p>
+                        <div className="mt-3 space-y-3 text-slate-200">
                           {selectedModule?.highlights.map((item, index) => (
                             <div key={item} className="flex items-start gap-3">
                               <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#10213f] text-xs font-bold text-white">{index + 1}</span>
@@ -1196,9 +1269,9 @@ export default function CourseRoomPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="rounded-[1.2rem] border border-[#eadbb9] bg-[linear-gradient(180deg,#fffaf0_0%,#fff5df_100%)] px-4 py-4">
+                      <div className="rounded-[1.2rem] border border-[#eadbb9] bg-[linear-gradient(135deg,rgba(99,102,241,0.14),rgba(168,85,247,0.10))] px-4 py-4">
                         <p className="text-xs uppercase tracking-[0.16em] text-[#7a5622]">실천 체크리스트</p>
-                        <div className="mt-3 space-y-3 text-slate-700">
+                        <div className="mt-3 space-y-3 text-slate-200">
                           {selectedModule?.actionChecklist.map((item, index) => (
                             <div key={item} className="flex items-start gap-3">
                               <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d3ad62] text-xs font-bold text-[#1c1408]">{index + 1}</span>
@@ -1207,14 +1280,14 @@ export default function CourseRoomPage() {
                           ))}
                         </div>
                       </div>
-                      <div className="rounded-[1.2rem] border border-[#e2e8f0] bg-white px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-500">학습 메모</p>
-                        <p className="mt-2 text-slate-700">재생 일시정지, 강의 종료, 10초 간격 자동 저장으로 이어보기와 수료 판정이 함께 관리됩니다.</p>
+                      <div className="rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-4">
+                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">학습 메모</p>
+                        <p className="mt-2 text-slate-200">재생 일시정지, 강의 종료, 10초 간격 자동 저장으로 이어보기와 수료 판정이 함께 관리됩니다.</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="rounded-[1.6rem] border border-[#dae2ef] bg-white p-5 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+                  <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.08] p-5 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
                     <div className="grid gap-3 sm:grid-cols-2">
                       <button
                         type="button"
@@ -1232,33 +1305,33 @@ export default function CourseRoomPage() {
                         교안 다운로드
                       </button>
                     </div>
-                    <div className="mt-4 rounded-[1.25rem] border border-slate-200 bg-slate-50 px-4 py-4 text-sm leading-7 text-slate-600">
-                      <p className="font-semibold text-slate-900">운영 상태</p>
+                    <div className="mt-4 rounded-[1.25rem] border border-white/12 bg-[#06080c]/45 px-4 py-4 text-sm leading-7 text-slate-300">
+                      <p className="font-semibold text-slate-100">운영 상태</p>
                       <p className="mt-2">{statusMessage}</p>
-                      <p className="mt-3 text-xs text-slate-500">마지막 저장 시각 {lastSavedLabel}</p>
+                      <p className="mt-3 text-xs text-slate-400">마지막 저장 시각 {lastSavedLabel}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-[#d7deea] bg-white p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6 lg:p-7">
+            <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6 lg:p-7">
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#274690]">Compliance & Enrollment</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0f172a]">수료 연동 필수 설정</h3>
-                  <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">
+                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">수료 연동 필수 설정</h3>
+                  <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
                     필수 동의와 사건 유형 설정은 수강 진행 저장과 이수 확인 자료 안내에 반영됩니다. 결제만으로 문서가 자동 발급되지는 않으며, 수강 완료 여부와 동의 상태를 함께 확인합니다.
                   </p>
                 </div>
-                <div className="rounded-full border border-[#d8dfeb] bg-[#f6f8fb] px-4 py-2 text-sm font-semibold text-slate-700">
+                <div className="rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-200">
                   UID {uid ? `${uid.slice(0, 10)}...` : "세션 준비 중"}
                 </div>
               </div>
 
               <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_340px]">
                 <div className="space-y-4">
-                  <label className="flex items-start gap-3 rounded-[1.35rem] border border-[#dce4ef] bg-[#f9fbfd] px-4 py-4 text-sm leading-7 text-slate-700">
+                  <label className="flex items-start gap-3 rounded-[1.35rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-200">
                     <input
                       type="checkbox"
                       checked={legalAccepted}
@@ -1267,7 +1340,7 @@ export default function CourseRoomPage() {
                     />
                     <span>{disclaimer} 또한 이수 확인 자료는 민간 교육 자료이며, 특정 절차에서의 결과나 효력을 보장하지 않음을 이해했습니다.</span>
                   </label>
-                  <label className="flex items-start gap-3 rounded-[1.35rem] border border-[#dce4ef] bg-[#f9fbfd] px-4 py-4 text-sm leading-7 text-slate-700">
+                  <label className="flex items-start gap-3 rounded-[1.35rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-200">
                     <input
                       type="checkbox"
                       checked={reviewAccepted}
@@ -1278,7 +1351,7 @@ export default function CourseRoomPage() {
                   </label>
                 </div>
 
-                <div className="rounded-[1.6rem] border border-[#dce4ef] bg-[linear-gradient(180deg,#0f1c33_0%,#132544_100%)] p-5 text-white shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
+                <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,#0f1c33_0%,#132544_100%)] p-5 text-white shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
                   <label className="block text-sm">
                     <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9cbef6]">사건 유형</span>
                     <select
@@ -1307,8 +1380,8 @@ export default function CourseRoomPage() {
             </section>
           </section>
 
-          <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-            <section className="overflow-hidden rounded-[2rem] border border-[#d7deea] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+          <aside className="flex flex-col gap-6 xl:order-1 xl:sticky xl:top-6 xl:self-start">
+            <section className="overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
               <div className="bg-[linear-gradient(135deg,#6b4f1d_0%,#8a6a2d_100%)] px-4 py-4 text-white sm:px-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -1323,40 +1396,40 @@ export default function CourseRoomPage() {
               </div>
 
               <div className="space-y-4 p-4 sm:p-5">
-                <div className="rounded-[1.3rem] border border-[#e5d9bf] bg-[#fcf7ed] p-4 text-sm leading-7 text-slate-700">
+                <div className="rounded-[1.3rem] border border-white/12 bg-white/[0.06] p-4 text-sm leading-7 text-slate-200">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-[#8a6a2d]">주문 과정</p>
-                      <p className="mt-2 font-semibold text-slate-900">{defaultCourse.title}</p>
+                      <p className="mt-2 font-semibold text-slate-100">{defaultCourse.title}</p>
                     </div>
-                    <span className="rounded-full border border-[#e2c57b] bg-white px-3 py-1 text-xs font-semibold text-[#7a5a1b]">
+                    <span className="rounded-full border border-[#e2c57b] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-[#7a5a1b]">
                       {defaultCourse.priceLabel}
                     </span>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl border border-[#eadfcb] bg-white px-3.5 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">제공 내용</p>
-                      <p className="mt-1.5 text-slate-900">온라인 강의 {defaultCourse.modules.length}강, 학습확인 자료 안내</p>
+                    <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">제공 내용</p>
+                      <p className="mt-1.5 text-slate-100">온라인 강의 {defaultCourse.modules.length}강, 학습확인 자료 안내</p>
                     </div>
-                    <div className="rounded-xl border border-[#eadfcb] bg-white px-3.5 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-500">발급 기준</p>
-                      <p className="mt-1.5 text-slate-900">결제 확인, 수강 완료, 필수 동의 확인 후 이수 자료 안내</p>
+                    <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">발급 기준</p>
+                      <p className="mt-1.5 text-slate-100">결제 확인, 수강 완료, 필수 동의 확인 후 이수 자료 안내</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
+                  <label className="flex items-start gap-3 rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-200">
                     <input
                       type="checkbox"
                       checked={purchaseNoticeAccepted}
                       onChange={(event) => setPurchaseNoticeAccepted(event.target.checked)}
                       className="mt-1 h-4 w-4 accent-[#8a6a2d]"
                     />
-                    <span className="font-semibold text-slate-900">결제 전 안내와 수료 문서 발급 조건을 확인했습니다.</span>
+                    <span className="font-semibold text-slate-100">결제 전 안내와 수료 문서 발급 조건을 확인했습니다.</span>
                   </label>
 
-                  <div className="rounded-[1.1rem] border border-[#e2e8f0] bg-[#f8fafc] px-4 py-4 text-sm leading-7 text-slate-600">
+                  <div className="rounded-[1.1rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-300">
                     <p>수료 문서는 결제 완료와 수강 완료 후 안내됩니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
                     <div className="mt-3 flex flex-wrap gap-3 font-semibold">
                       <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
@@ -1385,7 +1458,7 @@ export default function CourseRoomPage() {
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-[2rem] border border-[#d7deea] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
+            <section className="overflow-hidden rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
               <div className="bg-[linear-gradient(135deg,#0d172a_0%,#132341_100%)] px-4 py-4 text-white sm:px-5">
                 <div className="flex items-start justify-between gap-4">
                   <div>
@@ -1401,7 +1474,7 @@ export default function CourseRoomPage() {
 
               <div className="p-3.5 sm:p-4">
                 <div className="grid gap-3">
-                  <div className="grid gap-2.5 rounded-[1.2rem] border border-[#dce3ef] bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_100%)] p-3">
+                  <div className="grid gap-2.5 rounded-[1.2rem] border border-white/12 bg-[linear-gradient(180deg,#f8fafc_0%,#f3f6fa_100%)] p-3">
                     <div className="mx-auto relative flex h-24 w-24 items-center justify-center">
                       <svg viewBox="0 0 140 140" className="h-24 w-24 -rotate-90">
                         <circle cx="70" cy="70" r="54" fill="none" stroke="#d8e2ef" strokeWidth="10" />
@@ -1425,15 +1498,15 @@ export default function CourseRoomPage() {
                         </defs>
                       </svg>
                       <div className="pointer-events-none absolute text-center">
-                        <p className="text-xl font-semibold tracking-[-0.04em] text-slate-950">{aggregate.completionRate}%</p>
-                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-500">completion</p>
+                        <p className="text-xl font-semibold tracking-[-0.04em] text-white">{aggregate.completionRate}%</p>
+                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">completion</p>
                       </div>
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between text-xs text-slate-600">
+                      <div className="flex items-center justify-between text-xs text-slate-300">
                         <span>과정 진행률</span>
-                        <span className="font-semibold text-slate-900">{aggregate.completionRate}%</span>
+                        <span className="font-semibold text-slate-100">{aggregate.completionRate}%</span>
                       </div>
                       <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
                         <div
@@ -1445,28 +1518,28 @@ export default function CourseRoomPage() {
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">총 요구 교육 시간</p>
-                      <p className="mt-1.5 text-base font-semibold text-slate-950">{formatDuration(aggregate.totalDurationSeconds)}</p>
+                    <div className="rounded-[1.15rem] border border-white/12 bg-white/[0.06] px-3.5 py-3.5">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">총 요구 교육 시간</p>
+                      <p className="mt-1.5 text-base font-semibold text-white">{formatDurationOrPending(aggregate.totalDurationSeconds)}</p>
                     </div>
-                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">현재 누적 수강 시간</p>
-                      <p className="mt-1.5 text-base font-semibold text-slate-950">{formatDuration(aggregate.watchedSeconds)}</p>
+                    <div className="rounded-[1.15rem] border border-white/12 bg-white/[0.06] px-3.5 py-3.5">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">현재 누적 수강 시간</p>
+                      <p className="mt-1.5 text-base font-semibold text-white">{formatDuration(aggregate.watchedSeconds)}</p>
                     </div>
-                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">남은 시간</p>
-                      <p className="mt-1.5 text-base font-semibold text-slate-950">{formatDuration(aggregate.remainingSeconds)}</p>
+                    <div className="rounded-[1.15rem] border border-white/12 bg-white/[0.06] px-3.5 py-3.5">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">남은 시간</p>
+                      <p className="mt-1.5 text-base font-semibold text-white">{formatDuration(aggregate.remainingSeconds)}</p>
                     </div>
-                    <div className="rounded-[1.15rem] border border-[#dce3ef] bg-[#f8fafc] px-3.5 py-3.5">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-500">수료증 발급 상태</p>
-                      <p className="mt-1.5 text-base font-semibold text-slate-950">{certificateStatus}</p>
+                    <div className="rounded-[1.15rem] border border-white/12 bg-white/[0.06] px-3.5 py-3.5">
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">수료증 발급 상태</p>
+                      <p className="mt-1.5 text-base font-semibold text-white">{certificateStatus}</p>
                     </div>
                   </div>
                 </div>
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-[#d7deea] bg-[linear-gradient(180deg,#0c1526_0%,#0f1b31_100%)] p-4 text-white shadow-[0_24px_60px_rgba(15,23,42,0.14)] sm:p-5">
+            <section className="order-first rounded-[2rem] border border-indigo-300/18 bg-white/[0.08] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)] ring-1 ring-white/8 backdrop-blur-2xl sm:p-5">
               <div className="flex items-center justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9dbef8]">Curriculum</p>
@@ -1481,6 +1554,7 @@ export default function CourseRoomPage() {
                 {defaultCourse.modules.map((module, index) => {
                   const item = moduleProgress[module.id];
                   const active = selectedModuleId === module.id;
+                  const locked = index > 0 && !moduleProgress[defaultCourse.modules[index - 1].id]?.isCompleted;
                   const state = getModuleState(item, active);
 
                   return (
@@ -1488,11 +1562,12 @@ export default function CourseRoomPage() {
                       key={module.id}
                       type="button"
                       onClick={() => handleSelectModule(module.id)}
-                      className={`group w-full rounded-[1.2rem] border p-3 text-left transition hover:-translate-y-0.5 hover:border-[#5f8fff]/45 ${state.toneClassName}`}
+                      aria-disabled={locked}
+                      className={`group w-full rounded-[1.2rem] border p-3 text-left transition hover:-translate-y-0.5 hover:border-[#5f8fff]/45 ${state.toneClassName} ${locked ? "opacity-55 grayscale" : ""}`}
                     >
                       <div className="flex items-start gap-3">
                         <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${state.iconClassName}`}>
-                          {state.icon}
+                          {locked ? "잠" : state.icon}
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -1501,12 +1576,12 @@ export default function CourseRoomPage() {
                               <h4 className="mt-1 text-sm font-semibold leading-5 text-white">{module.title}</h4>
                             </div>
                             <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${active ? "bg-[#1e3a6b] text-[#c8dcff]" : "bg-white/8 text-slate-300"}`}>
-                              {state.label}
+                              {locked ? "잠금" : state.label}
                             </span>
                           </div>
                           <p className="mt-1.5 text-xs leading-5 text-slate-300">{truncateText(module.summary, 56)}</p>
                           <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-400">
-                            <span>{formatDuration(item?.watchedSeconds ?? 0)} / {formatDuration(item?.durationSeconds ?? module.minutes * 60)}</span>
+                            <span>{formatProgressTime(item?.watchedSeconds ?? 0, item?.durationSeconds ?? 0)}</span>
                             <span className="font-semibold text-slate-200">{item?.completionRate ?? 0}%</span>
                           </div>
                           <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
@@ -1520,12 +1595,12 @@ export default function CourseRoomPage() {
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-[#d7deea] bg-white p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
+            <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Completion Assets</p>
-              <h3 className="mt-2 text-xl font-semibold text-[#0f172a]">과정 완료 후 제공 문서</h3>
+              <h3 className="mt-2 text-xl font-semibold text-white">과정 완료 후 제공 문서</h3>
               <div className="mt-4 space-y-2.5">
                 {defaultCourse.outputs.map((item) => (
-                  <div key={item} className="rounded-[1.25rem] border border-[#dce3ef] bg-[#f8fafc] px-4 py-4 text-sm font-medium text-slate-700">
+                  <div key={item} className="rounded-[1.25rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm font-medium text-slate-200">
                     {item}
                   </div>
                 ))}
@@ -1541,7 +1616,7 @@ export default function CourseRoomPage() {
                         href={certificate.downloadUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3 transition hover:bg-emerald-50"
+                        className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white/[0.06] px-4 py-3 transition hover:bg-emerald-50"
                       >
                         <span>{certificate.documentType} / {certificate.issueNumber}</span>
                         <span className="font-semibold">열기</span>

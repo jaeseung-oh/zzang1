@@ -5,12 +5,15 @@ import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createUserWithEmailAndPassword,
+  EmailAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   reload,
   sendEmailVerification,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
   updateProfile,
   type User,
 } from "firebase/auth";
@@ -192,6 +195,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   const [passwordConfirm, setPasswordConfirm] = useState("");
   const [realName, setRealName] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [sensitiveInfoAccepted, setSensitiveInfoAccepted] = useState(false);
@@ -203,6 +207,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isRefreshingVerification, startVerificationTransition] = useTransition();
   const [isResettingPassword, startResetTransition] = useTransition();
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
   const isSignupConsentComplete = termsAccepted && privacyAccepted && sensitiveInfoAccepted;
 
   const helperStats = useMemo(() => {
@@ -245,6 +253,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           setEmail(user.email ?? storedProfile?.email ?? "");
           setRealName(storedProfile?.realName ?? storedProfile?.fullName ?? user.displayName ?? "");
           setDateOfBirth(storedProfile?.dateOfBirth ?? storedProfile?.birthDate ?? "");
+          setPhoneNumber(storedProfile?.phoneNumber ?? user.phoneNumber ?? "");
           const certificateIdentity = getCertificateIdentity(storedProfile);
           setMessage(
             certificateIdentity.isLocked
@@ -330,6 +339,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           provider: "password",
           providerLabel: "이메일 회원가입",
           isEmailVerified: credential.user.emailVerified,
+          phoneNumber: phoneNumber.trim() || null,
           termsAccepted: true,
           privacyAccepted: true,
           sensitiveInfoAccepted: true,
@@ -402,6 +412,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           provider: authUser.providerData[0]?.providerId ?? "password",
           providerLabel: "이메일 회원",
           isEmailVerified: authUser.emailVerified,
+          phoneNumber: phoneNumber.trim() || null,
         });
 
         const storedProfile = await getUserProfile(authUser.uid);
@@ -485,6 +496,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setTermsAccepted(false);
         setPrivacyAccepted(false);
         setSensitiveInfoAccepted(false);
+        setPhoneNumber("");
+        setCurrentPassword("");
+        setNewPassword("");
+        setNewPasswordConfirm("");
         setMessage("로그아웃되었습니다.");
       } catch (logoutError) {
         console.error(logoutError);
@@ -509,6 +524,54 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setError(resetError instanceof Error ? resetError.message : "비밀번호 재설정 메일 발송 중 오류가 발생했습니다.");
       }
     });
+  };
+
+
+  const handlePasswordChange = () => {
+    setError("");
+    setIsUpdatingPassword(true);
+
+    void (async () => {
+      try {
+        if (!authUser) {
+          throw new Error("로그인 후 다시 시도해 주세요.");
+        }
+        if (!authUser.email) {
+          throw new Error("이메일 계정에서만 비밀번호를 직접 변경할 수 있습니다.");
+        }
+        if (newPassword.length < 8) {
+          throw new Error("새 비밀번호는 8자 이상이어야 합니다.");
+        }
+        if (newPassword !== newPasswordConfirm) {
+          throw new Error("새 비밀번호 확인이 일치하지 않습니다.");
+        }
+
+        const isPasswordProvider = authUser.providerData.some((provider) => provider.providerId === "password");
+        if (!isPasswordProvider) {
+          const { auth } = getFirebaseServices();
+          await sendPasswordResetEmail(auth, authUser.email, { url: appOrigin + "/login" });
+          setMessage("소셜 로그인 계정은 비밀번호를 직접 변경할 수 없어 재설정 메일을 발송했습니다.");
+          return;
+        }
+
+        if (!currentPassword) {
+          throw new Error("현재 비밀번호를 입력해 주세요.");
+        }
+
+        const credential = EmailAuthProvider.credential(authUser.email, currentPassword);
+        await reauthenticateWithCredential(authUser, credential);
+        await updatePassword(authUser, newPassword);
+        setCurrentPassword("");
+        setNewPassword("");
+        setNewPasswordConfirm("");
+        setMessage("비밀번호가 변경되었습니다. 다음 로그인부터 새 비밀번호를 사용해 주세요.");
+      } catch (passwordError) {
+        console.error(passwordError);
+        setError(passwordError instanceof Error ? passwordError.message : "비밀번호 변경 중 오류가 발생했습니다.");
+      } finally {
+        setIsUpdatingPassword(false);
+      }
+    })();
   };
 
   const displayName = getProfileName(profile, authUser);
@@ -644,6 +707,16 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                         className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
                       />
                       <p className="text-xs leading-6 text-slate-500">숫자만 이어서 입력하면 자동으로 날짜 형식이 적용됩니다.</p>
+                    </label>
+                    <label className="block space-y-2 text-sm text-slate-700">
+                      <span className="font-medium">연락처</span>
+                      <input
+                        type="tel"
+                        value={phoneNumber}
+                        onChange={(event) => setPhoneNumber(event.target.value)}
+                        placeholder="010-0000-0000"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                      />
                     </label>
                   </>
                 ) : null}
@@ -790,11 +863,22 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                       className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
                     />
                   </label>
+                  <label className="space-y-2 text-sm text-slate-700 sm:col-span-2">
+                    <span className="font-medium">연락처</span>
+                    <input
+                      type="tel"
+                      value={phoneNumber}
+                      onChange={(event) => setPhoneNumber(event.target.value)}
+                      placeholder="010-0000-0000"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-slate-900 outline-none transition focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                    />
+                  </label>
                 </div>
 
                 <div className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                   <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">저장된 실명: {profile?.realName || profile?.fullName || "아직 없음"}</div>
                   <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">저장된 생년월일: {profile?.dateOfBirth || profile?.birthDate || "아직 없음"}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 sm:col-span-2">저장된 연락처: {profile?.phoneNumber || "아직 없음"}</div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -814,6 +898,44 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                   >
                     로그아웃
                   </button>
+                </div>
+
+                <div className="rounded-[1.5rem] border border-slate-200 bg-[#f8fafc] p-5">
+                  <p className="text-sm font-semibold text-slate-900">비밀번호 변경</p>
+                  <p className="mt-2 text-xs leading-6 text-slate-500">이메일 비밀번호 계정은 현재 비밀번호 확인 후 즉시 변경됩니다. 소셜 로그인 계정은 재설정 메일로 안내됩니다.</p>
+                  <div className="mt-4 grid gap-3">
+                    <input
+                      type="password"
+                      value={currentPassword}
+                      onChange={(event) => setCurrentPassword(event.target.value)}
+                      placeholder="현재 비밀번호"
+                      className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                    />
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      <input
+                        type="password"
+                        value={newPassword}
+                        onChange={(event) => setNewPassword(event.target.value)}
+                        placeholder="새 비밀번호 8자 이상"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                      />
+                      <input
+                        type="password"
+                        value={newPasswordConfirm}
+                        onChange={(event) => setNewPasswordConfirm(event.target.value)}
+                        placeholder="새 비밀번호 확인"
+                        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-[#1f4b8f] focus:ring-4 focus:ring-[#1f4b8f]/12"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handlePasswordChange}
+                      disabled={isUpdatingPassword}
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#10213f] bg-white px-5 py-3 text-sm font-semibold text-[#10213f] transition hover:bg-[#f8fbff] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {isUpdatingPassword ? "변경 중..." : "비밀번호 변경"}
+                    </button>
+                  </div>
                 </div>
 
                 {!isVerified ? (

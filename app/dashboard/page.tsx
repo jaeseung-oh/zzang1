@@ -82,6 +82,18 @@ function formatDuration(seconds: number) {
   return `${remainingSeconds}초`;
 }
 
+function formatDurationOrPending(seconds?: number | null) {
+  if (!seconds || seconds <= 0) {
+    return "영상 로딩 후 표시";
+  }
+
+  return formatDuration(seconds);
+}
+
+function formatProgressTime(currentSeconds: number, durationSeconds: number) {
+  return formatDuration(currentSeconds) + " / " + formatDurationOrPending(durationSeconds);
+}
+
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -146,10 +158,10 @@ export default function DashboardPage() {
   }, [router]);
 
   const progressSummary = useMemo(() => {
-    const durationSeconds = Math.max(progress?.durationSeconds ?? defaultCourse.durationMinutes * 60, 1);
+    const durationSeconds = Math.max(progress?.durationSeconds ?? 0, 0);
     const watchedSeconds = Math.min(progress?.watchedSeconds ?? 0, durationSeconds);
-    const remainingSeconds = Math.max(progress?.remainingSeconds ?? durationSeconds - watchedSeconds, 0);
-    const completionRate = progress?.completionRate ?? Math.floor((watchedSeconds / durationSeconds) * 100);
+    const remainingSeconds = durationSeconds > 0 ? Math.max(progress?.remainingSeconds ?? durationSeconds - watchedSeconds, 0) : 0;
+    const completionRate = progress?.completionRate ?? (durationSeconds > 0 ? Math.floor((watchedSeconds / durationSeconds) * 100) : 0);
     const completedModuleCount = progress?.completedModuleCount ?? Object.values(progress?.moduleProgress ?? {}).filter((item) => item.isCompleted).length;
     const totalModuleCount = progress?.totalModuleCount ?? defaultCourse.modules.length;
     const statusLabel = progress?.isCompleted ? "전체 수료 완료" : completionRate >= 80 ? "곧 전체 수료" : "수강 진행 중";
@@ -184,6 +196,9 @@ export default function DashboardPage() {
             </Link>
             <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-6 py-3 text-sm font-semibold text-[#10213f] shadow-[0_10px_20px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
               성찰문 글쓰기 가이드
+            </Link>
+            <Link href="/login" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-6 py-3 text-sm font-semibold text-[#10213f] shadow-[0_10px_20px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
+              회원정보 변경
             </Link>
           </div>
         </div>
@@ -220,7 +235,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">남은 시간</p>
-                    <p className="mt-2 text-white">{formatDuration(progressSummary.remainingSeconds)}</p>
+                    <p className="mt-2 text-white">{progressSummary.durationSeconds > 0 ? formatDuration(progressSummary.remainingSeconds) : "영상 로딩 후 표시"}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">완료 강의</p>
@@ -231,7 +246,7 @@ export default function DashboardPage() {
                 <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">전체 길이</p>
-                    <p className="mt-2 text-white">{formatDuration(progressSummary.durationSeconds)}</p>
+                    <p className="mt-2 text-white">{formatDurationOrPending(progressSummary.durationSeconds)}</p>
                   </div>
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">완료 여부</p>
@@ -253,7 +268,7 @@ export default function DashboardPage() {
                           <p className="font-semibold text-white">{index + 1}강. {module.title}</p>
                           <span className="text-xs text-white/55">{item?.isCompleted ? "완료" : `${item?.completionRate ?? 0}%`}</span>
                         </div>
-                        <p className="mt-2 text-sm text-white/65">{formatDuration(item?.watchedSeconds ?? 0)} / {formatDuration(item?.durationSeconds ?? module.minutes * 60)}</p>
+                        <p className="mt-2 text-sm text-white/65">{formatProgressTime(item?.watchedSeconds ?? 0, item?.durationSeconds ?? 0)}</p>
                         <div className="mt-3 overflow-hidden rounded-full bg-white/10">
                           <div className="h-2 rounded-full bg-[#d3ad62]" style={{ width: `${item?.completionRate ?? 0}%` }} />
                         </div>
