@@ -18,6 +18,8 @@ export type CourseDefinition = {
   priceLabel: string;
   caseTypes: string[];
   outputs: string[];
+  accessValidMonths: number;
+  accessValidLabel: string;
   modules: CourseModule[];
 };
 
@@ -27,8 +29,10 @@ export const courseCatalog: CourseDefinition[] = [
     title: "음주운전 예방교육 5강 코스",
     subtitle: "위험 신호 인식, 판단력 저하 이해, 관계 회복, 생활 관리 계획까지 단계적으로 정리하는 자기점검형 음주운전 예방교육 과정",
     durationMinutes: 50,
-    priceKrw: 39000,
-    priceLabel: "39,000원",
+    priceKrw: 55000,
+    priceLabel: "55,000원",
+    accessValidMonths: 6,
+    accessValidLabel: "결제 후 6개월 이내",
     caseTypes: ["음주운전"],
     outputs: ["학습확인서", "금주 실천 서약서", "재발방지 계획서"],
     modules: [

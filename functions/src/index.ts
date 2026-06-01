@@ -17,6 +17,32 @@ const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 const LEGAL_NOTICE =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
+const COURSE_ACCESS_VALID_MONTHS = 6;
+const COURSE_PRICE_KRW: Record<string, number> = {
+  "rapid-sentencing-prep": 55000,
+};
+
+function addMonths(date: Date, months: number) {
+  const next = new Date(date.getTime());
+  next.setMonth(next.getMonth() + months);
+  return next;
+}
+
+function parsePurchaseExpiry(value: unknown) {
+  if (!value) {
+    return null;
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as { toDate?: unknown }).toDate === "function") {
+    const date = (value as { toDate: () => Date }).toDate();
+    return date.getTime();
+  }
+  return null;
+}
+
 const COURSE_COMPLETION_DOCUMENTS = [
   {
     documentType: "completion",
@@ -280,14 +306,24 @@ async function getPaidPurchase(uid: string, courseId: string) {
     .where("uid", "==", uid)
     .where("courseId", "==", courseId)
     .where("paymentStatus", "==", "paid")
-    .limit(1)
+    .limit(20)
     .get();
 
   if (snapshot.empty) {
     throw new HttpsError("failed-precondition", "결제 완료 이력이 확인되지 않아 수강 완료를 저장할 수 없습니다.");
   }
 
-  return snapshot.docs[0];
+  const now = Date.now();
+  const activePurchase = snapshot.docs.find((doc) => {
+    const expiresAt = parsePurchaseExpiry(doc.data().expiresAt);
+    return expiresAt === null || expiresAt >= now;
+  });
+
+  if (!activePurchase) {
+    throw new HttpsError("failed-precondition", "결제 후 6개월 수강 유효기간이 만료되어 수강 완료를 저장할 수 없습니다.");
+  }
+
+  return activePurchase;
 }
 
 function getCourseVideoAsset(courseId: string, moduleId: string) {
@@ -571,6 +607,12 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
     return;
   }
 
+  const expectedAmount = COURSE_PRICE_KRW[courseId];
+  if (!expectedAmount || amount !== expectedAmount) {
+    response.status(400).json({ message: "결제 금액이 현재 강의 수강료와 일치하지 않습니다." });
+    return;
+  }
+
   try {
     const tossAuthHeader = getTossAuthHeader();
     const tossResponse = await axios.post(
@@ -589,6 +631,8 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
     );
 
     const approved = tossResponse.data;
+    const accessStartsAt = approved.approvedAt ? new Date(approved.approvedAt) : new Date();
+    const expiresAt = addMonths(accessStartsAt, COURSE_ACCESS_VALID_MONTHS).toISOString();
 
     await db.collection("purchases").doc(orderId).set(
       {
@@ -605,6 +649,8 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
         finalReviewResponsibilityAccepted,
         orderedAt: approved.approvedAt || null,
         approvedAt: approved.approvedAt || null,
+        accessValidMonths: COURSE_ACCESS_VALID_MONTHS,
+        expiresAt,
         rawResponse: approved,
         updatedAt: FieldValue.serverTimestamp(),
         createdAt: FieldValue.serverTimestamp(),

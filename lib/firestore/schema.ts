@@ -48,6 +48,8 @@ export interface Purchase {
   finalReviewResponsibilityAccepted: boolean;
   orderedAt: string | null;
   approvedAt?: string | null;
+  expiresAt?: string | null;
+  accessValidMonths?: number;
 }
 
 export interface Certificate {

@@ -1412,8 +1412,8 @@ export default function CourseRoomPage() {
                       <p className="mt-1.5 text-slate-100">온라인 강의 {defaultCourse.modules.length}강, 학습확인 자료 안내</p>
                     </div>
                     <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
-                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">발급 기준</p>
-                      <p className="mt-1.5 text-slate-100">결제 확인, 수강 완료, 필수 동의 확인 후 이수 자료 안내</p>
+                      <p className="text-xs uppercase tracking-[0.16em] text-slate-400">수강 유효기간</p>
+                      <p className="mt-1.5 text-slate-100">{defaultCourse.accessValidLabel}</p>
                     </div>
                   </div>
                 </div>
@@ -1430,7 +1430,7 @@ export default function CourseRoomPage() {
                   </label>
 
                   <div className="rounded-[1.1rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-300">
-                    <p>수료 문서는 결제 완료와 수강 완료 후 안내됩니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
+                    <p>수료 문서는 결제 완료와 수강 완료 후 안내됩니다. 수강 가능 기간은 {defaultCourse.accessValidLabel}이며, 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
                     <div className="mt-3 flex flex-wrap gap-3 font-semibold">
                       <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                       <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>

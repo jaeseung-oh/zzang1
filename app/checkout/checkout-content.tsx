@@ -32,7 +32,7 @@ type TossWidgets = {
 const tossScriptUrl = "https://js.tosspayments.com/v2/standard";
 const clientKey = process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY || "";
 const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-const fallbackCoursePrice = Number(process.env.NEXT_PUBLIC_DEFAULT_COURSE_PRICE || defaultCourse.priceKrw || "0");
+const fallbackCoursePrice = defaultCourse.priceKrw;
 const paymentMethodVariantKey = process.env.NEXT_PUBLIC_TOSS_PAYMENT_METHOD_VARIANT_KEY || "DEFAULT";
 const agreementVariantKey = process.env.NEXT_PUBLIC_TOSS_AGREEMENT_VARIANT_KEY || "DEFAULT";
 
@@ -108,6 +108,7 @@ export default function CheckoutContent() {
     () => [
       { label: "주문 과정", value: defaultCourse.title },
       { label: "총 교육 시간", value: `${defaultCourse.durationMinutes}분` },
+      { label: "수강 유효기간", value: defaultCourse.accessValidLabel },
       { label: "결제 금액", value: courseAmount > 0 ? formatWon(courseAmount) : "가격 설정 필요" },
     ],
     [courseAmount]
@@ -241,7 +242,7 @@ export default function CheckoutContent() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-200">
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">민간 교육 서비스</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">결제 후 수강 완료 시 이수 확인 자료 안내</span>
+            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">수강 유효기간 {defaultCourse.accessValidLabel}</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">환불 기준 별도 확인</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">네이버페이/간편결제는 Toss 어드민 활성화 필요</span>
           </div>
@@ -293,7 +294,7 @@ export default function CheckoutContent() {
 
                 <div className="mt-5 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
                   <p className="font-semibold text-white">결제 전 안내</p>
-                  <p className="mt-2">결제 승인 후 구매 이력이 저장됩니다. 결제만으로 문서가 자동 발급되지 않으며, 수강 완료와 필수 동의 확인이 모두 충족되어야 이수 확인 자료 안내가 이어집니다.</p>
+                  <p className="mt-2">결제 승인 후 구매 이력이 저장됩니다. 수강 유효기간은 {defaultCourse.accessValidLabel}이며, 결제만으로 문서가 자동 발급되지 않고 수강 완료와 필수 동의 확인이 모두 충족되어야 이수 확인 자료 안내가 이어집니다.</p>
                   <p className="mt-3 text-[#f4d79e]">네이버페이 등 간편결제 노출은 Toss 상점관리자 결제위젯 설정에서 활성화된 항목을 따릅니다.</p>
                 </div>
               </div>
@@ -338,7 +339,7 @@ export default function CheckoutContent() {
                 </label>
 
                 <div className="rounded-[1.1rem] border border-[#e2e8f0] bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-                  <p>수료 문서는 결제 완료, 수강 완료, 필수 동의 확인 후 안내됩니다. 본 서비스는 법률 자문이나 결과 보장을 제공하지 않는 민간 교육 서비스입니다.</p>
+                  <p>수료 문서는 결제 완료, 수강 완료, 필수 동의 확인 후 안내됩니다. 수강 가능 기간은 {defaultCourse.accessValidLabel}이며, 본 서비스는 법률 자문이나 결과 보장을 제공하지 않는 민간 교육 서비스입니다.</p>
                   <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
                     <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                     <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
