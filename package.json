@@ -7,8 +7,8 @@
     "pages:build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "cf:deploy": "wrangler deploy",
-    "cf:dev": "wrangler dev"
+    "cf:deploy": "wrangler deploy --config wrangler.worker.toml",
+    "cf:dev": "wrangler dev --config wrangler.worker.toml"
   },
   "dependencies": {
     "firebase": "^12.11.0",

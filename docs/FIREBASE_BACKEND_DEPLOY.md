@@ -25,7 +25,7 @@ firebase use --add
 
 ## 3. Functions 환경 변수
 
-현재 `functions/src/index.ts`에는 테스트용 Toss 시크릿 키가 직접 들어 있습니다.
+현재 `firebase-functions/src/index.ts`에는 테스트용 Toss 시크릿 키가 직접 들어 있습니다.
 운영 전에는 Firebase Secret 또는 환경 변수로 분리해야 합니다.
 
 OpenAI 키는 예시:

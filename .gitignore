@@ -2,6 +2,8 @@
 node_modules/
 functions/node_modules/
 functions/lib/
+firebase-functions/node_modules/
+firebase-functions/lib/
 firebase-debug.log
 .env.local
 .dev.vars
