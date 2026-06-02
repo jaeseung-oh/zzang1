@@ -18,15 +18,11 @@ const LEGAL_NOTICE =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
 const COURSE_ACCESS_VALID_MONTHS = 3;
+const COURSE_ACCESS_VALID_DAYS = 90;
 const COURSE_PRICE_KRW: Record<string, number> = {
+  "dui-prevention-basic": 55000,
   "rapid-sentencing-prep": 55000,
 };
-
-function addMonths(date: Date, months: number) {
-  const next = new Date(date.getTime());
-  next.setMonth(next.getMonth() + months);
-  return next;
-}
 
 function parsePurchaseExpiry(value: unknown) {
   if (!value) {
@@ -77,7 +73,7 @@ const COURSE_VIDEO_ASSETS: Record<
   string,
   Record<string, { storagePath: string; durationHintSeconds: number; streamUidEnvKey?: string }>
 > = {
-  "rapid-sentencing-prep": {
+  "dui-prevention-basic": {
     "dui-lesson-1": {
       storagePath: "course-videos/rapid-sentencing-prep/lesson-1.mp4",
       durationHintSeconds: 600,
@@ -320,7 +316,7 @@ async function getPaidPurchase(uid: string, courseId: string) {
   });
 
   if (!activePurchase) {
-    throw new HttpsError("failed-precondition", "결제일로부터 3개월 수강 유효기간이 만료되어 수강 완료를 저장할 수 없습니다.");
+    throw new HttpsError("failed-precondition", "해당 강의의 수강기간은 결제일로부터 90일이며, 현재 수강기간이 만료되어 수강할 수 없습니다.");
   }
 
   return activePurchase;
@@ -632,7 +628,7 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
 
     const approved = tossResponse.data;
     const accessStartsAt = approved.approvedAt ? new Date(approved.approvedAt) : new Date();
-    const expiresAt = addMonths(accessStartsAt, COURSE_ACCESS_VALID_MONTHS).toISOString();
+    const expiresAt = new Date(accessStartsAt.getTime() + COURSE_ACCESS_VALID_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
     await db.collection("purchases").doc(orderId).set(
       {
@@ -650,6 +646,7 @@ export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (re
         orderedAt: approved.approvedAt || null,
         approvedAt: approved.approvedAt || null,
         accessValidMonths: COURSE_ACCESS_VALID_MONTHS,
+        accessValidDays: COURSE_ACCESS_VALID_DAYS,
         expiresAt,
         rawResponse: approved,
         updatedAt: FieldValue.serverTimestamp(),

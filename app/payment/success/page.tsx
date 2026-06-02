@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
+import { duiPreventionCourseProduct } from "@/lib/course/product";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
+import { paymentConfig } from "@/lib/payment/config";
 import { ensureCertificateIdentityLock } from "@/lib/firebase/user-profile";
 
 type ConfirmResponse = {
@@ -12,6 +14,9 @@ type ConfirmResponse = {
   method?: string;
   totalAmount?: number;
   approvedAt?: string;
+  expiresAt?: string;
+  courseTitle?: string;
+  accessStatus?: string;
   receipt?: {
     url?: string;
   };
@@ -39,9 +44,9 @@ function PaymentSuccessContent() {
       return;
     }
 
-    const confirmUrl = process.env.NEXT_PUBLIC_TOSS_CONFIRM_URL;
+    const confirmUrl = paymentConfig.confirmUrl;
     if (!confirmUrl) {
-      setError("결제 승인 함수 URL이 설정되지 않았습니다.");
+      setError("결제 승인 Worker URL이 설정되지 않았습니다.");
       setLoading(false);
       return;
     }
@@ -115,7 +120,7 @@ function PaymentSuccessContent() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Toss Payments</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white">결제 완료 확인</h1>
         <p className="mt-4 text-sm leading-8 text-white/70">
-          결제 승인 후 구매 이력을 Firebase 사용자 계정에 저장합니다. 수료 문서는 결제만으로 자동 발급되지 않으며, 수강 완료와 필수 동의 확인이 모두 충족되어야 발급 안내가 이어집니다.
+          서버에서 결제금액과 주문 정보를 검증한 뒤 결제내역과 수강권을 저장합니다. 결제 완료 즉시 음주운전 예방교육 수강권이 부여되며, 수료증은 총 5강 전체 수강 완료 후 발급됩니다.
         </p>
 
         <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#d3ad62]/10 p-4 text-sm leading-7 text-[#f7dfab]">
@@ -141,9 +146,10 @@ function PaymentSuccessContent() {
           {!loading && result ? (
             <div className="space-y-4 text-sm text-white/80">
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                <p className="text-white">결제가 정상 승인되었습니다.</p>
+                <p className="text-white">결제가 완료되었습니다. 지금 바로 강의를 수강할 수 있습니다.</p>
                 <p className="mt-2 text-white/70">저장된 구매 ID: {result.savedPurchaseId || result.orderId}</p>
-                <p className="mt-2 text-white/70">다음 단계에서 강의 수강과 필수 동의를 완료하면 이수 확인 자료 안내를 받을 수 있습니다.</p>
+                <p className="mt-2 text-white/70">수강기간은 결제일로부터 {duiPreventionCourseProduct.durationDays}일이며, 전체 {duiPreventionCourseProduct.totalLessons}강 수강 완료 후 수료증 발급이 가능합니다.</p>
+                {result.expiresAt ? <p className="mt-2 text-white/70">수강권 만료일: {new Date(result.expiresAt).toLocaleString("ko-KR")}</p> : null}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">

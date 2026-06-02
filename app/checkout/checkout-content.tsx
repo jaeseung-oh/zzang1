@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
+import { buildRefundRows, duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
+import { paymentConfig } from "@/lib/payment/config";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 
@@ -30,11 +32,12 @@ type TossWidgets = {
 };
 
 const tossScriptUrl = "https://js.tosspayments.com/v2/standard";
-const clientKey = process.env.NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY || "";
-const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000";
-const fallbackCoursePrice = defaultCourse.priceKrw;
-const paymentMethodVariantKey = process.env.NEXT_PUBLIC_TOSS_PAYMENT_METHOD_VARIANT_KEY || "DEFAULT";
-const agreementVariantKey = process.env.NEXT_PUBLIC_TOSS_AGREEMENT_VARIANT_KEY || "DEFAULT";
+const clientKey = paymentConfig.clientKey;
+const appOrigin = paymentConfig.siteUrl;
+const fallbackCoursePrice = duiPreventionCourseProduct.price;
+const paymentMethodVariantKey = paymentConfig.paymentMethodVariantKey;
+const agreementVariantKey = paymentConfig.agreementVariantKey;
+const refundRows = buildRefundRows(duiPreventionCourseProduct);
 
 const paymentMethods = [
   {
@@ -61,10 +64,6 @@ const paymentMethods = [
 ] as const;
 
 type PaymentMethodId = (typeof paymentMethods)[number]["id"];
-
-function formatWon(value: number) {
-  return `${value.toLocaleString("ko-KR")}원`;
-}
 
 function createLocalOrderId(uid: string) {
   const randomValue = crypto.getRandomValues(new Uint32Array(2));
@@ -127,6 +126,7 @@ export default function CheckoutContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [checkoutNoticeChecked, setCheckoutNoticeChecked] = useState(false);
+  const [refundPolicyChecked, setRefundPolicyChecked] = useState(false);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodId>("card");
 
   const selectedPaymentMethodInfo = useMemo(
@@ -134,14 +134,14 @@ export default function CheckoutContent() {
     [selectedPaymentMethod]
   );
 
-  const canSubmit = isReady && !isSubmitting && checkoutNoticeChecked && courseAmount > 0;
+  const canSubmit = isReady && !isSubmitting && checkoutNoticeChecked && refundPolicyChecked && courseAmount > 0;
 
   const paymentSummary = useMemo(
     () => [
       { label: "주문 과정", value: defaultCourse.title },
-      { label: "총 교육 시간", value: `${defaultCourse.durationMinutes}분` },
-      { label: "수강 유효기간", value: defaultCourse.accessValidLabel },
-      { label: "결제 금액", value: courseAmount > 0 ? formatWon(courseAmount) : "가격 설정 필요" },
+      { label: "강의 수", value: `총 ${duiPreventionCourseProduct.totalLessons}강` },
+      { label: "수강기간", value: defaultCourse.accessValidLabel },
+      { label: "결제 금액", value: courseAmount > 0 ? formatKrw(courseAmount) : "가격 설정 필요" },
     ],
     [courseAmount]
   );
@@ -168,7 +168,7 @@ export default function CheckoutContent() {
         setCourseAmount(resolvedAmount);
 
         if (!clientKey) {
-          throw new Error("NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY가 설정되지 않았습니다.");
+          throw new Error("NEXT_PUBLIC_PAYMENT_CLIENT_KEY 또는 NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY가 설정되지 않았습니다.");
         }
 
         if (!Number.isFinite(resolvedAmount) || resolvedAmount <= 0) {
@@ -250,9 +250,9 @@ export default function CheckoutContent() {
     try {
       await widgetsRef.current.requestPayment({
         orderId,
-        orderName: defaultCourse.title,
-        successUrl: `${appOrigin}/payment/success?courseId=${defaultCourse.id}`,
-        failUrl: `${appOrigin}/payment/fail?courseId=${defaultCourse.id}`,
+        orderName: duiPreventionCourseProduct.courseTitle,
+        successUrl: `${appOrigin}/payment/success?courseId=${duiPreventionCourseProduct.courseId}`,
+        failUrl: `${appOrigin}/payment/fail?courseId=${duiPreventionCourseProduct.courseId}`,
         customerEmail: customerEmail || undefined,
         customerName: customerName || undefined,
       });
@@ -274,7 +274,7 @@ export default function CheckoutContent() {
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-200">
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">민간 교육 서비스</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">수강 유효기간 {defaultCourse.accessValidLabel}</span>
+            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">수강기간 {defaultCourse.accessValidLabel}</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">미수강 강의 환불 기준 확인</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">신용카드</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">휴대폰결제(다날)</span>
@@ -303,7 +303,7 @@ export default function CheckoutContent() {
                         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">Payment Method</p>
                         <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-slate-950">결제수단 선택</h3>
                       </div>
-                      <p className="text-sm font-semibold text-slate-600">총 결제금액 {formatWon(courseAmount)}</p>
+                      <p className="text-sm font-semibold text-slate-600">총 결제금액 {formatKrw(courseAmount)}</p>
                     </div>
                   </div>
 
@@ -358,6 +358,36 @@ export default function CheckoutContent() {
                   <p className="text-sm font-semibold text-slate-900">토스 약관</p>
                   <div id="agreement" className="mt-4 min-h-[160px]" />
                 </div>
+
+                <div className="overflow-hidden rounded-[1.5rem] border border-[#dce4ef] bg-white">
+                  <div className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-4 sm:px-5">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9c7b3b]">Refund Table</p>
+                    <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-slate-950">미수강 강의별 환불 가능 금액</h3>
+                    <p className="mt-2 text-sm leading-7 text-slate-600">총 결제금액 55,000원 ÷ 총 5강 = 1강당 11,000원으로 산정합니다.</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[620px] text-left text-sm">
+                      <thead className="bg-[#f8fafc] text-xs uppercase tracking-[0.14em] text-slate-500">
+                        <tr>
+                          <th className="px-4 py-3">수강한 강의 수</th>
+                          <th className="px-4 py-3 text-right">미수강 강의 수</th>
+                          <th className="px-4 py-3 text-right">환불 가능 금액</th>
+                          <th className="px-4 py-3">비고</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#e5ebf3]">
+                        {refundRows.map((row) => (
+                          <tr key={row.completedLessons}>
+                            <td className="px-4 py-3 font-semibold text-slate-900">{row.completedLessons}강</td>
+                            <td className="px-4 py-3 text-right text-slate-700">{row.unusedLessons}강</td>
+                            <td className="px-4 py-3 text-right font-bold text-slate-950">{formatKrw(row.refundAmount)}</td>
+                            <td className="px-4 py-3 text-slate-600">{row.note}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-[1.6rem] border border-[#dce4ef] bg-[linear-gradient(180deg,#0f1c33_0%,#132544_100%)] p-5 text-white shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
@@ -381,7 +411,8 @@ export default function CheckoutContent() {
 
                 <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
                   <p className="font-semibold text-white">결제 전 안내</p>
-                  <p className="mt-2">결제 승인 후 구매 이력이 저장됩니다. 수강 유효기간은 {defaultCourse.accessValidLabel}입니다. 총 수강료는 55,000원이며, 수료 확인 자료를 발급받지 못했고 실제로 듣지 못한 강의가 남아 있는 경우 환불규정에 따라 강의 1개당 11,000원을 기준으로 환불 가능 금액을 검토합니다.</p>
+                  <p className="mt-2">본 강의는 결제일로부터 90일 동안 수강할 수 있습니다. 음주운전 예방교육은 총 5강으로 구성되어 있으며, 결제금액은 55,000원입니다. 결제 완료 즉시 해당 강의의 수강 권한이 부여됩니다.</p>
+                  <p className="mt-3">환불은 실제 수강한 강의를 제외한 미수강 강의 금액을 기준으로 산정됩니다. 1강당 환불 산정 금액은 11,000원입니다.</p>
                   <p className="mt-3 text-[#f4d79e]">실제 결제창 노출은 결제사 심사, 다날/카카오페이 계약, Toss 상점관리자 설정을 따릅니다.</p>
                 </div>
               </div>
@@ -425,8 +456,18 @@ export default function CheckoutContent() {
                   <span className="font-semibold text-slate-900">결제 전 안내, 이용약관, 환불규정 및 수료 문서 발급 조건을 확인했습니다.</span>
                 </label>
 
+                <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#fff7e5] px-4 py-4 text-sm leading-7 text-[#3d2b08]">
+                  <input
+                    type="checkbox"
+                    checked={refundPolicyChecked}
+                    onChange={(event) => setRefundPolicyChecked(event.target.checked)}
+                    className="mt-1 h-4 w-4 accent-[#8a6a2d]"
+                  />
+                  <span className="font-semibold">위 환불규정과 수강기간 90일 제한에 동의합니다.</span>
+                </label>
+
                 <div className="rounded-[1.1rem] border border-[#e2e8f0] bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-                  <p>수료 문서는 결제 완료, 수강 완료, 필수 동의 확인 후 안내됩니다. 수강 가능 기간은 {defaultCourse.accessValidLabel}이며, 미수강 강의 환불 기준은 55,000원 기준 강의 1개당 11,000원입니다. 본 서비스는 법률 자문이나 결과 보장을 제공하지 않는 민간 교육 서비스입니다.</p>
+                  <p>수료증은 결제 완료, 총 5강 수강 완료, 필수 동의 확인 후 발급됩니다. 수강기간은 결제일로부터 90일이며, 수강기간이 경과한 경우 강의 수강 및 환불이 제한될 수 있습니다. 전체 5강을 모두 수강 완료했거나 수료증이 발급된 경우 환불이 불가합니다.</p>
                   <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
                     <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                     <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>

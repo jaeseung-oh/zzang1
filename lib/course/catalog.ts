@@ -1,3 +1,5 @@
+import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
+
 export type CourseModule = {
   id: string;
   title: string;
@@ -25,14 +27,14 @@ export type CourseDefinition = {
 
 export const courseCatalog: CourseDefinition[] = [
   {
-    id: "rapid-sentencing-prep",
-    title: "음주운전 예방교육 5강 코스",
-    subtitle: "위험 신호 인식, 판단력 저하 이해, 관계 회복, 생활 관리 계획까지 단계적으로 정리하는 자기점검형 음주운전 예방교육 과정",
+    id: duiPreventionCourseProduct.courseId,
+    title: duiPreventionCourseProduct.courseTitle,
+    subtitle: duiPreventionCourseProduct.description,
     durationMinutes: 50,
-    priceKrw: 55000,
-    priceLabel: "55,000원",
+    priceKrw: duiPreventionCourseProduct.price,
+    priceLabel: formatKrw(duiPreventionCourseProduct.price),
     accessValidMonths: 3,
-    accessValidLabel: "결제일로부터 3개월 이내",
+    accessValidLabel: `결제일로부터 ${duiPreventionCourseProduct.durationDays}일`,
     caseTypes: ["음주운전"],
     outputs: ["학습확인서", "금주 실천 서약서", "재발방지 계획서"],
     modules: [

@@ -12,3 +12,7 @@ KAKAO_REDIRECT_URI = "https://reset-edu-kakao-auth.cfv47.workers.dev/api/auth/ka
 
 SUPABASE_URL = "https://ghufoabtkjbizszdzies.supabase.co"
 SUPABASE_PROFILE_TABLE = "member_profiles"
+
+FIREBASE_PROJECT_ID = "jaeseung-try-2-34973152-e44aa"
+FIREBASE_WEB_API_KEY = "AIzaSyDU9TRAY_Vh7wSN4f5F1ZIzw6xNyX-SbYQ"
+PAYMENT_PROVIDER = "toss-payments"

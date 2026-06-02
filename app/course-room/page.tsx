@@ -1,6 +1,6 @@
 "use client";
 
-import { doc, getDoc } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
 import Script from "next/script";
@@ -105,6 +105,18 @@ function dispatchLectureActivity(active: boolean) {
   }
 
   window.dispatchEvent(new CustomEvent(lectureActivityEvent, { detail: { active } }));
+}
+
+function parseAccessExpiry(value: unknown) {
+  if (!value) return null;
+  if (typeof value === "string") {
+    const time = new Date(value).getTime();
+    return Number.isFinite(time) ? time : null;
+  }
+  if (typeof value === "object" && value !== null && "seconds" in value && typeof (value as { seconds?: unknown }).seconds === "number") {
+    return (value as { seconds: number }).seconds * 1000;
+  }
+  return null;
 }
 
 function formatDuration(seconds: number) {
@@ -306,6 +318,7 @@ export default function CourseRoomPage() {
   const [videoExpiresAt, setVideoExpiresAt] = useState<number | null>(null);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [streamSdkReady, setStreamSdkReady] = useState(false);
+  const [accessBlockedMessage, setAccessBlockedMessage] = useState("");
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamIframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -420,6 +433,30 @@ export default function CourseRoomPage() {
         setFullName(resolvedName);
 
         const { db } = getFirebaseServices();
+        const purchaseSnapshot = await getDocs(
+          query(collection(db, "purchases"), where("uid", "==", user.uid), where("courseId", "==", defaultCourse.id), where("paymentStatus", "==", "paid"))
+        );
+        const now = Date.now();
+        const paidPurchases = purchaseSnapshot.docs.map((snapshot) => snapshot.data());
+        const activePurchase = paidPurchases.find((purchase) => {
+          const expiresAt = parseAccessExpiry(purchase.expiresAt);
+          return expiresAt === null || expiresAt >= now;
+        });
+
+        if (!activePurchase) {
+          const hasExpiredPurchase = paidPurchases.some((purchase) => {
+            const expiresAt = parseAccessExpiry(purchase.expiresAt);
+            return expiresAt !== null && expiresAt < now;
+          });
+          const message = hasExpiredPurchase
+            ? "해당 강의의 수강기간은 결제일로부터 90일이며, 현재 수강기간이 만료되어 수강할 수 없습니다."
+            : "결제 완료 후 음주운전 예방교육 수강권이 부여되면 강의를 수강할 수 있습니다.";
+          setAccessBlockedMessage(message);
+          setPlayerError(message);
+        } else {
+          setAccessBlockedMessage("");
+        }
+
         const progressSnapshot = await getDoc(doc(db, "courseProgress", `${user.uid}_${defaultCourse.id}`));
         const remote = progressSnapshot.exists() ? (progressSnapshot.data() as ProgressRecord) : null;
         const local = readLocalSnapshot();
@@ -503,6 +540,14 @@ export default function CourseRoomPage() {
         setPlayerReady(false);
         restoreAppliedRef.current = false;
 
+        if (accessBlockedMessage) {
+          setVideoProvider("storage");
+          setVideoUrl("");
+          setPlayerError(accessBlockedMessage);
+          setStatusMessage(accessBlockedMessage);
+          return;
+        }
+
         if (selectedModule.cloudflareStreamUid) {
           if (cancelled) {
             return;
@@ -566,7 +611,7 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [uid, selectedModule]);
+  }, [uid, selectedModule, accessBlockedMessage]);
 
   useEffect(() => {
     if (videoProvider !== "cloudflare-stream" || !videoUrl || !streamSdkReady || !selectedModule) {
@@ -1430,7 +1475,7 @@ export default function CourseRoomPage() {
                   </label>
 
                   <div className="rounded-[1.1rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-300">
-                    <p>수료 문서는 결제 완료와 수강 완료 후 안내됩니다. 수강 가능 기간은 {defaultCourse.accessValidLabel}이며, 미수강 강의 환불 기준은 55,000원 기준 강의 1개당 11,000원입니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
+                    <p>수료 문서는 결제 완료와 총 5강 수강 완료 후 안내됩니다. 본 강의의 수강기간은 결제일로부터 90일이며, 미수강 강의 환불 기준은 55,000원 기준 강의 1개당 11,000원입니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
                     <div className="mt-3 flex flex-wrap gap-3 font-semibold">
                       <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                       <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>

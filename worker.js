@@ -86,6 +86,14 @@ async function handleRequest(request, env) {
             return handleStreamToken(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/payments/confirm' && request.method === 'POST') {
+            return handlePaymentConfirm(request, env, corsHeaders);
+        }
+
+        if (url.pathname === '/api/admin/payments' && request.method === 'GET') {
+            return handleAdminPayments(request, env, corsHeaders);
+        }
+
         return json({ error: 'not_found' }, 404, corsHeaders);
     } catch (error) {
         console.error(error);
@@ -130,7 +138,7 @@ function buildCorsHeaders(request, env) {
         headers.set('Vary', 'Origin');
     }
 
-    headers.set('Access-Control-Allow-Headers', 'Content-Type');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-key');
     headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     return headers;
 }
@@ -780,4 +788,330 @@ function assertStreamEnv(env) {
     if (missing.length > 0) {
         throw new Error(`Missing Cloudflare Stream environment variables: ${missing.join(', ')}`);
     }
+}
+
+const DUI_COURSE_PRODUCT = {
+    courseId: 'dui-prevention-basic',
+    courseTitle: '음주운전 예방교육',
+    price: 55000,
+    currency: 'KRW',
+    durationDays: 90,
+    totalLessons: 5,
+    pricePerLesson: 11000,
+    description: '음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정',
+    certificateAvailable: true
+};
+
+async function handlePaymentConfirm(request, env, corsHeaders) {
+    const authHeader = request.headers.get('Authorization') || '';
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!idToken) {
+        return json({ message: '로그인이 필요합니다.', code: 'AUTH_REQUIRED' }, 401, corsHeaders);
+    }
+
+    const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+    const body = await request.json().catch(() => null);
+    if (!body) {
+        return json({ message: '요청 본문 형식이 올바르지 않습니다.', code: 'INVALID_BODY' }, 400, corsHeaders);
+    }
+
+    const { paymentKey, orderId, amount, uid, courseId } = body;
+    if (!paymentKey || !orderId || typeof amount !== 'number' || !uid || !courseId) {
+        return json({ message: 'paymentKey, orderId, amount, uid, courseId가 모두 필요합니다.', code: 'MISSING_FIELDS' }, 400, corsHeaders);
+    }
+    if (uid !== firebaseUser.uid) {
+        return json({ message: '로그인한 사용자와 결제 사용자 정보가 일치하지 않습니다.', code: 'USER_MISMATCH' }, 403, corsHeaders);
+    }
+    if (courseId !== DUI_COURSE_PRODUCT.courseId || amount !== DUI_COURSE_PRODUCT.price) {
+        return json({ message: '결제 금액 또는 상품 정보가 현재 교육 상품과 일치하지 않습니다.', code: 'PAYMENT_AMOUNT_MISMATCH' }, 400, corsHeaders);
+    }
+
+    const orderDocPath = firestoreDocumentPath(env, 'payments', orderId);
+    const existingOrder = await firestoreGet(env, orderDocPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingOrder) {
+        return json({ message: '이미 처리된 주문번호입니다.', code: 'DUPLICATE_ORDER_ID' }, 409, corsHeaders);
+    }
+
+    const paymentKeyDocId = encodeFirestoreDocId(paymentKey);
+    const paymentKeyPath = firestoreDocumentPath(env, 'paymentKeys', paymentKeyDocId);
+    const existingPaymentKey = await firestoreGet(env, paymentKeyPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingPaymentKey) {
+        return json({ message: '이미 승인 처리된 paymentKey입니다.', code: 'DUPLICATE_PAYMENT_KEY' }, 409, corsHeaders);
+    }
+
+    const enrollmentId = `${uid}_${courseId}`;
+    const activeEnrollment = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (activeEnrollment && activeEnrollment.fields?.accessStatus?.stringValue === 'active') {
+        const currentExpiresAt = activeEnrollment.fields?.expiresAt?.timestampValue || activeEnrollment.fields?.expiresAt?.stringValue;
+        if (currentExpiresAt && new Date(currentExpiresAt).getTime() > Date.now()) {
+            return json({ message: '이미 활성화된 수강권이 있어 중복 결제를 제한합니다.', code: 'ACTIVE_ENROLLMENT_EXISTS' }, 409, corsHeaders);
+        }
+    }
+
+    let approved;
+    try {
+        approved = await confirmTossPayment(env, { paymentKey, orderId, amount });
+    } catch (error) {
+        await savePaymentLog(env, orderId, {
+            type: 'confirm_failed', paymentKey, orderId, userId: uid, courseId, amount,
+            message: error instanceof Error ? error.message : 'Unknown payment confirm error',
+            createdAt: new Date().toISOString()
+        }).catch((logError) => console.error(logError));
+        return json({ message: error instanceof Error ? error.message : '결제 승인 중 오류가 발생했습니다.', code: 'PAYMENT_CONFIRM_FAILED' }, 400, corsHeaders);
+    }
+
+    const approvedAt = approved.approvedAt || new Date().toISOString();
+    const purchasedAt = new Date(approvedAt);
+    const expiresAt = new Date(purchasedAt.getTime() + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const nowIso = new Date().toISOString();
+    const paymentId = approved.paymentKey || paymentKey;
+
+    const paymentRecord = {
+        paymentId, orderId, paymentKey, userId: uid, uid, courseId,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        orderName: DUI_COURSE_PRODUCT.courseTitle,
+        amount: DUI_COURSE_PRODUCT.price,
+        method: approved.method || null,
+        status: 'paid', paymentStatus: 'paid', paymentProvider: 'toss-payments',
+        receiptUrl: approved.receipt?.url || null,
+        approvedAt, createdAt: nowIso, updatedAt: nowIso, rawResponse: approved
+    };
+    const enrollmentRecord = {
+        enrollmentId, userId: uid, uid, courseId,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        paymentId, orderId,
+        purchasedAt: purchasedAt.toISOString(), expiresAt,
+        paymentStatus: 'paid', accessStatus: 'active', progress: 0,
+        completedLessons: 0, totalLessons: DUI_COURSE_PRODUCT.totalLessons,
+        certificateIssued: false, certificateIssuedAt: null,
+        createdAt: nowIso, updatedAt: nowIso
+    };
+    const purchaseRecord = {
+        uid, userId: uid, courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        orderId, paymentKey, paymentStatus: 'paid', accessStatus: 'active',
+        paymentProvider: 'toss-payments', amount: DUI_COURSE_PRODUCT.price,
+        method: approved.method || null, receiptUrl: approved.receipt?.url || null,
+        orderedAt: approvedAt, approvedAt, purchasedAt: purchasedAt.toISOString(), expiresAt,
+        accessValidDays: DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
+        totalLessons: DUI_COURSE_PRODUCT.totalLessons, completedLessons: 0,
+        certificateIssued: false,
+        legalDisclaimerAccepted: Boolean(body.legalDisclaimerAccepted),
+        finalReviewResponsibilityAccepted: Boolean(body.finalReviewResponsibilityAccepted),
+        rawResponse: approved, updatedAt: nowIso, createdAt: nowIso
+    };
+
+    try {
+        await firestorePatch(env, orderDocPath, paymentRecord);
+        await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
+        await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
+        await firestorePatch(env, paymentKeyPath, { paymentKey, orderId, userId: uid, courseId, createdAt: nowIso });
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
+    } catch (error) {
+        await savePaymentLog(env, orderId, {
+            type: 'firestore_save_failed', paymentKey, orderId, userId: uid, courseId, amount, approvedAt,
+            message: error instanceof Error ? error.message : 'Unknown Firestore save error',
+            rawResponse: approved, createdAt: new Date().toISOString()
+        }).catch((logError) => console.error(logError));
+        return json({ message: '결제는 승인되었지만 수강권 저장에 실패했습니다. 운영자 재처리가 필요합니다.', code: 'ENROLLMENT_SAVE_FAILED', paymentId, orderId }, 500, corsHeaders);
+    }
+
+    return json({ ...approved, savedPurchaseId: orderId, paymentId, orderId, enrollmentId, courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle, totalAmount: DUI_COURSE_PRODUCT.price, expiresAt, accessStatus: 'active' }, 200, corsHeaders);
+}
+
+async function confirmTossPayment(env, payload) {
+    const secretKey = env.PAYMENT_SECRET_KEY || env.TOSS_SECRET_KEY;
+    if (!secretKey) throw new Error('PAYMENT_SECRET_KEY 또는 TOSS_SECRET_KEY가 설정되지 않았습니다.');
+    const response = await fetch('https://api.tosspayments.com/v1/payments/confirm', {
+        method: 'POST',
+        headers: { Authorization: `Basic ${btoa(`${secretKey}:`)}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || '토스 결제 승인에 실패했습니다.');
+    return data;
+}
+
+function buildRefundPolicyRecord(nowIso) {
+    return {
+        courseId: DUI_COURSE_PRODUCT.courseId,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        totalAmount: DUI_COURSE_PRODUCT.price,
+        totalLessons: DUI_COURSE_PRODUCT.totalLessons,
+        pricePerLesson: DUI_COURSE_PRODUCT.pricePerLesson,
+        durationDays: DUI_COURSE_PRODUCT.durationDays,
+        refundRules: [
+            '결제 후 강의를 전혀 수강하지 않은 경우 전액 환불',
+            '일부 강의를 수강한 경우 미수강 강의 수에 해당하는 금액 환불',
+            '전체 강의를 수강 완료한 경우 환불 불가',
+            '수강기간 90일이 경과한 경우 환불 불가',
+            '수료증이 발급된 경우 환불 불가'
+        ],
+        createdAt: nowIso,
+        updatedAt: nowIso
+    };
+}
+
+async function savePaymentLog(env, orderId, data) {
+    return firestorePatch(env, firestoreDocumentPath(env, 'paymentLogs', `${orderId}_${Date.now()}`), data);
+}
+
+function encodeFirestoreDocId(value) {
+    return String(value).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 120);
+}
+
+function firestoreDocumentPath(env, collectionName, documentId) {
+    const projectId = env.FIREBASE_PROJECT_ID || env.GOOGLE_CLOUD_PROJECT || 'jaeseung-try-2-34973152-e44aa';
+    return `projects/${projectId}/databases/(default)/documents/${collectionName}/${documentId}`;
+}
+
+async function firestoreGet(env, documentPath) {
+    const token = await getGoogleAccessToken(env);
+    const response = await fetch(`https://firestore.googleapis.com/v1/${documentPath}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!response.ok) {
+        const error = new Error(`Firestore GET failed: ${response.status}`);
+        error.status = response.status;
+        throw error;
+    }
+    return response.json();
+}
+
+async function firestorePatch(env, documentPath, data) {
+    const token = await getGoogleAccessToken(env);
+    const response = await fetch(`https://firestore.googleapis.com/v1/${documentPath}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fields: toFirestoreFields(data) })
+    });
+    if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`Firestore PATCH failed: ${response.status} ${body}`);
+    }
+    return response.json();
+}
+
+function toFirestoreFields(data) {
+    return Object.fromEntries(Object.entries(data).map(([key, value]) => [key, toFirestoreValue(value)]));
+}
+
+function toFirestoreValue(value) {
+    if (value === null || value === undefined) return { nullValue: null };
+    if (typeof value === 'string') {
+        if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return { timestampValue: value };
+        return { stringValue: value };
+    }
+    if (typeof value === 'number') return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+    if (typeof value === 'boolean') return { booleanValue: value };
+    if (Array.isArray(value)) return { arrayValue: { values: value.map(toFirestoreValue) } };
+    if (typeof value === 'object') return { mapValue: { fields: toFirestoreFields(value) } };
+    return { stringValue: String(value) };
+}
+
+async function verifyFirebaseIdToken(idToken, env) {
+    const apiKey = env.FIREBASE_WEB_API_KEY || env.FIREBASE_API_KEY || env.NEXT_PUBLIC_FIREBASE_API_KEY;
+    if (!apiKey) throw new Error('FIREBASE_WEB_API_KEY가 필요합니다.');
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+    });
+    const data = await response.json().catch(() => ({}));
+    const user = data.users?.[0];
+    if (!response.ok || !user?.localId) {
+        throw new Error(data.error?.message || 'Firebase ID 토큰 검증에 실패했습니다.');
+    }
+    return { uid: user.localId, email: user.email || null, name: user.displayName || null };
+}
+async function getGoogleAccessToken(env) {
+    const clientEmail = env.FIREBASE_CLIENT_EMAIL || env.GOOGLE_CLIENT_EMAIL;
+    const privateKey = (env.FIREBASE_PRIVATE_KEY || env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+    if (!clientEmail || !privateKey) throw new Error('FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY 서비스 계정 비밀값이 필요합니다.');
+    const now = Math.floor(Date.now() / 1000);
+    const header = { alg: 'RS256', typ: 'JWT' };
+    const claim = { iss: clientEmail, scope: 'https://www.googleapis.com/auth/datastore', aud: 'https://oauth2.googleapis.com/token', iat: now, exp: now + 3600 };
+    const unsigned = `${toBase64Url(new TextEncoder().encode(JSON.stringify(header)))}.${toBase64Url(new TextEncoder().encode(JSON.stringify(claim)))}`;
+    const key = await importPrivateKeyFromPem(privateKey);
+    const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(unsigned));
+    const assertion = `${unsigned}.${toBase64Url(new Uint8Array(signature))}`;
+    const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.access_token) throw new Error(data.error_description || 'Google access token 발급에 실패했습니다.');
+    return data.access_token;
+}
+
+async function importPrivateKeyFromPem(pem) {
+    const body = pem.replace('-----BEGIN PRIVATE KEY-----', '').replace('-----END PRIVATE KEY-----', '').replace(/\s/g, '');
+    const binary = Uint8Array.from(atob(body), (char) => char.charCodeAt(0));
+    return crypto.subtle.importKey('pkcs8', binary, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
+}
+
+
+async function handleAdminPayments(request, env, corsHeaders) {
+    const providedKey = request.headers.get('x-admin-key') || '';
+    if (!env.ADMIN_API_KEY || providedKey !== env.ADMIN_API_KEY) {
+        return json({ message: '관리자 확인 키가 올바르지 않습니다.', code: 'ADMIN_FORBIDDEN' }, 403, corsHeaders);
+    }
+    const payments = await firestoreList(env, 'payments');
+    const enrollments = await firestoreList(env, 'enrollments');
+    const enrollmentByPaymentId = new Map(
+        enrollments.map((item) => [item.paymentId || item.orderId, item])
+    );
+    return json({
+        items: payments.map((payment) => {
+            const enrollment = enrollmentByPaymentId.get(payment.paymentId) || enrollmentByPaymentId.get(payment.orderId) || {};
+            const completedLessons = Number(enrollment.completedLessons || 0);
+            const totalLessons = Number(enrollment.totalLessons || DUI_COURSE_PRODUCT.totalLessons);
+            const unusedLessons = Math.max(0, totalLessons - completedLessons);
+            const refundAmount = enrollment.certificateIssued || unusedLessons === 0 ? 0 : unusedLessons * DUI_COURSE_PRODUCT.pricePerLesson;
+            return {
+                orderId: payment.orderId,
+                userId: payment.userId || payment.uid,
+                userName: payment.customerName || '',
+                email: payment.customerEmail || '',
+                courseTitle: payment.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
+                amount: payment.amount || DUI_COURSE_PRODUCT.price,
+                paymentStatus: payment.status || payment.paymentStatus,
+                approvedAt: payment.approvedAt || null,
+                expiresAt: enrollment.expiresAt || null,
+                progress: enrollment.progress || 0,
+                completedLessons,
+                unusedLessons,
+                certificateIssued: Boolean(enrollment.certificateIssued),
+                estimatedRefundAmount: refundAmount
+            };
+        })
+    }, 200, corsHeaders);
+}
+
+async function firestoreList(env, collectionName) {
+    const projectId = env.FIREBASE_PROJECT_ID || env.GOOGLE_CLOUD_PROJECT || 'jaeseung-try-2-34973152-e44aa';
+    const token = await getGoogleAccessToken(env);
+    const response = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}?pageSize=100`, {
+        headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`Firestore LIST failed: ${response.status} ${body}`);
+    }
+    const data = await response.json().catch(() => ({}));
+    return (data.documents || []).map((doc) => fromFirestoreFields(doc.fields || {}));
+}
+
+function fromFirestoreFields(fields) {
+    return Object.fromEntries(Object.entries(fields).map(([key, value]) => [key, fromFirestoreValue(value)]));
+}
+
+function fromFirestoreValue(value) {
+    if ('stringValue' in value) return value.stringValue;
+    if ('integerValue' in value) return Number(value.integerValue);
+    if ('doubleValue' in value) return Number(value.doubleValue);
+    if ('booleanValue' in value) return Boolean(value.booleanValue);
+    if ('timestampValue' in value) return value.timestampValue;
+    if ('nullValue' in value) return null;
+    if ('arrayValue' in value) return (value.arrayValue.values || []).map(fromFirestoreValue);
+    if ('mapValue' in value) return fromFirestoreFields(value.mapValue.fields || {});
+    return null;
 }
