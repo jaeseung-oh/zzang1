@@ -93,7 +93,7 @@ export default function CheckoutContent() {
   const widgetsRef = useRef<TossWidgets | null>(null);
   const renderStartedRef = useRef(false);
   const [orderId, setOrderId] = useState("");
-  const [courseAmount, setCourseAmount] = useState(0);
+  const [courseAmount, setCourseAmount] = useState(fallbackCoursePrice);
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [isInitializing, setIsInitializing] = useState(true);
