@@ -1387,7 +1387,7 @@ export default function CourseRoomPage() {
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f6e1b1]">Order Summary</p>
                     <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">결제 전 주문 확인</h2>
-                    <p className="mt-1.5 text-xs leading-5 text-white/75">실제 결제 기능 연결 전에도 필요한 확인 사항을 먼저 검토할 수 있습니다.</p>
+                    <p className="mt-1.5 text-xs leading-5 text-white/75">결제 전 필요한 확인 사항을 먼저 검토할 수 있습니다.</p>
                   </div>
                   <span className={`rounded-full px-3 py-1 text-xs font-semibold ${purchaseChecklistReady ? "bg-[#f3ddb2] text-[#3d2b08]" : "bg-white/12 text-white"}`}>
                     {purchaseChecklistReady ? "확인 완료" : "확인 필요"}
@@ -1430,7 +1430,7 @@ export default function CourseRoomPage() {
                   </label>
 
                   <div className="rounded-[1.1rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-300">
-                    <p>수료 문서는 결제 완료와 수강 완료 후 안내됩니다. 수강 가능 기간은 {defaultCourse.accessValidLabel}이며, 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
+                    <p>수료 문서는 결제 완료와 수강 완료 후 안내됩니다. 수강 가능 기간은 {defaultCourse.accessValidLabel}이며, 미수강 강의 환불 기준은 55,000원 기준 강의 1개당 11,000원입니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
                     <div className="mt-3 flex flex-wrap gap-3 font-semibold">
                       <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                       <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>

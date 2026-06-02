@@ -17,7 +17,7 @@ const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 const LEGAL_NOTICE =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
-const COURSE_ACCESS_VALID_MONTHS = 6;
+const COURSE_ACCESS_VALID_MONTHS = 3;
 const COURSE_PRICE_KRW: Record<string, number> = {
   "rapid-sentencing-prep": 55000,
 };
@@ -320,7 +320,7 @@ async function getPaidPurchase(uid: string, courseId: string) {
   });
 
   if (!activePurchase) {
-    throw new HttpsError("failed-precondition", "결제 후 6개월 수강 유효기간이 만료되어 수강 완료를 저장할 수 없습니다.");
+    throw new HttpsError("failed-precondition", "결제일로부터 3개월 수강 유효기간이 만료되어 수강 완료를 저장할 수 없습니다.");
   }
 
   return activePurchase;

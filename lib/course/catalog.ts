@@ -31,8 +31,8 @@ export const courseCatalog: CourseDefinition[] = [
     durationMinutes: 50,
     priceKrw: 55000,
     priceLabel: "55,000원",
-    accessValidMonths: 6,
-    accessValidLabel: "결제 후 6개월 이내",
+    accessValidMonths: 3,
+    accessValidLabel: "결제일로부터 3개월 이내",
     caseTypes: ["음주운전"],
     outputs: ["학습확인서", "금주 실천 서약서", "재발방지 계획서"],
     modules: [
