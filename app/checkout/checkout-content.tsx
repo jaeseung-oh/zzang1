@@ -36,6 +36,32 @@ const fallbackCoursePrice = defaultCourse.priceKrw;
 const paymentMethodVariantKey = process.env.NEXT_PUBLIC_TOSS_PAYMENT_METHOD_VARIANT_KEY || "DEFAULT";
 const agreementVariantKey = process.env.NEXT_PUBLIC_TOSS_AGREEMENT_VARIANT_KEY || "DEFAULT";
 
+const paymentMethods = [
+  {
+    id: "card",
+    title: "신용카드",
+    label: "CARD",
+    description: "국내 주요 카드사 일시불/할부 결제",
+    badgeClass: "bg-[#173968] text-white",
+  },
+  {
+    id: "mobile",
+    title: "휴대폰결제",
+    label: "DANAL",
+    description: "다날 휴대폰 본인인증 기반 소액결제",
+    badgeClass: "bg-[#0f766e] text-white",
+  },
+  {
+    id: "kakaopay",
+    title: "카카오페이",
+    label: "KAKAO",
+    description: "카카오페이 지갑/카드 간편결제",
+    badgeClass: "bg-[#fee500] text-[#191600]",
+  },
+] as const;
+
+type PaymentMethodId = (typeof paymentMethods)[number]["id"];
+
 function formatWon(value: number) {
   return `${value.toLocaleString("ko-KR")}원`;
 }
@@ -101,6 +127,12 @@ export default function CheckoutContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [checkoutNoticeChecked, setCheckoutNoticeChecked] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodId>("card");
+
+  const selectedPaymentMethodInfo = useMemo(
+    () => paymentMethods.find((method) => method.id === selectedPaymentMethod) || paymentMethods[0],
+    [selectedPaymentMethod]
+  );
 
   const canSubmit = isReady && !isSubmitting && checkoutNoticeChecked && courseAmount > 0;
 
@@ -238,13 +270,15 @@ export default function CheckoutContent() {
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0d59c]">Toss Checkout</p>
           <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">주문서 및 결제</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
-            토스 결제위젯으로 카드, 계좌이체, 가상계좌와 토스페이·네이버페이·카카오페이 같은 간편결제를 계약 및 어드민 활성화 범위 안에서 한 주문서로 처리합니다.
+            신용카드, 휴대폰결제(다날), 카카오페이를 먼저 열어두는 주문서입니다. 결제사 심사 완료 후 운영 키와 상점 설정만 연결하면 실제 결제창으로 이어지도록 준비합니다.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-200">
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">민간 교육 서비스</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">수강 유효기간 {defaultCourse.accessValidLabel}</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">미수강 강의 환불 기준 확인</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">네이버페이/간편결제는 Toss 어드민 활성화 필요</span>
+            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">신용카드</span>
+            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">휴대폰결제(다날)</span>
+            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">카카오페이</span>
           </div>
         </section>
 
@@ -262,17 +296,62 @@ export default function CheckoutContent() {
 
             <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
               <div className="space-y-5">
-                <div className="rounded-[1.5rem] border border-[#dce4ef] bg-[#f9fbfd] p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm font-semibold text-slate-900">결제수단 선택</p>
-                    <div className="flex flex-wrap gap-2 text-[11px] font-semibold">
-                      <span className="rounded-full bg-[#eef4ff] px-2.5 py-1 text-[#1d4ed8]">Toss</span>
-                      <span className="rounded-full bg-[#eafaf0] px-2.5 py-1 text-emerald-700">Naver Pay</span>
-                      <span className="rounded-full bg-[#fff7e6] px-2.5 py-1 text-[#8a5a0a]">Kakao Pay</span>
-                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-slate-600">Google Pay 별도 설정</span>
+                <div className="overflow-hidden rounded-[1.5rem] border border-[#dce4ef] bg-white">
+                  <div className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-4 sm:px-5">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">Payment Method</p>
+                        <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-slate-950">결제수단 선택</h3>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-600">총 결제금액 {formatWon(courseAmount)}</p>
                     </div>
                   </div>
-                  <div id="payment-method" className="mt-4 min-h-[220px]" />
+
+                  <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
+                    {paymentMethods.map((method) => {
+                      const isSelected = method.id === selectedPaymentMethod;
+
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          aria-pressed={isSelected}
+                          onClick={() => setSelectedPaymentMethod(method.id)}
+                          className={
+                            isSelected
+                              ? "group min-h-[132px] rounded-[1.2rem] border border-[#173968] bg-[#f3f7ff] px-4 py-4 text-left shadow-[0_14px_30px_rgba(23,57,104,0.14)] transition"
+                              : "group min-h-[132px] rounded-[1.2rem] border border-[#dce4ef] bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-[#b9c7db] hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                          }
+                        >
+                          <span className={["inline-flex rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.14em]", method.badgeClass].join(" ")}>
+                            {method.label}
+                          </span>
+                          <span className="mt-4 block text-base font-bold text-slate-950">{method.title}</span>
+                          <span className="mt-2 block text-sm leading-6 text-slate-600">{method.description}</span>
+                          <span
+                            className={
+                              isSelected
+                                ? "mt-4 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#173968] bg-[#173968] text-xs font-bold text-white"
+                                : "mt-4 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#cbd5e1] text-xs font-bold text-transparent"
+                            }
+                          >
+                            ✓
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="border-t border-[#e5ebf3] bg-[#fbfcfe] px-4 py-4 sm:px-5">
+                    <div className="flex flex-col gap-2 rounded-[1rem] border border-[#e1e8f2] bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                      <span>선택한 결제수단</span>
+                      <strong className="text-slate-950">{selectedPaymentMethodInfo.title}</strong>
+                    </div>
+                    <p className="mt-3 text-xs leading-6 text-slate-500">
+                      아래 결제사 위젯은 실제 승인 가능한 수단을 최종 표시합니다. 신용카드, 다날 휴대폰결제, 카카오페이는 결제사 계약 및 상점관리자 활성화 후 운영 결제창에 노출됩니다.
+                    </p>
+                    <div id="payment-method" className="mt-4 min-h-[220px]" />
+                  </div>
                 </div>
 
                 <div className="rounded-[1.5rem] border border-[#dce4ef] bg-[#f9fbfd] p-4">
@@ -293,9 +372,17 @@ export default function CheckoutContent() {
                 </div>
 
                 <div className="mt-5 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
+                  <p className="font-semibold text-white">선택 결제수단</p>
+                  <div className="mt-3 flex items-center justify-between rounded-[0.9rem] bg-white/10 px-3 py-3">
+                    <span>{selectedPaymentMethodInfo.title}</span>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold tracking-[0.14em] text-[#10213f]">{selectedPaymentMethodInfo.label}</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
                   <p className="font-semibold text-white">결제 전 안내</p>
                   <p className="mt-2">결제 승인 후 구매 이력이 저장됩니다. 수강 유효기간은 {defaultCourse.accessValidLabel}입니다. 총 수강료는 55,000원이며, 수료 확인 자료를 발급받지 못했고 실제로 듣지 못한 강의가 남아 있는 경우 환불규정에 따라 강의 1개당 11,000원을 기준으로 환불 가능 금액을 검토합니다.</p>
-                  <p className="mt-3 text-[#f4d79e]">네이버페이 등 간편결제 노출은 Toss 상점관리자 결제위젯 설정에서 활성화된 항목을 따릅니다.</p>
+                  <p className="mt-3 text-[#f4d79e]">실제 결제창 노출은 결제사 심사, 다날/카카오페이 계약, Toss 상점관리자 설정을 따릅니다.</p>
                 </div>
               </div>
             </div>
@@ -353,11 +440,11 @@ export default function CheckoutContent() {
                   disabled={!canSubmit}
                   className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#d3ad62_0%,#f0cb85_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(198,168,106,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {isSubmitting ? "결제창 여는 중..." : "토스로 결제하기"}
+                  {isSubmitting ? "결제창 여는 중..." : selectedPaymentMethodInfo.title + "로 결제하기"}
                 </button>
 
                 <p className="text-xs leading-6 text-slate-500">
-                  카드, 계좌이체, 가상계좌(무통장입금) 노출 여부는 토스 결제위젯 어드민 설정과 계약 상태에 따라 달라집니다.
+                  신용카드, 휴대폰결제(다날), 카카오페이 노출 여부는 결제사 계약 상태와 상점관리자 결제위젯 설정에 따라 달라집니다.
                 </p>
               </div>
             </section>

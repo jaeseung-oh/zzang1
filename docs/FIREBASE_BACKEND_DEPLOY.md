@@ -75,7 +75,8 @@ firebase deploy --only firestore:rules,storage
 - Cloudflare Pages: `NEXT_PUBLIC_APP_ORIGIN`을 `https://resetedu.kr`로 설정
 - Cloudflare Pages: `NEXT_PUBLIC_TOSS_WIDGET_CLIENT_KEY`를 토스 운영 클라이언트 키로 설정
 - Firebase Functions: `TOSS_SECRET_KEY`를 토스 운영 시크릿 키로 설정
-- Toss 상점관리자: 결제위젯 variant `DEFAULT`에 카드, 계좌이체, 가상계좌, 간편결제 노출 여부 설정
+- Toss 상점관리자: 결제위젯 variant `DEFAULT`에 신용카드, 휴대폰결제, 카카오페이 노출 여부 설정
+- 결제사 계약/심사: 휴대폰결제는 다날 계약 및 심사 승인, 카카오페이는 카카오페이 계약 및 심사 승인 후 운영 노출 확인
 - Toss 상점관리자: 성공 URL `https://resetedu.kr/payment/success`, 실패 URL `https://resetedu.kr/payment/fail` 도메인 허용
 - 상품 금액: 프론트와 Functions 모두 `55,000원` 기준인지 확인
 - 수강 유효기간: 결제 저장 시 `accessValidMonths: 3` 및 `expiresAt` 생성 확인
