@@ -1122,7 +1122,7 @@ export default function CourseRoomPage() {
             <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(79,70,229,0.28),rgba(147,51,234,0.22))] px-6 py-5 sm:px-8">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-100/80">Legal Consent Required</p>
               <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">수강 전 법적 고지 확인</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-200">이 과정은 민간 교육 서비스이며 법률 자문, 사건 결과, 양형 효과를 보장하지 않습니다. 동의 후 강의실과 영상 재생 기능이 열립니다.</p>
+              <p className="mt-3 text-sm leading-7 text-slate-200">이 과정은 민간 교육 서비스이며 법률 자문, 사건 결과 또는 특정 법적 효과를 보장하지 않습니다. 동의 후 강의실과 영상 재생 기능이 열립니다.</p>
             </div>
             <div className="space-y-4 px-6 py-6 sm:px-8">
               <div className="rounded-2xl border border-white/12 bg-[#06080c]/55 p-5 text-sm leading-7 text-slate-200">
