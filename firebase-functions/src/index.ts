@@ -1,11 +1,11 @@
 import axios from "axios";
+import { createHash } from "crypto";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
 import OpenAI from "openai";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 
 initializeApp();
 
@@ -23,6 +23,15 @@ const COURSE_PRICE_KRW: Record<string, number> = {
   "dui-prevention-basic": 55000,
   "rapid-sentencing-prep": 55000,
 };
+const DUI_COURSE_ID = "dui-prevention-basic";
+const DUI_COURSE_TITLE = "음주운전 예방교육";
+const DUI_TOTAL_LESSONS = 5;
+const DUI_CERTIFICATE_ISSUER = {
+  issuerName: process.env.CERTIFICATE_ISSUER_NAME || "리셋에듀센터",
+  issuerBusinessNumber: process.env.CERTIFICATE_ISSUER_BUSINESS_NUMBER || "",
+  issuerContact: process.env.CERTIFICATE_ISSUER_CONTACT || "",
+  issuerEmail: process.env.CERTIFICATE_ISSUER_EMAIL || "",
+};
 
 function parsePurchaseExpiry(value: unknown) {
   if (!value) {
@@ -38,36 +47,6 @@ function parsePurchaseExpiry(value: unknown) {
   }
   return null;
 }
-
-const COURSE_COMPLETION_DOCUMENTS = [
-  {
-    documentType: "completion",
-    title: "건전음주 교육 이수 확인서",
-    subtitle: "온라인 교육 과정 이수 사실 확인",
-    body: [
-      "신청자는 자기점검과 재발 방지 학습을 위한 온라인 교육 과정을 이수했습니다.",
-      "본 문서는 사용자의 자발적인 교육 참여와 이수 사실을 확인하기 위한 민간 교육 자료입니다.",
-    ],
-  },
-  {
-    documentType: "psychology-report",
-    title: "인지행동 심리검사 결과지",
-    subtitle: "자기 점검 기반 재범 방지 계획 정리",
-    body: [
-      "신청자는 사건 이후 생활 관리 계획과 재범 방지 실행 항목을 점검했습니다.",
-      "본 결과지는 자기 점검용 교육 자료이며 법률적 판단이나 의료적 진단을 의미하지 않습니다.",
-    ],
-  },
-  {
-    documentType: "compliance-pledge",
-    title: "준법 서약서",
-    subtitle: "재발 방지와 생활 관리 계획 서약",
-    body: [
-      "신청자는 향후 동일 또는 유사한 일이 반복되지 않도록 생활 관리 계획을 수립했습니다.",
-      "본 서약 문구는 사용자의 자필 서명과 최종 검토를 거쳐 개인 기록용 또는 교육 확인용으로 활용할 수 있습니다.",
-    ],
-  },
-] as const;
 
 const COURSE_VIDEO_ASSETS: Record<
   string,
@@ -157,6 +136,10 @@ type GetCourseVideoAccessRequest = {
   moduleId?: string;
 };
 
+type IssueCertificateRequest = {
+  courseId?: string;
+};
+
 type CorsResponse = {
   set(name: string, value: string): void;
 };
@@ -233,12 +216,33 @@ function getAuthenticatedUid(request: { auth?: { uid?: string } | null }) {
 
 function assertDateOfBirthText(value: unknown) {
   if (typeof value !== "string") {
-    throw new HttpsError("failed-precondition", "회원가입 단계에서 저장한 생년월일이 필요합니다.");
+    throw new HttpsError("failed-precondition", "수료증 발급을 위해 생년월일을 입력해 주세요.");
   }
 
   const matched = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!matched) {
-    throw new HttpsError("failed-precondition", "회원가입 단계에서 저장한 생년월일 형식이 올바르지 않습니다.");
+    throw new HttpsError("failed-precondition", "생년월일은 YYYY-MM-DD 형식이어야 합니다.");
+  }
+
+  const [, yearText, monthText, dayText] = matched;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const candidate = new Date(year, month - 1, day);
+  const valid =
+    !Number.isNaN(candidate.getTime()) &&
+    candidate.getFullYear() === year &&
+    candidate.getMonth() === month - 1 &&
+    candidate.getDate() === day;
+
+  if (!valid) {
+    throw new HttpsError("failed-precondition", "생년월일은 YYYY-MM-DD 형식이어야 합니다.");
+  }
+
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  if (candidate > todayStart) {
+    throw new HttpsError("failed-precondition", "생년월일은 미래 날짜로 입력할 수 없습니다.");
   }
 
   return value.trim();
@@ -322,6 +326,264 @@ async function getPaidPurchase(uid: string, courseId: string) {
   return activePurchase;
 }
 
+
+function parseTimestampToDate(value: unknown) {
+  if (!value) {
+    return null;
+  }
+  if (value instanceof Date) {
+    return Number.isFinite(value.getTime()) ? value : null;
+  }
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+  if (typeof value === "object" && value !== null && "toDate" in value && typeof (value as { toDate?: unknown }).toDate === "function") {
+    const date = (value as { toDate: () => Date }).toDate();
+    return Number.isFinite(date.getTime()) ? date : null;
+  }
+  return null;
+}
+
+function formatCertificateDate(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
+}
+
+function createCertificateNumber(certificateId: string, issuedAt: Date) {
+  const suffix = createHash("sha256").update(certificateId).digest("hex").slice(0, 6).toUpperCase();
+  return `CERT-DUI-${formatCertificateDate(issuedAt)}-${suffix}`;
+}
+
+async function getActiveEnrollment(uid: string, courseId: string) {
+  const enrollmentId = `${uid}_${courseId}`;
+  const enrollmentRef = db.collection("enrollments").doc(enrollmentId);
+  const snapshot = await enrollmentRef.get();
+
+  if (!snapshot.exists) {
+    return null;
+  }
+
+  const data = snapshot.data() ?? {};
+  if ((data.userId ?? data.uid) !== uid || data.courseId !== courseId || data.paymentStatus !== "paid") {
+    return null;
+  }
+
+  if (data.accessStatus !== "active") {
+    return null;
+  }
+
+  const expiresAt = parseTimestampToDate(data.expiresAt);
+  if (expiresAt && expiresAt.getTime() < Date.now()) {
+    return null;
+  }
+
+  return { ref: enrollmentRef, id: enrollmentId, data };
+}
+
+async function getLatestPaidPurchaseForCertificate(uid: string, courseId: string) {
+  const snapshot = await db
+    .collection("purchases")
+    .where("uid", "==", uid)
+    .where("courseId", "==", courseId)
+    .where("paymentStatus", "==", "paid")
+    .limit(20)
+    .get();
+
+  if (snapshot.empty) {
+    throw new HttpsError("failed-precondition", "정상 결제된 교육과정이 확인되지 않습니다.");
+  }
+
+  const now = Date.now();
+  const activePurchase = snapshot.docs.find((doc) => {
+    const data = doc.data();
+    const expiresAt = parseTimestampToDate(data.expiresAt);
+    return (data.accessStatus ?? "active") === "active" && (!expiresAt || expiresAt.getTime() >= now);
+  });
+
+  if (!activePurchase) {
+    throw new HttpsError("failed-precondition", "수강기간이 만료되어 수료증을 발급받을 수 없습니다.");
+  }
+
+  return activePurchase;
+}
+
+async function issueDuiCertificate(uid: string, courseId: string) {
+  if (courseId !== DUI_COURSE_ID) {
+    throw new HttpsError("invalid-argument", "지원하지 않는 교육과정입니다.");
+  }
+
+  const certificateId = `${uid}_${courseId}`;
+  const certificateRef = db.collection("certificates").doc(certificateId);
+  const existingCertificate = await certificateRef.get();
+
+  if (existingCertificate.exists) {
+    const existing = existingCertificate.data() ?? {};
+    if (existing.documentType === "completion") {
+      const existingNo = existing.certificateNo ?? existing.issueNumber ?? "";
+      const issuedAt = parseTimestampToDate(existing.issuedAt ?? existing.certificateIssuedAt) ?? new Date();
+      const [activeEnrollment, activePurchase] = await Promise.all([
+        getActiveEnrollment(uid, courseId).catch(() => null),
+        getLatestPaidPurchaseForCertificate(uid, courseId).catch(() => null),
+      ]);
+
+      if (activeEnrollment) {
+        await activeEnrollment.ref.set(
+          {
+            certificateIssued: true,
+            certificateIssuedAt: existing.issuedAt ?? issuedAt,
+            certificateId,
+            certificateNo: existingNo,
+            completedAt: existing.completedAt ?? issuedAt,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      if (activePurchase) {
+        await activePurchase.ref.set(
+          {
+            certificateIssued: true,
+            certificateIssuedAt: existing.issuedAt ?? issuedAt,
+            certificateId,
+            certificateNo: existingNo,
+            updatedAt: FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+      }
+
+      return {
+        certificateId,
+        certificateNo: existingNo,
+        issuedAt: existing.issuedAt ?? existing.createdAt ?? null,
+        alreadyIssued: true,
+      };
+    }
+  }
+
+  const [userSnapshot, progressSnapshot, activeEnrollment, purchaseSnapshot] = await Promise.all([
+    db.collection("users").doc(uid).get(),
+    db.collection("courseProgress").doc(`${uid}_${courseId}`).get(),
+    getActiveEnrollment(uid, courseId),
+    getLatestPaidPurchaseForCertificate(uid, courseId),
+  ]);
+
+  if (!userSnapshot.exists) {
+    throw new HttpsError("failed-precondition", "회원 정보를 확인할 수 없습니다.");
+  }
+
+  if (!activeEnrollment) {
+    throw new HttpsError("failed-precondition", "정상 결제된 교육과정이 확인되지 않습니다.");
+  }
+
+  const userData = userSnapshot.data() ?? {};
+  const identity = await getCertificateIdentity(uid, {
+    lockIfMissing: true,
+    purchaseId: activeEnrollment.id,
+    lockSource: "completion",
+  });
+  const email = typeof userData.email === "string" ? userData.email : "";
+  const phoneNumber = typeof userData.phoneNumber === "string" ? userData.phoneNumber : "";
+  const progressData = progressSnapshot.data() ?? {};
+  const enrollmentData = activeEnrollment.data;
+  const completedLessons = Math.max(Number(enrollmentData.completedLessons || 0), Number(progressData.completedModuleCount || 0));
+  const progress = Math.max(Number(enrollmentData.progress || 0), Number(progressData.completionRate || 0));
+  const progressCompleted = Boolean(progressData.isCompleted) || completedLessons >= DUI_TOTAL_LESSONS || progress >= 100;
+
+  const purchasedAt = parseTimestampToDate(enrollmentData.purchasedAt) ?? parseTimestampToDate(purchaseSnapshot.data().purchasedAt ?? purchaseSnapshot.data().approvedAt);
+  const expiresAt = parseTimestampToDate(enrollmentData.expiresAt) ?? parseTimestampToDate(purchaseSnapshot.data().expiresAt);
+  if (expiresAt && expiresAt.getTime() < Date.now()) {
+    throw new HttpsError("failed-precondition", "수강기간이 만료되어 수료증을 발급받을 수 없습니다.");
+  }
+
+  const completedAt = progressCompleted ? (parseTimestampToDate(progressData.completedAt) ?? new Date()) : null;
+  const issuedAt = new Date();
+  const certificateNo = createCertificateNumber(certificateId, issuedAt);
+  const certificateRecord = {
+    certificateId,
+    certificateNo,
+    issueNumber: certificateNo,
+    userId: uid,
+    uid,
+    userName: identity.realName,
+    birthDate: identity.dateOfBirth,
+    dateOfBirth: identity.dateOfBirth,
+    email,
+    phoneNumber,
+    courseId,
+    courseTitle: DUI_COURSE_TITLE,
+    totalLessons: DUI_TOTAL_LESSONS,
+    completedLessons,
+    progress,
+    completedAt,
+    purchasedAt,
+    expiresAt,
+    issuedAt,
+    certificateIssuedAt: issuedAt,
+    issuerName: DUI_CERTIFICATE_ISSUER.issuerName,
+    issuerBusinessNumber: DUI_CERTIFICATE_ISSUER.issuerBusinessNumber,
+    issuerContact: DUI_CERTIFICATE_ISSUER.issuerContact,
+    issuerEmail: DUI_CERTIFICATE_ISSUER.issuerEmail,
+    status: "issued",
+    documentType: progressCompleted ? "completion" : "attendance",
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+  };
+
+  await db.runTransaction(async (transaction) => {
+    const freshCertificate = await transaction.get(certificateRef);
+    if (freshCertificate.exists) {
+      return;
+    }
+
+    transaction.set(certificateRef, certificateRecord, { merge: true });
+    transaction.set(
+      activeEnrollment.ref,
+      {
+        certificateIssued: true,
+        certificateIssuedAt: issuedAt,
+        attendanceCertificateIssued: !progressCompleted,
+        attendanceCertificateIssuedAt: !progressCompleted ? issuedAt : null,
+        certificateId,
+        certificateNo,
+        completedAt,
+        completedLessons,
+        progress,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    transaction.set(
+      purchaseSnapshot.ref,
+      {
+        certificateIssued: true,
+        certificateIssuedAt: issuedAt,
+        attendanceCertificateIssued: !progressCompleted,
+        attendanceCertificateIssuedAt: !progressCompleted ? issuedAt : null,
+        certificateId,
+        certificateNo,
+        completedLessons,
+        progress,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  });
+
+  const finalSnapshot = await certificateRef.get();
+  const finalData = finalSnapshot.data() ?? certificateRecord;
+  return {
+    certificateId,
+    certificateNo: finalData.certificateNo ?? certificateNo,
+    issuedAt: finalData.issuedAt ?? issuedAt,
+    alreadyIssued: false,
+  };
+}
+
 function getCourseVideoAsset(courseId: string, moduleId: string) {
   const courseAssets = COURSE_VIDEO_ASSETS[courseId];
   const asset = courseAssets?.[moduleId];
@@ -366,213 +628,6 @@ function buildFallbackDraft(data: DraftInput) {
     data.documentType === "reflection-letter-guide" ? "성찰문 글쓰기 가이드" : "주변인 의견문 정리 가이드";
 
   return `${title}\n\n저는 이번 사건으로 인해 제 행동이 사회와 주변 사람들에게 미칠 수 있는 영향을 무겁게 받아들이고 있습니다. 경솔했던 판단과 부주의한 태도에 대해 깊이 반성하고 있으며, 같은 일이 반복되지 않도록 생활 전반을 다시 정비하고자 합니다.\n\n특히 ${data.remorseReason.trim()}와 같은 점을 계속 돌아보며, 단순한 후회에 그치지 않고 실제 행동 변화로 이어가야 한다고 생각하고 있습니다. ${data.familyContext.trim() || "가족과 주변 환경 또한 제게 더 신중한 태도를 요구하고 있습니다."}\n\n앞으로는 ${data.preventionPlan.trim()}와 같은 구체적인 재범 방지 계획을 실천하면서, 다시는 유사한 일이 발생하지 않도록 교육과 생활 관리를 병행하겠습니다.\n\n본 문안은 자기점검과 글 정리를 돕기 위한 참고용 예시이며, 실제 사용 전에는 사실관계와 표현을 직접 다시 확인하고 자신의 말로 수정해 사용하시기 바랍니다.`;
-}
-
-function formatCaseType(caseType: SaveCourseProgressRequest["caseType"]) {
-  const labels = {
-    dui: "음주운전",
-    sexual: "성범죄",
-    drug: "마약",
-    violence: "폭행",
-    other: "기타",
-  } as const;
-
-  return caseType ? labels[caseType] : "기타";
-}
-
-function createIssueNumber(uid: string, documentType: string, issuedAt: string) {
-  const compactDate = issuedAt.slice(0, 10).replace(/-/g, "");
-  return `RLE-${compactDate}-${documentType.toUpperCase()}-${uid.slice(0, 6).toUpperCase()}`;
-}
-
-async function buildCertificatePdfBytes(args: {
-  learnerName: string;
-  learnerBirthDate: string;
-  courseTitle: string;
-  documentTitle: string;
-  subtitle: string;
-  issueNumber: string;
-  issuedAt: string;
-  caseTypeLabel: string;
-  body: readonly string[];
-}) {
-  const pdfDoc = await PDFDocument.create();
-  const page = pdfDoc.addPage([842, 595]);
-  const titleFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  const bodyFont = await pdfDoc.embedFont(StandardFonts.Helvetica);
-
-  page.drawRectangle({ x: 28, y: 28, width: 786, height: 539, color: rgb(0.03, 0.07, 0.12) });
-  page.drawRectangle({ x: 46, y: 46, width: 750, height: 503, borderColor: rgb(0.83, 0.68, 0.38), borderWidth: 1.5 });
-
-  page.drawText("RESET EDU CENTER", {
-    x: 64,
-    y: 515,
-    size: 14,
-    font: titleFont,
-    color: rgb(0.94, 0.8, 0.52),
-  });
-
-  page.drawText(args.documentTitle, {
-    x: 64,
-    y: 455,
-    size: 28,
-    font: titleFont,
-    color: rgb(0.96, 0.96, 0.96),
-  });
-
-  page.drawText(args.subtitle, {
-    x: 64,
-    y: 425,
-    size: 13,
-    font: bodyFont,
-    color: rgb(0.75, 0.78, 0.82),
-  });
-
-  page.drawText(`성명: ${args.learnerName}`, {
-    x: 64,
-    y: 370,
-    size: 16,
-    font: titleFont,
-    color: rgb(0.95, 0.95, 0.95),
-  });
-
-  page.drawText(`생년월일: ${args.learnerBirthDate}`, {
-    x: 64,
-    y: 342,
-    size: 12,
-    font: bodyFont,
-    color: rgb(0.8, 0.83, 0.87),
-  });
-
-  page.drawText(`사건 유형: ${args.caseTypeLabel}`, {
-    x: 64,
-    y: 318,
-    size: 12,
-    font: bodyFont,
-    color: rgb(0.8, 0.83, 0.87),
-  });
-
-  page.drawText(`과정명: ${args.courseTitle}`, {
-    x: 64,
-    y: 294,
-    size: 12,
-    font: bodyFont,
-    color: rgb(0.8, 0.83, 0.87),
-  });
-
-  page.drawText(`문서번호: ${args.issueNumber}`, {
-    x: 64,
-    y: 270,
-    size: 12,
-    font: bodyFont,
-    color: rgb(0.8, 0.83, 0.87),
-  });
-
-  page.drawText(`발급시각: ${args.issuedAt}`, {
-    x: 64,
-    y: 246,
-    size: 12,
-    font: bodyFont,
-    color: rgb(0.8, 0.83, 0.87),
-  });
-
-  let y = 194;
-  for (const line of args.body) {
-    page.drawText(line, {
-      x: 64,
-      y,
-      size: 13,
-      font: bodyFont,
-      color: rgb(0.9, 0.92, 0.95),
-      maxWidth: 700,
-    });
-    y -= 28;
-  }
-
-  page.drawText(LEGAL_NOTICE, {
-    x: 64,
-    y: 92,
-    size: 10,
-    font: bodyFont,
-    color: rgb(0.76, 0.78, 0.8),
-    maxWidth: 700,
-  });
-
-  return pdfDoc.save();
-}
-
-async function storeCertificate(args: {
-  uid: string;
-  courseId: string;
-  courseTitle: string;
-  purchaseId: string;
-  learnerName: string;
-  learnerBirthDate: string;
-  caseTypeLabel: string;
-  documentType: (typeof COURSE_COMPLETION_DOCUMENTS)[number]["documentType"];
-  title: string;
-  subtitle: string;
-  body: readonly string[];
-  issuedAt: string;
-}) {
-  const certificateId = `${args.uid}_${args.courseId}_${args.documentType}`;
-  const issueNumber = createIssueNumber(args.uid, args.documentType, args.issuedAt);
-  const pdfBytes = await buildCertificatePdfBytes({
-    learnerName: args.learnerName,
-    learnerBirthDate: args.learnerBirthDate,
-    courseTitle: args.courseTitle,
-    documentTitle: args.title,
-    subtitle: args.subtitle,
-    issueNumber,
-    issuedAt: args.issuedAt,
-    caseTypeLabel: args.caseTypeLabel,
-    body: args.body,
-  });
-
-  const filePath = `certificates/${args.uid}/${args.courseId}/${args.documentType}.pdf`;
-  const bucket = storage.bucket();
-  const file = bucket.file(filePath);
-
-  await file.save(Buffer.from(pdfBytes), {
-    contentType: "application/pdf",
-    resumable: false,
-    metadata: {
-      cacheControl: "private, max-age=3600",
-      contentDisposition: `attachment; filename="${args.documentType}.pdf"`,
-    },
-  });
-
-  const [downloadUrl] = await file.getSignedUrl({
-    action: "read",
-    expires: "2035-01-01",
-  });
-
-  await db.collection("certificates").doc(certificateId).set(
-    {
-      uid: args.uid,
-      courseId: args.courseId,
-      courseTitle: args.courseTitle,
-      purchaseId: args.purchaseId,
-      documentType: args.documentType,
-      learnerName: args.learnerName,
-      learnerBirthDate: args.learnerBirthDate,
-      issueNumber,
-      storagePath: filePath,
-      downloadUrl,
-      submittedByUser: false,
-      issuedAt: FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp(),
-      createdAt: FieldValue.serverTimestamp(),
-    },
-    { merge: true }
-  );
-
-  return {
-    certificateId,
-    documentType: args.documentType,
-    downloadUrl,
-    issueNumber,
-  };
 }
 
 export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (request, response) => {
@@ -722,14 +777,15 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
   const totalModuleCount = Object.keys(moduleProgress).length;
   const isCompleted = totalModuleCount > 0 ? completedModuleCount === totalModuleCount : data.isCompleted || completionRate >= 100;
   const purchaseSnapshot = isCompleted ? await getPaidPurchase(uid, data.courseId).catch(() => null) : null;
-  const lockedCertificateIdentity = purchaseSnapshot
-    ? await getCertificateIdentity(uid, {
-        lockIfMissing: true,
-        purchaseId: purchaseSnapshot.id,
-        lockSource: "completion",
-      })
-    : certificateIdentity;
-  const certificateEligible = isCompleted && Boolean(purchaseSnapshot) && Boolean(data.legalAccepted) && Boolean(data.userReviewAccepted);
+  const activeEnrollment = isCompleted ? await getActiveEnrollment(uid, data.courseId).catch(() => null) : null;
+  if (purchaseSnapshot) {
+    await getCertificateIdentity(uid, {
+      lockIfMissing: true,
+      purchaseId: activeEnrollment?.id ?? purchaseSnapshot.id,
+      lockSource: "completion",
+    });
+  }
+  const certificateEligible = isCompleted && Boolean(purchaseSnapshot) && Boolean(activeEnrollment) && Boolean(data.legalAccepted) && Boolean(data.userReviewAccepted);
 
   await db.collection("courseProgress").doc(progressId).set(
     {
@@ -764,28 +820,40 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
     issueNumber: string;
   }> = [];
 
+  if (activeEnrollment) {
+    await activeEnrollment.ref.set(
+      {
+        progress: completionRate,
+        completedLessons: completedModuleCount,
+        totalLessons: Math.max(totalModuleCount, DUI_TOTAL_LESSONS),
+        completedAt: isCompleted ? FieldValue.serverTimestamp() : null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
+  if (purchaseSnapshot) {
+    await purchaseSnapshot.ref.set(
+      {
+        progress: completionRate,
+        completedLessons: completedModuleCount,
+        totalLessons: Math.max(totalModuleCount, DUI_TOTAL_LESSONS),
+        completedAt: isCompleted ? FieldValue.serverTimestamp() : null,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+  }
+
   if (certificateEligible && purchaseSnapshot) {
-    const issuedAt = new Date().toISOString();
-    const caseTypeLabel = formatCaseType(data.caseType);
-
-    for (const definition of COURSE_COMPLETION_DOCUMENTS) {
-      const stored = await storeCertificate({
-        uid,
-        courseId: data.courseId,
-        courseTitle: data.courseTitle,
-        purchaseId: purchaseSnapshot.id,
-        learnerName: lockedCertificateIdentity.realName,
-        learnerBirthDate: lockedCertificateIdentity.dateOfBirth,
-        caseTypeLabel,
-        documentType: definition.documentType,
-        title: definition.title,
-        subtitle: definition.subtitle,
-        body: definition.body,
-        issuedAt,
-      });
-
-      issuedCertificates.push(stored);
-    }
+    const certificate = await issueDuiCertificate(uid, data.courseId);
+    issuedCertificates.push({
+      certificateId: certificate.certificateId,
+      documentType: "completion",
+      downloadUrl: `/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}`,
+      issueNumber: certificate.certificateNo,
+    });
   }
 
   return {
@@ -796,6 +864,22 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
     certificateEligible,
     issuedCertificates,
   };
+});
+
+export const issueCertificate = onCall({ region: "asia-northeast3" }, async (request) => {
+  const uid = getAuthenticatedUid(request);
+  const data = (request.data || {}) as IssueCertificateRequest;
+  const courseId = data.courseId?.trim() || DUI_COURSE_ID;
+
+  try {
+    return await issueDuiCertificate(uid, courseId);
+  } catch (error) {
+    if (error instanceof HttpsError) {
+      throw error;
+    }
+    console.error(error);
+    throw new HttpsError("internal", "수료증 발급 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.");
+  }
 });
 
 export const syncEmailVerificationStatus = onCall({ region: "asia-northeast3" }, async (request) => {

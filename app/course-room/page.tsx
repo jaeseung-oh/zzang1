@@ -1,11 +1,12 @@
 "use client";
 
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { isAdminEmail } from "@/lib/admin/config";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -62,6 +63,7 @@ type StoredPlaybackSnapshot = {
   caseType: CaseType;
   selectedModuleId: string;
   legalAccepted: boolean;
+  legalAcceptedDate?: string;
   reviewAccepted: boolean;
   purchaseNoticeAccepted: boolean;
   moduleProgress: Record<string, ModuleProgressState>;
@@ -80,6 +82,8 @@ type ProgressRecord = {
   moduleProgress?: Record<string, ModuleProgressState>;
   isCompleted?: boolean;
   legalDisclaimerAccepted?: boolean;
+  legalNoticeAcceptedAt?: { seconds: number } | string | Date | null;
+  legalNoticeAcceptedDate?: string;
   userReviewAccepted?: boolean;
   updatedAt?: { seconds: number };
 };
@@ -105,6 +109,35 @@ function dispatchLectureActivity(active: boolean) {
   }
 
   window.dispatchEvent(new CustomEvent(lectureActivityEvent, { detail: { active } }));
+}
+
+function getTodayKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+}
+
+function toDateFromUnknown(value: unknown) {
+  if (!value) return null;
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value : null;
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+  if (typeof value === "object" && value !== null && "seconds" in value && typeof (value as { seconds?: unknown }).seconds === "number") {
+    return new Date((value as { seconds: number }).seconds * 1000);
+  }
+  return null;
+}
+
+function formatDateKey(value: unknown) {
+  const date = toDateFromUnknown(value);
+  if (!date) return "";
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function isLegalAcceptedToday(remote: ProgressRecord | null, local: StoredPlaybackSnapshot | null) {
+  const today = getTodayKey();
+  return remote?.legalNoticeAcceptedDate === today || formatDateKey(remote?.legalNoticeAcceptedAt) === today || local?.legalAcceptedDate === today;
 }
 
 function parseAccessExpiry(value: unknown) {
@@ -433,22 +466,35 @@ export default function CourseRoomPage() {
         setFullName(resolvedName);
 
         const { db } = getFirebaseServices();
-        const purchaseSnapshot = await getDocs(
-          query(collection(db, "purchases"), where("uid", "==", user.uid), where("courseId", "==", defaultCourse.id), where("paymentStatus", "==", "paid"))
-        );
+        const adminBypass = isAdminEmail(user.email);
+        const [purchaseSnapshot, enrollmentSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "purchases"), where("uid", "==", user.uid), where("courseId", "==", defaultCourse.id), where("paymentStatus", "==", "paid"))),
+          getDoc(doc(db, "enrollments", user.uid + "_" + defaultCourse.id)),
+        ]);
         const now = Date.now();
         const paidPurchases = purchaseSnapshot.docs.map((snapshot) => snapshot.data());
         const activePurchase = paidPurchases.find((purchase) => {
           const expiresAt = parseAccessExpiry(purchase.expiresAt);
-          return expiresAt === null || expiresAt >= now;
+          return (purchase.accessStatus ?? "active") === "active" && (expiresAt === null || expiresAt >= now);
         });
+        const enrollment = enrollmentSnapshot.exists() ? enrollmentSnapshot.data() : null;
+        const enrollmentExpiresAt = parseAccessExpiry(enrollment?.expiresAt);
+        const activeEnrollment = Boolean(
+          enrollment &&
+          (enrollment.uid === user.uid || enrollment.userId === user.uid) &&
+          enrollment.courseId === defaultCourse.id &&
+          enrollment.paymentStatus === "paid" &&
+          (enrollment.accessStatus ?? "active") === "active" &&
+          (enrollmentExpiresAt === null || enrollmentExpiresAt >= now)
+        );
 
-        if (!activePurchase) {
+        if (!adminBypass && !activePurchase && !activeEnrollment) {
           const hasExpiredPurchase = paidPurchases.some((purchase) => {
             const expiresAt = parseAccessExpiry(purchase.expiresAt);
             return expiresAt !== null && expiresAt < now;
           });
-          const message = hasExpiredPurchase
+          const hasExpiredEnrollment = Boolean(enrollment && enrollment.paymentStatus === "paid" && enrollmentExpiresAt !== null && enrollmentExpiresAt < now);
+          const message = hasExpiredPurchase || hasExpiredEnrollment
             ? "해당 강의의 수강기간은 결제일로부터 90일이며, 현재 수강기간이 만료되어 수강할 수 없습니다."
             : "결제 완료 후 음주운전 예방교육 수강권이 부여되면 강의를 수강할 수 있습니다.";
           setAccessBlockedMessage(message);
@@ -468,7 +514,7 @@ export default function CourseRoomPage() {
         setModuleProgress(mergedProgress);
         setSelectedModuleId(initialModuleId);
         setCaseType(remote?.caseType ?? local?.caseType ?? "dui");
-        setLegalAccepted(Boolean(remote?.legalDisclaimerAccepted ?? local?.legalAccepted ?? false));
+        setLegalAccepted(isLegalAcceptedToday(remote, local));
         setReviewAccepted(Boolean(remote?.userReviewAccepted ?? local?.reviewAccepted ?? false));
         setPurchaseNoticeAccepted(Boolean(local?.purchaseNoticeAccepted ?? false));
         setLastSavedLabel(remote?.updatedAt ? formatTimestamp(remote.updatedAt) : local?.savedAt ?? "저장 대기 중");
@@ -512,6 +558,7 @@ export default function CourseRoomPage() {
         caseType,
         selectedModuleId,
         legalAccepted,
+        legalAcceptedDate: legalAccepted ? getTodayKey() : "",
         reviewAccepted,
         purchaseNoticeAccepted,
         moduleProgress,
@@ -612,6 +659,12 @@ export default function CourseRoomPage() {
       cancelled = true;
     };
   }, [uid, selectedModule, accessBlockedMessage]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.Stream) {
+      setStreamSdkReady(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (videoProvider !== "cloudflare-stream" || !videoUrl || !streamSdkReady || !selectedModule) {
@@ -719,12 +772,19 @@ export default function CourseRoomPage() {
 
       const refresh = async () => {
         try {
-          const { functions } = getFirebaseServices();
-          const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
-          const response = await callable({ courseId: defaultCourse.id, moduleId: selectedModule.id });
-          setVideoProvider(response.data.provider ?? "storage");
-          setVideoUrl(response.data.videoUrl);
-          setVideoExpiresAt(response.data.expiresAt);
+          if (selectedModule.cloudflareStreamUid) {
+            const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid);
+            setVideoProvider("cloudflare-stream");
+            setVideoUrl(streamUrl);
+            setVideoExpiresAt(Date.now() + 1000 * 60 * 55);
+          } else {
+            const { functions } = getFirebaseServices();
+            const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
+            const response = await callable({ courseId: defaultCourse.id, moduleId: selectedModule.id });
+            setVideoProvider(response.data.provider ?? "storage");
+            setVideoUrl(response.data.videoUrl);
+            setVideoExpiresAt(response.data.expiresAt);
+          }
           window.setTimeout(() => {
             const nextPlayer = videoRef.current;
             if (!nextPlayer) {
@@ -829,7 +889,7 @@ export default function CourseRoomPage() {
       setResult(response.data);
 
       if (response.data.issuedCertificates.length) {
-        setStatusMessage("수강 정보가 저장되었고 결제 및 필수 동의가 확인되어 수료 문서가 준비되었습니다.");
+        setStatusMessage("음주운전 예방교육 총 5강을 모두 수강하셨습니다. 수료증 발급 조건을 충족했습니다.");
       } else if (response.data.isCompleted && !response.data.paymentVerified) {
         setStatusMessage("수강 정보가 확인되면 수료 문서 발급이 자동으로 이어집니다.");
       } else if (response.data.isCompleted && !response.data.certificateEligible) {
@@ -1005,13 +1065,51 @@ export default function CourseRoomPage() {
   const purchaseChecklistReady = purchaseNoticeAccepted;
   const legalGateOpen = !legalAccepted;
   const certificateStatus = result?.issuedCertificates.length
-    ? "수료 문서 안내 확인"
+    ? "수료증 발급 완료"
     : aggregate.isCompleted
-      ? "결제 및 필수 동의 확인 후 발급"
+      ? "수료증 발급 조건 충족"
       : "강의 수강 시 발급 안내";
+
+  const handleLegalGateAccept = async () => {
+    setLegalAccepted(true);
+    setLegalGateChecked(false);
+    setStatusMessage("법적 고지 동의가 확인되었습니다. 강의실 이용을 시작할 수 있습니다.");
+
+    if (!uidRef.current) {
+      return;
+    }
+
+    try {
+      const { db } = getFirebaseServices();
+      await setDoc(
+        doc(db, "courseProgress", `${uidRef.current}_${defaultCourse.id}`),
+        {
+          uid: uidRef.current,
+          courseId: defaultCourse.id,
+          courseTitle: defaultCourse.title,
+          caseType: caseTypeRef.current,
+          legalDisclaimerAccepted: true,
+          legalNoticeAcceptedAt: serverTimestamp(),
+          legalNoticeAcceptedDate: getTodayKey(),
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+      setLastSavedLabel(new Date().toLocaleString("ko-KR"));
+    } catch (acceptError) {
+      console.error(acceptError);
+      setStatusMessage("고지 동의는 현재 화면에 저장되었습니다. 서버 저장은 다음 진도 저장 때 다시 시도됩니다.");
+    }
+  };
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#06080c] px-4 py-5 text-white sm:px-6 lg:px-8 lg:py-8">
+      <Script
+        src="https://embed.cloudflarestream.com/embed/sdk.latest.js"
+        strategy="afterInteractive"
+        onLoad={() => setStreamSdkReady(true)}
+        onError={() => setStatusMessage("강의 플레이어 스크립트를 불러오지 못했습니다. 새로고침 후 다시 시도해 주세요.")}
+      />
       <div className="pointer-events-none absolute inset-0 opacity-80">
         <div className="absolute left-[-12rem] top-[-10rem] h-[32rem] w-[32rem] rounded-full bg-indigo-600/22 blur-[110px]" />
         <div className="absolute right-[-10rem] top-[18rem] h-[30rem] w-[30rem] rounded-full bg-purple-600/20 blur-[120px]" />
@@ -1043,10 +1141,7 @@ export default function CourseRoomPage() {
               <button
                 type="button"
                 disabled={!legalGateChecked}
-                onClick={() => {
-                  setLegalAccepted(true);
-                  setStatusMessage("법적 고지 동의가 확인되었습니다. 강의실 이용을 시작할 수 있습니다.");
-                }}
+                onClick={() => void handleLegalGateAccept()}
                 className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#6366f1_0%,#a855f7_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_18px_40px_rgba(99,102,241,0.34)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 동의하고 강의실 입장
@@ -1089,7 +1184,7 @@ export default function CourseRoomPage() {
                 href="/certificate"
                 className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#c6a86a_0%,#ecd7ac_100%)] px-6 py-3 text-sm font-bold text-[#17120b] shadow-[0_16px_30px_rgba(198,168,106,0.28)] transition hover:-translate-y-0.5"
               >
-                수료 문서 확인
+                수강증/수료증 출력
               </Link>
             </div>
           </div>
@@ -1333,7 +1428,7 @@ export default function CourseRoomPage() {
                   </div>
 
                   <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.08] p-5 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
-                    <div className="grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <button
                         type="button"
                         onClick={() => void persistProgress("manual")}
@@ -1349,6 +1444,18 @@ export default function CourseRoomPage() {
                       >
                         교안 다운로드
                       </button>
+                      <Link
+                        href="/certificate"
+                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/[0.13]"
+                      >
+                        수강증/수료증 발급
+                      </Link>
+                      <Link
+                        href="/certificate?print=1"
+                        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#16a34a_0%,#86efac_100%)] px-5 py-3 text-sm font-bold text-[#052e16] shadow-[0_14px_28px_rgba(22,163,74,0.18)] transition hover:-translate-y-0.5"
+                      >
+                        바로 인쇄
+                      </Link>
                     </div>
                     <div className="mt-4 rounded-[1.25rem] border border-white/12 bg-[#06080c]/45 px-4 py-4 text-sm leading-7 text-slate-300">
                       <p className="font-semibold text-slate-100">운영 상태</p>
@@ -1475,7 +1582,7 @@ export default function CourseRoomPage() {
                   </label>
 
                   <div className="rounded-[1.1rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-300">
-                    <p>수료 문서는 결제 완료와 총 5강 수강 완료 후 안내됩니다. 본 강의의 수강기간은 결제일로부터 90일이며, 미수강 강의 환불 기준은 55,000원 기준 강의 1개당 11,000원입니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
+                    <p>수강확인증은 결제 완료 후 수강권이 확인되면 출력할 수 있고, 전체 5강 수강 완료 후에는 수료증으로 발급됩니다. 본 강의의 수강기간은 결제일로부터 90일이며, 미수강 강의 환불 기준은 55,000원 기준 강의 1개당 11,000원입니다. 수료증 등 교육 이수 관련 서류가 발급 또는 출력된 후에는 환불이 불가합니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
                     <div className="mt-3 flex flex-wrap gap-3 font-semibold">
                       <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                       <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
@@ -1576,7 +1683,7 @@ export default function CourseRoomPage() {
                       <p className="mt-1.5 text-base font-semibold text-white">{formatDuration(aggregate.remainingSeconds)}</p>
                     </div>
                     <div className="rounded-[1.15rem] border border-white/12 bg-white/[0.06] px-3.5 py-3.5">
-                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">수료증 발급 상태</p>
+                      <p className="text-xs uppercase tracking-[0.18em] text-slate-400">서류 발급 상태</p>
                       <p className="mt-1.5 text-base font-semibold text-white">{certificateStatus}</p>
                     </div>
                   </div>
@@ -1651,22 +1758,40 @@ export default function CourseRoomPage() {
                 ))}
               </div>
 
-              {result?.issuedCertificates.length ? (
+              {aggregate.isCompleted ? (
                 <div className="mt-5 rounded-[1.35rem] border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-semibold text-emerald-800">방금 준비된 문서</p>
+                  <p className="text-sm font-semibold text-emerald-800">음주운전 예방교육 총 5강을 모두 수강하셨습니다.</p>
+                  <p className="mt-2 text-sm leading-7 text-emerald-900">수료증 발급 조건을 충족했습니다. 아래 버튼을 눌러 수료증을 확인하고 인쇄할 수 있습니다.</p>
                   <div className="mt-3 space-y-3 text-sm text-emerald-900">
-                    {result.issuedCertificates.map((certificate) => (
-                      <a
-                        key={certificate.certificateId}
-                        href={certificate.downloadUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white/[0.06] px-4 py-3 transition hover:bg-emerald-50"
-                      >
-                        <span>{certificate.documentType} / {certificate.issueNumber}</span>
-                        <span className="font-semibold">열기</span>
-                      </a>
-                    ))}
+                    {result?.issuedCertificates.length ? (
+                      result.issuedCertificates.map((certificate) => (
+                        <div key={certificate.certificateId} className="space-y-2">
+                          <Link
+                            href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}`}
+                            className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3 transition hover:bg-emerald-50"
+                          >
+                            <span>수료증 / {certificate.issueNumber}</span>
+                            <span className="font-semibold">수료증 보기</span>
+                          </Link>
+                          <Link
+                            href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}&print=1`}
+                            className="flex items-center justify-between rounded-2xl bg-emerald-700 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800"
+                          >
+                            <span>수료증 / {certificate.issueNumber}</span>
+                            <span>바로 인쇄</span>
+                          </Link>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        <Link href="/certificate" className="inline-flex rounded-full border border-emerald-200 bg-white px-4 py-2 font-semibold text-emerald-900 transition hover:bg-emerald-50">
+                          수강증/수료증 발급 및 보기
+                        </Link>
+                        <Link href="/certificate?print=1" className="inline-flex rounded-full bg-emerald-700 px-4 py-2 font-semibold text-white transition hover:bg-emerald-800">
+                          바로 인쇄
+                        </Link>
+                      </div>
+                    )}
                   </div>
                 </div>
               ) : null}

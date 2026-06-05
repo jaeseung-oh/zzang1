@@ -117,10 +117,10 @@ function PaymentSuccessContent() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#07111f_0%,#09111d_45%,#050a12_100%)] px-4 py-10 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl rounded-[2rem] border border-white/10 bg-white/[0.03] p-6 shadow-[0_30px_80px_rgba(0,0,0,0.3)] lg:p-8">
-        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Toss Payments</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Payment</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white">결제 완료 확인</h1>
         <p className="mt-4 text-sm leading-8 text-white/70">
-          서버에서 결제금액과 주문 정보를 검증한 뒤 결제내역과 수강권을 저장합니다. 결제 완료 즉시 음주운전 예방교육 수강권이 부여되며, 수료증은 총 5강 전체 수강 완료 후 발급됩니다.
+          서버에서 결제금액과 주문 정보를 검증한 뒤 결제내역과 수강권을 저장합니다. 결제 완료 즉시 음주운전 예방교육 수강권이 부여되며, 수강확인증은 수강권 확인 후 출력할 수 있습니다. 5강 전체 수강 완료 후에는 수료증으로 발급됩니다.
         </p>
 
         <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#d3ad62]/10 p-4 text-sm leading-7 text-[#f7dfab]">
@@ -148,7 +148,7 @@ function PaymentSuccessContent() {
               <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                 <p className="text-white">결제가 완료되었습니다. 지금 바로 강의를 수강할 수 있습니다.</p>
                 <p className="mt-2 text-white/70">저장된 구매 ID: {result.savedPurchaseId || result.orderId}</p>
-                <p className="mt-2 text-white/70">수강기간은 결제일로부터 {duiPreventionCourseProduct.durationDays}일이며, 전체 {duiPreventionCourseProduct.totalLessons}강 수강 완료 후 수료증 발급이 가능합니다.</p>
+                <p className="mt-2 text-white/70">수강기간은 결제일로부터 {duiPreventionCourseProduct.durationDays}일이며, 수강권 확인 후 수강확인증 출력이 가능합니다. 전체 {duiPreventionCourseProduct.totalLessons}강 수강 완료 후에는 수료증으로 발급됩니다.</p>
                 {result.expiresAt ? <p className="mt-2 text-white/70">수강권 만료일: {new Date(result.expiresAt).toLocaleString("ko-KR")}</p> : null}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">

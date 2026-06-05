@@ -17,7 +17,7 @@ const trustIndicators = [
     ),
   },
   {
-    title: "수강 후 수료증 안내",
+    title: "이수 확인 자료 안내",
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="1.8">
         <path d="M12 8v4l3 3" />
@@ -63,8 +63,8 @@ const trustIndicators = [
 const courseCards = [
   {
     title: "음주운전 예방교육 5강",
-    summary: "현재 등록된 교육 영상을 중심으로 위험성 인지, 금주 실천 계획, 생활 패턴 점검, 책임 의식 정리를 돕는 구성입니다.",
-    tags: ["핵심 영상 수강", "금주 계획", "재발 방지"],
+    summary: "금주실천서약서와 재발방지계획서 참고 양식까지 한 번에 확인할 수 있는 유료 과정입니다. 사건 이후 교육 이수 사실과 재발방지 노력을 빠르게 정리해야 하는 분에게 맞춘 구성입니다.",
+    tags: ["이수 확인", "양형자료 참고", "서식 제공"],
     image: "https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80",
     icon: (
       <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
@@ -77,8 +77,8 @@ const courseCards = [
   },
   {
     title: "성범죄 예방 교육",
-    summary: "경계 인식, 관계 윤리, 피해 공감, 재발 방지 책임 인식을 중심으로 구성한 교육 프로그램입니다.",
-    tags: ["관계 인식", "윤리 교육", "재발 방지"],
+    summary: "관계 윤리와 재발방지 책임을 정리하고, 교육 이수 내역과 실천 계획을 참고자료 형태로 갖출 수 있도록 설계한 과정입니다. 사건 이후 반성문 외에 교육 참여 기록을 함께 준비하려는 분에게 적합합니다.",
+    tags: ["이수 기록", "실천 계획", "참고자료"],
     image: "https://images.unsplash.com/photo-1528740561666-dc2479dc08ab?auto=format&fit=crop&w=1200&q=80",
     icon: (
       <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
@@ -88,8 +88,8 @@ const courseCards = [
   },
   {
     title: "사기 예방 교육",
-    summary: "신뢰 회복, 문서 책임, 거래 윤리, 재발방지 계획 정리를 다루는 교육 과정입니다.",
-    tags: ["문서 책임", "신뢰 회복", "계획 수립"],
+    summary: "문서 책임, 거래 윤리, 피해 회복 의지와 재발방지 계획을 체계적으로 정리하도록 돕는 과정입니다. 교육 수강 기록과 계획서 형식의 참고자료를 준비하려는 분을 위한 구성입니다.",
+    tags: ["책임 정리", "재발방지 계획", "자료 준비"],
     image: "https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=1200&q=80",
     icon: (
       <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
@@ -156,12 +156,12 @@ const faqs = [
     body: "네. 전 과정 온라인 수강 기준으로 구성되어 있어 별도 방문 없이 진행 가능합니다.",
   },
   {
-    title: "발급 서류는 어떤 용도인가요?",
-    body: "민간 교육 이수 사실과 실천 계획을 정리하는 확인용 자료로 안내됩니다. 실제 제출 필요성과 활용 가능성은 제출처 기준을 먼저 확인해 주세요.",
+    title: "이수 확인 자료를 양형자료 준비에 활용할 수 있나요?",
+    body: "교육 이수 확인 자료와 금주실천서약서, 재발방지계획서 참고 양식을 함께 이용할 수 있습니다. 교육 참여 사실과 재발방지 노력을 정리하는 참고자료로 활용할 수 있도록 구성했습니다.",
   },
   {
-    title: "신청 후 절차는 복잡하지 않나요?",
-    body: "사건 유형 확인, 수강, 발급의 3단계 구조로 최대한 단순하게 구성했습니다.",
+    title: "신청 후 서류 준비까지 복잡하지 않나요?",
+    body: "회원가입, 결제, 온라인 수강, 교육 이수 확인 자료와 참고서식 확인까지 한 흐름으로 진행됩니다. 다만 실제 제출 필요성과 반영 여부는 제출처나 담당 전문가 기준을 확인해 주세요.",
   },
 ];
 
@@ -310,7 +310,7 @@ export default function HomePage() {
                   </div>
                 ) : null}
               </div>
-              <a href="#documents" className="transition hover:text-[#06101b]">수료증 안내</a>
+              <a href="#documents" className="transition hover:text-[#06101b]">자료 안내</a>
               <a href="#reviews" className="transition hover:text-[#06101b]">수강후기</a>
               <a href="#faq" className="transition hover:text-[#06101b]">자주 묻는 질문</a>
             </nav>
@@ -337,37 +337,37 @@ export default function HomePage() {
         </div>
 
         <div className="relative mx-auto flex min-h-screen max-w-7xl items-center px-4 pb-20 pt-36 sm:px-6 lg:px-8">
-          <div className="grid w-full items-center gap-10 xl:grid-cols-[minmax(0,1.08fr)_minmax(340px,0.92fr)]">
+          <div className="grid w-full items-center gap-10 xl:grid-cols-[minmax(0,1fr)_minmax(330px,0.86fr)]">
             <Reveal delay={0}>
               <div>
-                <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#e9c98d]/30 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.28em] text-[#f6deb0]">
-                  성찰과 재발 방지를 위한 민간 온라인 교육 플랫폼
+                <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#e9c98d]/30 bg-white/10 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.22em] text-[#f6deb0]">
+                  음주운전 예방교육 · 이수 확인 자료 · 재발방지 참고서식 제공
                 </div>
-                <h1 className="max-w-4xl text-4xl font-black leading-[1.08] tracking-[-0.045em] text-white sm:text-5xl xl:text-[5.15rem]">
-                  <span className="block break-keep">진정성 있는 성찰과 실천을 돕습니다.</span>
-                  <span className="mt-2 block break-keep text-[#f6deb0]">민간 재발 방지 교육과 자기점검의 출발점</span>
+                <h1 className="max-w-4xl text-[2.45rem] font-black leading-[1.12] tracking-[-0.04em] text-white sm:text-[3.2rem] lg:text-[3.75rem] xl:text-[4.35rem]">
+                  <span className="block break-keep">사건 이후 필요한 교육 이수와 자료 정리,</span>
+                  <span className="mt-2 block break-keep text-[#f6deb0]">온라인으로 차분하게 준비하세요.</span>
                 </h1>
-                <p className="mt-6 max-w-[44rem] break-keep text-base leading-8 text-slate-200 sm:text-lg">
-                  사건 이후 자신의 생활을 차분히 돌아보고, 재발 방지를 위한 학습과 실천 계획을 스스로 정리할 수 있도록 돕습니다.
+                <p className="mt-5 max-w-[42rem] break-keep text-[15px] leading-7 text-slate-200 sm:text-base lg:text-[17px] lg:leading-8">
+                  음주운전 등으로 자신의 행동을 돌아보고 재발방지 노력을 정리해야 하는 분들을 위한 유료 온라인 교육 과정입니다. 교육 이수 확인 자료와 금주실천서약서, 재발방지계획서 참고 양식을 함께 활용할 수 있습니다.
                 </p>
-                <div className="mt-8 flex flex-wrap gap-4">
+                <div className="mt-7 flex flex-wrap gap-3">
                   {currentUser ? (
-                    <a href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-7 py-4 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
+                    <a href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-6 py-3.5 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
                       내 강의실 바로가기
                     </a>
                   ) : (
-                    <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-7 py-4 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
-                      회원가입 후 시작하기
+                    <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-6 py-3.5 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
+                      음주운전 예방교육 신청하기
                     </a>
                   )}
                   <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-7 py-4 text-sm font-semibold text-[#10213f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
                     수강 절차 보기
                   </a>
                 </div>
-                <div className="mt-10 flex flex-wrap gap-6 text-sm text-slate-200">
+                <div className="mt-8 flex flex-wrap gap-5 text-sm text-slate-200">
                   {stats.map((item) => (
                     <div key={item.label}>
-                      <p className="text-3xl font-black text-white">{item.value}</p>
+                      <p className="text-2xl font-black text-white">{item.value}</p>
                       <p>{item.label}</p>
                     </div>
                   ))}
@@ -379,11 +379,11 @@ export default function HomePage() {
               {currentUser ? (
                 <HomeUserSummary currentUser={currentUser} />
               ) : (
-                <div className="max-w-[500px] rounded-[2rem] border border-white/15 bg-white/10 p-6 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl sm:p-7">
+                <div className="max-w-[470px] rounded-[1.6rem] border border-white/15 bg-white/10 p-5 text-white shadow-[0_20px_80px_rgba(6,16,27,0.38)] backdrop-blur-xl sm:p-6">
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Urgent Briefing</p>
-                      <h2 className="mt-2 break-keep text-[1.45rem] font-bold leading-tight sm:text-[1.7rem]">온라인 수강 · 발급 안내</h2>
+                      <p className="text-xs uppercase tracking-[0.24em] text-[#f6deb0]">Paid Course Package</p>
+                      <h2 className="mt-2 break-keep text-[1.3rem] font-bold leading-tight sm:text-[1.5rem]">이수 확인 자료 및 재발방지 참고서식 제공</h2>
                     </div>
                     <div className="shrink-0 rounded-2xl bg-[#d8b36a]/15 p-3 text-[#f6deb0]">
                       <svg viewBox="0 0 24 24" className="h-7 w-7 fill-none stroke-current" strokeWidth="1.8">
@@ -392,23 +392,26 @@ export default function HomePage() {
                       </svg>
                     </div>
                   </div>
-                  <div className="mt-6 grid gap-4">
-                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
-                      <p className="text-sm text-slate-300">교육 방식</p>
-                      <p className="mt-2 break-keep text-xl font-semibold leading-snug">온라인 수강 진행</p>
+                  <div className="mt-5 grid gap-3">
+                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-3.5">
+                      <p className="text-sm text-slate-300">수강 과정</p>
+                      <p className="mt-1.5 break-keep text-[1.05rem] font-semibold leading-snug">음주운전 예방교육 온라인 수강</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
-                      <p className="text-sm text-slate-300">안내 서류 구성</p>
-                      <p className="mt-2 break-keep text-xl font-semibold leading-snug">학습확인서 · 서약서 · 계획서</p>
+                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-3.5">
+                      <p className="text-sm text-slate-300">출력 문서</p>
+                      <p className="mt-1.5 break-keep text-[1.05rem] font-semibold leading-snug">교육 이수 확인 자료 안내</p>
                     </div>
-                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-4">
-                      <p className="text-sm text-slate-300">추천 대상</p>
-                      <p className="mt-2 break-keep text-xl font-semibold leading-snug">교육 이수 사실과 실천 의지를 정리하고 싶은 분</p>
+                    <div className="rounded-2xl border border-white/10 bg-[#06101b]/50 p-3.5">
+                      <p className="text-sm text-slate-300">참고서식</p>
+                      <p className="mt-1.5 break-keep text-[1.05rem] font-semibold leading-snug">금주실천서약서 · 재발방지계획서 양식</p>
                     </div>
                   </div>
-                  <div className="mt-6 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-sm leading-7 text-[#f8e7c4] break-keep">
-                    본 서비스는 법률 자문 기관이 아닌 민간 교육 플랫폼으로, 자발적인 성찰과 생활 실천 계획 정리를 돕습니다.
+                  <div className="mt-5 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-[13px] leading-6 text-[#f8e7c4] break-keep">
+                    음주운전 예방교육 회원은 교육 이수 확인 자료와 금주실천서약서, 재발방지계획서 참고 양식을 이용할 수 있습니다. 제공되는 서식은 수강자가 자신의 금주 실천 의지와 재발방지 노력을 스스로 정리하여, 필요 시 양형자료 등 참고자료로 활용할 수 있도록 구성되어 있습니다.
                   </div>
+                  <p className="mt-3 text-xs leading-6 text-slate-300 break-keep">
+                    본 서비스는 법률 자문이나 결과 보장을 제공하지 않는 민간 교육 서비스입니다.
+                  </p>
                 </div>
               )}
             </Reveal>
@@ -435,9 +438,9 @@ export default function HomePage() {
         <section id="courses" className="py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <div className="flex flex-col gap-4 text-center">
-              <div className="mx-auto inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.26em] text-[#6f531b]">Core Courses</div>
-              <h2 className="text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">사건 유형별 핵심 교육 과정</h2>
-              <p className="mx-auto max-w-3xl break-keep text-base leading-8 text-slate-600">각 과정은 자기점검, 생활 습관 개선, 책임 의식 회복, 실천 계획 정리에 초점을 맞춰 구성되어 있습니다.</p>
+              <div className="mx-auto inline-flex rounded-full border border-[#e4d7bb] bg-[#f7f0e2] px-4 py-2 text-xs font-bold uppercase tracking-[0.26em] text-[#6f531b]">Paid Education Programs</div>
+              <h2 className="text-3xl font-black tracking-[-0.03em] text-[#06101b] sm:text-5xl">교육 이수 확인 자료와 참고서식을 준비하는 온라인 교육</h2>
+              <p className="mx-auto max-w-3xl break-keep text-base leading-8 text-slate-600">사건 이후 교육 이수 내역, 금주·재발방지 의지, 실천 계획을 빠르게 정리할 수 있도록 수강부터 참고서식 확인까지 한 흐름으로 구성했습니다.</p>
             </div>
             <div className="mt-14 grid gap-6 lg:grid-cols-3">
               {courseCards.map((card, index) => (
@@ -448,7 +451,7 @@ export default function HomePage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-[#06101b]/85 to-transparent" />
                       <div className="absolute left-6 top-6 rounded-2xl bg-white/15 p-3 text-[#f6deb0] backdrop-blur-xl">{card.icon}</div>
                       <div className="absolute bottom-6 left-6">
-                        <span className="rounded-full bg-[#d8b36a] px-3 py-1 text-xs font-bold text-[#06101b]">5강 구성</span>
+                        <span className="rounded-full bg-[#d8b36a] px-3 py-1 text-xs font-bold text-[#06101b]">온라인 과정</span>
                       </div>
                     </div>
                     <div className="p-7">
@@ -459,6 +462,9 @@ export default function HomePage() {
                           <span key={tag} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">{tag}</span>
                         ))}
                       </div>
+                      <a href="/signup" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#06101b] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#13243a]">
+                        과정 신청하기
+                      </a>
                     </div>
                   </article>
                 </Reveal>

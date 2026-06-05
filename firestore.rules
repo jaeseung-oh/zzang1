@@ -9,6 +9,16 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == uid;
     }
 
+    function isAdmin() {
+      // Email allowlist is the first 운영 방식. Later this can be replaced by Firebase Custom Claims.
+      return isSignedIn() && (request.auth.token.admin == true || request.auth.token.email in ["cfv47@naver.com"]);
+    }
+
+    function isAdminMemoOnlyUpdate() {
+      return isAdmin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["adminMemo", "adminMemoUpdatedAt", "adminMemoUpdatedBy"]);
+    }
+
     function isNonEmptyString(value) {
       return value is string && value.size() > 0;
     }
@@ -18,11 +28,12 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isOwner(userId);
-      allow create, update: if isOwner(userId)
+      allow read: if isOwner(userId) || isAdmin();
+      allow create, update: if (isOwner(userId)
         && isNonEmptyString(request.resource.data.fullName)
         && isNullableString(request.resource.data.email)
-        && isNullableString(request.resource.data.phoneNumber);
+        && isNullableString(request.resource.data.phoneNumber))
+        || isAdminMemoOnlyUpdate();
       allow delete: if false;
     }
 
@@ -32,18 +43,21 @@ service cloud.firestore {
     }
 
     match /purchases/{purchaseId} {
-      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow write: if false;
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.uid == request.auth.uid || resource.data.userId == request.auth.uid));
+      allow update: if isAdminMemoOnlyUpdate();
+      allow create, delete: if false;
     }
 
     match /payments/{paymentId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid);
-      allow write: if false;
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid));
+      allow update: if isAdminMemoOnlyUpdate();
+      allow create, delete: if false;
     }
 
     match /enrollments/{enrollmentId} {
-      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid);
-      allow write: if false;
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid));
+      allow update: if isAdminMemoOnlyUpdate();
+      allow create, delete: if false;
     }
 
     match /refundPolicies/{policyId} {
@@ -51,14 +65,37 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    function isCourseProgressConsentWrite() {
+      return isSignedIn()
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.legalDisclaimerAccepted == true
+        && request.resource.data.keys().hasOnly(["uid", "courseId", "courseTitle", "caseType", "legalDisclaimerAccepted", "legalNoticeAcceptedAt", "legalNoticeAcceptedDate", "updatedAt"]);
+    }
+
+    function isCourseProgressConsentOnlyUpdate() {
+      return isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.legalDisclaimerAccepted == true
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["uid", "courseId", "courseTitle", "caseType", "legalDisclaimerAccepted", "legalNoticeAcceptedAt", "legalNoticeAcceptedDate", "updatedAt"]);
+    }
+
     match /courseProgress/{progressId} {
-      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow write: if false;
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create: if isCourseProgressConsentWrite();
+      allow update: if isCourseProgressConsentOnlyUpdate();
+      allow delete: if false;
     }
 
     match /certificates/{certificateId} {
-      allow read: if isSignedIn() && resource.data.uid == request.auth.uid;
-      allow write: if false;
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.uid == request.auth.uid || resource.data.userId == request.auth.uid));
+      allow update: if isAdminMemoOnlyUpdate();
+      allow create, delete: if false;
+    }
+
+    match /adminLogs/{logId} {
+      allow read, create: if isAdmin();
+      allow update, delete: if false;
     }
 
     match /aiDocuments/{documentId} {

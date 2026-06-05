@@ -165,7 +165,13 @@ function formatDateOfBirthInput(value: string) {
   return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6)}`;
 }
 
-const appOrigin = process.env.NEXT_PUBLIC_APP_ORIGIN || "https://zzang1.pages.dev";
+function getAppOrigin() {
+  if (typeof window !== "undefined") {
+    return window.location.origin;
+  }
+
+  return process.env.NEXT_PUBLIC_APP_ORIGIN || "https://resetedu.kr";
+}
 
 function resolveNextPath(value: string | null) {
   if (!value) {
@@ -176,12 +182,19 @@ function resolveNextPath(value: string | null) {
 }
 
 async function sendVerificationEmail(user: User) {
-  const actionSettings = {
-    url: `${appOrigin}/login`,
-    handleCodeInApp: false,
-  };
+  try {
+    await sendEmailVerification(user, {
+      url: `${getAppOrigin()}/login`,
+      handleCodeInApp: false,
+    });
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String((error as { code?: unknown }).code) : "";
+    if (!code.includes("unauthorized-continue-uri")) {
+      throw error;
+    }
 
-  await sendEmailVerification(user, actionSettings);
+    await sendEmailVerification(user);
+  }
 }
 
 export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode: AuthMode; nextPath?: string | null }) {
@@ -344,7 +357,13 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           privacyAccepted: true,
           sensitiveInfoAccepted: true,
         });
-        await sendVerificationEmail(credential.user);
+        let verificationSent = true;
+        try {
+          await sendVerificationEmail(credential.user);
+        } catch (verificationError) {
+          verificationSent = false;
+          console.error(verificationError);
+        }
 
         const storedProfile = await getUserProfile(credential.user.uid);
         setProfile(storedProfile);
@@ -353,7 +372,11 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setTermsAccepted(false);
         setPrivacyAccepted(false);
         setSensitiveInfoAccepted(false);
-        setMessage("인증 메일을 발송했습니다. 인증을 완료하면 바로 수강을 시작할 수 있습니다.");
+        setMessage(
+          verificationSent
+            ? "회원가입이 완료되었고 인증 메일을 발송했습니다. 인증을 완료하면 바로 수강을 시작할 수 있습니다."
+            : "회원가입은 완료되었습니다. 인증 메일 발송에 실패했으니 로그인 후 인증 메일 재발송을 눌러 주세요."
+        );
       } catch (submitError) {
         console.error(submitError);
         setError(submitError instanceof Error ? submitError.message : "회원가입 처리 중 오류가 발생했습니다.");
@@ -517,7 +540,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         }
 
         const { auth } = getFirebaseServices();
-        await sendPasswordResetEmail(auth, email.trim(), { url: `${appOrigin}/login` });
+        await sendPasswordResetEmail(auth, email.trim(), { url: `${getAppOrigin()}/login` });
         setMessage("비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해 주세요.");
       } catch (resetError) {
         console.error(resetError);
@@ -549,7 +572,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         const isPasswordProvider = authUser.providerData.some((provider) => provider.providerId === "password");
         if (!isPasswordProvider) {
           const { auth } = getFirebaseServices();
-          await sendPasswordResetEmail(auth, authUser.email, { url: appOrigin + "/login" });
+          await sendPasswordResetEmail(auth, authUser.email, { url: getAppOrigin() + "/login" });
           setMessage("소셜 로그인 계정은 비밀번호를 직접 변경할 수 없어 재설정 메일을 발송했습니다.");
           return;
         }

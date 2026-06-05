@@ -50,7 +50,7 @@ export function calculateRefundAmount({
   }
 
   if (certificateIssued) {
-    return { refundable: false, refundAmount: 0, reason: "수료증이 발급되어 환불이 불가합니다.", unusedLessons, completedLessons: safeCompletedLessons, pricePerLesson };
+    return { refundable: false, refundAmount: 0, reason: "수료증, 수료확인서, 이수확인서 등 교육 이수 관련 서류가 발급 또는 출력되어 환불이 불가합니다.", unusedLessons, completedLessons: safeCompletedLessons, pricePerLesson };
   }
 
   if (safeCompletedLessons >= safeTotalLessons) {

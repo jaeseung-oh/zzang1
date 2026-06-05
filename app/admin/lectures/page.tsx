@@ -1,8 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { isAdminEmail } from "@/lib/admin/config";
 import { defaultCourse } from "@/lib/course/catalog";
+import { requireAuthenticatedUser } from "@/lib/firebase/session";
 
 function buildStreamUrl(uid?: string) {
   return uid ? `https://iframe.videodelivery.net/${uid}` : "";
@@ -34,6 +37,7 @@ async function resolveCloudflareStreamUrl(uid: string) {
 }
 
 export default function AdminLecturesPage() {
+  const router = useRouter();
   const modules = defaultCourse.modules;
   const [selectedModuleId, setSelectedModuleId] = useState(modules[0]?.id ?? "");
   const selectedModule = useMemo(
@@ -42,12 +46,53 @@ export default function AdminLecturesPage() {
   );
   const [selectedStreamUrl, setSelectedStreamUrl] = useState(buildStreamUrl(selectedModule?.cloudflareStreamUid));
   const [streamStatus, setStreamStatus] = useState("재생 URL 준비 중");
+  const [checkingAdmin, setCheckingAdmin] = useState(true);
+  const [adminAllowed, setAdminAllowed] = useState(false);
+  const [adminEmail, setAdminEmail] = useState("");
   const configuredCount = modules.filter((module) => module.cloudflareStreamUid).length;
 
   useEffect(() => {
     let cancelled = false;
 
+    const checkAdmin = async () => {
+      try {
+        const user = await requireAuthenticatedUser();
+        const email = user.email ?? "";
+
+        if (cancelled) {
+          return;
+        }
+
+        setAdminEmail(email);
+        setAdminAllowed(isAdminEmail(email));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+
+        if (message === "AUTH_LOGIN_REQUIRED") {
+          router.replace("/login?next=/admin/lectures");
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingAdmin(false);
+        }
+      }
+    };
+
+    void checkAdmin();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  useEffect(() => {
+    let cancelled = false;
+
     const loadStreamUrl = async () => {
+      if (!adminAllowed) {
+        return;
+      }
+
       if (!selectedModule?.cloudflareStreamUid) {
         setSelectedStreamUrl("");
         setStreamStatus("Stream UID 없음");
@@ -68,7 +113,27 @@ export default function AdminLecturesPage() {
     return () => {
       cancelled = true;
     };
-  }, [selectedModule]);
+  }, [adminAllowed, selectedModule]);
+
+  if (checkingAdmin) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#eef3f8] px-4 text-[#0f172a]">
+        <p className="rounded-[1rem] border border-[#d7deea] bg-white px-5 py-4 text-sm font-semibold shadow-[0_18px_48px_rgba(15,23,42,0.08)]">관리자 데이터를 불러오는 중입니다.</p>
+      </main>
+    );
+  }
+
+  if (!adminAllowed) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#eef3f8] px-4 text-[#0f172a]">
+        <section className="max-w-md rounded-[1.25rem] border border-[#d7deea] bg-white p-6 text-center shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+          <h1 className="text-2xl font-semibold">관리자 권한이 없습니다.</h1>
+          <p className="mt-3 text-sm leading-6 text-slate-600">관리자 계정으로 로그인한 경우에만 접근할 수 있습니다.</p>
+          <Link href="/" className="mt-5 inline-flex rounded-full bg-[#0f2a57] px-4 py-2 text-sm font-semibold text-white">사이트로 돌아가기</Link>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-[#eef3f8] px-4 py-8 text-[#0f172a] sm:px-6 lg:px-8">
@@ -86,6 +151,7 @@ export default function AdminLecturesPage() {
               <span className="rounded-full border border-[#d7deea] bg-[#f8fafc] px-4 py-2 text-xs font-semibold text-slate-700">
                 {configuredCount}/{modules.length} 영상 연결
               </span>
+              <span className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-xs font-semibold text-slate-700">{adminEmail}</span>
               <Link
                 href="/course-room"
                 className="rounded-full bg-[#0f2a57] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#173968]"

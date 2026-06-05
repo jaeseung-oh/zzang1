@@ -53,13 +53,33 @@ export interface Purchase {
 }
 
 export interface Certificate {
+  certificateId: string;
+  certificateNo: string;
+  issueNumber?: string;
   uid: string;
-  purchaseId: string;
-  documentType: "completion" | "psychology-report" | "compliance-pledge";
-  issueNumber: string;
-  downloadUrl: string;
-  submittedByUser: boolean;
+  userId: string;
+  userName: string;
+  birthDate: string;
+  email: string;
+  phoneNumber?: string | null;
+  courseId: string;
+  courseTitle: string;
+  totalLessons: number;
+  completedLessons: number;
+  progress?: number;
+  completedAt: string;
+  purchasedAt?: string | null;
+  expiresAt?: string | null;
   issuedAt: string;
+  certificateIssuedAt?: string;
+  issuerName: string;
+  issuerBusinessNumber?: string;
+  issuerContact?: string;
+  issuerEmail?: string;
+  status: "issued";
+  documentType: "completion";
+  createdAt: string;
+  updatedAt?: string;
 }
 
 export interface CourseModuleProgress {

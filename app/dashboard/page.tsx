@@ -32,10 +32,13 @@ type ProgressRecord = {
 
 type CertificateRecord = {
   id: string;
-  documentType: string;
-  issueNumber: string;
-  downloadUrl: string;
+  documentType?: string;
+  issueNumber?: string;
+  certificateNo?: string;
+  downloadUrl?: string;
+  courseTitle?: string;
   issuedAt?: { seconds: number };
+  certificateIssuedAt?: { seconds: number };
 };
 
 type DraftRecord = {
@@ -47,7 +50,7 @@ type DraftRecord = {
 };
 
 const documentLabels: Record<string, string> = {
-  completion: "건전음주 교육 이수증",
+  completion: "음주운전 예방교육 수료증",
   "psychology-report": "인지행동 심리검사 결과지",
   "compliance-pledge": "준법 서약서",
 };
@@ -300,10 +303,10 @@ export default function DashboardPage() {
             </section>
 
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
-              <p className="text-sm font-semibold text-[#f0cb85]">발급 문서</p>
-              <h2 className="mt-3 text-3xl font-semibold text-white">PDF 3종 다운로드</h2>
+              <p className="text-sm font-semibold text-[#f0cb85]">수료증</p>
+              <h2 className="mt-3 text-3xl font-semibold text-white">수강증/수료증 확인 및 온라인 인쇄</h2>
               <p className="mt-4 text-sm leading-8 text-white/70">
-                수강 정보와 발급 절차가 확인되면 Functions가 생성한 PDF를 여기서 확인할 수 있습니다.
+                수강확인증은 결제 후 수강권이 확인되면 출력할 수 있고, 5강을 모두 수강하면 수료증으로 발급됩니다. 서류 발급 또는 출력 이후에는 환불이 불가합니다.
               </p>
 
               <div className="mt-6 space-y-4">
@@ -311,25 +314,31 @@ export default function DashboardPage() {
                   certificates.map((certificate) => (
                     <div key={certificate.id} className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30">
                       <div>
-                        <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType] ?? certificate.documentType}</p>
-                        <p className="mt-2 text-sm text-white/65">문서번호 {certificate.issueNumber}</p>
-                        <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt)}</p>
+                        <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType ?? "completion"] ?? certificate.courseTitle ?? "음주운전 예방교육 수료증"}</p>
+                        <p className="mt-2 text-sm text-white/65">발급번호 {certificate.certificateNo || certificate.issueNumber || "확인 중"}</p>
+                        <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt || certificate.certificateIssuedAt)}</p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <a href={certificate.downloadUrl} target="_blank" rel="noreferrer" className="rounded-full border border-[#d9c18b] bg-[#fff6df] px-4 py-2 text-sm font-semibold text-[#6f531b] transition hover:bg-[#ffefc5]">
-                          PDF 열기
-                        </a>
-                        {certificate.documentType === "completion" ? (
-                          <Link href="/certificate" className="rounded-full border border-[#d5deeb] bg-[#f8fbff] px-4 py-2 text-sm font-semibold text-[#10213f] transition hover:border-[#c4d2e4] hover:bg-white">
-                            출력 화면 열기
-                          </Link>
-                        ) : null}
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="rounded-full border border-[#d9c18b] bg-[#fff6df] px-4 py-2 text-sm font-semibold text-[#6f531b] transition hover:bg-[#ffefc5]">
+                          서류 보기
+                        </Link>
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="rounded-full border border-[#d5deeb] bg-[#f8fbff] px-4 py-2 text-sm font-semibold text-[#10213f] transition hover:border-[#c4d2e4] hover:bg-white">
+                          서류 인쇄하기
+                        </Link>
                       </div>
                     </div>
                   ))
+                ) : progressSummary.isCompleted ? (
+                  <div className="rounded-[1.5rem] border border-emerald-300/30 bg-emerald-400/10 p-6 text-sm leading-7 text-emerald-50">
+                    <p className="font-semibold text-white">음주운전 예방교육 총 5강을 모두 수강하셨습니다.</p>
+                    <p className="mt-2">수료증 발급 조건을 충족했습니다. 아래 버튼을 눌러 수료증을 확인하고 인쇄할 수 있습니다.</p>
+                    <Link href="/certificate" className="mt-4 inline-flex rounded-full border border-[#d9c18b] bg-[#fff6df] px-4 py-2 text-sm font-semibold text-[#6f531b] transition hover:bg-[#ffefc5]">
+                      서류 보기
+                    </Link>
+                  </div>
                 ) : (
                   <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">
-                    아직 발급된 문서가 없습니다. 수강 정보와 필수 확인 절차가 반영되면 PDF 3종이 자동 생성됩니다.
+                    아직 발급된 서류가 없습니다. 결제 후 수강권이 확인되면 수강확인증을 출력할 수 있고, 5강 완료 후 수료증으로 발급됩니다.
                   </div>
                 )}
               </div>

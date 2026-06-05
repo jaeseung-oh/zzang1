@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
-import { buildRefundRows, duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
+import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
 import { paymentConfig } from "@/lib/payment/config";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
@@ -37,8 +37,6 @@ const appOrigin = paymentConfig.siteUrl;
 const fallbackCoursePrice = duiPreventionCourseProduct.price;
 const paymentMethodVariantKey = paymentConfig.paymentMethodVariantKey;
 const agreementVariantKey = paymentConfig.agreementVariantKey;
-const refundRows = buildRefundRows(duiPreventionCourseProduct);
-
 const paymentMethods = [
   {
     id: "card",
@@ -100,7 +98,7 @@ function loadTossScript() {
     const existingScript = document.querySelector<HTMLScriptElement>(`script[src="${tossScriptUrl}"]`);
     if (existingScript) {
       existingScript.addEventListener("load", () => resolve(), { once: true });
-      existingScript.addEventListener("error", () => reject(new Error("토스 결제 SDK를 불러오지 못했습니다.")), { once: true });
+      existingScript.addEventListener("error", () => reject(new Error("결제 모듈을 불러오지 못했습니다.")), { once: true });
       return;
     }
 
@@ -108,7 +106,7 @@ function loadTossScript() {
     script.src = tossScriptUrl;
     script.async = true;
     script.onload = () => resolve();
-    script.onerror = () => reject(new Error("토스 결제 SDK를 불러오지 못했습니다."));
+    script.onerror = () => reject(new Error("결제 모듈을 불러오지 못했습니다."));
     document.head.appendChild(script);
   });
 }
@@ -186,7 +184,7 @@ export default function CheckoutContent() {
         const tossPayments = window.TossPayments?.(clientKey);
 
         if (!tossPayments) {
-          throw new Error("토스 결제 SDK 초기화에 실패했습니다.");
+          throw new Error("결제 모듈 초기화에 실패했습니다.");
         }
 
         const widgets = await tossPayments.widgets({ customerKey });
@@ -267,15 +265,14 @@ export default function CheckoutContent() {
     <main className="min-h-screen bg-[linear-gradient(180deg,#08101c_0%,#0d1728_22%,#eef3f8_22%,#f4f7fb_100%)] px-4 py-8 text-[#0f172a] sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,#0a1424_0%,#10213f_45%,#16325e_100%)] px-6 py-7 text-white shadow-[0_30px_90px_rgba(2,6,23,0.34)] sm:px-8 lg:px-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0d59c]">Toss Checkout</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0d59c]">Secure Checkout</p>
           <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">주문서 및 결제</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
-            신용카드, 휴대폰결제(다날), 카카오페이를 먼저 열어두는 주문서입니다. 결제사 심사 완료 후 운영 키와 상점 설정만 연결하면 실제 결제창으로 이어지도록 준비합니다.
+            음주운전 예방교육 수강권을 신청하고 결제를 진행하는 주문서입니다. 결제 완료 후 즉시 강의실에서 수강을 시작할 수 있습니다.
           </p>
           <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-200">
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">민간 교육 서비스</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">수강기간 {defaultCourse.accessValidLabel}</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">미수강 강의 환불 기준 확인</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">신용카드</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">휴대폰결제(다날)</span>
             <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">카카오페이</span>
@@ -287,7 +284,7 @@ export default function CheckoutContent() {
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#274690]">Order Form</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0f172a]">토스 결제위젯</h2>
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0f172a]">결제 정보</h2>
               </div>
               <div className="rounded-full border border-[#d8dfeb] bg-[#f6f8fb] px-4 py-2 text-sm font-semibold text-slate-700">
                 주문번호 {orderId || "생성 중"}
@@ -348,45 +345,15 @@ export default function CheckoutContent() {
                       <strong className="text-slate-950">{selectedPaymentMethodInfo.title}</strong>
                     </div>
                     <p className="mt-3 text-xs leading-6 text-slate-500">
-                      아래 결제사 위젯은 실제 승인 가능한 수단을 최종 표시합니다. 신용카드, 다날 휴대폰결제, 카카오페이는 결제사 계약 및 상점관리자 활성화 후 운영 결제창에 노출됩니다.
+                      선택한 결제수단으로 결제창을 열어 안전하게 결제를 진행합니다.
                     </p>
                     <div id="payment-method" className="mt-4 min-h-[220px]" />
                   </div>
                 </div>
 
                 <div className="rounded-[1.5rem] border border-[#dce4ef] bg-[#f9fbfd] p-4">
-                  <p className="text-sm font-semibold text-slate-900">토스 약관</p>
+                  <p className="text-sm font-semibold text-slate-900">결제 약관</p>
                   <div id="agreement" className="mt-4 min-h-[160px]" />
-                </div>
-
-                <div className="overflow-hidden rounded-[1.5rem] border border-[#dce4ef] bg-white">
-                  <div className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-4 sm:px-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9c7b3b]">Refund Table</p>
-                    <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-slate-950">미수강 강의별 환불 가능 금액</h3>
-                    <p className="mt-2 text-sm leading-7 text-slate-600">총 결제금액 55,000원 ÷ 총 5강 = 1강당 11,000원으로 산정합니다.</p>
-                  </div>
-                  <div className="overflow-x-auto">
-                    <table className="w-full min-w-[620px] text-left text-sm">
-                      <thead className="bg-[#f8fafc] text-xs uppercase tracking-[0.14em] text-slate-500">
-                        <tr>
-                          <th className="px-4 py-3">수강한 강의 수</th>
-                          <th className="px-4 py-3 text-right">미수강 강의 수</th>
-                          <th className="px-4 py-3 text-right">환불 가능 금액</th>
-                          <th className="px-4 py-3">비고</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-[#e5ebf3]">
-                        {refundRows.map((row) => (
-                          <tr key={row.completedLessons}>
-                            <td className="px-4 py-3 font-semibold text-slate-900">{row.completedLessons}강</td>
-                            <td className="px-4 py-3 text-right text-slate-700">{row.unusedLessons}강</td>
-                            <td className="px-4 py-3 text-right font-bold text-slate-950">{formatKrw(row.refundAmount)}</td>
-                            <td className="px-4 py-3 text-slate-600">{row.note}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
                 </div>
               </div>
 
@@ -411,15 +378,14 @@ export default function CheckoutContent() {
 
                 <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
                   <p className="font-semibold text-white">결제 전 안내</p>
-                  <p className="mt-2">본 강의는 결제일로부터 90일 동안 수강할 수 있습니다. 음주운전 예방교육은 총 5강으로 구성되어 있으며, 결제금액은 55,000원입니다. 결제 완료 즉시 해당 강의의 수강 권한이 부여됩니다.</p>
-                  <p className="mt-3">환불은 실제 수강한 강의를 제외한 미수강 강의 금액을 기준으로 산정됩니다. 1강당 환불 산정 금액은 11,000원입니다.</p>
-                  <p className="mt-3 text-[#f4d79e]">실제 결제창 노출은 결제사 심사, 다날/카카오페이 계약, Toss 상점관리자 설정을 따릅니다.</p>
+                  <p className="mt-2">본 강의는 결제일로부터 90일 동안 수강할 수 있습니다. 음주운전 예방교육은 총 5강으로 구성되어 있으며, 결제금액은 55,000원입니다.</p>
+                  <p className="mt-3">결제 완료 즉시 해당 강의의 수강 권한이 부여되며, 수강권 확인 후 수강확인증을 출력할 수 있습니다.</p>
                 </div>
               </div>
             </div>
 
             {error ? <p className="mt-5 text-sm font-medium text-rose-600">{error}</p> : null}
-            {isInitializing ? <p className="mt-5 text-sm text-slate-500">주문서와 결제위젯을 준비하는 중입니다...</p> : null}
+            {isInitializing ? <p className="mt-5 text-sm text-slate-500">주문서와 결제창을 준비하는 중입니다...</p> : null}
           </section>
 
           <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
@@ -453,7 +419,7 @@ export default function CheckoutContent() {
                     onChange={(event) => setCheckoutNoticeChecked(event.target.checked)}
                     className="mt-1 h-4 w-4 accent-[#173968]"
                   />
-                  <span className="font-semibold text-slate-900">결제 전 안내, 이용약관, 환불규정 및 수료 문서 발급 조건을 확인했습니다.</span>
+                  <span className="font-semibold text-slate-900">결제 전 안내, 이용약관 및 수료 문서 발급 조건을 확인했습니다.</span>
                 </label>
 
                 <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#fff7e5] px-4 py-4 text-sm leading-7 text-[#3d2b08]">
@@ -463,11 +429,11 @@ export default function CheckoutContent() {
                     onChange={(event) => setRefundPolicyChecked(event.target.checked)}
                     className="mt-1 h-4 w-4 accent-[#8a6a2d]"
                   />
-                  <span className="font-semibold">위 환불규정과 수강기간 90일 제한에 동의합니다.</span>
+                  <span className="font-semibold">수강기간 90일 및 교육 이수 관련 서류 발급 조건을 확인했습니다.</span>
                 </label>
 
                 <div className="rounded-[1.1rem] border border-[#e2e8f0] bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-                  <p>수료증은 결제 완료, 총 5강 수강 완료, 필수 동의 확인 후 발급됩니다. 수강기간은 결제일로부터 90일이며, 수강기간이 경과한 경우 강의 수강 및 환불이 제한될 수 있습니다. 전체 5강을 모두 수강 완료했거나 수료증이 발급된 경우 환불이 불가합니다.</p>
+                  <p>수강확인증은 결제 완료 후 수강권이 확인되면 출력할 수 있고, 전체 5강 수강 완료 후에는 수료증으로 발급됩니다. 수강기간은 결제일로부터 90일입니다.</p>
                   <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
                     <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                     <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
@@ -484,9 +450,7 @@ export default function CheckoutContent() {
                   {isSubmitting ? "결제창 여는 중..." : selectedPaymentMethodInfo.title + "로 결제하기"}
                 </button>
 
-                <p className="text-xs leading-6 text-slate-500">
-                  신용카드, 휴대폰결제(다날), 카카오페이 노출 여부는 결제사 계약 상태와 상점관리자 결제위젯 설정에 따라 달라집니다.
-                </p>
+
               </div>
             </section>
           </aside>
