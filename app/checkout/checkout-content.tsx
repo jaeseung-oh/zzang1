@@ -264,196 +264,125 @@ export default function CheckoutContent() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#edf3f9_48%,#f8fafc_100%)] px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <section className="overflow-hidden rounded-[1.75rem] border border-[#d7e1ef] bg-[linear-gradient(135deg,#0b1d36_0%,#173968_58%,#21568f_100%)] px-6 py-8 text-white shadow-[0_26px_70px_rgba(15,23,42,0.22)] sm:px-8 lg:px-10">
+        <section className="rounded-[1.75rem] border border-[#d7e1ef] bg-[linear-gradient(135deg,#0b1d36_0%,#173968_58%,#21568f_100%)] px-6 py-8 text-white shadow-[0_26px_70px_rgba(15,23,42,0.22)] sm:px-8 lg:px-10">
           <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a7c7ff]">Secure Checkout</p>
-          <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">주문서 및 결제</h1>
+          <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">결제하기</h1>
           <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-200 sm:text-[15px]">
-            음주운전 예방교육 수강권을 신청하고 결제를 진행하는 주문서입니다. 결제 완료 후 즉시 강의실에서 수강을 시작할 수 있습니다.
+            신청한 교육과 결제금액을 확인한 뒤 결제수단을 선택하세요.
           </p>
-          <div className="mt-6 flex flex-wrap gap-2 text-sm font-semibold text-slate-100">
-            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">민간 교육 서비스</span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">수강기간 {defaultCourse.accessValidLabel}</span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">신용카드</span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">휴대폰결제(다날)</span>
-            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">카카오페이</span>
-          </div>
         </section>
 
-        <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-          <section className="rounded-[1.5rem] border border-[#dbe4ef] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.07)] sm:p-6">
-            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Order Form</p>
-                <h2 className="mt-1 text-2xl font-semibold text-slate-950">결제 정보</h2>
-              </div>
-              <div className="rounded-full border border-[#d8e2ee] bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-slate-600">
-                주문번호 {orderId || "생성 중"}
-              </div>
-            </div>
-
-            <div className="mt-6 space-y-5">
-              <div className="space-y-5">
-                <div className="overflow-hidden rounded-[1.25rem] border border-[#d8e2ee] bg-white">
-                  <div className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-4 sm:px-5">
-                    <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                      <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Payment Method</p>
-                        <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-slate-950">결제수단 선택</h3>
-                      </div>
-                      <p className="text-sm font-semibold text-slate-600">총 결제금액 {formatKrw(courseAmount)}</p>
-                    </div>
-                  </div>
-
-                  <div className="grid gap-3 p-4 sm:grid-cols-3 sm:p-5">
-                    {paymentMethods.map((method) => {
-                      const isSelected = method.id === selectedPaymentMethod;
-
-                      return (
-                        <button
-                          key={method.id}
-                          type="button"
-                          aria-pressed={isSelected}
-                          onClick={() => setSelectedPaymentMethod(method.id)}
-                          className={
-                            isSelected
-                              ? "group min-h-[132px] cursor-pointer rounded-[1.15rem] border-2 border-[#173968] bg-[#f3f7ff] px-4 py-4 text-left shadow-[0_16px_34px_rgba(23,57,104,0.15)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(23,57,104,0.17)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                              : "group min-h-[132px] cursor-pointer rounded-[1.15rem] border border-[#d8e2ee] bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-                          }
-                        >
-                          <span className={["inline-flex rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.14em]", method.badgeClass].join(" ")}>
-                            {method.label}
-                          </span>
-                          <span className="mt-4 block text-base font-bold text-slate-950">{method.title}</span>
-                          <span className="mt-2 block text-sm leading-6 text-slate-600">{method.description}</span>
-                          <span
-                            className={
-                              isSelected
-                                ? "mt-4 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#173968] bg-[#173968] text-xs font-bold text-white"
-                                : "mt-4 inline-flex h-5 w-5 items-center justify-center rounded-full border border-[#cbd5e1] text-xs font-bold text-transparent"
-                            }
-                          >
-                            ✓
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  <div className="border-t border-[#e5ebf3] bg-[#fbfcfe] px-4 py-4 sm:px-5">
-                    <div className="flex flex-col gap-2 rounded-[1rem] border border-[#e1e8f2] bg-white px-4 py-3 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                      <span>선택한 결제수단</span>
-                      <strong className="text-slate-950">{selectedPaymentMethodInfo.title}</strong>
-                    </div>
-                    <p className="mt-3 text-xs leading-6 text-slate-500">
-                      선택한 결제수단으로 결제창을 열어 안전하게 결제를 진행합니다.
-                    </p>
-                    <div id="payment-method" className="mt-4 min-h-[220px]" />
-                  </div>
-                </div>
-
-                <div className="rounded-[1.5rem] border border-[#dce4ef] bg-[#f9fbfd] p-4">
-                  <p className="text-sm font-semibold text-slate-900">결제 약관</p>
-                  <div id="agreement" className="mt-4 min-h-[160px]" />
-                </div>
-              </div>
-
-              <div className="rounded-[1.25rem] border border-[#d8e2ee] bg-[#f8fafc] p-5 text-slate-950">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">구매자 정보</p>
-                <div className="mt-4 space-y-3 rounded-[1rem] border border-[#dbe4ef] bg-white px-4 py-4 text-sm leading-7 text-slate-700">
-                  <p>
-                    <span className="font-semibold text-slate-950">이름:</span> {customerName || "불러오는 중"}
-                  </p>
-                  <p>
-                    <span className="font-semibold text-slate-950">이메일:</span> {customerEmail || "등록 필요"}
-                  </p>
-                </div>
-
-                <div className="mt-5 rounded-[1rem] border border-[#dbe4ef] bg-white px-4 py-4 text-sm leading-7 text-slate-700">
-                  <p className="font-semibold text-slate-950">선택 결제수단</p>
-                  <div className="mt-3 flex items-center justify-between rounded-[0.9rem] bg-[#f3f7ff] px-3 py-3">
-                    <span>{selectedPaymentMethodInfo.title}</span>
-                    <span className="rounded-full bg-[#173968] px-2.5 py-1 text-[11px] font-bold tracking-[0.14em] text-white">{selectedPaymentMethodInfo.label}</span>
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-[1rem] border border-[#dbe4ef] bg-white px-4 py-4 text-sm leading-7 text-slate-700">
-                  <p className="font-semibold text-slate-950">결제 전 안내</p>
-                  <p className="mt-2">본 강의는 결제일로부터 90일 동안 수강할 수 있습니다. 음주운전 예방교육은 총 5강으로 구성되어 있으며, 결제금액은 55,000원입니다.</p>
-                  <p className="mt-3">결제 완료 즉시 해당 강의의 수강 권한이 부여되며, 수강권 확인 후 수강확인증을 출력할 수 있습니다.</p>
-                </div>
-              </div>
-            </div>
-
-            {error ? <p className="mt-5 text-sm font-medium text-rose-600">{error}</p> : null}
-            {isInitializing ? <p className="mt-5 text-sm text-slate-500">주문서와 결제창을 준비하는 중입니다...</p> : null}
-          </section>
-
+        <div className="mt-7 grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
           <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
-            <section className="overflow-hidden rounded-[1.5rem] border border-[#cfdceb] bg-white shadow-[0_22px_55px_rgba(15,23,42,0.11)]">
-              <div className="px-5 pt-5 sm:px-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Payment Summary</p>
-                <h2 className="mt-2 text-2xl font-semibold text-slate-950">주문 요약</h2>
+            <section className="rounded-[1.5rem] border border-[#cfdceb] bg-white p-5 shadow-[0_22px_55px_rgba(15,23,42,0.10)] sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Order</p>
+              <h2 className="mt-2 text-2xl font-semibold">신청내역</h2>
+              <dl className="mt-5 space-y-4">
+                <div><dt className="text-xs font-semibold text-slate-500">교육명</dt><dd className="mt-1 text-base font-semibold text-slate-950">{defaultCourse.title}</dd></div>
+                <div><dt className="text-xs font-semibold text-slate-500">상품명</dt><dd className="mt-1 text-base font-semibold text-slate-950">{duiPreventionCourseProduct.courseTitle}</dd></div>
+                <div><dt className="text-xs font-semibold text-slate-500">수강기간</dt><dd className="mt-1 text-base font-semibold text-slate-950">{defaultCourse.accessValidLabel}</dd></div>
+              </dl>
+              <div className="mt-5 rounded-[1rem] bg-[#f8fafc] p-4">
+                <p className="text-sm font-semibold text-slate-950">제공 항목</p>
+                <ul className="mt-3 space-y-2">
+                  {["온라인 강의 수강", "진도율 확인", "수료증 발급", "교육 이수 기록 정리"].map((item) => (
+                    <li key={item} className="flex gap-2 text-sm leading-6 text-slate-700">
+                      <span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[#173968]">✓</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-
-              <div className="space-y-3 p-4 sm:p-5">
-                {paymentSummary.map((item) => (
-                  <div key={item.label} className="rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4">
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{item.label}</p>
-                    <p className="mt-1.5 font-semibold text-slate-900">{item.value}</p>
-                  </div>
-                ))}
+              <div className="mt-5 border-t border-[#e2e8f0] pt-5">
+                <p className="text-sm font-semibold text-slate-600">결제금액</p>
+                <p className="mt-2 text-4xl font-bold text-[#0f2f5f]">{formatKrw(courseAmount)}</p>
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-[1.5rem] border border-[#cfdceb] bg-white shadow-[0_22px_55px_rgba(15,23,42,0.11)]">
-              <div className="px-5 pt-5 sm:px-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Required Check</p>
-                <h2 className="mt-2 text-2xl font-semibold text-slate-950">결제 전 필수 확인</h2>
-              </div>
-
-              <div className="space-y-4 p-4 sm:p-5">
-                <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={checkoutNoticeChecked}
-                    onChange={(event) => setCheckoutNoticeChecked(event.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#173968]"
-                  />
-                  <span className="font-semibold text-slate-900">결제 전 안내, 이용약관 및 수료 문서 발급 조건을 확인했습니다.</span>
-                </label>
-
-                <label className="flex items-start gap-3 rounded-[1.2rem] border border-[#dce4ef] bg-[#fff7e5] px-4 py-4 text-sm leading-7 text-[#3d2b08]">
-                  <input
-                    type="checkbox"
-                    checked={refundPolicyChecked}
-                    onChange={(event) => setRefundPolicyChecked(event.target.checked)}
-                    className="mt-1 h-4 w-4 accent-[#8a6a2d]"
-                  />
-                  <span className="font-semibold">수강기간 90일 및 교육 이수 관련 서류 발급 조건을 확인했습니다.</span>
-                </label>
-
-                <div className="rounded-[1.1rem] border border-[#e2e8f0] bg-white px-4 py-4 text-sm leading-7 text-slate-600">
-                  <p>수강확인증은 결제 완료 후 수강권이 확인되면 출력할 수 있고, 전체 5강 수강 완료 후에는 수료증으로 발급됩니다. 수강기간은 결제일로부터 90일입니다.</p>
-                  <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
-                    <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
-                    <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
-                    <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">환불규정</Link>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => void handleRequestPayment()}
-                  disabled={!canSubmit}
-                  className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center rounded-[1rem] bg-[#06101b] px-5 py-4 text-base font-bold text-[#e9c98d] shadow-[0_16px_30px_rgba(6,16,27,0.28)] transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:opacity-70 disabled:shadow-none disabled:hover:bg-slate-300 disabled:hover:shadow-none disabled:active:scale-100"
-                >
-                  {isSubmitting ? "결제창 여는 중..." : selectedPaymentMethodInfo.title + "로 결제하기"}
-                </button>
-
-
+            <section className="rounded-[1.5rem] border border-[#cfdceb] bg-white p-5 shadow-[0_22px_55px_rgba(15,23,42,0.10)] sm:p-6">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Buyer</p>
+              <h2 className="mt-2 text-2xl font-semibold">구매자 정보</h2>
+              <div className="mt-5 space-y-3 rounded-[1rem] bg-[#f8fafc] p-4 text-sm leading-7 text-slate-700">
+                <p><span className="font-semibold text-slate-950">이름:</span> {customerName || "불러오는 중"}</p>
+                <p><span className="font-semibold text-slate-950">이메일:</span> {customerEmail || "등록 필요"}</p>
+                <p><span className="font-semibold text-slate-950">주문번호:</span> {orderId || "생성 중"}</p>
               </div>
             </section>
           </aside>
+
+          <section className="rounded-[1.5rem] border border-[#dbe4ef] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.07)] sm:p-6">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Method</p>
+              <h2 className="mt-2 text-2xl font-semibold">결제수단 선택</h2>
+            </div>
+
+            <div className="mt-5 grid gap-4 md:grid-cols-3">
+              {paymentMethods.map((method) => {
+                const isSelected = method.id === selectedPaymentMethod;
+                return (
+                  <button
+                    key={method.id}
+                    type="button"
+                    aria-selected={isSelected}
+                    onClick={() => setSelectedPaymentMethod(method.id)}
+                    className={isSelected ? "min-h-[158px] cursor-pointer rounded-[1.25rem] border-2 border-[#173968] bg-[#f5f8ff] p-5 text-left shadow-[0_16px_34px_rgba(23,57,104,0.15)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(23,57,104,0.17)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" : "min-h-[158px] cursor-pointer rounded-[1.25rem] border border-[#d8e2ee] bg-white p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:bg-indigo-50 hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <span className={["rounded-full px-3 py-1 text-xs font-black", method.badgeClass].join(" ")}>{method.label}</span>
+                      <span className={isSelected ? "flex h-7 w-7 items-center justify-center rounded-full bg-[#173968] text-white" : "h-7 w-7 rounded-full border border-[#cbd5e1] bg-white"}>{isSelected ? "✓" : null}</span>
+                    </div>
+                    <h3 className="mt-4 text-lg font-semibold text-slate-950">{method.title}</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{method.description}</p>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="mt-6 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-sm leading-7 text-slate-600">
+              <p>선택한 결제수단으로 결제창을 열어 안전하게 결제를 진행합니다.</p>
+              <p className="mt-2">선택 결제수단: <strong className="text-slate-950">{selectedPaymentMethodInfo.title}</strong></p>
+            </div>
+
+            <div id="payment-method" className="mt-5 min-h-[220px] rounded-[1rem] border border-[#dbe4ef] bg-white p-4" />
+
+            <div className="mt-5 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4">
+              <p className="text-sm font-semibold text-slate-950">결제 약관</p>
+              <div id="agreement" className="mt-4 min-h-[160px]" />
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <label className="flex items-start gap-3 rounded-[1rem] border border-[#dce4ef] bg-[#f8fafd] px-4 py-4 text-sm leading-7 text-slate-700">
+                <input type="checkbox" checked={checkoutNoticeChecked} onChange={(event) => setCheckoutNoticeChecked(event.target.checked)} className="mt-1 h-4 w-4 accent-[#173968]" />
+                <span className="font-semibold text-slate-900">결제 전 안내, 이용약관 및 수료 문서 발급 조건을 확인했습니다.</span>
+              </label>
+
+              <label className="flex items-start gap-3 rounded-[1rem] border border-[#dce4ef] bg-[#fff7e5] px-4 py-4 text-sm leading-7 text-[#3d2b08]">
+                <input type="checkbox" checked={refundPolicyChecked} onChange={(event) => setRefundPolicyChecked(event.target.checked)} className="mt-1 h-4 w-4 accent-[#8a6a2d]" />
+                <span className="font-semibold">수강기간 90일 및 교육 이수 관련 서류 발급 조건을 확인했습니다.</span>
+              </label>
+            </div>
+
+            <div className="mt-6 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-sm leading-7 text-slate-600">
+              <p>수강확인증은 결제 완료 후 수강권이 확인되면 출력할 수 있고, 전체 5강 수강 완료 후에는 수료증으로 발급됩니다. 수강기간은 결제일로부터 90일입니다.</p>
+              <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
+                <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
+                <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
+                <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">환불규정</Link>
+              </div>
+            </div>
+
+            {error ? <p className="mt-4 rounded-[1rem] border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
+            {isInitializing ? <p className="mt-4 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-sm text-slate-500">주문서와 결제창을 준비하는 중입니다...</p> : null}
+
+            <button
+              type="button"
+              onClick={() => void handleRequestPayment()}
+              disabled={!canSubmit}
+              className="mt-5 inline-flex min-h-14 w-full cursor-pointer items-center justify-center rounded-[1rem] bg-[#06101b] px-5 py-4 text-base font-bold text-[#e9c98d] shadow-[0_16px_30px_rgba(6,16,27,0.28)] transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:opacity-70 disabled:shadow-none disabled:hover:bg-slate-300 disabled:hover:shadow-none disabled:active:scale-100"
+            >
+              {isSubmitting ? "결제창 여는 중..." : selectedPaymentMethodInfo.title + "로 결제하기"}
+            </button>
+          </section>
         </div>
       </div>
     </main>

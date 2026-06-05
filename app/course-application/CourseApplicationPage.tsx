@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   applicationCourseCategories,
@@ -93,6 +93,25 @@ export default function CourseApplicationPage() {
   const router = useRouter();
   const [selectedCategoryId, setSelectedCategoryId] = useState("dui");
   const [selectedProductId, setSelectedProductId] = useState("dui-documents");
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const categoryId = params.get("categoryId");
+    const productId = params.get("productId");
+    const nextCategory = applicationCourseCategories.find((category) => category.id === categoryId);
+
+    if (!nextCategory) {
+      return;
+    }
+
+    const nextProduct = nextCategory.products.find((product) => product.id === productId);
+    setSelectedCategoryId(nextCategory.id);
+    setSelectedProductId(nextProduct?.id || nextCategory.defaultProductId);
+  }, []);
 
   const selectedCategory = useMemo(
     () => applicationCourseCategories.find((category) => category.id === selectedCategoryId) || applicationCourseCategories[0],
