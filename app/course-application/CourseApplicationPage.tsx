@@ -168,8 +168,8 @@ export default function CourseApplicationPage() {
                       onClick={() => handleCategorySelect(category)}
                       className={
                         isSelected
-                          ? "group min-h-[214px] rounded-[1.15rem] border-2 border-[#173968] bg-[#f3f7ff] p-4 text-left shadow-[0_16px_36px_rgba(23,57,104,0.16)] transition"
-                          : "group min-h-[214px] rounded-[1.15rem] border border-[#d8e2ee] bg-white p-4 text-left transition hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:shadow-[0_14px_30px_rgba(15,23,42,0.09)]"
+                          ? "group min-h-[214px] cursor-pointer rounded-[1.15rem] border-2 border-[#173968] bg-[#f3f7ff] p-4 text-left shadow-[0_16px_36px_rgba(23,57,104,0.16)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_38px_rgba(23,57,104,0.18)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          : "group min-h-[214px] cursor-pointer rounded-[1.15rem] border border-[#d8e2ee] bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:shadow-[0_14px_30px_rgba(15,23,42,0.09)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                       }
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -224,8 +224,8 @@ export default function CourseApplicationPage() {
                       onClick={() => setSelectedProductId(product.id)}
                       className={
                         isSelected
-                          ? "rounded-[1.25rem] border-2 border-[#173968] bg-[#f5f8ff] p-5 text-left shadow-[0_16px_34px_rgba(23,57,104,0.15)] transition"
-                          : "rounded-[1.25rem] border border-[#d8e2ee] bg-white p-5 text-left transition hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)]"
+                          ? "cursor-pointer rounded-[1.25rem] border-2 border-[#173968] bg-[#f5f8ff] p-5 text-left shadow-[0_16px_34px_rgba(23,57,104,0.15)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(23,57,104,0.17)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          : "cursor-pointer rounded-[1.25rem] border border-[#d8e2ee] bg-white p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                       }
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -313,7 +313,7 @@ export default function CourseApplicationPage() {
                 type="button"
                 disabled={!selectedCategory || !selectedProduct}
                 onClick={handleSubmit}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[1rem] border border-[#d8e1ef] bg-white px-5 py-4 text-base font-extrabold text-[#06101b] shadow-[0_16px_30px_rgba(6,16,27,0.14)] transition hover:bg-[#f8fbff] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                className="mt-5 inline-flex w-full cursor-pointer items-center justify-center gap-2 rounded-[1rem] border border-[#d8e1ef] bg-white px-5 py-4 text-base font-extrabold text-[#06101b] shadow-[0_16px_30px_rgba(6,16,27,0.14)] transition-all hover:bg-[#f8fbff] hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:opacity-60 disabled:shadow-none disabled:hover:bg-slate-300 disabled:hover:shadow-none disabled:active:scale-100"
               >
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#06101b] text-[#e9c98d]">
                   <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-none stroke-current" strokeWidth="2" aria-hidden="true">

@@ -180,7 +180,7 @@ function LegacyPaymentSuccessContent() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] transition hover:bg-[#f0cb85]">
+                <Link href="/course-room" className="inline-flex cursor-pointer items-center justify-center rounded-full bg-[#d3ad62] px-6 py-3 text-sm font-semibold text-[#06101b] shadow-sm transition-all hover:bg-indigo-700 hover:text-white hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0d1828]">
                   수강실로 이동
                 </Link>
                 {result.receipt?.url ? (
@@ -234,10 +234,10 @@ function MockPaymentSuccessContent() {
         )}
 
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#06101b] px-6 py-3 text-sm font-bold text-[#e9c98d] transition hover:bg-[#10213f]">
+          <Link href="/course-room" className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[#06101b] px-6 py-3 text-sm font-bold text-[#e9c98d] shadow-sm transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             내 강의실로 이동
           </Link>
-          <Link href="/" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-6 py-3 text-sm font-bold text-[#06101b] transition hover:bg-[#f8fbff]">
+          <Link href="/" className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-6 py-3 text-sm font-bold text-[#06101b] shadow-sm transition-all hover:bg-indigo-700 hover:text-white hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
             홈으로 이동
           </Link>
         </div>

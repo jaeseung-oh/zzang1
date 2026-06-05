@@ -1142,7 +1142,7 @@ export default function CourseRoomPage() {
                 type="button"
                 disabled={!legalGateChecked}
                 onClick={() => void handleLegalGateAccept()}
-                className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#6366f1_0%,#a855f7_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_18px_40px_rgba(99,102,241,0.34)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-45"
+                className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#6366f1_0%,#a855f7_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_18px_40px_rgba(99,102,241,0.34)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0b1220] disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-[0_18px_40px_rgba(99,102,241,0.34)] disabled:active:scale-100"
               >
                 동의하고 강의실 입장
               </button>
@@ -1170,19 +1170,19 @@ export default function CourseRoomPage() {
             <div className="flex flex-col items-stretch gap-3 sm:flex-row lg:flex-col lg:items-end">
               <Link
                 href="/"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg hover:brightness-105 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
               >
                 홈으로 이동
               </Link>
               <Link
                 href="/dashboard"
-                className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg hover:brightness-105 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
               >
                 내 수강현황
               </Link>
               <Link
                 href="/certificate"
-                className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#c6a86a_0%,#ecd7ac_100%)] px-6 py-3 text-sm font-bold text-[#17120b] shadow-[0_16px_30px_rgba(198,168,106,0.28)] transition hover:-translate-y-0.5"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#c6a86a_0%,#ecd7ac_100%)] px-6 py-3 text-sm font-bold text-[#17120b] shadow-[0_16px_30px_rgba(198,168,106,0.28)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
               >
                 수강증/수료증 출력
               </Link>
@@ -1265,14 +1265,15 @@ export default function CourseRoomPage() {
                     key={module.id}
                     type="button"
                     onClick={() => handleSelectModule(module.id)}
-                    className={`min-h-[128px] rounded-[1.15rem] border p-4 text-left transition hover:-translate-y-0.5 ${
+                    disabled={locked}
+                    className={`min-h-[128px] rounded-[1.15rem] border p-4 text-left transition-all focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] ${
                       active
-                        ? "border-indigo-300/60 bg-indigo-500/18 shadow-[0_12px_34px_rgba(79,70,229,0.22)]"
+                        ? "cursor-pointer border-indigo-300/60 bg-indigo-500/18 shadow-[0_12px_34px_rgba(79,70,229,0.22)] hover:-translate-y-0.5 hover:shadow-[0_16px_38px_rgba(79,70,229,0.24)] active:scale-[0.98]"
                         : locked
-                          ? "border-white/8 bg-white/[0.035] opacity-55"
+                          ? "cursor-not-allowed border-white/8 bg-white/[0.035] opacity-55"
                           : completed
-                            ? "border-emerald-300/40 bg-emerald-400/10"
-                            : "border-white/10 bg-white/[0.06] hover:border-indigo-300/45"
+                            ? "cursor-pointer border-emerald-300/40 bg-emerald-400/10 hover:-translate-y-0.5 hover:border-emerald-300/55 hover:shadow-[0_14px_30px_rgba(16,185,129,0.16)] active:scale-[0.98]"
+                            : "cursor-pointer border-white/10 bg-white/[0.06] hover:-translate-y-0.5 hover:border-indigo-300/45 hover:shadow-[0_14px_30px_rgba(79,70,229,0.14)] active:scale-[0.98]"
                     }`}
                   >
                     <div className="flex items-center justify-between gap-2">
@@ -1298,7 +1299,7 @@ export default function CourseRoomPage() {
         <div className="mt-6 grid gap-6 xl:grid-cols-[380px_minmax(0,1.9fr)]">
           <section className="space-y-6 xl:order-2">
             <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7">
-              <div className="grid gap-5 xl:grid-cols-[minmax(0,1.1fr)_340px]">
+              <div className="space-y-5">
                 <div className="rounded-[1.8rem] border border-white/12 bg-[linear-gradient(180deg,#091221_0%,#0d1730_100%)] shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
                     <div className="max-w-3xl">
@@ -1389,70 +1390,32 @@ export default function CourseRoomPage() {
                   </div>
                 </div>
 
-                <div className="space-y-5">
-                  <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.07] backdrop-blur-2xl p-5">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Lecture Summary</p>
-                    <h3 className="mt-3 text-xl font-semibold text-white">강의 개요와 학습 정보</h3>
-                    <div className="mt-5 space-y-4 text-sm leading-7 text-slate-300">
-                      <div className="rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">교육 카테고리</p>
-                        <p className="mt-2 font-semibold text-slate-100">{caseTypeOptions.find((option) => option.value === caseType)?.label ?? "음주운전"} 재발 방지 전문 과정</p>
-                      </div>
-                      <div className="rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">핵심 학습 포인트</p>
-                        <div className="mt-3 space-y-3 text-slate-200">
-                          {selectedModule?.highlights.map((item, index) => (
-                            <div key={item} className="flex items-start gap-3">
-                              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#10213f] text-xs font-bold text-white">{index + 1}</span>
-                              <span>{item}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="rounded-[1.2rem] border border-[#eadbb9] bg-[linear-gradient(135deg,rgba(99,102,241,0.14),rgba(168,85,247,0.10))] px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-[#7a5622]">실천 체크리스트</p>
-                        <div className="mt-3 space-y-3 text-slate-200">
-                          {selectedModule?.actionChecklist.map((item, index) => (
-                            <div key={item} className="flex items-start gap-3">
-                              <span className="mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d3ad62] text-xs font-bold text-[#1c1408]">{index + 1}</span>
-                              <span>{item}</span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      <div className="rounded-[1.2rem] border border-white/12 bg-white/[0.06] px-4 py-4">
-                        <p className="text-xs uppercase tracking-[0.16em] text-slate-400">학습 메모</p>
-                        <p className="mt-2 text-slate-200">재생 일시정지, 강의 종료, 10초 간격 자동 저장으로 이어보기와 수료 판정이 함께 관리됩니다.</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.08] p-5 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
+                <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.08] p-5 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                       <button
                         type="button"
                         onClick={() => void persistProgress("manual")}
                         disabled={isManualSaving || !playerReady}
-                        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#0d1b2f_0%,#1f3556_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(15,23,42,0.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-55"
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#0d1b2f_0%,#1f3556_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:bg-[linear-gradient(135deg,#0d1b2f_0%,#1f3556_100%)] disabled:hover:shadow-[0_14px_28px_rgba(15,23,42,0.18)] disabled:active:scale-100"
                       >
                         {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                       </button>
                       <button
                         type="button"
                         onClick={handleDownloadHandout}
-                        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#c6a86a_0%,#edd8ab_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(198,168,106,0.22)] transition hover:-translate-y-0.5"
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#c6a86a_0%,#edd8ab_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(198,168,106,0.22)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
                       >
                         교안 다운로드
                       </button>
                       <Link
                         href="/certificate"
-                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-white/[0.13]"
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
                       >
                         수강증/수료증 발급
                       </Link>
                       <Link
                         href="/certificate?print=1"
-                        className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#16a34a_0%,#86efac_100%)] px-5 py-3 text-sm font-bold text-[#052e16] shadow-[0_14px_28px_rgba(22,163,74,0.18)] transition hover:-translate-y-0.5"
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#16a34a_0%,#86efac_100%)] px-5 py-3 text-sm font-bold text-[#052e16] shadow-[0_14px_28px_rgba(22,163,74,0.18)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
                       >
                         바로 인쇄
                       </Link>
@@ -1463,73 +1426,9 @@ export default function CourseRoomPage() {
                       <p className="mt-3 text-xs text-slate-400">마지막 저장 시각 {lastSavedLabel}</p>
                     </div>
                   </div>
-                </div>
               </div>
             </section>
 
-            <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6 lg:p-7">
-              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#274690]">Compliance & Enrollment</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white">수료 연동 필수 설정</h3>
-                  <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
-                    필수 동의와 사건 유형 설정은 수강 진행 저장과 이수 확인 자료 안내에 반영됩니다. 결제만으로 문서가 자동 발급되지는 않으며, 수강 완료 여부와 동의 상태를 함께 확인합니다.
-                  </p>
-                </div>
-                <div className="rounded-full border border-white/12 bg-white/[0.06] px-4 py-2 text-sm font-semibold text-slate-200">
-                  UID {uid ? `${uid.slice(0, 10)}...` : "세션 준비 중"}
-                </div>
-              </div>
-
-              <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1.2fr)_340px]">
-                <div className="space-y-4">
-                  <label className="flex items-start gap-3 rounded-[1.35rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={legalAccepted}
-                      onChange={(event) => setLegalAccepted(event.target.checked)}
-                      className="mt-1 h-4 w-4 accent-[#1f4db8]"
-                    />
-                    <span>{disclaimer} 또한 이수 확인 자료는 민간 교육 자료이며, 특정 절차에서의 결과나 효력을 보장하지 않음을 이해했습니다.</span>
-                  </label>
-                  <label className="flex items-start gap-3 rounded-[1.35rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={reviewAccepted}
-                      onChange={(event) => setReviewAccepted(event.target.checked)}
-                      className="mt-1 h-4 w-4 accent-[#1f4db8]"
-                    />
-                    <span>발급 문서와 AI 초안은 사용자가 직접 사실관계를 확인하고 최종 수정한 뒤 사용해야 함을 이해했습니다.</span>
-                  </label>
-                </div>
-
-                <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,#0f1c33_0%,#132544_100%)] p-5 text-white shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
-                  <label className="block text-sm">
-                    <span className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9cbef6]">사건 유형</span>
-                    <select
-                      value={caseType}
-                      onChange={(event) => setCaseType(event.target.value as CaseType)}
-                      className="mt-3 w-full rounded-2xl border border-white/12 bg-white/8 px-4 py-3 text-white outline-none transition focus:border-[#d3b271]"
-                    >
-                      {caseTypeOptions.map((option) => (
-                        <option key={option.value} value={option.value} className="text-slate-900">
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-
-                  <div className="mt-5 rounded-[1.25rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
-                    <p className="font-semibold text-white">수료 문서 안내</p>
-                    <p className="mt-2">{certificateStatus}</p>
-                    <p className="mt-2 text-slate-300">환불 기준과 이용 조건은 결제 전 안내와 환불규정, 이용약관을 함께 확인해 주세요.</p>
-                  </div>
-                </div>
-              </div>
-
-              {playerError ? <p className="mt-4 text-sm font-medium text-rose-600">{playerError}</p> : null}
-              {error ? <p className="mt-3 text-sm font-medium text-rose-600">{error}</p> : null}
-            </section>
           </section>
 
           <aside className="flex flex-col gap-6 xl:order-1 xl:sticky xl:top-6 xl:self-start">
@@ -1594,7 +1493,7 @@ export default function CourseRoomPage() {
                 {purchaseChecklistReady ? (
                   <Link
                     href="/checkout"
-                    className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a6a2d_0%,#d3ad62_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(138,106,45,0.18)] transition hover:-translate-y-0.5"
+                    className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a6a2d_0%,#d3ad62_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(138,106,45,0.18)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
                   >
                     주문서로 이동
                   </Link>
@@ -1691,62 +1590,6 @@ export default function CourseRoomPage() {
               </div>
             </section>
 
-            <section className="order-first rounded-[2rem] border border-indigo-300/18 bg-white/[0.08] p-4 text-white shadow-[0_24px_70px_rgba(0,0,0,0.32)] ring-1 ring-white/8 backdrop-blur-2xl sm:p-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9dbef8]">Curriculum</p>
-                  <h3 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">강의 목차</h3>
-                </div>
-                <span className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs font-medium text-slate-200">
-                  {defaultCourse.modules.length} Modules
-                </span>
-              </div>
-
-              <div className="mt-4 space-y-2.5">
-                {defaultCourse.modules.map((module, index) => {
-                  const item = moduleProgress[module.id];
-                  const active = selectedModuleId === module.id;
-                  const locked = index > 0 && !moduleProgress[defaultCourse.modules[index - 1].id]?.isCompleted;
-                  const state = getModuleState(item, active);
-
-                  return (
-                    <button
-                      key={module.id}
-                      type="button"
-                      onClick={() => handleSelectModule(module.id)}
-                      aria-disabled={locked}
-                      className={`group w-full rounded-[1.2rem] border p-3 text-left transition hover:-translate-y-0.5 hover:border-[#5f8fff]/45 ${state.toneClassName} ${locked ? "opacity-55 grayscale" : ""}`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${state.iconClassName}`}>
-                          {locked ? "잠" : state.icon}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400">Lesson {index + 1}</p>
-                              <h4 className="mt-1 text-sm font-semibold leading-5 text-white">{module.title}</h4>
-                            </div>
-                            <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${active ? "bg-[#1e3a6b] text-[#c8dcff]" : "bg-white/8 text-slate-300"}`}>
-                              {locked ? "잠금" : state.label}
-                            </span>
-                          </div>
-                          <p className="mt-1.5 text-xs leading-5 text-slate-300">{truncateText(module.summary, 56)}</p>
-                          <div className="mt-3 flex items-center justify-between gap-3 text-xs text-slate-400">
-                            <span>{formatProgressTime(item?.watchedSeconds ?? 0, item?.durationSeconds ?? 0)}</span>
-                            <span className="font-semibold text-slate-200">{item?.completionRate ?? 0}%</span>
-                          </div>
-                          <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                            <div className={`h-full rounded-full ${state.progressClassName}`} style={{ width: `${item?.completionRate ?? 0}%` }} />
-                          </div>
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </section>
-
             <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Completion Assets</p>
               <h3 className="mt-2 text-xl font-semibold text-white">과정 완료 후 제공 문서</h3>
@@ -1768,14 +1611,14 @@ export default function CourseRoomPage() {
                         <div key={certificate.certificateId} className="space-y-2">
                           <Link
                             href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}`}
-                            className="flex items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3 transition hover:bg-emerald-50"
+                            className="flex cursor-pointer items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3 transition-all hover:bg-emerald-50 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                           >
                             <span>수료증 / {certificate.issueNumber}</span>
                             <span className="font-semibold">수료증 보기</span>
                           </Link>
                           <Link
                             href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}&print=1`}
-                            className="flex items-center justify-between rounded-2xl bg-emerald-700 px-4 py-3 font-semibold text-white transition hover:bg-emerald-800"
+                            className="flex cursor-pointer items-center justify-between rounded-2xl bg-emerald-700 px-4 py-3 font-semibold text-white transition-all hover:bg-emerald-800 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                           >
                             <span>수료증 / {certificate.issueNumber}</span>
                             <span>바로 인쇄</span>
@@ -1784,10 +1627,10 @@ export default function CourseRoomPage() {
                       ))
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        <Link href="/certificate" className="inline-flex rounded-full border border-emerald-200 bg-white px-4 py-2 font-semibold text-emerald-900 transition hover:bg-emerald-50">
+                        <Link href="/certificate" className="inline-flex cursor-pointer rounded-full border border-emerald-200 bg-white px-4 py-2 font-semibold text-emerald-900 transition-all hover:bg-emerald-50 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                           수강증/수료증 발급 및 보기
                         </Link>
-                        <Link href="/certificate?print=1" className="inline-flex rounded-full bg-emerald-700 px-4 py-2 font-semibold text-white transition hover:bg-emerald-800">
+                        <Link href="/certificate?print=1" className="inline-flex cursor-pointer rounded-full bg-emerald-700 px-4 py-2 font-semibold text-white transition-all hover:bg-emerald-800 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
                           바로 인쇄
                         </Link>
                       </div>
