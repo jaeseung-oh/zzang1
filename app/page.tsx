@@ -120,8 +120,8 @@ const processSteps = [
 
 const documents = [
   {
-    title: "학습확인서",
-    body: "온라인 수강 및 교육 이수 내역 확인용",
+    title: "수료증",
+    body: "온라인 수강 및 교육 이수 확인용",
     icon: (
       <svg viewBox="0 0 24 24" className="h-6 w-6 fill-none stroke-current" strokeWidth="1.8">
         <path d="M7 3h7l5 5v13H7z" />
@@ -538,7 +538,7 @@ export default function HomePage() {
                       <span className="rounded-full border border-[#e4d7bb] bg-[#fbf5e8] px-3 py-1 text-xs font-bold text-[#6f531b]">Document 01</span>
                       <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-slate-400" strokeWidth="1.8"><path d="M7 3h7l5 5v13H7z" /><path d="M14 3v5h5" /></svg>
                     </div>
-                    <h3 className="text-lg font-black text-[#06101b]">학습확인서</h3>
+                    <h3 className="text-lg font-black text-[#06101b]">수료증</h3>
                     <div className="mt-4 space-y-2"><div className="h-2 rounded-full bg-slate-200" /><div className="h-2 w-5/6 rounded-full bg-slate-200" /><div className="h-2 w-4/6 rounded-full bg-slate-200" /></div>
                   </div>
                   <div className="absolute top-10 z-10 w-64 rotate-[2deg] rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
