@@ -408,9 +408,13 @@ export default function CourseApplicationPage() {
                 type="button"
                 disabled={!selectedCategory || !selectedProduct}
                 onClick={handleSubmit}
-                className="mt-5 w-full rounded-[1rem] bg-[#173968] px-5 py-4 text-base font-bold text-white shadow-[0_16px_30px_rgba(23,57,104,0.22)] transition hover:bg-[#0f2f5f] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[1rem] bg-[#06101b] px-5 py-4 text-base font-bold text-[#e9c98d] shadow-[0_16px_30px_rgba(6,16,27,0.28)] ring-1 ring-[#e9c98d]/25 transition hover:bg-[#10213f] hover:text-[#f6deb0] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:ring-0 disabled:shadow-none"
               >
-                수강신청하기
+                <span>수강신청하기</span>
+                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
+                  <path d="M5 12h14" />
+                  <path d="m13 6 6 6-6 6" />
+                </svg>
               </button>
             </div>
           </aside>

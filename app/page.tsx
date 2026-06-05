@@ -356,8 +356,12 @@ export default function HomePage() {
                       내 강의실 바로가기
                     </a>
                   ) : (
-                    <a href="/course-application" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-6 py-3.5 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
-                      수강신청하기
+                    <a href="/course-application" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#06101b] px-6 py-3.5 text-sm font-bold text-[#e9c98d] shadow-[0_18px_32px_rgba(6,16,27,0.34)] ring-1 ring-[#e9c98d]/35 transition hover:-translate-y-1 hover:bg-[#10213f] hover:text-[#f6deb0]">
+                      <span>수강신청하기</span>
+                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
+                        <path d="M5 12h14" />
+                        <path d="m13 6 6 6-6 6" />
+                      </svg>
                     </a>
                   )}
                   <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-7 py-4 text-sm font-semibold text-[#10213f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
@@ -462,8 +466,12 @@ export default function HomePage() {
                           <span key={tag} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">{tag}</span>
                         ))}
                       </div>
-                      <a href="/course-application" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#06101b] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#13243a]">
-                        수강신청하기
+                      <a href="/course-application" className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#06101b] px-5 py-3 text-sm font-bold text-[#e9c98d] ring-1 ring-[#e9c98d]/25 transition hover:-translate-y-0.5 hover:bg-[#13243a] hover:text-[#f6deb0]">
+                        <span>수강신청하기</span>
+                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
+                          <path d="M5 12h14" />
+                          <path d="m13 6 6 6-6 6" />
+                        </svg>
                       </a>
                     </div>
                   </article>
