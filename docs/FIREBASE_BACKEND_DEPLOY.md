@@ -6,10 +6,10 @@
 
 - courseId: `dui-prevention-basic`
 - 상품명: `음주운전 예방교육`
-- 결제금액: `55,000원`
+- 결제금액: 상품별 실제 결제금액
 - 강의 수: `총 5강`
 - 수강기간: `결제일로부터 90일`
-- 1강당 환불 산정 금액: `11,000원`
+- 환불 산정 기준: `실제 결제금액 × 미수강 강의 수 / 전체 강의 수`
 - 설정 위치: `lib/course/product.ts`
 
 ## 2. Cloudflare Pages 환경 변수
@@ -50,7 +50,7 @@ Worker 공개 vars는 `wrangler.worker.toml`에 있습니다.
 3. 성공 시 `/payment/success?paymentKey=...&orderId=...&amount=...&courseId=dui-prevention-basic` 이동
 4. 성공 페이지가 Firebase ID 토큰과 함께 Worker `/api/payments/confirm` 호출
 5. Worker가 로그인 uid와 요청 uid 일치 확인
-6. Worker가 courseId 기준 결제금액 `55,000원` 재검증
+6. Worker가 courseId/productId 기준 실제 결제금액을 재검증
 7. Worker가 Toss 승인 API를 Secret Key로 서버 측 호출
 8. 승인 성공 시 Firestore `payments`, `enrollments`, 기존 호환용 `purchases` 저장
 9. `expiresAt = purchasedAt + 90일` 저장
@@ -76,7 +76,7 @@ Worker 공개 vars는 `wrangler.worker.toml`에 있습니다.
 - Cloudflare Worker: `ADMIN_API_KEY` 설정 후 `/admin/payments` 내부 확인
 - 상품 금액: `55,000원`
 - 수강기간: `90일`
-- 환불표: 미수강 강의 수 × `11,000원`
+- 환불표: `실제 결제금액 × 미수강 강의 수 / 전체 강의 수`
 
 ## 7. 테스트
 

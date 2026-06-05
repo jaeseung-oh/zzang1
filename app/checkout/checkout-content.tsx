@@ -363,8 +363,7 @@ export default function CheckoutContent() {
             </div>
 
             <div className="mt-6 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-sm leading-7 text-slate-600">
-              <p>수강확인증은 결제 완료 후 수강권이 확인되면 출력할 수 있고, 전체 5강 수강 완료 후에는 수료증으로 발급됩니다. 수강기간은 결제일로부터 90일입니다.</p>
-              <div className="mt-3 flex flex-wrap gap-3 text-sm font-semibold">
+              <div className="flex flex-wrap gap-3 text-sm font-semibold">
                 <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
                 <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
                 <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">환불규정</Link>

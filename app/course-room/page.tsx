@@ -1479,15 +1479,6 @@ export default function CourseRoomPage() {
                     />
                     <span className="font-semibold text-slate-100">결제 전 안내와 수료 문서 발급 조건을 확인했습니다.</span>
                   </label>
-
-                  <div className="rounded-[1.1rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm leading-7 text-slate-300">
-                    <p>수강확인증은 결제 완료 후 수강권이 확인되면 출력할 수 있고, 전체 5강 수강 완료 후에는 수료증으로 발급됩니다. 본 강의의 수강기간은 결제일로부터 90일이며, 미수강 강의 환불 기준은 실제 결제금액에서 미수강 강의 수가 전체 강의 수에서 차지하는 비율로 산정됩니다. 수료증 등 교육 이수 관련 서류가 발급 또는 출력된 후에는 환불이 불가합니다. 서비스 성격, 환불 기준, 개인정보 처리 내용은 아래 문서에서 확인할 수 있습니다.</p>
-                    <div className="mt-3 flex flex-wrap gap-3 font-semibold">
-                      <Link href="/terms" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">이용약관</Link>
-                      <Link href="/privacy-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">개인정보처리방침</Link>
-                      <Link href="/refund-policy" className="underline underline-offset-4 text-[#173968] hover:text-[#0b1220]">환불규정</Link>
-                    </div>
-                  </div>
                 </div>
 
                 {purchaseChecklistReady ? (
