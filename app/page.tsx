@@ -356,8 +356,8 @@ export default function HomePage() {
                       내 강의실 바로가기
                     </a>
                   ) : (
-                    <a href="/signup" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-6 py-3.5 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
-                      음주운전 예방교육 신청하기
+                    <a href="/course-application" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-6 py-3.5 text-sm font-bold text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-1 hover:brightness-105">
+                      수강신청하기
                     </a>
                   )}
                   <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-7 py-4 text-sm font-semibold text-[#10213f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
@@ -462,8 +462,8 @@ export default function HomePage() {
                           <span key={tag} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">{tag}</span>
                         ))}
                       </div>
-                      <a href="/signup" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#06101b] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#13243a]">
-                        과정 신청하기
+                      <a href="/course-application" className="mt-6 inline-flex min-h-11 items-center justify-center rounded-full bg-[#06101b] px-5 py-3 text-sm font-bold text-white transition hover:-translate-y-0.5 hover:bg-[#13243a]">
+                        수강신청하기
                       </a>
                     </div>
                   </article>
