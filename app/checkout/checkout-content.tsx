@@ -262,42 +262,42 @@ export default function CheckoutContent() {
   };
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#08101c_0%,#0d1728_22%,#eef3f8_22%,#f4f7fb_100%)] px-4 py-8 text-[#0f172a] sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#edf3f9_48%,#f8fafc_100%)] px-4 py-8 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,#0a1424_0%,#10213f_45%,#16325e_100%)] px-6 py-7 text-white shadow-[0_30px_90px_rgba(2,6,23,0.34)] sm:px-8 lg:px-10">
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0d59c]">Secure Checkout</p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-[-0.05em] sm:text-4xl">주문서 및 결제</h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
+        <section className="overflow-hidden rounded-[1.75rem] border border-[#d7e1ef] bg-[linear-gradient(135deg,#0b1d36_0%,#173968_58%,#21568f_100%)] px-6 py-8 text-white shadow-[0_26px_70px_rgba(15,23,42,0.22)] sm:px-8 lg:px-10">
+          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#a7c7ff]">Secure Checkout</p>
+          <h1 className="mt-4 text-3xl font-semibold sm:text-4xl">주문서 및 결제</h1>
+          <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-200 sm:text-[15px]">
             음주운전 예방교육 수강권을 신청하고 결제를 진행하는 주문서입니다. 결제 완료 후 즉시 강의실에서 수강을 시작할 수 있습니다.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-200">
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">민간 교육 서비스</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">수강기간 {defaultCourse.accessValidLabel}</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">신용카드</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">휴대폰결제(다날)</span>
-            <span className="rounded-full border border-white/12 bg-white/8 px-4 py-2">카카오페이</span>
+          <div className="mt-6 flex flex-wrap gap-2 text-sm font-semibold text-slate-100">
+            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">민간 교육 서비스</span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">수강기간 {defaultCourse.accessValidLabel}</span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">신용카드</span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">휴대폰결제(다날)</span>
+            <span className="rounded-full border border-white/15 bg-white/10 px-4 py-2">카카오페이</span>
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.3fr)_380px]">
-          <section className="rounded-[2rem] border border-[#d7deea] bg-white p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7">
+        <div className="mt-7 grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <section className="rounded-[1.5rem] border border-[#dbe4ef] bg-white p-5 shadow-[0_18px_45px_rgba(15,23,42,0.07)] sm:p-6">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#274690]">Order Form</p>
-                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0f172a]">결제 정보</h2>
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Order Form</p>
+                <h2 className="mt-1 text-2xl font-semibold text-slate-950">결제 정보</h2>
               </div>
-              <div className="rounded-full border border-[#d8dfeb] bg-[#f6f8fb] px-4 py-2 text-sm font-semibold text-slate-700">
+              <div className="rounded-full border border-[#d8e2ee] bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-slate-600">
                 주문번호 {orderId || "생성 중"}
               </div>
             </div>
 
-            <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]">
+            <div className="mt-6 space-y-5">
               <div className="space-y-5">
-                <div className="overflow-hidden rounded-[1.5rem] border border-[#dce4ef] bg-white">
+                <div className="overflow-hidden rounded-[1.25rem] border border-[#d8e2ee] bg-white">
                   <div className="border-b border-[#e5ebf3] bg-[#f8fafc] px-4 py-4 sm:px-5">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">Payment Method</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Payment Method</p>
                         <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em] text-slate-950">결제수단 선택</h3>
                       </div>
                       <p className="text-sm font-semibold text-slate-600">총 결제금액 {formatKrw(courseAmount)}</p>
@@ -316,8 +316,8 @@ export default function CheckoutContent() {
                           onClick={() => setSelectedPaymentMethod(method.id)}
                           className={
                             isSelected
-                              ? "group min-h-[132px] rounded-[1.2rem] border border-[#173968] bg-[#f3f7ff] px-4 py-4 text-left shadow-[0_14px_30px_rgba(23,57,104,0.14)] transition"
-                              : "group min-h-[132px] rounded-[1.2rem] border border-[#dce4ef] bg-white px-4 py-4 text-left transition hover:-translate-y-0.5 hover:border-[#b9c7db] hover:shadow-[0_12px_24px_rgba(15,23,42,0.08)]"
+                              ? "group min-h-[132px] cursor-pointer rounded-[1.15rem] border-2 border-[#173968] bg-[#f3f7ff] px-4 py-4 text-left shadow-[0_16px_34px_rgba(23,57,104,0.15)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(23,57,104,0.17)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                              : "group min-h-[132px] cursor-pointer rounded-[1.15rem] border border-[#d8e2ee] bg-white px-4 py-4 text-left transition-all hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
                           }
                         >
                           <span className={["inline-flex rounded-full px-3 py-1 text-[11px] font-bold tracking-[0.14em]", method.badgeClass].join(" ")}>
@@ -357,27 +357,27 @@ export default function CheckoutContent() {
                 </div>
               </div>
 
-              <div className="rounded-[1.6rem] border border-[#dce4ef] bg-[linear-gradient(180deg,#0f1c33_0%,#132544_100%)] p-5 text-white shadow-[0_20px_40px_rgba(15,23,42,0.16)]">
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#9cbef6]">구매자 정보</p>
-                <div className="mt-4 space-y-3 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
+              <div className="rounded-[1.25rem] border border-[#d8e2ee] bg-[#f8fafc] p-5 text-slate-950">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">구매자 정보</p>
+                <div className="mt-4 space-y-3 rounded-[1rem] border border-[#dbe4ef] bg-white px-4 py-4 text-sm leading-7 text-slate-700">
                   <p>
-                    <span className="font-semibold text-white">이름:</span> {customerName || "불러오는 중"}
+                    <span className="font-semibold text-slate-950">이름:</span> {customerName || "불러오는 중"}
                   </p>
                   <p>
-                    <span className="font-semibold text-white">이메일:</span> {customerEmail || "등록 필요"}
+                    <span className="font-semibold text-slate-950">이메일:</span> {customerEmail || "등록 필요"}
                   </p>
                 </div>
 
-                <div className="mt-5 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
-                  <p className="font-semibold text-white">선택 결제수단</p>
-                  <div className="mt-3 flex items-center justify-between rounded-[0.9rem] bg-white/10 px-3 py-3">
+                <div className="mt-5 rounded-[1rem] border border-[#dbe4ef] bg-white px-4 py-4 text-sm leading-7 text-slate-700">
+                  <p className="font-semibold text-slate-950">선택 결제수단</p>
+                  <div className="mt-3 flex items-center justify-between rounded-[0.9rem] bg-[#f3f7ff] px-3 py-3">
                     <span>{selectedPaymentMethodInfo.title}</span>
-                    <span className="rounded-full bg-white px-2.5 py-1 text-[11px] font-bold tracking-[0.14em] text-[#10213f]">{selectedPaymentMethodInfo.label}</span>
+                    <span className="rounded-full bg-[#173968] px-2.5 py-1 text-[11px] font-bold tracking-[0.14em] text-white">{selectedPaymentMethodInfo.label}</span>
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-4 text-sm leading-7 text-slate-200">
-                  <p className="font-semibold text-white">결제 전 안내</p>
+                <div className="mt-4 rounded-[1rem] border border-[#dbe4ef] bg-white px-4 py-4 text-sm leading-7 text-slate-700">
+                  <p className="font-semibold text-slate-950">결제 전 안내</p>
                   <p className="mt-2">본 강의는 결제일로부터 90일 동안 수강할 수 있습니다. 음주운전 예방교육은 총 5강으로 구성되어 있으며, 결제금액은 55,000원입니다.</p>
                   <p className="mt-3">결제 완료 즉시 해당 강의의 수강 권한이 부여되며, 수강권 확인 후 수강확인증을 출력할 수 있습니다.</p>
                 </div>
@@ -388,11 +388,11 @@ export default function CheckoutContent() {
             {isInitializing ? <p className="mt-5 text-sm text-slate-500">주문서와 결제창을 준비하는 중입니다...</p> : null}
           </section>
 
-          <aside className="space-y-6 xl:sticky xl:top-6 xl:self-start">
-            <section className="overflow-hidden rounded-[2rem] border border-[#d7deea] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-              <div className="bg-[linear-gradient(135deg,#6b4f1d_0%,#8a6a2d_100%)] px-4 py-4 text-white sm:px-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#f6e1b1]">Payment Summary</p>
-                <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">주문 요약</h2>
+          <aside className="space-y-6 lg:sticky lg:top-6 lg:self-start">
+            <section className="overflow-hidden rounded-[1.5rem] border border-[#cfdceb] bg-white shadow-[0_22px_55px_rgba(15,23,42,0.11)]">
+              <div className="px-5 pt-5 sm:px-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Payment Summary</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950">주문 요약</h2>
               </div>
 
               <div className="space-y-3 p-4 sm:p-5">
@@ -405,10 +405,10 @@ export default function CheckoutContent() {
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-[2rem] border border-[#d7deea] bg-white shadow-[0_24px_60px_rgba(15,23,42,0.08)]">
-              <div className="bg-[linear-gradient(135deg,#10213f_0%,#173968_100%)] px-4 py-4 text-white sm:px-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9dbef8]">Required Check</p>
-                <h2 className="mt-2 text-xl font-semibold tracking-[-0.03em]">결제 전 필수 확인</h2>
+            <section className="overflow-hidden rounded-[1.5rem] border border-[#cfdceb] bg-white shadow-[0_22px_55px_rgba(15,23,42,0.11)]">
+              <div className="px-5 pt-5 sm:px-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Required Check</p>
+                <h2 className="mt-2 text-2xl font-semibold text-slate-950">결제 전 필수 확인</h2>
               </div>
 
               <div className="space-y-4 p-4 sm:p-5">
@@ -445,7 +445,7 @@ export default function CheckoutContent() {
                   type="button"
                   onClick={() => void handleRequestPayment()}
                   disabled={!canSubmit}
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-full bg-[linear-gradient(135deg,#d3ad62_0%,#f0cb85_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(198,168,106,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex min-h-14 w-full cursor-pointer items-center justify-center rounded-[1rem] bg-[#06101b] px-5 py-4 text-base font-bold text-[#e9c98d] shadow-[0_16px_30px_rgba(6,16,27,0.28)] transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:opacity-70 disabled:shadow-none disabled:hover:bg-slate-300 disabled:hover:shadow-none disabled:active:scale-100"
                 >
                   {isSubmitting ? "결제창 여는 중..." : selectedPaymentMethodInfo.title + "로 결제하기"}
                 </button>
