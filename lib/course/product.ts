@@ -5,7 +5,6 @@ export const duiPreventionCourseProduct = {
   currency: "KRW",
   durationDays: 90,
   totalLessons: 5,
-  pricePerLesson: 11000,
   description: "음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정",
   certificateAvailable: true,
 } as const;
@@ -19,7 +18,7 @@ export function formatKrw(value: number) {
 export function buildRefundRows(product: PaidCourseProduct = duiPreventionCourseProduct) {
   return Array.from({ length: product.totalLessons + 1 }, (_, completedLessons) => {
     const unusedLessons = Math.max(0, product.totalLessons - completedLessons);
-    const refundAmount = unusedLessons * product.pricePerLesson;
+    const refundAmount = Math.round((product.price * unusedLessons) / product.totalLessons);
 
     return {
       completedLessons,

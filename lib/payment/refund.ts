@@ -6,7 +6,7 @@ export type RefundCalculationResult = {
   reason: string;
   unusedLessons: number;
   completedLessons: number;
-  pricePerLesson: number;
+  refundUnitAmount: number;
 };
 
 type CalculateRefundOptions = {
@@ -36,29 +36,29 @@ export function calculateRefundAmount({
 }: CalculateRefundOptions): RefundCalculationResult {
   const safeTotalLessons = Math.max(0, Math.floor(totalLessons));
   const safeCompletedLessons = Math.min(safeTotalLessons, Math.max(0, Math.floor(completedLessons)));
-  const pricePerLesson = safeTotalLessons > 0 ? Math.floor(totalAmount / safeTotalLessons) : 0;
+  const refundUnitAmount = safeTotalLessons > 0 ? Math.round(totalAmount / safeTotalLessons) : 0;
   const unusedLessons = Math.max(0, safeTotalLessons - safeCompletedLessons);
-  const refundAmount = unusedLessons * pricePerLesson;
+  const refundAmount = safeTotalLessons > 0 ? Math.round((totalAmount * unusedLessons) / safeTotalLessons) : 0;
   const expiresTime = toTime(expiresAt);
 
   if (paymentStatus !== "paid") {
-    return { refundable: false, refundAmount: 0, reason: "결제내역이 정상 결제 상태가 아닙니다.", unusedLessons, completedLessons: safeCompletedLessons, pricePerLesson };
+    return { refundable: false, refundAmount: 0, reason: "결제내역이 정상 결제 상태가 아닙니다.", unusedLessons, completedLessons: safeCompletedLessons, refundUnitAmount };
   }
 
   if (expiresTime !== null && expiresTime < Date.now()) {
-    return { refundable: false, refundAmount: 0, reason: "수강기간 90일이 만료되어 환불이 제한됩니다.", unusedLessons, completedLessons: safeCompletedLessons, pricePerLesson };
+    return { refundable: false, refundAmount: 0, reason: "수강기간 90일이 만료되어 환불이 제한됩니다.", unusedLessons, completedLessons: safeCompletedLessons, refundUnitAmount };
   }
 
   if (certificateIssued) {
-    return { refundable: false, refundAmount: 0, reason: "수료증, 수료확인서, 이수확인서 등 교육 이수 관련 서류가 발급 또는 출력되어 환불이 불가합니다.", unusedLessons, completedLessons: safeCompletedLessons, pricePerLesson };
+    return { refundable: false, refundAmount: 0, reason: "수료증, 수료확인서, 이수확인서 등 교육 이수 관련 서류가 발급 또는 출력되어 환불이 불가합니다.", unusedLessons, completedLessons: safeCompletedLessons, refundUnitAmount };
   }
 
   if (safeCompletedLessons >= safeTotalLessons) {
-    return { refundable: false, refundAmount: 0, reason: `전체 ${safeTotalLessons}강 수강 완료로 환불이 불가합니다.`, unusedLessons, completedLessons: safeCompletedLessons, pricePerLesson };
+    return { refundable: false, refundAmount: 0, reason: `전체 ${safeTotalLessons}강 수강 완료로 환불이 불가합니다.`, unusedLessons, completedLessons: safeCompletedLessons, refundUnitAmount };
   }
 
   if (unusedLessons <= 0 || refundAmount <= 0) {
-    return { refundable: false, refundAmount: 0, reason: "미수강 강의가 없어 환불이 불가합니다.", unusedLessons, completedLessons: safeCompletedLessons, pricePerLesson };
+    return { refundable: false, refundAmount: 0, reason: "미수강 강의가 없어 환불이 불가합니다.", unusedLessons, completedLessons: safeCompletedLessons, refundUnitAmount };
   }
 
   return {
@@ -67,7 +67,7 @@ export function calculateRefundAmount({
     reason: safeCompletedLessons === 0 ? "전액 환불 가능" : `미수강 ${unusedLessons}강 기준 환불 가능`,
     unusedLessons,
     completedLessons: safeCompletedLessons,
-    pricePerLesson,
+    refundUnitAmount,
   };
 }
 
