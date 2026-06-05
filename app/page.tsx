@@ -356,12 +356,14 @@ export default function HomePage() {
                       내 강의실 바로가기
                     </a>
                   ) : (
-                    <a href="/course-application" className="inline-flex items-center justify-center gap-2 rounded-full bg-[#06101b] px-6 py-3.5 text-sm font-bold text-[#e9c98d] shadow-[0_18px_32px_rgba(6,16,27,0.34)] ring-1 ring-[#e9c98d]/35 transition hover:-translate-y-1 hover:bg-[#10213f] hover:text-[#f6deb0]">
+                    <a href="/courses/apply" className="inline-flex items-center justify-center gap-2 rounded-full border border-white bg-white px-5 py-3.5 text-sm font-extrabold text-[#06101b] shadow-[0_18px_36px_rgba(6,16,27,0.28)] transition hover:-translate-y-1 hover:bg-[#f8fbff]">
+                      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#06101b] text-[#e9c98d]">
+                        <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
+                          <path d="M12 3l7 4v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V7l7-4Z" />
+                          <path d="M9.5 12.5l1.8 1.8L15 10.7" />
+                        </svg>
+                      </span>
                       <span>수강신청하기</span>
-                      <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
-                        <path d="M5 12h14" />
-                        <path d="m13 6 6 6-6 6" />
-                      </svg>
                     </a>
                   )}
                   <a href="#process" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-7 py-4 text-sm font-semibold text-[#10213f] shadow-[0_12px_24px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
@@ -411,10 +413,10 @@ export default function HomePage() {
                     </div>
                   </div>
                   <div className="mt-5 rounded-2xl border border-[#e9c98d]/20 bg-[#d8b36a]/10 p-4 text-[13px] leading-6 text-[#f8e7c4] break-keep">
-                    음주운전 예방교육 회원은 교육 이수 확인 자료와 금주실천서약서, 재발방지계획서 참고 양식을 이용할 수 있습니다. 제공되는 서식은 수강자가 자신의 금주 실천 의지와 재발방지 노력을 스스로 정리할 수 있도록 돕는 참고자료입니다.
+                    음주운전 예방교육 회원은 교육 이수 확인 자료와 금주실천서약서, 재발방지계획서 참고 양식을 함께 이용할 수 있습니다. 수료증과 참고서식은 교육 이수 사실, 금주 실천 의지, 재발방지 노력을 정리한 양형자료로 활용할 수 있습니다.
                   </div>
                   <p className="mt-3 text-xs leading-6 text-slate-300 break-keep">
-                    본 서비스는 법률 자문이나 결과 보장을 제공하지 않는 민간 교육 서비스입니다.
+                    수강 과정에서 정리한 내용은 생활 변화 계획과 실천 의지를 구체적으로 보여주는 자료 준비에 도움이 되도록 구성했습니다.
                   </p>
                 </div>
               )}
@@ -466,12 +468,14 @@ export default function HomePage() {
                           <span key={tag} className="rounded-full bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-700">{tag}</span>
                         ))}
                       </div>
-                      <a href="/course-application" className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#06101b] px-5 py-3 text-sm font-bold text-[#e9c98d] ring-1 ring-[#e9c98d]/25 transition hover:-translate-y-0.5 hover:bg-[#13243a] hover:text-[#f6deb0]">
+                      <a href="/courses/apply" className="mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#d8e1ef] bg-white px-4 py-2.5 text-sm font-extrabold text-[#06101b] shadow-[0_10px_22px_rgba(6,16,27,0.10)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
+                        <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-[#06101b] text-[#e9c98d]">
+                          <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
+                            <path d="M12 3l7 4v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V7l7-4Z" />
+                            <path d="M9.5 12.5l1.8 1.8L15 10.7" />
+                          </svg>
+                        </span>
                         <span>수강신청하기</span>
-                        <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
-                          <path d="M5 12h14" />
-                          <path d="m13 6 6 6-6 6" />
-                        </svg>
                       </a>
                     </div>
                   </article>

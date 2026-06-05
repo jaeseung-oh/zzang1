@@ -1,112 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  applicationCourseCategories,
+  applicationNoticeText,
+  formatApplicationKrw,
+  type ApplicationCourseCategory,
+  type ApplicationIconName,
+} from "@/lib/course/application-products";
 
-const PRICES = {
-  BASIC: 55000,
-  DUI_WITH_DOCUMENTS: 89000,
-} as const;
-
-type Product = {
-  id: string;
-  title: string;
-  price: number;
-  description: string;
-  includes: string[];
-  badge?: string;
-};
-
-type CourseCategory = {
-  id: string;
-  title: string;
-  description: string;
-  summary: string;
-  icon: IconName;
-  products: Product[];
-  defaultProductId: string;
-};
-
-type IconName = "car" | "fileSearch" | "dice" | "alert" | "shieldCheck";
-
-const basicProduct: Product = {
-  id: "basic",
-  title: "일반 수료형 교육",
-  price: PRICES.BASIC,
-  description: "교육 이수 후 수료증 발급이 가능한 기본형 교육",
-  includes: ["온라인 강의 수강", "진도율 확인", "수료증 발급"],
-};
-
-const duiDocumentsProduct: Product = {
-  id: "dui-documents",
-  title: "실천자료 포함형",
-  price: PRICES.DUI_WITH_DOCUMENTS,
-  description: "교육 이수 후 수료증과 함께 실천계획 관련 참고서식 2종을 제공하는 상품",
-  includes: [
-    "온라인 강의 수강",
-    "진도율 확인",
-    "수료증 발급",
-    "음주예방실천계획서 참고서식",
-    "재발방지계획서 참고서식",
-  ],
-  badge: "자료 포함",
-};
-
-const courseCategories: CourseCategory[] = [
-  {
-    id: "dui",
-    title: "음주운전 예방교육",
-    description: "음주운전 위험성과 재발 예방을 온라인 강의로 차분히 점검합니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증, 참고서식 선택 가능",
-    icon: "car",
-    products: [basicProduct, duiDocumentsProduct],
-    defaultProductId: "dui-documents",
-  },
-  {
-    id: "fraud",
-    title: "사기 예방교육",
-    description: "거래 윤리와 책임 있는 의사결정을 학습하는 예방교육입니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
-    icon: "fileSearch",
-    products: [basicProduct],
-    defaultProductId: "basic",
-  },
-  {
-    id: "gambling",
-    title: "도박 예방교육",
-    description: "도박 위험 신호와 생활관리 원칙을 정리하는 예방교육입니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
-    icon: "dice",
-    products: [basicProduct],
-    defaultProductId: "basic",
-  },
-  {
-    id: "drug",
-    title: "마약 예방교육",
-    description: "약물 오남용 위험성과 자기점검 방법을 다루는 예방교육입니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
-    icon: "alert",
-    products: [basicProduct],
-    defaultProductId: "basic",
-  },
-  {
-    id: "sex-crime",
-    title: "성범죄 예방교육",
-    description: "관계 윤리와 경계 존중, 책임 있는 행동 기준을 학습합니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
-    icon: "shieldCheck",
-    products: [basicProduct],
-    defaultProductId: "basic",
-  },
-];
-
-const noticeText =
-  "제공되는 수료증 및 참고서식은 교육 이수 사실과 수강자의 자기점검 및 실천계획 정리를 돕기 위한 자료입니다. 특정 법적 결과를 보장하거나 법률 자문을 제공하는 서비스가 아닙니다.";
-
-function formatKrw(value: number) {
-  return `${value.toLocaleString("ko-KR")}원`;
-}
-
-function CourseIcon({ name, className = "h-6 w-6" }: { name: IconName; className?: string }) {
+function CourseIcon({ name, className = "h-6 w-6" }: { name: ApplicationIconName; className?: string }) {
   const commonProps = {
     className: `${className} fill-none stroke-current`,
     strokeWidth: 1.8,
@@ -186,11 +90,12 @@ function CheckIcon({ className = "h-4 w-4" }: { className?: string }) {
 }
 
 export default function CourseApplicationPage() {
+  const router = useRouter();
   const [selectedCategoryId, setSelectedCategoryId] = useState("dui");
   const [selectedProductId, setSelectedProductId] = useState("dui-documents");
 
   const selectedCategory = useMemo(
-    () => courseCategories.find((category) => category.id === selectedCategoryId) || courseCategories[0],
+    () => applicationCourseCategories.find((category) => category.id === selectedCategoryId) || applicationCourseCategories[0],
     [selectedCategoryId]
   );
 
@@ -199,22 +104,22 @@ export default function CourseApplicationPage() {
     [selectedCategory, selectedProductId]
   );
 
-  const handleCategorySelect = (category: CourseCategory) => {
+  const handleCategorySelect = (category: ApplicationCourseCategory) => {
     setSelectedCategoryId(category.id);
     setSelectedProductId(category.defaultProductId);
   };
 
   const handleSubmit = () => {
-    const application = {
-      categoryId: selectedCategory.id,
-      categoryTitle: selectedCategory.title,
-      productId: selectedProduct.id,
-      productTitle: selectedProduct.title,
-      price: selectedProduct.price,
-    };
+    if (!selectedCategory || !selectedProduct) {
+      return;
+    }
 
-    console.log(application);
-    // TODO: 결제 페이지 연동 시 application 정보를 주문 생성 또는 checkout 라우트로 전달합니다.
+    const params = new URLSearchParams({
+      categoryId: selectedCategory.id,
+      productId: selectedProduct.id,
+    });
+
+    router.push(`/payment?${params.toString()}`);
   };
 
   return (
@@ -251,7 +156,7 @@ export default function CourseApplicationPage() {
               </div>
 
               <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {courseCategories.map((category) => {
+                {applicationCourseCategories.map((category) => {
                   const isSelected = selectedCategory.id === category.id;
                   const lowestPrice = Math.min(...category.products.map((product) => product.price));
 
@@ -287,7 +192,7 @@ export default function CourseApplicationPage() {
                       <p className="mt-2 min-h-[48px] text-sm leading-6 text-slate-600">{category.description}</p>
                       <p className="mt-3 text-xs font-semibold text-[#274690]">{category.summary}</p>
                       <div className="mt-4 flex items-end justify-between gap-3">
-                        <p className="text-xl font-bold text-[#0f2f5f]">{formatKrw(lowestPrice)}</p>
+                        <p className="text-xl font-bold text-[#0f2f5f]">{formatApplicationKrw(lowestPrice)}</p>
                         <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
                           선택
                         </span>
@@ -345,7 +250,7 @@ export default function CourseApplicationPage() {
                           {isSelected ? <CheckIcon /> : null}
                         </span>
                       </div>
-                      <p className="mt-5 text-3xl font-bold text-[#0f2f5f]">{formatKrw(product.price)}</p>
+                      <p className="mt-5 text-3xl font-bold text-[#0f2f5f]">{formatApplicationKrw(product.price)}</p>
                       <ul className="mt-5 space-y-2.5">
                         {product.includes.map((item) => (
                           <li key={item} className="flex gap-2 text-sm leading-6 text-slate-700">
@@ -396,25 +301,27 @@ export default function CourseApplicationPage() {
               <div className="mt-5 border-t border-[#e2e8f0] pt-5">
                 <div className="flex items-end justify-between gap-4">
                   <span className="text-sm font-semibold text-slate-600">결제 예정 금액</span>
-                  <strong className="text-3xl font-bold text-[#0f2f5f]">{formatKrw(selectedProduct.price)}</strong>
+                  <strong className="text-3xl font-bold text-[#0f2f5f]">{formatApplicationKrw(selectedProduct.price)}</strong>
                 </div>
               </div>
 
               <p className="mt-5 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-xs leading-6 text-slate-600">
-                {noticeText}
+                {applicationNoticeText}
               </p>
 
               <button
                 type="button"
                 disabled={!selectedCategory || !selectedProduct}
                 onClick={handleSubmit}
-                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[1rem] bg-[#06101b] px-5 py-4 text-base font-bold text-[#e9c98d] shadow-[0_16px_30px_rgba(6,16,27,0.28)] ring-1 ring-[#e9c98d]/25 transition hover:bg-[#10213f] hover:text-[#f6deb0] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:ring-0 disabled:shadow-none"
+                className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[1rem] border border-[#d8e1ef] bg-white px-5 py-4 text-base font-extrabold text-[#06101b] shadow-[0_16px_30px_rgba(6,16,27,0.14)] transition hover:bg-[#f8fbff] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:shadow-none"
               >
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#06101b] text-[#e9c98d]">
+                  <svg viewBox="0 0 24 24" className="h-4.5 w-4.5 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
+                    <path d="M12 3l7 4v5c0 4.5-3 7.8-7 9-4-1.2-7-4.5-7-9V7l7-4Z" />
+                    <path d="M9.5 12.5l1.8 1.8L15 10.7" />
+                  </svg>
+                </span>
                 <span>수강신청하기</span>
-                <svg viewBox="0 0 24 24" className="h-4 w-4 fill-none stroke-current" strokeWidth="2" aria-hidden="true">
-                  <path d="M5 12h14" />
-                  <path d="m13 6 6 6-6 6" />
-                </svg>
               </button>
             </div>
           </aside>

@@ -49,7 +49,7 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
             <h1 className="mt-4 break-keep text-4xl font-black leading-tight tracking-[-0.04em] sm:text-5xl lg:text-6xl">{course.headline}</h1>
             <p className="mt-6 max-w-3xl break-keep text-base leading-8 text-slate-200 sm:text-lg">{course.summary}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/course-application" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-6 py-3 text-sm font-black text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-0.5 hover:brightness-105">
+              <Link href="/courses/apply" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-6 py-3 text-sm font-black text-[#161109] shadow-[0_18px_32px_rgba(164,126,54,0.24)] transition hover:-translate-y-0.5 hover:brightness-105">
                 수강신청하기
               </Link>
               <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-full border border-white/25 bg-white px-6 py-3 text-sm font-bold text-[#10213f] transition hover:-translate-y-0.5 hover:bg-[#f8fbff]">

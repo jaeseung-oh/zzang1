@@ -2,11 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { duiPreventionCourseProduct } from "@/lib/course/product";
+import { formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
 import { ensureCertificateIdentityLock } from "@/lib/firebase/user-profile";
+import type { PaymentMethod } from "@/lib/payment/payment-service";
 
 type ConfirmResponse = {
   savedPurchaseId?: string;
@@ -25,7 +27,21 @@ type ConfirmResponse = {
 const disclaimer =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
-function PaymentSuccessContent() {
+const paymentMethodLabels: Record<PaymentMethod, string> = {
+  kakaopay: "카카오페이",
+  "danal-mobile": "핸드폰결제 - 다날",
+  card: "신용카드결제",
+};
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-5 w-5 fill-none stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="m5 12 4 4L19 6" />
+    </svg>
+  );
+}
+
+function LegacyPaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -66,7 +82,7 @@ function PaymentSuccessContent() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${idToken}`,
+            Authorization: "Bearer " + idToken,
           },
           body: JSON.stringify({
             paymentKey,
@@ -100,7 +116,7 @@ function PaymentSuccessContent() {
         console.error(requestError);
         const message = requestError instanceof Error ? requestError.message : "";
         if (message === "AUTH_LOGIN_REQUIRED") {
-          router.replace(`/login?next=${encodeURIComponent(`/payment/success?${searchParams.toString()}`)}`);
+          router.replace("/login?next=" + encodeURIComponent("/payment/success?" + searchParams.toString()));
           setError("로그인한 회원만 결제 완료를 계정에 연결할 수 있습니다.");
           return;
         }
@@ -159,7 +175,7 @@ function PaymentSuccessContent() {
                 <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                   <p className="text-white/60">결제 금액</p>
                   <p className="mt-2 text-white">
-                    {typeof result.totalAmount === "number" ? `${result.totalAmount.toLocaleString("ko-KR")}원` : "확인 중"}
+                    {typeof result.totalAmount === "number" ? result.totalAmount.toLocaleString("ko-KR") + "원" : "확인 중"}
                   </p>
                 </div>
               </div>
@@ -179,6 +195,60 @@ function PaymentSuccessContent() {
       </div>
     </main>
   );
+}
+
+function MockPaymentSuccessContent() {
+  const searchParams = useSearchParams();
+  const categoryId = searchParams.get("categoryId");
+  const productId = searchParams.get("productId");
+  const orderId = searchParams.get("orderId");
+  const paymentMethod = searchParams.get("paymentMethod") as PaymentMethod | null;
+  const category = useMemo(() => getApplicationCategory(categoryId), [categoryId]);
+  const product = useMemo(() => getApplicationProduct(categoryId, productId), [categoryId, productId]);
+  const methodLabel = paymentMethod ? paymentMethodLabels[paymentMethod] : null;
+
+  return (
+    <main className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#edf3f9_48%,#f8fafc_100%)] px-4 py-10 text-slate-950 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-4xl rounded-[1.75rem] border border-[#d7e1ef] bg-white p-6 text-center shadow-[0_24px_60px_rgba(15,23,42,0.10)] sm:p-8">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#06101b] text-[#e9c98d]">
+          <CheckIcon />
+        </div>
+        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-[#274690]">Payment Complete</p>
+        <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">결제가 완료되었습니다.</h1>
+        <p className="mt-4 text-sm leading-7 text-slate-600">신청하신 교육을 수강할 수 있습니다.</p>
+
+        {category && product ? (
+          <div className="mt-7 rounded-[1.25rem] border border-[#dbe4ef] bg-[#f8fafc] p-5 text-left">
+            <dl className="grid gap-4 sm:grid-cols-2">
+              <div><dt className="text-xs font-semibold text-slate-500">신청한 교육명</dt><dd className="mt-1 text-base font-semibold text-slate-950">{category.title}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">상품명</dt><dd className="mt-1 text-base font-semibold text-slate-950">{product.title}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">결제금액</dt><dd className="mt-1 text-2xl font-bold text-[#0f2f5f]">{formatApplicationKrw(product.price)}</dd></div>
+              <div><dt className="text-xs font-semibold text-slate-500">결제수단</dt><dd className="mt-1 text-base font-semibold text-slate-950">{methodLabel || "mock 결제"}</dd></div>
+            </dl>
+            {orderId ? <p className="mt-4 text-xs text-slate-500">주문번호: {orderId}</p> : null}
+          </div>
+        ) : (
+          <div className="mt-7 rounded-[1.25rem] border border-[#dbe4ef] bg-[#f8fafc] p-5 text-sm leading-7 text-slate-600">
+            결제 결과 정보가 없는 상태입니다. 수강신청 화면에서 다시 신청 정보를 확인할 수 있습니다.
+          </div>
+        )}
+
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[#06101b] px-6 py-3 text-sm font-bold text-[#e9c98d] transition hover:bg-[#10213f]">
+            내 강의실로 이동
+          </Link>
+          <Link href="/" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#d8e1ef] bg-white px-6 py-3 text-sm font-bold text-[#06101b] transition hover:bg-[#f8fbff]">
+            홈으로 이동
+          </Link>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+function PaymentSuccessContent() {
+  const searchParams = useSearchParams();
+  return searchParams.get("paymentKey") ? <LegacyPaymentSuccessContent /> : <MockPaymentSuccessContent />;
 }
 
 export default function PaymentSuccessPage() {
