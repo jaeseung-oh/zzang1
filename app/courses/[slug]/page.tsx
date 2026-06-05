@@ -7,8 +7,13 @@ export function generateStaticParams() {
   return introCourses.map((course) => ({ slug: course.slug }));
 }
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const course = getIntroCourse(params.slug);
+type CourseIntroPageProps = {
+  params: Promise<{ slug: string }>;
+};
+
+export async function generateMetadata({ params }: CourseIntroPageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const course = getIntroCourse(slug);
 
   if (!course) {
     return { title: "교육과정 | 리셋에듀센터" };
@@ -20,8 +25,9 @@ export function generateMetadata({ params }: { params: { slug: string } }): Meta
   };
 }
 
-export default function CourseIntroPage({ params }: { params: { slug: string } }) {
-  const course = getIntroCourse(params.slug);
+export default async function CourseIntroPage({ params }: CourseIntroPageProps) {
+  const { slug } = await params;
+  const course = getIntroCourse(slug);
 
   if (!course) {
     notFound();
