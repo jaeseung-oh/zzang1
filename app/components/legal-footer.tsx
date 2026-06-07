@@ -18,6 +18,7 @@ export default function LegalFooter() {
               <p><span className="font-semibold text-white">대표자</span> 홍경자</p>
               <p><span className="font-semibold text-white">사업자등록번호</span> 861-98-01454</p>
               <p><span className="font-semibold text-white">유선번호</span> 010-7617-8619</p>
+              <p className="sm:col-span-2"><span className="font-semibold text-white">사업자 주소</span> 경기 수원시 영통구 센트럴타운로 106, 145호(이의동, 광교센트럴프라자)</p>
             </div>
           </div>
 
