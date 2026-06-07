@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buttonClass } from "@/app/components/ui/button-styles";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
@@ -27,6 +28,7 @@ import {
 } from "@/lib/firebase/user-profile";
 
 type AuthMode = "signup" | "login";
+
 
 type VerificationSyncResponse = {
   isEmailVerified: boolean;
@@ -197,6 +199,40 @@ async function sendVerificationEmail(user: User) {
   }
 }
 
+function getAuthErrorCode(error: unknown) {
+  return typeof error === "object" && error !== null && "code" in error ? String((error as { code?: unknown }).code) : "";
+}
+
+function getAuthErrorMessage(error: unknown, fallback = "요청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.") {
+  const code = getAuthErrorCode(error);
+
+  switch (code) {
+    case "auth/too-many-requests":
+      return "Firebase 보안 제한으로 인증 요청이 잠시 차단되었습니다. 처음 시도여도 같은 IP/기기/이메일 또는 프로젝트 인증메일 요청이 이미 누적되어 있으면 발생할 수 있습니다. 10~30분 후 다시 시도하고, 계속 반복되면 다른 네트워크에서 시도하거나 고객센터에 문의해 주세요.";
+    case "auth/email-already-in-use":
+      return "이미 가입된 이메일입니다. 로그인하거나 비밀번호 찾기를 이용해 주세요.";
+    case "auth/invalid-email":
+      return "이메일 형식이 올바르지 않습니다.";
+    case "auth/weak-password":
+      return "비밀번호는 8자 이상으로 입력해 주세요.";
+    case "auth/wrong-password":
+      return "비밀번호가 올바르지 않습니다.";
+    case "auth/user-not-found":
+      return "가입된 계정을 찾을 수 없습니다.";
+    case "auth/network-request-failed":
+      return "네트워크 연결이 불안정합니다. 인터넷 연결을 확인해 주세요.";
+    default:
+      if (code.startsWith("auth/")) {
+        return fallback;
+      }
+      return error instanceof Error && error.message ? error.message : fallback;
+  }
+}
+
+function isAuthError(error: unknown, expectedCode: string) {
+  return getAuthErrorCode(error) === expectedCode;
+}
+
 export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode: AuthMode; nextPath?: string | null }) {
   const router = useRouter();
   const copy = modeCopy[mode];
@@ -220,6 +256,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [isRefreshingVerification, startVerificationTransition] = useTransition();
   const [isResettingPassword, startResetTransition] = useTransition();
+  const [isSendingVerification, setIsSendingVerification] = useState(false);
+  const [verificationCooldown, setVerificationCooldown] = useState(0);
+  const [isCheckingVerification, setIsCheckingVerification] = useState(false);
+  const [checkCooldown, setCheckCooldown] = useState(0);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
@@ -304,6 +344,31 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
     router.replace(nextPath);
   }, [authUser, mode, nextPath, router]);
 
+
+  useEffect(() => {
+    if (verificationCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setVerificationCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [verificationCooldown]);
+
+  useEffect(() => {
+    if (checkCooldown <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setCheckCooldown((current) => Math.max(0, current - 1));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [checkCooldown]);
+
   const syncVerificationStatus = async () => {
     const { functions } = getFirebaseServices();
     const syncCallable = httpsCallable<undefined, VerificationSyncResponse>(functions, "syncEmailVerificationStatus");
@@ -318,6 +383,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   };
 
   const handleSignup = () => {
+    if (isSubmitting || verificationCooldown > 0) {
+      return;
+    }
+
     setError("");
     startSubmitTransition(async () => {
       try {
@@ -360,9 +429,14 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         let verificationSent = true;
         try {
           await sendVerificationEmail(credential.user);
+          setVerificationCooldown(60);
         } catch (verificationError) {
           verificationSent = false;
           console.error(verificationError);
+          setError(getAuthErrorMessage(verificationError));
+          if (isAuthError(verificationError, "auth/too-many-requests")) {
+            setVerificationCooldown(300);
+          }
         }
 
         const storedProfile = await getUserProfile(credential.user.uid);
@@ -375,11 +449,14 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setMessage(
           verificationSent
             ? "회원가입이 완료되었고 인증 메일을 발송했습니다. 인증을 완료하면 바로 수강을 시작할 수 있습니다."
-            : "회원가입은 완료되었습니다. 인증 메일 발송에 실패했으니 로그인 후 인증 메일 재발송을 눌러 주세요."
+            : "회원가입은 완료되었습니다. 인증 메일 발송이 제한되었을 수 있습니다. 안내 메시지 확인 후 잠시 뒤 다시 시도해 주세요."
         );
       } catch (submitError) {
         console.error(submitError);
-        setError(submitError instanceof Error ? submitError.message : "회원가입 처리 중 오류가 발생했습니다.");
+        setError(getAuthErrorMessage(submitError));
+        if (isAuthError(submitError, "auth/too-many-requests")) {
+          setVerificationCooldown(300);
+        }
       }
     });
   };
@@ -405,7 +482,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         router.replace(nextPath ?? "/dashboard");
       } catch (submitError) {
         console.error(submitError);
-        setError(submitError instanceof Error ? submitError.message : "로그인 처리 중 오류가 발생했습니다.");
+        setError(getAuthErrorMessage(submitError));
       }
     });
   };
@@ -462,32 +539,53 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   };
 
   const handleResendVerification = () => {
+    if (isSendingVerification || verificationCooldown > 0) {
+      return;
+    }
+
     setError("");
-    startVerificationTransition(async () => {
+    setIsSendingVerification(true);
+
+    void (async () => {
       try {
-        if (!authUser) {
-          throw new Error("로그인 후 인증 메일을 다시 보낼 수 있습니다.");
+        const { auth } = getFirebaseServices();
+        const user = auth.currentUser ?? authUser;
+        if (!user) {
+          throw new Error("로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요.");
         }
 
-        await sendVerificationEmail(authUser);
-        setMessage("인증 메일을 다시 보냈습니다. 인증을 완료하면 바로 수강을 시작할 수 있습니다.");
+        await sendVerificationEmail(user);
+        setMessage("인증 메일을 다시 보냈습니다. 메일함을 확인해 주세요.");
+        setVerificationCooldown(60);
       } catch (verificationError) {
         console.error(verificationError);
-        setError(verificationError instanceof Error ? verificationError.message : "인증 메일 재발송 중 오류가 발생했습니다.");
+        setError(getAuthErrorMessage(verificationError));
+        if (isAuthError(verificationError, "auth/too-many-requests")) {
+          setVerificationCooldown(300);
+        }
+      } finally {
+        setIsSendingVerification(false);
       }
-    });
+    })();
   };
 
   const handleRefreshVerification = () => {
+    if (isCheckingVerification || checkCooldown > 0) {
+      return;
+    }
+
     setError("");
-    startVerificationTransition(async () => {
+    setIsCheckingVerification(true);
+
+    void (async () => {
       try {
-        if (!authUser) {
-          throw new Error("로그인 후 인증 상태를 확인할 수 있습니다.");
+        const { auth } = getFirebaseServices();
+        const user = auth.currentUser ?? authUser;
+        if (!user) {
+          throw new Error("로그인 정보를 확인할 수 없습니다. 다시 로그인해 주세요.");
         }
 
-        await reload(authUser);
-        const { auth } = getFirebaseServices();
+        await reload(user);
         const refreshedUser = auth.currentUser;
         if (!refreshedUser) {
           throw new Error("인증 상태를 다시 불러오지 못했습니다. 다시 로그인해 주세요.");
@@ -497,14 +595,18 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setAuthUser(refreshedUser);
         setMessage(
           synced.isEmailVerified
-            ? "이메일 인증이 확인되었습니다. 이제 강의실과 발급 기능을 이용할 수 있습니다."
-            : "아직 인증이 확인되지 않았습니다. 메일의 인증 링크를 먼저 완료해 주세요."
+            ? "이메일 인증이 완료되었습니다. 이제 강의실과 발급 기능을 이용할 수 있습니다."
+            : "아직 이메일 인증이 완료되지 않았습니다. 인증 메일을 확인해 주세요."
         );
+        setCheckCooldown(5);
       } catch (verificationError) {
         console.error(verificationError);
-        setError(verificationError instanceof Error ? verificationError.message : "인증 상태 확인 중 오류가 발생했습니다.");
+        setError(getAuthErrorMessage(verificationError));
+        setCheckCooldown(isAuthError(verificationError, "auth/too-many-requests") ? 60 : 5);
+      } finally {
+        setIsCheckingVerification(false);
       }
-    });
+    })();
   };
 
   const handleLogout = () => {
@@ -526,7 +628,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setMessage("로그아웃되었습니다.");
       } catch (logoutError) {
         console.error(logoutError);
-        setError(logoutError instanceof Error ? logoutError.message : "로그아웃 중 오류가 발생했습니다.");
+        setError(getAuthErrorMessage(logoutError));
       }
     });
   };
@@ -544,13 +646,17 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setMessage("비밀번호 재설정 메일을 보냈습니다. 메일함을 확인해 주세요.");
       } catch (resetError) {
         console.error(resetError);
-        setError(resetError instanceof Error ? resetError.message : "비밀번호 재설정 메일 발송 중 오류가 발생했습니다.");
+        setError(getAuthErrorMessage(resetError));
       }
     });
   };
 
 
   const handlePasswordChange = () => {
+    if (isUpdatingPassword) {
+      return;
+    }
+
     setError("");
     setIsUpdatingPassword(true);
 
@@ -590,7 +696,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
         setMessage("비밀번호가 변경되었습니다. 다음 로그인부터 새 비밀번호를 사용해 주세요.");
       } catch (passwordError) {
         console.error(passwordError);
-        setError(passwordError instanceof Error ? passwordError.message : "비밀번호 변경 중 오류가 발생했습니다.");
+        setError(getAuthErrorMessage(passwordError));
       } finally {
         setIsUpdatingPassword(false);
       }
@@ -689,20 +795,26 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                   {authUser ? `${displayName} 님` : mode === "signup" ? "회원가입" : "로그인"}
                 </h2>
               </div>
-              <Link href="/" className="rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-4 py-2 text-xs font-bold text-white shadow-[0_10px_20px_rgba(16,33,63,0.18)] transition hover:-translate-y-0.5 hover:brightness-105">
+              <Link href="/" className={buttonClass("primary", "sm", "rounded-full px-4 text-xs font-bold")}>
                 홈으로
               </Link>
             </div>
 
-            <p className="mt-3 text-sm leading-7 text-slate-500">{loading ? "회원 상태를 확인하는 중입니다." : message}</p>
+            {loading ? (
+              <p className="mt-3 text-sm leading-7 text-slate-500">회원 상태를 확인하는 중입니다.</p>
+            ) : (
+              <div className="keep-korean mt-4 rounded-2xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm leading-7 text-blue-900 sm:text-[15px]">
+                {message}
+              </div>
+            )}
 
             {!authUser ? (
               <div className="mt-6 space-y-4">
                 <div className="grid grid-cols-2 rounded-full bg-[#eef3fa] p-1 text-sm font-semibold text-slate-600">
-                  <Link href="/login" className={`rounded-full px-4 py-2 text-center transition ${mode === "login" ? "bg-white text-[#10213f] shadow-sm" : "hover:text-[#10213f]"}`}>
+                  <Link href="/login" className={`rounded-full px-4 py-2 text-center transition ${mode === "login" ? "bg-white text-slate-950 shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-950"}`}>
                     로그인
                   </Link>
-                  <Link href="/signup" className={`rounded-full px-4 py-2 text-center transition ${mode === "signup" ? "bg-white text-[#10213f] shadow-sm" : "hover:text-[#10213f]"}`}>
+                  <Link href="/signup" className={`rounded-full px-4 py-2 text-center transition ${mode === "signup" ? "bg-white text-slate-950 shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-950"}`}>
                     회원가입
                   </Link>
                 </div>
@@ -792,7 +904,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                       type="button"
                       onClick={handlePasswordReset}
                       disabled={isResettingPassword}
-                      className="font-semibold text-[#1f4b8f] transition hover:text-[#10213f] disabled:cursor-not-allowed disabled:opacity-60"
+                      className="font-semibold text-indigo-700 transition hover:text-slate-950 disabled:cursor-not-allowed disabled:text-gray-600 disabled:opacity-100"
                     >
                       {isResettingPassword ? "발송 중..." : "비밀번호 찾기"}
                     </button>
@@ -822,15 +934,15 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                 <button
                   type="button"
                   onClick={mode === "signup" ? handleSignup : handleLogin}
-                  disabled={loading || isSubmitting || (mode === "signup" && !isSignupConsentComplete)}
-                  className="inline-flex min-h-12 w-full items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#10213f_0%,#1f4b8f_100%)] px-5 py-3.5 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(16,33,63,0.18)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={loading || isSubmitting || (mode === "signup" && (!isSignupConsentComplete || verificationCooldown > 0))}
+                  className={buttonClass("primary", "md", "w-full rounded-2xl px-5 font-semibold disabled:opacity-100")}
                 >
-                  {isSubmitting ? "처리 중..." : copy.submitLabel}
+                  {isSubmitting ? "처리 중..." : mode === "signup" && verificationCooldown > 0 ? `${verificationCooldown}초 후 다시 시도` : copy.submitLabel}
                 </button>
 
                 <p className="text-center text-sm text-slate-500">
                   {mode === "login" ? "아직 회원이 아니신가요? " : "이미 회원이신가요? "}
-                  <Link href={mode === "login" ? "/signup" : "/login"} className="font-semibold text-[#1f4b8f] hover:text-[#10213f]">
+                  <Link href={mode === "login" ? "/signup" : "/login"} className="font-semibold text-indigo-700 hover:text-slate-950">
                     {mode === "login" ? "회원가입" : "로그인"}
                   </Link>
                 </p>
@@ -909,7 +1021,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                     type="button"
                     onClick={handleProfileSave}
                     disabled={isSavingProfile}
-                    className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#10213f_0%,#1f4b8f_100%)] px-5 py-3 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
+                    className={buttonClass("primary", "md", "rounded-2xl px-5 disabled:opacity-100")}
                   >
                     {isSavingProfile ? "저장 중..." : "정보 저장"}
                   </button>
@@ -917,7 +1029,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                     type="button"
                     onClick={handleLogout}
                     disabled={isRefreshingVerification}
-                    className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    className={buttonClass("secondary", "md", "rounded-2xl px-5 disabled:opacity-100")}
                   >
                     로그아웃
                   </button>
@@ -954,7 +1066,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                       type="button"
                       onClick={handlePasswordChange}
                       disabled={isUpdatingPassword}
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#10213f] bg-white px-5 py-3 text-sm font-semibold text-[#10213f] transition hover:bg-[#f8fbff] disabled:cursor-not-allowed disabled:opacity-60"
+                      className={buttonClass("secondary", "md", "rounded-2xl px-5 disabled:opacity-100")}
                     >
                       {isUpdatingPassword ? "변경 중..." : "비밀번호 변경"}
                     </button>
@@ -966,18 +1078,18 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                     <button
                       type="button"
                       onClick={handleResendVerification}
-                      disabled={isRefreshingVerification}
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isSendingVerification || verificationCooldown > 0}
+                      className={buttonClass("secondary", "md", "rounded-2xl px-5 font-bold disabled:opacity-100")}
                     >
-                      인증 메일 다시 보내기
+                      {isSendingVerification ? "발송 중..." : verificationCooldown > 0 ? `${verificationCooldown}초 후 다시 보내기` : "인증 메일 다시 보내기"}
                     </button>
                     <button
                       type="button"
                       onClick={handleRefreshVerification}
-                      disabled={isRefreshingVerification}
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                      disabled={isCheckingVerification || checkCooldown > 0}
+                      className={buttonClass("secondary", "md", "rounded-2xl px-5 font-bold disabled:opacity-100")}
                     >
-                      {isRefreshingVerification ? "확인 중..." : "인증 상태 확인"}
+                      {isCheckingVerification ? "확인 중..." : checkCooldown > 0 ? `${checkCooldown}초 후 다시 확인` : "인증 상태 확인"}
                     </button>
                   </div>
                 ) : null}
@@ -1001,7 +1113,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
               </div>
             )}
 
-            {error ? <p className="mt-5 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm leading-7 text-red-700">{error}</p> : null}
+            {error ? <div className="keep-korean mt-5 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-7 text-red-800 sm:text-[15px]">{error}</div> : null}
           </div>
         </section>
       </div>
