@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
+import { buttonClass } from "@/app/components/ui/button-styles";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -35,7 +36,6 @@ type CertificateRecord = {
   documentType?: string;
   issueNumber?: string;
   certificateNo?: string;
-  downloadUrl?: string;
   courseTitle?: string;
   issuedAt?: { seconds: number };
   certificateIssuedAt?: { seconds: number };
@@ -194,13 +194,13 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/course-room" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#d3ad62_0%,#f0cb85_100%)] px-6 py-3 text-sm font-bold text-[#2f2208] shadow-[0_12px_24px_rgba(164,126,54,0.18)] transition hover:-translate-y-0.5 hover:brightness-105">
+            <Link href="/course-room" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>
               수강실로 이동
             </Link>
-            <Link href="/ai-draft" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-6 py-3 text-sm font-semibold text-[#10213f] shadow-[0_10px_20px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
+            <Link href="/ai-draft" style={{ backgroundColor: "#facc15", color: "#111827", border: "2px solid #fde047", fontWeight: 900, boxShadow: "0 14px 28px rgba(250, 204, 21, 0.26)" }} className={buttonClass("warning", "md", "rounded-full px-6 font-black")}>
               성찰문 글쓰기 가이드
             </Link>
-            <Link href="/login" className="inline-flex items-center justify-center rounded-full border border-[#d5deeb] bg-white px-6 py-3 text-sm font-semibold text-[#10213f] shadow-[0_10px_20px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5 hover:border-[#c4d2e4] hover:bg-[#f8fbff]">
+            <Link href="/login" style={{ backgroundColor: "#ffffff", color: "#0f172a", border: "2px solid #173968", fontWeight: 900, boxShadow: "0 14px 28px rgba(15, 23, 42, 0.12)" }} className={buttonClass("secondary", "md", "rounded-full px-6 font-black")}>
               회원정보 변경
             </Link>
           </div>
@@ -306,7 +306,7 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-[#f0cb85]">수료증</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">수강증/수료증 확인 및 온라인 인쇄</h2>
               <p className="mt-4 text-sm leading-8 text-white/70">
-                수강확인증은 결제 후 수강권이 확인되면 출력할 수 있고, 5강을 모두 수강하면 수료증으로 발급됩니다. 서류 발급 또는 출력 이후에는 환불이 불가합니다.
+                수강 즉시 수료증 등 교육 이수 자료를 온라인으로 출력할 수 있습니다. 서류 발급 또는 출력 이후에는 환불이 불가합니다.
               </p>
 
               <div className="mt-6 space-y-4">
@@ -319,10 +319,10 @@ export default function DashboardPage() {
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt || certificate.certificateIssuedAt)}</p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="rounded-full border border-[#d9c18b] bg-[#fff6df] px-4 py-2 text-sm font-semibold text-[#6f531b] transition hover:bg-[#ffefc5]">
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className={buttonClass("warning", "sm", "rounded-full")}>
                           서류 보기
                         </Link>
-                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="rounded-full border border-[#d5deeb] bg-[#f8fbff] px-4 py-2 text-sm font-semibold text-[#10213f] transition hover:border-[#c4d2e4] hover:bg-white">
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}&print=1`} className={buttonClass("secondary", "sm", "rounded-full")}>
                           서류 인쇄하기
                         </Link>
                       </div>
@@ -331,14 +331,19 @@ export default function DashboardPage() {
                 ) : progressSummary.isCompleted ? (
                   <div className="rounded-[1.5rem] border border-emerald-300/30 bg-emerald-400/10 p-6 text-sm leading-7 text-emerald-50">
                     <p className="font-semibold text-white">음주운전 예방교육 총 5강을 모두 수강하셨습니다.</p>
-                    <p className="mt-2">수료증 발급 조건을 충족했습니다. 아래 버튼을 눌러 수료증을 확인하고 인쇄할 수 있습니다.</p>
-                    <Link href="/certificate" className="mt-4 inline-flex rounded-full border border-[#d9c18b] bg-[#fff6df] px-4 py-2 text-sm font-semibold text-[#6f531b] transition hover:bg-[#ffefc5]">
-                      서류 보기
-                    </Link>
+                    <p className="mt-2">수강 완료 상태입니다. 아래 버튼을 눌러 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link href="/certificate" className={buttonClass("warning", "sm", "rounded-full")}>
+                        서류 보기
+                      </Link>
+                      <Link href="/certificate?print=1" className={buttonClass("secondary", "sm", "rounded-full")}>
+                        바로 인쇄
+                      </Link>
+                    </div>
                   </div>
                 ) : (
                   <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">
-                    아직 발급된 서류가 없습니다. 결제 후 수강권이 확인되면 수강확인증을 출력할 수 있고, 5강 완료 후 수료증으로 발급됩니다.
+                    아직 발급된 서류가 없습니다. 수강 즉시 수료증 등 교육 이수 자료를 출력할 수 있습니다.
                   </div>
                 )}
               </div>
