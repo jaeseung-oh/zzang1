@@ -805,11 +805,11 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                     <div className="mt-4 space-y-3">
                       <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
                         <input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
-                        <span>[필수] <Link href="/terms" className="font-semibold text-slate-900 underline underline-offset-4">이용약관 동의</Link></span>
+                        <span>[필수] <Link href="/terms" target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-900 underline underline-offset-4">이용약관 동의</Link></span>
                       </label>
                       <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
                         <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
-                        <span>[필수] <Link href="/privacy-policy" className="font-semibold text-slate-900 underline underline-offset-4">개인정보 수집 및 이용 동의</Link></span>
+                        <span>[필수] <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-900 underline underline-offset-4">개인정보 수집 및 이용 동의</Link></span>
                       </label>
                       <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
                         <input type="checkbox" checked={sensitiveInfoAccepted} onChange={(event) => setSensitiveInfoAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
