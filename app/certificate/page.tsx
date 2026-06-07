@@ -328,6 +328,7 @@ function CertificatePageContent() {
           .certificate-table-cell { padding: 2.5mm 3mm !important; }
           .certificate-sign { padding-top: 8mm !important; }
           .certificate-issuer { margin-top: 6mm !important; font-size: 24px !important; }
+          .certificate-seal { width: 26mm !important; height: 26mm !important; font-size: 10px !important; }
           .certificate-refund-note { margin-top: 5mm !important; font-size: 11px !important; }
         }
       `}</style>
@@ -339,7 +340,7 @@ function CertificatePageContent() {
             <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950">수강증/수료증 확인 및 인쇄</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => window.print()} disabled={!certificate} className="rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => window.print()} disabled={!certificate} className="rounded-full border-2 border-amber-200 bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.28)] ring-2 ring-amber-100/70 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:ring-0">
               {documentTitle} 인쇄하기
             </button>
             <Link href="/dashboard" className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-sm font-semibold text-[#10213f]">
@@ -354,8 +355,8 @@ function CertificatePageContent() {
           <section className="no-print rounded-[1.25rem] border border-rose-200 bg-rose-50 p-5 text-sm leading-7 text-rose-800">
             <p>{error}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/course-room" className="rounded-full border border-rose-200 bg-white px-4 py-2 font-semibold">수강실로 이동</Link>
-              <Link href="/dashboard" className="rounded-full border border-rose-200 bg-white px-4 py-2 font-semibold">마이페이지</Link>
+              <Link href="/course-room" className="rounded-full border border-rose-200 bg-white px-4 py-2 font-semibold text-slate-900 hover:bg-rose-50">수강실로 이동</Link>
+              <Link href="/dashboard" className="rounded-full border border-rose-200 bg-white px-4 py-2 font-semibold text-slate-900 hover:bg-rose-50">마이페이지</Link>
             </div>
           </section>
         ) : null}
@@ -413,7 +414,7 @@ function CertificatePageContent() {
 
                 <div className="certificate-sign mt-auto pt-12">
                   <p className="text-lg font-semibold text-slate-900">{formatKoreanDate(issuedAt)}</p>
-                  <p className="certificate-issuer mt-8 text-3xl font-bold tracking-[0.08em] text-slate-950">{issuerName}</p>
+                  <div className="mt-8 flex items-center justify-center gap-5"><p className="certificate-issuer text-3xl font-bold tracking-[0.08em] text-slate-950">{issuerName}</p><div className="certificate-seal relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-[3px] border-rose-700 text-center text-[12px] font-black leading-tight text-rose-700"><span className="absolute inset-2 rounded-full border border-rose-700/70" aria-hidden="true" /><span className="relative tracking-[0.08em]">리셋<br />에듀<br />센터</span></div></div>
                   {(certificate.issuerBusinessNumber || certificate.issuerContact || certificate.issuerEmail) ? (
                     <p className="mt-4 text-sm leading-7 text-slate-500">
                       {certificate.issuerBusinessNumber ? `사업자등록번호 ${certificate.issuerBusinessNumber}` : ""}
@@ -427,7 +428,7 @@ function CertificatePageContent() {
             </section>
 
             <div className="no-print mt-5 rounded-[1.25rem] border border-[#d7deea] bg-white p-5 text-sm leading-7 text-slate-600">
-              <p>{documentTitle}은 온라인에서 즉시 인쇄할 수 있습니다.</p>
+              <p>수강 즉시 {documentTitle}을 온라인에서 출력할 수 있습니다.</p>
               <p>{documentTitle}을 PDF로 저장하려면 인쇄 화면에서 대상을 ‘PDF로 저장’으로 선택해 주세요.</p>
               <p className="mt-2 text-slate-500">출력 화면 기준일: {printedDate}</p>
             </div>

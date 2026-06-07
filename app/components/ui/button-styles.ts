@@ -11,7 +11,7 @@ export const buttonVariants: Record<ButtonVariant, string> = {
   darkSecondary: "border border-white/70 bg-transparent text-white hover:bg-white hover:text-slate-950 disabled:border-white/30 disabled:text-white/60",
   outline: "border border-slate-300 bg-transparent text-slate-900 hover:bg-slate-50 hover:text-slate-950 disabled:border-gray-200 disabled:text-gray-500",
   danger: "bg-red-600 text-white hover:bg-red-700 hover:text-white disabled:bg-gray-300 disabled:text-gray-600",
-  warning: "bg-amber-400 text-slate-950 hover:bg-amber-300 hover:text-slate-950 disabled:bg-gray-300 disabled:text-gray-600",
+  warning: "border-2 border-amber-200 bg-amber-400 text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.24)] ring-2 ring-amber-100/70 hover:bg-amber-300 hover:text-slate-950 hover:shadow-[0_18px_36px_rgba(250,204,21,0.32)] disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:ring-0",
 };
 
 export const buttonSizes: Record<ButtonSize, string> = {

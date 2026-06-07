@@ -11,6 +11,7 @@ import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
+import { buttonClass } from "@/app/components/ui/button-styles";
 
 type SaveCourseProgressResponse = {
   progressId: string;
@@ -21,7 +22,6 @@ type SaveCourseProgressResponse = {
   issuedCertificates: Array<{
     certificateId: string;
     documentType: string;
-    downloadUrl: string;
     issueNumber: string;
   }>;
 };
@@ -889,7 +889,7 @@ export default function CourseRoomPage() {
       setResult(response.data);
 
       if (response.data.issuedCertificates.length) {
-        setStatusMessage("음주운전 예방교육 총 5강을 모두 수강하셨습니다. 수료증 발급 조건을 충족했습니다.");
+        setStatusMessage("음주운전 예방교육 수강을 완료했습니다. 수료증 등 교육 이수 자료를 즉시 출력할 수 있습니다.");
       } else if (response.data.isCompleted && !response.data.paymentVerified) {
         setStatusMessage("수강 정보가 확인되면 수료 문서 발급이 자동으로 이어집니다.");
       } else if (response.data.isCompleted && !response.data.certificateEligible) {
@@ -1026,38 +1026,6 @@ export default function CourseRoomPage() {
     setPlayerReady(false);
   };
 
-  const handleDownloadHandout = () => {
-    if (!selectedModule || typeof window === "undefined") {
-      return;
-    }
-
-    const lines = [
-      defaultCourse.title,
-      "",
-      selectedModule.title,
-      "",
-      "강의 개요",
-      selectedModule.summary,
-      "",
-      "핵심 학습 포인트",
-      ...selectedModule.highlights.map((item, index) => `${index + 1}. ${item}`),
-      "",
-      "실천 체크리스트",
-      ...selectedModule.actionChecklist.map((item, index) => `${index + 1}. ${item}`),
-    ];
-
-    const blob = new Blob([lines.join("\n")], { type: "text/plain;charset=utf-8" });
-    const objectUrl = window.URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = objectUrl;
-    anchor.download = `${selectedModule.id}-handout.txt`;
-    document.body.appendChild(anchor);
-    anchor.click();
-    anchor.remove();
-    window.URL.revokeObjectURL(objectUrl);
-    setStatusMessage(`${selectedModule.title} 교안을 텍스트 파일로 내려받았습니다.`);
-  };
-
   const selectedRemainingSeconds = selectedProgress.durationSeconds > 0 ? Math.max(selectedProgress.durationSeconds - selectedProgress.watchedSeconds, 0) : 0;
   const saveStateLabel = isManualSaving ? "수동 저장 중" : isBackgroundSaving ? "자동 저장 중" : "자동 저장 대기";
   const ringCircumference = 2 * Math.PI * 54;
@@ -1182,7 +1150,7 @@ export default function CourseRoomPage() {
               </Link>
               <Link
                 href="/certificate"
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#c6a86a_0%,#ecd7ac_100%)] px-6 py-3 text-sm font-bold text-[#17120b] shadow-[0_16px_30px_rgba(198,168,106,0.28)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-amber-200 bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 shadow-[0_18px_36px_rgba(250,204,21,0.34)] ring-2 ring-amber-100/70 transition-all hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
               >
                 수강증/수료증 출력
               </Link>
@@ -1391,31 +1359,24 @@ export default function CourseRoomPage() {
                 </div>
 
                 <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.08] p-5 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       <button
                         type="button"
                         onClick={() => void persistProgress("manual")}
                         disabled={isManualSaving || !playerReady}
-                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#0d1b2f_0%,#1f3556_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(15,23,42,0.18)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:hover:bg-[linear-gradient(135deg,#0d1b2f_0%,#1f3556_100%)] disabled:hover:shadow-[0_14px_28px_rgba(15,23,42,0.18)] disabled:active:scale-100"
+                        className={buttonClass("primary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#111827] disabled:opacity-100")}
                       >
                         {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                       </button>
-                      <button
-                        type="button"
-                        onClick={handleDownloadHandout}
-                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#c6a86a_0%,#edd8ab_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(198,168,106,0.22)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
-                      >
-                        교안 다운로드
-                      </button>
                       <Link
                         href="/certificate"
-                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/[0.08] px-5 py-3 text-sm font-bold text-white transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
+                        className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#111827]")}
                       >
                         수강증/수료증 발급
                       </Link>
                       <Link
                         href="/certificate?print=1"
-                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#16a34a_0%,#86efac_100%)] px-5 py-3 text-sm font-bold text-[#052e16] shadow-[0_14px_28px_rgba(22,163,74,0.18)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
+                        className={buttonClass("warning", "md", "rounded-full px-5 font-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
                       >
                         바로 인쇄
                       </Link>
@@ -1583,7 +1544,7 @@ export default function CourseRoomPage() {
 
             <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Completion Assets</p>
-              <h3 className="mt-2 text-xl font-semibold text-white">과정 완료 후 제공 문서</h3>
+              <h3 className="mt-2 text-xl font-semibold text-white">수강 즉시 출력 자료</h3>
               <div className="mt-4 space-y-2.5">
                 {defaultCourse.outputs.map((item) => (
                   <div key={item} className="rounded-[1.25rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm font-medium text-slate-200">
@@ -1595,21 +1556,21 @@ export default function CourseRoomPage() {
               {aggregate.isCompleted ? (
                 <div className="mt-5 rounded-[1.35rem] border border-emerald-200 bg-emerald-50 p-4">
                   <p className="text-sm font-semibold text-emerald-800">음주운전 예방교육 총 5강을 모두 수강하셨습니다.</p>
-                  <p className="mt-2 text-sm leading-7 text-emerald-900">수료증 발급 조건을 충족했습니다. 아래 버튼을 눌러 수료증을 확인하고 인쇄할 수 있습니다.</p>
+                  <p className="mt-2 text-sm leading-7 text-emerald-900">수강 완료 상태입니다. 아래 버튼을 눌러 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                   <div className="mt-3 space-y-3 text-sm text-emerald-900">
                     {result?.issuedCertificates.length ? (
                       result.issuedCertificates.map((certificate) => (
                         <div key={certificate.certificateId} className="space-y-2">
                           <Link
                             href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}`}
-                            className="flex cursor-pointer items-center justify-between rounded-2xl border border-emerald-200 bg-white px-4 py-3 transition-all hover:bg-emerald-50 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                            className={buttonClass("secondary", "md", "w-full justify-between rounded-2xl px-4")}
                           >
                             <span>수료증 / {certificate.issueNumber}</span>
                             <span className="font-semibold">수료증 보기</span>
                           </Link>
                           <Link
                             href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}&print=1`}
-                            className="flex cursor-pointer items-center justify-between rounded-2xl bg-emerald-700 px-4 py-3 font-semibold text-white transition-all hover:bg-emerald-800 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                            className={buttonClass("warning", "md", "w-full justify-between rounded-2xl px-4 font-black shadow-[0_18px_36px_rgba(250,204,21,0.26)] ring-2 ring-amber-100/70")}
                           >
                             <span>수료증 / {certificate.issueNumber}</span>
                             <span>바로 인쇄</span>
@@ -1618,10 +1579,10 @@ export default function CourseRoomPage() {
                       ))
                     ) : (
                       <div className="flex flex-wrap gap-2">
-                        <Link href="/certificate" className="inline-flex cursor-pointer rounded-full border border-emerald-200 bg-white px-4 py-2 font-semibold text-emerald-900 transition-all hover:bg-emerald-50 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full")}>
                           수강증/수료증 발급 및 보기
                         </Link>
-                        <Link href="/certificate?print=1" className="inline-flex cursor-pointer rounded-full bg-emerald-700 px-4 py-2 font-semibold text-white transition-all hover:bg-emerald-800 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        <Link href="/certificate?print=1" className={buttonClass("warning", "sm", "rounded-full font-black shadow-[0_12px_24px_rgba(250,204,21,0.24)] ring-2 ring-amber-100/70")}>
                           바로 인쇄
                         </Link>
                       </div>
