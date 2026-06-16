@@ -90,6 +90,10 @@ async function handleRequest(request, env) {
             return handlePaymentConfirm(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/payments/portone-webhook' && request.method === 'POST') {
+            return handlePortOneWebhook(request, env, corsHeaders);
+        }
+
         if (url.pathname === '/api/certificates/issue' && request.method === 'POST') {
             return handleCertificateIssue(request, env, corsHeaders);
         }
@@ -1198,6 +1202,86 @@ function buildPaymentLogRecord({ type, paymentId, orderId, uid, courseId, produc
         created_at: nowIso,
         createdAt: nowIso
     };
+}
+
+function getWebhookPaymentId(payload) {
+    return payload?.data?.paymentId || payload?.data?.payment_id || payload?.paymentId || payload?.payment_id || null;
+}
+
+async function handlePortOneWebhook(request, env, corsHeaders) {
+    const rawBody = await request.text();
+    let payload;
+    try {
+        payload = rawBody ? JSON.parse(rawBody) : {};
+    } catch (error) {
+        return json({ ok: false, message: '웹훅 본문 형식이 올바르지 않습니다.' }, 400, corsHeaders);
+    }
+
+    const paymentId = getWebhookPaymentId(payload);
+    if (!paymentId) {
+        await savePaymentLog(env, 'unknown_webhook_' + Date.now(), {
+            type: 'portone_webhook_ignored',
+            reason: 'missing_payment_id',
+            rawWebhook: payload,
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        }).catch((logError) => console.error(logError));
+        return json({ ok: true, ignored: true, reason: 'missing_payment_id' }, 200, corsHeaders);
+    }
+
+    await savePaymentLog(env, paymentId, {
+        type: 'portone_webhook_received',
+        paymentId,
+        orderId: paymentId,
+        webhookType: payload?.type || payload?.status || null,
+        rawWebhook: payload,
+        created_at: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+    }).catch((logError) => console.error(logError));
+
+    let approved;
+    try {
+        approved = await getPortOnePayment(env, paymentId);
+    } catch (error) {
+        await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_lookup_failed', paymentId, orderId: paymentId, status: 'lookup_failed', error })).catch((logError) => console.error(logError));
+        return json({ ok: false, message: error instanceof Error ? error.message : '포트원 결제 조회에 실패했습니다.' }, 500, corsHeaders);
+    }
+
+    if (approved.status !== 'PAID') {
+        await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_non_paid_ignored', paymentId, orderId: paymentId, approved, status: approved.status })).catch((logError) => console.error(logError));
+        return json({ ok: true, ignored: true, status: approved.status }, 200, corsHeaders);
+    }
+
+    const customData = parsePortOneCustomData(approved.customData);
+    const uid = String(customData.uid || customData.userId || '').trim();
+    const courseId = String(customData.courseId || DUI_COURSE_PRODUCT.courseId).trim();
+    const categoryId = String(customData.categoryId || 'dui').trim();
+    const productId = String(customData.productId || 'basic').trim();
+    const amount = Number(approved.amount?.total);
+
+    if (!uid) {
+        await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_missing_uid', paymentId, orderId: paymentId, courseId, productId, amount, approved, status: 'paid_missing_uid', error: new Error('포트원 결제 customData에 uid가 없습니다.') })).catch((logError) => console.error(logError));
+        return json({ ok: true, ignored: true, reason: 'missing_uid' }, 200, corsHeaders);
+    }
+
+    const confirmResponse = await handlePortOnePaymentConfirm({
+        paymentId,
+        uid,
+        courseId,
+        categoryId,
+        productId,
+        amount: Number.isFinite(amount) ? amount : undefined,
+        legalDisclaimerAccepted: true,
+        finalReviewResponsibilityAccepted: true,
+        source: 'portone_webhook'
+    }, { uid }, env, corsHeaders);
+    const confirmPayload = await confirmResponse.clone().json().catch(() => ({}));
+
+    if (confirmResponse.status >= 500) {
+        return json({ ok: false, paymentId, confirmStatus: confirmResponse.status, confirmPayload }, 500, corsHeaders);
+    }
+
+    return json({ ok: confirmResponse.ok, paymentId, confirmStatus: confirmResponse.status, confirmPayload }, 200, corsHeaders);
 }
 
 async function getPortOnePayment(env, paymentId) {

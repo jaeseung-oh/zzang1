@@ -173,6 +173,7 @@ export default function CheckoutContent() {
         currency: "CURRENCY_KRW",
         payMethod: "CARD",
         redirectUrl: `${appOrigin}/payment/success?courseId=${duiPreventionCourseProduct.courseId}&productId=${selectedProduct.id}`,
+        noticeUrls: [paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook")],
         locale: "KO_KR",
         customer: {
           fullName: verifiedName,
