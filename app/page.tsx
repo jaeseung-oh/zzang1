@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import AuthNav from "@/app/components/auth-nav";
 
 const applyHref = "/courses/apply?category=dui";
 
@@ -39,7 +40,7 @@ const targetUsers = [
 
 const steps = [
   ["과정 확인", "현재 운영 중인 음주운전 예방교육을 확인합니다."],
-  ["상품 선택", "수료증 중심 과정 또는 참고서식 포함 과정을 선택합니다."],
+  ["상품 선택", "수강 즉시 수료증 출력 과정 또는 참고서식 포함 과정을 선택합니다."],
   ["온라인 수강", "결제 후 내 강의실에서 온라인으로 수강합니다."],
   ["즉시 출력", "수강 즉시 수료증 등 자료를 출력합니다."],
 ];
@@ -55,20 +56,23 @@ export default function HomePage() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
           <Link href="/" className="flex min-w-0 items-center gap-3 text-left"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm"><Icon name="shield" className="h-5 w-5" /></span><span className="min-w-0"><span className="block text-sm font-black text-slate-950">Reset Edu Center</span><span className="block text-xs font-semibold text-slate-700">온라인 예방교육</span></span></Link>
           <nav className="hidden items-center gap-5 text-sm font-bold text-slate-700 lg:flex"><Link href="/about" className="hover:text-slate-950">센터소개</Link><Link href="/courses" className="hover:text-slate-950">강의 구성</Link><a href="#materials" className="hover:text-slate-950">자료 구성</a><a href="#process" className="hover:text-slate-950">수강 절차</a></nav>
-          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none sm:flex-nowrap"><Link href="/login" className={buttonClass("secondary", "sm", "whitespace-nowrap rounded-full px-4 font-bold")}>로그인</Link><Link href="/signup" className={buttonClass("primary", "sm", "whitespace-nowrap rounded-full px-4 font-bold")}>회원가입</Link><Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-4 font-black")}>수강 신청하기</Link></div>
+          <AuthNav applyHref={applyHref} />
         </div>
       </header>
 
-      <section className="bg-[linear-gradient(135deg,#07111f_0%,#10213f_60%,#173968_100%)] text-white">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8 lg:py-20">
+      <section className="relative overflow-hidden bg-slate-950 text-white">
+        <div className="absolute inset-0 bg-[url('/images/prevention-education-hero.png')] bg-cover bg-center opacity-85" />
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.88)_0%,rgba(15,23,42,0.72)_42%,rgba(15,23,42,0.34)_100%)]" />
+        <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(0deg,rgba(2,6,23,0.72),rgba(2,6,23,0))]" />
+        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8 lg:py-20">
           <div className="min-w-0">
-            <p className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold text-slate-100">수료증 발급 · 참고서식 · 온라인 수강</p>
-            <h1 className="mt-6 max-w-4xl text-3xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">양형자료 준비를 위한 온라인 예방교육</h1>
-            <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-100 sm:text-xl">사건 이후 필요한 교육 이수 기록과 재발방지 계획을 체계적으로 정리할 수 있도록 돕습니다.</p>
-            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">현재는 음주운전 예방교육 과정을 중심으로 온라인 수강, 수료증 발급, 재발방지계획서 참고서식 확인을 제공합니다.</p>
+            <p className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold text-slate-100">수강 즉시 수료증 출력 · 참고서식 · 온라인 수강</p>
+            <h1 className="mt-6 max-w-4xl text-3xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">범죄 예방과 재발방지를 위한 전문 온라인 교육</h1>
+            <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-100 sm:text-xl">음주운전, 성범죄, 도박, 사기 등 관련 사건 이후 필요한 교육 이수 기록과 재발방지 계획을 체계적으로 정리할 수 있도록 돕습니다.</p>
+            <p className="mt-4 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">현재는 음주운전 예방교육 과정을 중심으로 온라인 수강, 수강 즉시 수료증 출력, 재발방지계획서 참고서식 등 법원에 제출할 양형자료를 준비할 수 있습니다.</p>
             <div className="mt-8 flex flex-wrap gap-3"><Link href={applyHref} style={{ backgroundColor: "#ffffff", color: "#0f172a" }} className={buttonClass("darkPrimary", "lg", "whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-[#10213f]")}>수강 신청하기</Link><Link href="/courses" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "56px", padding: "0 28px", borderRadius: "9999px", backgroundColor: "#facc15", color: "#111827", border: "2px solid #fde047", fontWeight: 900, boxShadow: "0 16px 32px rgba(250, 204, 21, 0.28)" }} className={buttonClass("darkSecondary", "lg", "whitespace-nowrap rounded-full px-7 focus:ring-offset-[#10213f]")}>강의 구성 보기</Link></div>
           </div>
-          <div className="rounded-[1.5rem] border border-white/15 bg-white/10 p-5 shadow-2xl backdrop-blur">
+          <div className="rounded-[1.5rem] border border-white/20 bg-slate-950/55 p-5 shadow-2xl backdrop-blur-md">
             <p className="text-sm font-black text-white">수강 즉시 출력 자료</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
               {materials.slice(0, 4).map(([title, body]) => <div key={title} className="flex min-w-0 gap-3 rounded-2xl bg-white p-4 text-slate-950"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white"><Icon name="file" /></span><span className="min-w-0"><span className="block text-base font-black leading-snug text-slate-950">{title}</span><span className="mt-1 block text-sm leading-relaxed text-slate-700">{body}</span></span></div>)}

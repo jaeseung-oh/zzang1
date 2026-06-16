@@ -10,6 +10,7 @@ import {
   getApplicationProduct,
 } from "@/lib/course/application-products";
 import { requestPayment, type PaymentMethod } from "@/lib/payment/payment-service";
+import { buttonClass, selectableCardClass, selectedCardClass } from "@/app/components/ui/button-styles";
 
 const paymentMethods: Array<{
   id: PaymentMethod;
@@ -20,7 +21,7 @@ const paymentMethods: Array<{
 }> = [
   { id: "kakaopay", title: "카카오페이", description: "카카오페이로 간편하게 결제합니다.", badge: "KakaoPay", badgeClassName: "bg-[#fee500] text-[#191600]" },
   { id: "danal-mobile", title: "핸드폰결제", description: "다날 휴대폰 결제로 결제합니다.", badge: "Danal", badgeClassName: "bg-[#0f766e] text-white" },
-  { id: "card", title: "신용카드결제", description: "국내 신용카드 또는 체크카드로 결제합니다.", badge: "Card", badgeClassName: "bg-[#06101b] text-[#e9c98d]" },
+  { id: "card", title: "신용카드결제", description: "국내 신용카드 또는 체크카드로 결제합니다.", badge: "Card", badgeClassName: "bg-[#173968] text-white" },
 ];
 
 function CheckIcon({ className = "h-4 w-4" }: { className?: string }) {
@@ -100,7 +101,7 @@ export default function PaymentPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#274690]">Payment</p>
           <h1 className="mt-3 text-3xl font-semibold">신청 정보가 없습니다</h1>
           <p className="mt-3 text-sm leading-7 text-slate-600">수강신청 화면에서 교육과 상품을 선택한 뒤 결제를 진행해 주세요.</p>
-          <Link href="/courses/apply" className="mt-6 inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full bg-[#06101b] px-6 py-3 text-sm font-bold text-[#e9c98d] shadow-sm transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+          <Link href="/courses/apply" className={buttonClass("primary", "md", "mt-6 rounded-full px-6 font-bold")}>
             수강신청으로 이동
           </Link>
         </div>
@@ -142,7 +143,7 @@ export default function PaymentPage() {
               {paymentMethods.map((method) => {
                 const isSelected = selectedPaymentMethod === method.id;
                 return (
-                  <button key={method.id} type="button" aria-selected={isSelected} onClick={() => setSelectedPaymentMethod(method.id)} className={isSelected ? "min-h-[158px] cursor-pointer rounded-[1.25rem] border-2 border-[#173968] bg-[#f5f8ff] p-5 text-left shadow-[0_16px_34px_rgba(23,57,104,0.15)] transition-all hover:-translate-y-0.5 hover:shadow-[0_18px_36px_rgba(23,57,104,0.17)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2" : "min-h-[158px] cursor-pointer rounded-[1.25rem] border border-[#d8e2ee] bg-white p-5 text-left transition-all hover:-translate-y-0.5 hover:border-[#9fb5d1] hover:bg-indigo-50 hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"}>
+                  <button key={method.id} type="button" aria-selected={isSelected} onClick={() => setSelectedPaymentMethod(method.id)} className={(isSelected ? selectedCardClass : selectableCardClass) + " min-h-[158px] p-5"}>
                     <div className="flex items-start justify-between gap-3"><span className={"rounded-full px-3 py-1 text-xs font-black " + method.badgeClassName}>{method.badge}</span><span className={isSelected ? "flex h-7 w-7 items-center justify-center rounded-full bg-[#173968] text-white" : "h-7 w-7 rounded-full border border-[#cbd5e1] bg-white"}>{isSelected ? <CheckIcon /> : null}</span></div>
                     <h3 className="mt-4 text-lg font-semibold text-slate-950">{method.title}</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{method.description}</p>
@@ -150,9 +151,9 @@ export default function PaymentPage() {
                 );
               })}
             </div>
-            <div className="mt-6 space-y-3 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-sm leading-7 text-slate-600"><p>결제 완료 후 선택한 교육을 수강할 수 있으며, 수료 기준 충족 시 수료증이 발급됩니다.</p>{hasDocumentItems ? <p>{applicationNoticeText}</p> : null}</div>
+            <div className="mt-6 space-y-3 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-sm leading-7 text-slate-600"><p>결제 완료 후 선택한 교육을 수강할 수 있으며, 수강 즉시 수료증을 출력할 수 있습니다.</p>{hasDocumentItems ? <p>{applicationNoticeText}</p> : null}</div>
             {error ? <p className="mt-4 rounded-[1rem] border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p> : null}
-            <button type="button" disabled={!canPay} onClick={handlePayment} className="mt-5 inline-flex min-h-14 w-full cursor-pointer items-center justify-center rounded-[1rem] bg-[#06101b] px-5 py-4 text-base font-bold text-[#e9c98d] shadow-[0_16px_30px_rgba(6,16,27,0.28)] transition-all hover:bg-indigo-700 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-500 disabled:opacity-70 disabled:shadow-none disabled:hover:bg-slate-300 disabled:hover:shadow-none disabled:active:scale-100">
+            <button type="button" disabled={!canPay} onClick={handlePayment} className={buttonClass("primary", "lg", "mt-5 w-full rounded-[1rem] font-bold disabled:opacity-100")}>
               {isSubmitting ? "결제 요청 중..." : formatApplicationKrw(selectedProduct.price) + " 결제하기"}
             </button>
           </section>

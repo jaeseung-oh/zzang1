@@ -711,7 +711,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
   return (
     <main className="min-h-screen bg-[#eef2f7] text-[#10213f]">
       <div className="grid min-h-screen lg:grid-cols-2">
-        <section className="relative overflow-hidden bg-[linear-gradient(160deg,#08152d_0%,#10213f_42%,#173968_100%)] px-6 py-10 text-white sm:px-8 lg:flex lg:min-h-screen lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:px-16">
+        <section className="relative overflow-hidden bg-[linear-gradient(160deg,#08152d_0%,#10213f_42%,#173968_100%)] px-5 py-8 text-white sm:px-8 sm:py-10 lg:flex lg:min-h-screen lg:flex-col lg:justify-between lg:px-12 lg:py-12 xl:px-16">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(216,178,107,0.22),transparent_24%),radial-gradient(circle_at_20%_18%,rgba(96,165,250,0.18),transparent_22%),linear-gradient(180deg,rgba(5,11,24,0.18),rgba(5,11,24,0.4))]" />
           <div className="absolute -left-12 bottom-8 h-40 w-40 rounded-full border border-white/10 bg-white/5 blur-sm" />
           <div className="absolute right-8 top-12 h-48 w-48 rounded-full border border-[#d8b26b]/20 bg-[#d8b26b]/8 blur-2xl" />
@@ -728,14 +728,14 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
 
           <div className="relative z-10 mt-12 lg:mt-0">
             <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#d8b26b]">Online Course Access</p>
-            <h1 className="mt-5 max-w-[560px] text-4xl font-semibold leading-[1.08] tracking-[-0.04em] text-white sm:text-5xl xl:text-[3.75rem]">
+            <h1 className="mt-5 max-w-[560px] break-keep text-3xl font-semibold leading-[1.12] tracking-[-0.03em] text-white sm:text-5xl sm:tracking-[-0.04em] xl:text-[3.75rem]">
               자기 점검과 교육 이수 과정을 차분히 시작할 수 있는 리셋 에듀센터
             </h1>
             <p className="mt-6 max-w-[560px] text-[15px] leading-8 text-slate-200 sm:text-base">
               회원가입, 수강 진행, 이수 확인 자료 안내까지 한 흐름으로 확인할 수 있는 민간 온라인 교육 서비스입니다. 이용 환경과 발급 기준은 각 화면에서 순차적으로 안내됩니다.
             </p>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            <div className="mt-8 hidden gap-3 sm:grid sm:grid-cols-3">
               {helperStats.map((item) => (
                 <div key={item.label} className="rounded-[1.4rem] border border-white/12 bg-white/8 px-4 py-4 backdrop-blur-sm">
                   <p className="text-2xl font-semibold tracking-[-0.04em] text-white">{item.value}</p>
@@ -744,7 +744,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
               ))}
             </div>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 hidden gap-4 sm:grid sm:grid-cols-3">
               <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] p-5 backdrop-blur-sm">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8b26b]/18 text-[#f7d9a0]">
                   <StreamingIcon />
@@ -768,7 +768,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
               </div>
             </div>
 
-            <ul className="mt-8 space-y-3 rounded-[1.7rem] border border-white/12 bg-white/6 p-6 backdrop-blur-sm">
+            <ul className="mt-8 hidden space-y-3 rounded-[1.7rem] border border-white/12 bg-white/6 p-6 backdrop-blur-sm sm:block">
               {trustHighlights.map((item) => (
                 <li key={item} className="flex items-start gap-3 text-sm leading-7 text-slate-100">
                   <span className="mt-1 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#d8b26b] text-[#10213f]">
@@ -786,12 +786,12 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
           </div>
         </section>
 
-        <section className="flex min-h-[42vh] items-start justify-center px-4 py-5 sm:px-6 lg:min-h-screen lg:items-center lg:px-6 lg:py-6 xl:px-8">
-          <div className="w-full max-w-[680px] rounded-[2rem] border border-[#dbe3ef] bg-white px-5 py-6 shadow-[0_28px_80px_rgba(15,23,42,0.1)] sm:px-7 sm:py-7 lg:max-h-[calc(100vh-36px)] lg:overflow-y-auto xl:max-w-[760px]">
-            <div className="flex items-center justify-between gap-3">
+        <section className="flex items-start justify-center px-4 py-5 sm:px-6 lg:min-h-screen lg:items-center lg:px-6 lg:py-6 xl:px-8">
+          <div className="w-full max-w-[680px] rounded-[1.5rem] border border-[#dbe3ef] bg-white px-4 py-5 shadow-[0_28px_80px_rgba(15,23,42,0.1)] sm:rounded-[2rem] sm:px-7 sm:py-7 lg:max-h-[calc(100vh-36px)] lg:overflow-y-auto xl:max-w-[760px]">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.26em] text-[#8b6a33]">{copy.eyebrow}</p>
-                <h2 className="mt-2 text-[1.85rem] font-semibold tracking-[-0.04em] text-[#0f172a]">
+                <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-[#0f172a] sm:text-[1.85rem] sm:tracking-[-0.04em]">
                   {authUser ? `${displayName} 님` : mode === "signup" ? "회원가입" : "로그인"}
                 </h2>
               </div>
@@ -890,7 +890,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                 ) : null}
 
                 {mode === "login" ? (
-                  <div className="flex items-center justify-between gap-3 text-sm">
+                  <div className="flex flex-col items-start justify-between gap-3 text-sm sm:flex-row sm:items-center">
                     <label className="flex items-center gap-2 text-slate-600">
                       <input
                         type="checkbox"

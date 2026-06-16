@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { getUserProfile } from "@/lib/firebase/user-profile";
+import { buttonClass } from "@/app/components/ui/button-styles";
 
 function getDisplayName(profileName?: string | null, user?: User | null) {
   return profileName?.trim() || user?.displayName?.trim() || user?.email?.split("@")[0]?.trim() || "회원";
@@ -105,17 +106,17 @@ export default function GlobalUserStatus() {
               <p className="mt-1.5 truncate text-sm font-bold text-[#10213f]">{displayName}님 환영합니다</p>
             </div>
             <div className="space-y-2.5 p-3">
-              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-3.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
+              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className={buttonClass("primary", "sm", "min-h-11 justify-start rounded-xl px-3.5 font-bold")}>
                 내 강의실
               </Link>
-              <Link href="/login" onClick={() => setIsMenuOpen(false)} className="flex min-h-11 items-center rounded-xl border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-3.5 text-sm font-bold text-white shadow-[0_12px_24px_rgba(16,33,63,0.22)] transition hover:-translate-y-0.5 hover:brightness-105">
+              <Link href="/login" onClick={() => setIsMenuOpen(false)} className={buttonClass("primary", "sm", "min-h-11 justify-start rounded-xl px-3.5 font-bold")}>
                 정보 수정
               </Link>
               <button
                 type="button"
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="flex min-h-11 w-full items-center rounded-xl border-2 border-[#efc9bf] bg-[#fff5f1] px-3.5 text-sm font-bold text-[#922f1b] transition hover:border-[#dfa899] hover:bg-[#ffebe4] disabled:cursor-not-allowed disabled:opacity-60"
+                className={buttonClass("danger", "sm", "min-h-11 w-full justify-start rounded-xl px-3.5 font-bold disabled:opacity-100")}
               >
                 {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
               </button>

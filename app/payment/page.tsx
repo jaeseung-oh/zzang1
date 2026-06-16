@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
-import { Suspense } from "react";
-import PaymentPage from "./PaymentPage";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
   title: "결제하기 | 리셋 에듀센터",
@@ -8,9 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  return (
-    <Suspense fallback={null}>
-      <PaymentPage />
-    </Suspense>
-  );
+  redirect("/checkout");
 }

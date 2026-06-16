@@ -82,7 +82,6 @@ const COURSE_VIDEO_ASSETS: Record<
   },
 };
 
-const FALLBACK_COURSE_VIDEO_URL = "https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4";
 
 type DraftInput = {
   documentType: "reflection-letter-guide" | "petition-letter-guide";
@@ -381,6 +380,35 @@ async function getActiveEnrollment(uid: string, courseId: string) {
   }
 
   return { ref: enrollmentRef, id: enrollmentId, data };
+}
+
+function isActiveEnrollmentData(data: Record<string, any> | undefined, uid: string, courseId: string) {
+  if (!data) return false;
+  const ownerId = data.userId ?? data.uid;
+  const paymentStatus = String(data.paymentStatus ?? "").toLowerCase();
+  const accessStatus = String(data.enrollmentStatus ?? data.accessStatus ?? "").toLowerCase();
+  const expiresAt = parseTimestampToDate(data.expiresAt);
+  return ownerId === uid && data.courseId === courseId && paymentStatus === "paid" && accessStatus === "active" && (!expiresAt || expiresAt.getTime() >= Date.now());
+}
+
+async function hasVerifiedCourseAccess(uid: string, courseId: string) {
+  const [userDoc, userRecord] = await Promise.all([
+    db.collection("users").doc(uid).get().catch(() => null),
+    getAuth().getUser(uid).catch(() => null),
+  ]);
+
+  const email = String(userRecord?.email ?? "").toLowerCase();
+  const role = userDoc?.exists ? userDoc.data()?.role : null;
+  if (userRecord?.customClaims?.admin === true || role === "admin" || email === "cfv47@naver.com") {
+    return true;
+  }
+
+  const [rootEnrollment, nestedEnrollment] = await Promise.all([
+    db.collection("enrollments").doc(uid + "_" + courseId).get(),
+    db.collection("users").doc(uid).collection("enrollments").doc(courseId).get(),
+  ]);
+
+  return isActiveEnrollmentData(rootEnrollment.data(), uid, courseId) || isActiveEnrollmentData(nestedEnrollment.data(), uid, courseId);
 }
 
 async function getLatestPaidPurchaseForCertificate(uid: string, courseId: string) {
@@ -759,7 +787,7 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
           durationSeconds,
           completionRate,
           lastPlaybackPositionSeconds,
-          isCompleted: item.isCompleted || completionRate >= 100,
+          isCompleted: item.isCompleted || completionRate >= 95,
         },
       ];
     })
@@ -775,7 +803,7 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
   const remainingSeconds = Math.max(durationSeconds - watchedSeconds, 0);
   const completedModuleCount = Object.values(moduleProgress).filter((item) => item.isCompleted).length;
   const totalModuleCount = Object.keys(moduleProgress).length;
-  const isCompleted = totalModuleCount > 0 ? completedModuleCount === totalModuleCount : data.isCompleted || completionRate >= 100;
+  const isCompleted = totalModuleCount > 0 ? completedModuleCount === totalModuleCount : data.isCompleted || completionRate >= 95;
   const purchaseSnapshot = isCompleted ? await getPaidPurchase(uid, data.courseId).catch(() => null) : null;
   const activeEnrollment = isCompleted ? await getActiveEnrollment(uid, data.courseId).catch(() => null) : null;
   if (purchaseSnapshot) {
@@ -918,13 +946,18 @@ export const syncEmailVerificationStatus = onCall({ region: "asia-northeast3" },
 });
 
 export const getCourseVideoAccess = onCall({ region: "asia-northeast3" }, async (request) => {
-  getAuthenticatedUid(request);
+  const uid = getAuthenticatedUid(request);
   const data = (request.data || {}) as GetCourseVideoAccessRequest;
   const courseId = data.courseId?.trim();
   const moduleId = data.moduleId?.trim();
 
   if (!courseId || !moduleId) {
     throw new HttpsError("invalid-argument", "courseId와 moduleId가 필요합니다.");
+  }
+
+  const allowed = await hasVerifiedCourseAccess(uid, courseId);
+  if (!allowed) {
+    throw new HttpsError("permission-denied", "수강권 결제 후 이용할 수 있습니다.");
   }
 
   const asset = getCourseVideoAsset(courseId, moduleId);
@@ -945,12 +978,7 @@ export const getCourseVideoAccess = onCall({ region: "asia-northeast3" }, async 
   const [exists] = await file.exists();
 
   if (!exists) {
-    return {
-      provider: "storage",
-      videoUrl: FALLBACK_COURSE_VIDEO_URL,
-      expiresAt: Date.now() + 1000 * 60 * 60,
-      durationHintSeconds: asset.durationHintSeconds,
-    };
+    throw new HttpsError("not-found", "등록된 강의 영상 파일을 찾을 수 없습니다.");
   }
 
   const expiresAt = Date.now() + 1000 * 60 * 15;

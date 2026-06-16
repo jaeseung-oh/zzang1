@@ -15,10 +15,10 @@ export default function LegalFooter() {
             <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-white">리셋 에듀센터 운영 정보</h2>
             <div className="mt-5 grid gap-2 text-sm leading-7 text-slate-300 sm:grid-cols-2">
               <p><span className="font-semibold text-white">상호</span> 보듬심리상담센터</p>
-              <p><span className="font-semibold text-white">대표자</span> 홍경자</p>
+              <p><span className="font-semibold text-white">대표 홍경자</span></p>
               <p><span className="font-semibold text-white">사업자등록번호</span> 861-98-01454</p>
-              <p><span className="font-semibold text-white">유선번호</span> 010-7617-8619</p>
-              <p className="sm:col-span-2"><span className="font-semibold text-white">사업자 주소</span> 경기 수원시 영통구 센트럴타운로 106, 145호(이의동, 광교센트럴프라자)</p>
+              <p><span className="font-semibold text-white">유선전화번호</span> 010-7617-8619</p>
+              <p className="sm:col-span-2"><span className="font-semibold text-white">사업장주소</span> 경기도 수원시 영통구 센트럴타운로22번길 36, 6005동 1002호</p>
             </div>
           </div>
 

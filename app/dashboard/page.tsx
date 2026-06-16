@@ -8,6 +8,8 @@ import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import { getUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
+import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -48,6 +50,38 @@ type DraftRecord = {
   generatedDraft: string;
   createdAt?: { seconds: number };
 };
+
+type EnrollmentListItem = EnrollmentRecord & { id?: string };
+
+function toDate(value: unknown) {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+  if (typeof value === "string") {
+    const parsed = new Date(value);
+    return Number.isFinite(parsed.getTime()) ? parsed : null;
+  }
+  if (typeof value === "object" && value !== null && "seconds" in value && typeof (value as { seconds?: unknown }).seconds === "number") {
+    return new Date((value as { seconds: number }).seconds * 1000);
+  }
+  return null;
+}
+
+function formatDateOnly(value: unknown) {
+  const date = toDate(value);
+  if (!date) return "-";
+  return date.toLocaleDateString("ko-KR");
+}
+
+function getEnrollmentStatusLabel(enrollment: EnrollmentRecord) {
+  if (isEnrollmentActive(enrollment)) return "수강 가능";
+  const status = String(enrollment.enrollmentStatus || enrollment.accessStatus || enrollment.paymentStatus || "").toLowerCase();
+  if (status === "refunded") return "환불";
+  if (status === "cancelled" || status === "canceled") return "취소";
+  if (status === "expired") return "만료";
+  const expiresAt = toDate(enrollment.expiresAt);
+  if (expiresAt && expiresAt.getTime() < Date.now()) return "만료";
+  return "이용 불가";
+}
 
 const documentLabels: Record<string, string> = {
   completion: "음주운전 예방교육 수료증",
@@ -104,6 +138,9 @@ export default function DashboardPage() {
   const [progress, setProgress] = useState<ProgressRecord | null>(null);
   const [certificates, setCertificates] = useState<CertificateRecord[]>([]);
   const [drafts, setDrafts] = useState<DraftRecord[]>([]);
+  const [enrollments, setEnrollments] = useState<EnrollmentListItem[]>([]);
+  const [hasActiveEnrollment, setHasActiveEnrollment] = useState(false);
+  const [adminPreview, setAdminPreview] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -112,6 +149,9 @@ export default function DashboardPage() {
       try {
         const user = await requireAuthenticatedUser();
         const { db } = getFirebaseServices();
+        const isAdmin = isSuperAdmin(user);
+        const enrollments = await getUserEnrollments(user.uid).catch(() => []);
+        const activeEnrollment = enrollments.some((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment));
 
         const [progressSnapshot, certificateSnapshot, draftSnapshot] = await Promise.all([
           getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid))),
@@ -123,6 +163,9 @@ export default function DashboardPage() {
           return;
         }
 
+        setAdminPreview(isAdmin);
+        setHasActiveEnrollment(isAdmin || activeEnrollment);
+        setEnrollments(enrollments as EnrollmentListItem[]);
         setProgress(progressSnapshot.docs[0]?.data() ? (progressSnapshot.docs[0].data() as ProgressRecord) : null);
         setCertificates(
           certificateSnapshot.docs
@@ -167,6 +210,14 @@ export default function DashboardPage() {
     const completionRate = progress?.completionRate ?? (durationSeconds > 0 ? Math.floor((watchedSeconds / durationSeconds) * 100) : 0);
     const completedModuleCount = progress?.completedModuleCount ?? Object.values(progress?.moduleProgress ?? {}).filter((item) => item.isCompleted).length;
     const totalModuleCount = progress?.totalModuleCount ?? defaultCourse.modules.length;
+    const moduleEntries = defaultCourse.modules.map((module, index) => ({
+      module,
+      index,
+      item: progress?.moduleProgress?.[module.id],
+    }));
+    const lastWatched = moduleEntries
+      .filter((entry) => (entry.item?.lastPlaybackPositionSeconds ?? entry.item?.watchedSeconds ?? 0) > 0)
+      .sort((a, b) => (b.item?.lastPlaybackPositionSeconds ?? b.item?.watchedSeconds ?? 0) - (a.item?.lastPlaybackPositionSeconds ?? a.item?.watchedSeconds ?? 0))[0];
     const statusLabel = progress?.isCompleted ? "전체 수료 완료" : completionRate >= 80 ? "곧 전체 수료" : "수강 진행 중";
 
     return {
@@ -179,16 +230,19 @@ export default function DashboardPage() {
       statusLabel,
       isCompleted: Boolean(progress?.isCompleted),
       moduleProgress: progress?.moduleProgress ?? {},
+      lastLessonLabel: lastWatched ? `${lastWatched.index + 1}강 ${lastWatched.module.title.replace(/^\d+강\.\s*/, "")}` : "시청 기록 없음",
+      lastLessonTime: lastWatched?.item?.lastPlaybackPositionSeconds ?? lastWatched?.item?.watchedSeconds ?? 0,
+      certificateAvailable: Boolean(progress?.isCompleted),
     };
   }, [progress]);
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(211,173,98,0.14),transparent_22%),linear-gradient(180deg,#09111d_0%,#0d1728_32%,#eef3f8_32%,#f4f7fb_100%)] px-4 py-10 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-7xl rounded-[2rem] border border-[#d7deea] bg-white p-6 shadow-[0_30px_80px_rgba(15,23,42,0.14)] lg:p-8">
+      <div className="mx-auto max-w-7xl rounded-[1.5rem] border border-[#d7deea] bg-white p-4 shadow-[0_30px_80px_rgba(15,23,42,0.14)] sm:rounded-[2rem] sm:p-6 lg:p-8">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#9b7a38]">My Course</p>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-[#0f172a] sm:text-5xl">내 수강현황과 발급 문서 확인</h1>
+            <h1 className="mt-4 break-keep text-3xl font-semibold tracking-[-0.03em] text-[#0f172a] sm:text-5xl sm:tracking-[-0.04em]">내 수강현황과 발급 문서 확인</h1>
             <p className="mt-4 max-w-3xl text-sm leading-8 text-slate-600">
               강의별 진도, 누적 수강 시간, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
             </p>
@@ -209,7 +263,63 @@ export default function DashboardPage() {
         {loading ? <p className="mt-8 text-sm text-slate-600">수강현황을 불러오는 중입니다...</p> : null}
         {error ? <p className="mt-8 text-sm text-[#f2a39b]">{error}</p> : null}
 
+        {!loading && !error && adminPreview ? <p className="mt-6 rounded-[1.25rem] border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm font-semibold text-indigo-900">관리자 계정으로 접속 중입니다. 전체 과정을 확인할 수 있습니다.</p> : null}
+
         {!loading && !error ? (
+          <section className="mt-8 rounded-[1.5rem] border border-slate-200 bg-slate-50 p-5">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-[#274690]">내 수강권</p>
+                <h2 className="mt-1 text-2xl font-bold text-slate-950">수강권 목록</h2>
+              </div>
+              <Link href="/courses/apply?categoryId=dui" className={buttonClass("secondary", "sm", "rounded-full font-bold")}>강의 구매하러 가기</Link>
+            </div>
+            {adminPreview ? <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-900">관리자 계정은 모든 강의 접근이 가능합니다.</p> : null}
+            {!adminPreview && enrollments.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-700">
+                <p className="font-semibold text-slate-950">현재 이용 가능한 수강권이 없습니다.</p>
+                <Link href="/courses/apply?categoryId=dui" className={buttonClass("primary", "sm", "mt-4 rounded-full")}>강의 구매하러 가기</Link>
+              </div>
+            ) : null}
+            {enrollments.length ? (
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                {enrollments.map((enrollment) => {
+                  const active = isEnrollmentActive(enrollment);
+                  return (
+                    <article key={enrollment.courseId + (enrollment.paymentId || enrollment.orderId || "")} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-slate-950">{enrollment.courseTitle || defaultCourse.title}</p>
+                          <p className="mt-1 text-xs text-slate-500">{enrollment.productTitle || enrollment.productId || "수강권"}</p>
+                        </div>
+                        <span className={active ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600"}>{getEnrollmentStatusLabel(enrollment)}</span>
+                      </div>
+                      <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+                        <div><dt className="font-semibold text-slate-500">수강 시작</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.purchasedAt || enrollment.createdAt)}</dd></div>
+                        <div><dt className="font-semibold text-slate-500">수강 만료</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.expiresAt)}</dd></div>
+                      </dl>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        {active ? <Link href="/course-room" className={buttonClass("primary", "sm", "rounded-full")}>수강실 입장</Link> : <Link href="/courses/apply?categoryId=dui" className={buttonClass("secondary", "sm", "rounded-full")}>다시 구매하기</Link>}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
+        {!loading && !error && !hasActiveEnrollment ? (
+          <section className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-700">
+            <p className="font-semibold text-slate-950">아직 수강 중인 교육이 없습니다.</p>
+            <div className="mt-4 flex flex-wrap gap-3">
+              <Link href="/courses/apply?categoryId=dui" className={buttonClass("primary", "sm", "rounded-full")}>수강 신청하기</Link>
+              <Link href="/courses/dui-prevention" className={buttonClass("secondary", "sm", "rounded-full")}>강의 구성 보기</Link>
+            </div>
+          </section>
+        ) : null}
+
+        {!loading && !error && hasActiveEnrollment ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
             <section className="space-y-6">
               <div className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
@@ -227,7 +337,7 @@ export default function DashboardPage() {
                   <div className="h-3 rounded-full bg-gradient-to-r from-[#d3ad62] via-[#f0cb85] to-[#fff1ca]" style={{ width: `${progressSummary.completionRate}%` }} />
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 text-sm xl:grid-cols-4">
+                <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2 xl:grid-cols-4">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">누적 수강률</p>
                     <p className="mt-2 text-white">{progressSummary.completionRate}%</p>
@@ -246,7 +356,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+                <div className="mt-5 grid gap-3 text-sm sm:grid-cols-2">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
                     <p className="text-white/60">전체 길이</p>
                     <p className="mt-2 text-white">{formatDurationOrPending(progressSummary.durationSeconds)}</p>
@@ -257,7 +367,18 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <p className="mt-5 text-sm leading-7 text-white/70">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
+                <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-white/75">
+                  <p><span className="font-semibold text-white">마지막 시청:</span> {progressSummary.lastLessonLabel} {progressSummary.lastLessonTime > 0 ? formatDuration(progressSummary.lastLessonTime) : ""}</p>
+                  <p className="mt-1">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Link href="/course-room" className={buttonClass("warning", "sm", "rounded-full font-black")}>
+                      이어보기
+                    </Link>
+                    <Link href="/course-room" className={buttonClass("secondary", "sm", "rounded-full")}>
+                      강의 목록
+                    </Link>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-[1.75rem] border border-white/10 bg-[#111f33] p-6">
@@ -306,7 +427,7 @@ export default function DashboardPage() {
               <p className="text-sm font-semibold text-[#f0cb85]">수료증</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">수강증/수료증 확인 및 온라인 인쇄</h2>
               <p className="mt-4 text-sm leading-8 text-white/70">
-                수강 즉시 수료증 등 교육 이수 자료를 온라인으로 출력할 수 있습니다. 서류 발급 또는 출력 이후에는 환불이 불가합니다.
+                수강 즉시 수료증을 온라인으로 출력할 수 있습니다.
               </p>
 
               <div className="mt-6 space-y-4">
@@ -343,7 +464,10 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">
-                    아직 발급된 서류가 없습니다. 수강 즉시 수료증 등 교육 이수 자료를 출력할 수 있습니다.
+                    <p>수료증은 전체 강의 수강 완료 후 확인할 수 있습니다.</p>
+                    <button type="button" disabled className="mt-4 inline-flex min-h-10 cursor-not-allowed items-center justify-center rounded-full bg-slate-600 px-4 py-2 text-sm font-bold text-slate-200 opacity-70">
+                      수료 후 발급 가능
+                    </button>
                   </div>
                 )}
               </div>

@@ -102,6 +102,10 @@ async function handleRequest(request, env) {
             return handleAdminPayments(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/admin/payments/resync' && request.method === 'POST') {
+            return handleAdminPaymentResync(request, env, corsHeaders);
+        }
+
         return json({ error: 'not_found' }, 404, corsHeaders);
     } catch (error) {
         console.error(error);
@@ -582,6 +586,33 @@ async function handleCurrentUser(request, env, corsHeaders) {
     return json({ user: session }, 200, corsHeaders);
 }
 
+function getAdminEmailsFromEnvValue(env) {
+    return String(env.ADMIN_EMAILS || 'cfv47@naver.com').split(',').map((email) => email.trim().toLowerCase()).filter(Boolean);
+}
+
+function isWorkerAdminUser(user, env) {
+    return Boolean(user?.email && getAdminEmailsFromEnvValue(env).includes(String(user.email).toLowerCase()));
+}
+
+function isFirestoreEnrollmentActiveRecord(enrollment) {
+    if (!enrollment) return false;
+    const paymentStatus = String(enrollment.paymentStatus || '').toLowerCase();
+    const accessStatus = String(enrollment.enrollmentStatus || enrollment.accessStatus || '').toLowerCase();
+    const expiresAt = enrollment.expiresAt ? new Date(enrollment.expiresAt).getTime() : null;
+    return paymentStatus === 'paid' && accessStatus === 'active' && (!expiresAt || expiresAt >= Date.now());
+}
+
+async function userHasWorkerCourseAccess(env, user, courseId) {
+    if (isWorkerAdminUser(user, env)) return true;
+    const enrollmentId = user.uid + '_' + courseId;
+    const byId = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (byId) return isFirestoreEnrollmentActiveRecord(fromFirestoreFields(byId.fields || {}));
+
+    const nested = await firestoreGet(env, firestoreDocumentPath(env, 'users/' + user.uid + '/enrollments', courseId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (nested) return isFirestoreEnrollmentActiveRecord(fromFirestoreFields(nested.fields || {}));
+    return false;
+}
+
 async function handleStreamToken(request, env, corsHeaders) {
     assertBaseEnv(env);
     assertStreamEnv(env);
@@ -593,14 +624,30 @@ async function handleStreamToken(request, env, corsHeaders) {
     const allowedByReferer = Array.from(allowedOrigins).some((origin) => requestReferer.startsWith(origin + '/'));
 
     if (!allowedByOrigin && !allowedByReferer) {
-        return json({ error: 'forbidden_origin' }, 403, corsHeaders);
+        return json({ error: 'forbidden_origin', message: '허용되지 않은 출처입니다.' }, 403, corsHeaders);
     }
 
+    const authHeader = request.headers.get('Authorization') || '';
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    if (!idToken) {
+        return json({ error: 'auth_required', message: '로그인이 필요한 서비스입니다.' }, 401, corsHeaders);
+    }
+
+    const firebaseUser = await verifyFirebaseIdToken(idToken, env);
     const url = new URL(request.url);
     const uid = (url.searchParams.get('uid') || '').trim();
+    const courseId = (url.searchParams.get('courseId') || DUI_COURSE_PRODUCT.courseId).trim();
 
     if (!COURSE_STREAM_UIDS.has(uid)) {
-        return json({ error: 'invalid_stream_uid' }, 400, corsHeaders);
+        return json({ error: 'invalid_stream_uid', message: '지원하지 않는 강의 영상입니다.' }, 400, corsHeaders);
+    }
+    if (courseId !== DUI_COURSE_PRODUCT.courseId) {
+        return json({ error: 'invalid_course', message: '지원하지 않는 교육과정입니다.' }, 400, corsHeaders);
+    }
+
+    const allowed = await userHasWorkerCourseAccess(env, firebaseUser, courseId);
+    if (!allowed) {
+        return json({ error: 'enrollment_required', message: '수강권 결제 후 이용할 수 있습니다.' }, 403, corsHeaders);
     }
 
     const response = await fetch(
@@ -810,6 +857,21 @@ const DUI_COURSE_PRODUCT = {
     certificateAvailable: true
 };
 
+const APPLICATION_PRODUCTS = {
+    basic: {
+        categoryId: 'dui',
+        productId: 'basic',
+        title: '기본 수강권',
+        amount: 55000
+    },
+    'dui-documents': {
+        categoryId: 'dui',
+        productId: 'dui-documents',
+        title: '서식 포함 수강권',
+        amount: 89000
+    }
+};
+
 
 function parseTime(value) {
     if (!value) return null;
@@ -956,6 +1018,10 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
         return json({ message: '요청 본문 형식이 올바르지 않습니다.', code: 'INVALID_BODY' }, 400, corsHeaders);
     }
 
+    if (body.paymentId && !body.paymentKey) {
+        return handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders);
+    }
+
     const { paymentKey, orderId, amount, uid, courseId } = body;
     if (!paymentKey || !orderId || typeof amount !== 'number' || !uid || !courseId) {
         return json({ message: 'paymentKey, orderId, amount, uid, courseId가 모두 필요합니다.', code: 'MISSING_FIELDS' }, 400, corsHeaders);
@@ -1047,6 +1113,7 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
         await firestorePatch(env, paymentKeyPath, { paymentKey, orderId, userId: uid, courseId, createdAt: nowIso });
         await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
+        await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'toss_confirm_completed', paymentId, orderId, uid, courseId, productId: 'basic', amount, approved, approvedAt, status: 'paid' })).catch((logError) => console.error(logError));
     } catch (error) {
         await savePaymentLog(env, orderId, {
             type: 'firestore_save_failed', paymentKey, orderId, userId: uid, courseId, amount, approvedAt,
@@ -1057,6 +1124,260 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
     }
 
     return json({ ...approved, savedPurchaseId: orderId, paymentId, orderId, enrollmentId, courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle, totalAmount: DUI_COURSE_PRODUCT.price, expiresAt, accessStatus: 'active' }, 200, corsHeaders);
+}
+
+function getApplicationProductForPayment(productId) {
+    return APPLICATION_PRODUCTS[productId] || null;
+}
+
+function parsePortOneCustomData(customData) {
+    if (!customData) return {};
+    if (typeof customData === 'object') return customData;
+    if (typeof customData !== 'string') return {};
+    try {
+        return JSON.parse(customData);
+    } catch {
+        return {};
+    }
+}
+
+function normalizePortOneCurrency(currency) {
+    if (currency === 'CURRENCY_KRW') return 'KRW';
+    return currency || '';
+}
+
+function getPortOnePaidAt(payment) {
+    const paidHistory = Array.isArray(payment.history) ? payment.history.find((item) => item?.status === 'PAID') : null;
+    return payment.paidAt || payment.approvedAt || payment.statusChangedAt || paidHistory?.changedAt || payment.requestedAt || new Date().toISOString();
+}
+
+function getPortOneReceiptUrl(payment) {
+    return payment.receiptUrl || payment.receipt?.url || payment.cashReceipt?.url || null;
+}
+
+function getPortOnePaymentMethod(payment) {
+    return payment?.method?.type || payment?.method?.method || payment?.method?.provider || (typeof payment?.method === 'string' ? payment.method : 'card');
+}
+
+function getPortOneTid(payment) {
+    return payment?.txId || payment?.transactionId || payment?.pgTxId || payment?.pgTransactionId || payment?.id || null;
+}
+
+function getPortOneResponseCode(payment) {
+    return payment?.pgCode || payment?.responseCode || payment?.code || payment?.failure?.code || payment?.cancel?.code || null;
+}
+
+function getPortOneResponseMessage(payment) {
+    return payment?.pgMessage || payment?.responseMessage || payment?.message || payment?.failure?.message || payment?.cancel?.message || null;
+}
+
+function buildPaymentLogRecord({ type, paymentId, orderId, uid, courseId, productId, amount, approved, approvedAt, status, error }) {
+    const nowIso = new Date().toISOString();
+    return {
+        type,
+        user_id: uid || null,
+        userId: uid || null,
+        uid: uid || null,
+        order_id: orderId || paymentId || null,
+        orderId: orderId || paymentId || null,
+        product_id: productId || null,
+        productId: productId || null,
+        requested_amount: amount ?? null,
+        amount: amount ?? null,
+        kcp_order_no: orderId || paymentId || null,
+        kcp_tid: getPortOneTid(approved),
+        payment_method: getPortOnePaymentMethod(approved),
+        approval_status: status || approved?.status || null,
+        kcp_response_code: getPortOneResponseCode(approved),
+        kcp_response_message: error instanceof Error ? error.message : getPortOneResponseMessage(approved),
+        error_stack: error instanceof Error ? error.stack || error.message : null,
+        paymentId,
+        courseId,
+        approvedAt: approvedAt || getPortOnePaidAt(approved),
+        rawResponse: approved || null,
+        created_at: nowIso,
+        createdAt: nowIso
+    };
+}
+
+async function getPortOnePayment(env, paymentId) {
+    const apiSecret = env.PORTONE_API_SECRET || env.V2_API_SECRET;
+    if (!apiSecret) throw new Error('PORTONE_API_SECRET 또는 V2_API_SECRET이 설정되지 않았습니다.');
+    const response = await fetch('https://api.portone.io/payments/' + encodeURIComponent(paymentId), {
+        headers: { Authorization: 'PortOne ' + apiSecret }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.message || data.error?.message || '포트원 결제내역 조회에 실패했습니다.');
+    return data;
+}
+
+async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders) {
+    const { paymentId, uid, courseId, productId = 'basic', categoryId = 'dui', amount } = body;
+    if (!paymentId || !uid || !courseId || !productId) {
+        return json({ message: 'paymentId, uid, courseId, productId가 모두 필요합니다.', code: 'MISSING_FIELDS' }, 400, corsHeaders);
+    }
+    if (uid !== firebaseUser.uid) {
+        return json({ message: '로그인한 사용자와 결제 사용자 정보가 일치하지 않습니다.', code: 'USER_MISMATCH' }, 403, corsHeaders);
+    }
+    if (courseId !== DUI_COURSE_PRODUCT.courseId || categoryId !== 'dui') {
+        return json({ message: '지원하지 않는 교육 상품입니다.', code: 'INVALID_PRODUCT' }, 400, corsHeaders);
+    }
+
+    const product = getApplicationProductForPayment(productId);
+    if (!product) {
+        return json({ message: '결제 상품 정보가 올바르지 않습니다.', code: 'INVALID_PRODUCT' }, 400, corsHeaders);
+    }
+    if (typeof amount === 'number' && amount !== product.amount) {
+        return json({ message: '요청 금액이 상품 금액과 일치하지 않습니다.', code: 'PAYMENT_AMOUNT_MISMATCH' }, 400, corsHeaders);
+    }
+
+    const orderId = paymentId;
+    const orderDocPath = firestoreDocumentPath(env, 'payments', orderId);
+    let existingPaidSameUser = false;
+    const enrollmentId = uid + '_' + courseId;
+    const existingOrder = await firestoreGet(env, orderDocPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingOrder) {
+        const existing = fromFirestoreFields(existingOrder.fields || {});
+        if ((existing.uid || existing.userId) === uid && existing.paymentStatus === 'paid') {
+            existingPaidSameUser = true;
+            const existingEnrollment = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
+            const enrollment = existingEnrollment ? fromFirestoreFields(existingEnrollment.fields || {}) : null;
+            if (enrollment?.paymentStatus === 'paid' && enrollment?.accessStatus === 'active') {
+                await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'portone_confirm_idempotent', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved: existing, status: 'paid' })).catch((logError) => console.error(logError));
+                return json({
+                    savedPurchaseId: existing.orderId || orderId,
+                    paymentId: existing.paymentId || paymentId,
+                    orderId: existing.orderId || orderId,
+                    enrollmentId,
+                    courseId,
+                    courseTitle: existing.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
+                    totalAmount: Number(existing.amount || product.amount),
+                    expiresAt: enrollment.expiresAt || existing.expiresAt || null,
+                    accessStatus: 'active',
+                    receipt: existing.receiptUrl ? { url: existing.receiptUrl } : undefined
+                }, 200, corsHeaders);
+            }
+        } else {
+            return json({ message: '이미 다른 사용자로 처리된 결제번호입니다.', code: 'DUPLICATE_PAYMENT_ID' }, 409, corsHeaders);
+        }
+    }
+
+    const paymentKeyDocId = encodeFirestoreDocId(paymentId);
+    const paymentKeyPath = firestoreDocumentPath(env, 'paymentKeys', paymentKeyDocId);
+    const existingPaymentKey = await firestoreGet(env, paymentKeyPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingPaymentKey && !existingPaidSameUser) {
+        return json({ message: '이미 승인 처리된 paymentId입니다.', code: 'DUPLICATE_PAYMENT_ID' }, 409, corsHeaders);
+    }
+
+    const activeEnrollment = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (activeEnrollment && activeEnrollment.fields?.accessStatus?.stringValue === 'active') {
+        const currentExpiresAt = activeEnrollment.fields?.expiresAt?.timestampValue || activeEnrollment.fields?.expiresAt?.stringValue;
+        if (currentExpiresAt && new Date(currentExpiresAt).getTime() > Date.now()) {
+            return json({ message: '이미 활성화된 수강권이 있어 중복 결제를 제한합니다.', code: 'ACTIVE_ENROLLMENT_EXISTS' }, 409, corsHeaders);
+        }
+    }
+
+    let approved;
+    try {
+        approved = await getPortOnePayment(env, paymentId);
+        const customData = parsePortOneCustomData(approved.customData);
+        const channelType = approved.channel?.type;
+        const expectedChannelType = env.PORTONE_EXPECTED_CHANNEL_TYPE || 'LIVE';
+        const storeId = approved.storeId || approved.store?.id;
+        const configuredStoreId = env.PORTONE_STORE_ID || env.NEXT_PUBLIC_PORTONE_STORE_ID;
+        const paidAmount = Number(approved.amount?.total);
+        const currency = normalizePortOneCurrency(approved.currency);
+
+        if (approved.status !== 'PAID') throw new Error('결제가 완료된 상태가 아닙니다.');
+        if (expectedChannelType && channelType && channelType !== expectedChannelType) throw new Error('포트원 채널이 실연동 채널이 아닙니다.');
+        if (configuredStoreId && storeId && storeId !== configuredStoreId) throw new Error('포트원 상점 ID가 일치하지 않습니다.');
+        if (approved.orderName !== DUI_COURSE_PRODUCT.courseTitle) throw new Error('주문명이 현재 상품과 일치하지 않습니다.');
+        if (paidAmount !== product.amount) throw new Error('결제 승인 금액이 상품 금액과 일치하지 않습니다.');
+        if (currency !== DUI_COURSE_PRODUCT.currency) throw new Error('결제 통화가 올바르지 않습니다.');
+        if (customData.courseId && customData.courseId !== courseId) throw new Error('결제 상품 정보가 일치하지 않습니다.');
+        if (customData.productId && customData.productId !== productId) throw new Error('결제 상품 옵션이 일치하지 않습니다.');
+        if (customData.categoryId && customData.categoryId !== categoryId) throw new Error('결제 카테고리가 일치하지 않습니다.');
+    } catch (error) {
+        await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'portone_confirm_failed', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved, status: 'failed', error })).catch((logError) => console.error(logError));
+        return json({ message: error instanceof Error ? error.message : '포트원 결제 검증 중 오류가 발생했습니다.', code: 'PAYMENT_CONFIRM_FAILED' }, 400, corsHeaders);
+    }
+
+    const approvedAt = getPortOnePaidAt(approved);
+    const purchasedAt = new Date(approvedAt);
+    const expiresAt = new Date(purchasedAt.getTime() + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const nowIso = new Date().toISOString();
+    const receiptUrl = getPortOneReceiptUrl(approved);
+    const method = getPortOnePaymentMethod(approved);
+
+    const paymentRecord = {
+        paymentId, orderId, paymentKey: paymentId, userId: uid, uid, courseId,
+        categoryId, productId, productTitle: product.title,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        orderName: DUI_COURSE_PRODUCT.courseTitle,
+        amount: product.amount,
+        method,
+        status: 'paid', paymentStatus: 'paid', paymentProvider: 'portone-kcp-v2',
+        receiptUrl,
+        kcpTid: getPortOneTid(approved),
+        kcpResponseCode: getPortOneResponseCode(approved),
+        kcpResponseMessage: getPortOneResponseMessage(approved),
+        approvedAt, createdAt: nowIso, updatedAt: nowIso, rawResponse: approved
+    };
+    const enrollmentRecord = {
+        enrollmentId, userId: uid, uid, courseId,
+        categoryId, productId, productTitle: product.title,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        paymentId, orderId,
+        purchasedAt: purchasedAt.toISOString(), expiresAt,
+        paymentStatus: 'paid', accessStatus: 'active', progress: 0,
+        completedLessons: 0, totalLessons: DUI_COURSE_PRODUCT.totalLessons,
+        certificateIssued: false, certificateIssuedAt: null,
+        createdAt: nowIso, updatedAt: nowIso
+    };
+    const purchaseRecord = {
+        uid, userId: uid, courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        categoryId, productId, productTitle: product.title,
+        orderId, paymentKey: paymentId, paymentStatus: 'paid', accessStatus: 'active',
+        paymentProvider: 'portone-kcp-v2', amount: product.amount,
+        method, receiptUrl,
+        kcpTid: getPortOneTid(approved),
+        kcpResponseCode: getPortOneResponseCode(approved),
+        kcpResponseMessage: getPortOneResponseMessage(approved),
+        orderedAt: approvedAt, approvedAt, purchasedAt: purchasedAt.toISOString(), expiresAt,
+        accessValidDays: DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
+        totalLessons: DUI_COURSE_PRODUCT.totalLessons, completedLessons: 0,
+        certificateIssued: false,
+        legalDisclaimerAccepted: Boolean(body.legalDisclaimerAccepted),
+        finalReviewResponsibilityAccepted: Boolean(body.finalReviewResponsibilityAccepted),
+        rawResponse: approved, updatedAt: nowIso, createdAt: nowIso
+    };
+
+    try {
+        await firestorePatch(env, orderDocPath, paymentRecord);
+        await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
+        await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
+        await firestorePatch(env, paymentKeyPath, { paymentKey: paymentId, paymentId, orderId, userId: uid, courseId, createdAt: nowIso });
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
+        await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: existingPaidSameUser ? 'portone_resync_completed' : 'portone_confirm_completed', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved, approvedAt, status: 'paid' })).catch((logError) => console.error(logError));
+    } catch (error) {
+        await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'firestore_save_failed', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved, approvedAt, status: 'paid_save_failed', error })).catch((logError) => console.error(logError));
+        return json({ message: '결제는 확인되었지만 수강권 저장에 실패했습니다. 운영자 재처리가 필요합니다.', code: 'ENROLLMENT_SAVE_FAILED', paymentId, orderId }, 500, corsHeaders);
+    }
+
+    return json({
+        savedPurchaseId: orderId,
+        paymentId,
+        orderId,
+        enrollmentId,
+        courseId,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        productId,
+        productTitle: product.title,
+        totalAmount: product.amount,
+        expiresAt,
+        accessStatus: 'active',
+        receipt: receiptUrl ? { url: receiptUrl } : undefined
+    }, 200, corsHeaders);
 }
 
 async function confirmTossPayment(env, payload) {
@@ -1279,6 +1600,57 @@ async function handleAdminDemoSeed(request, env, corsHeaders) {
     });
 
     return json({ ok: true, uid, orderId, enrollmentId, message: '관리자 시범 수강 완료 데이터가 준비되었습니다. /certificate에서 수료증을 발급할 수 있습니다.' }, 200, corsHeaders);
+}
+
+async function handleAdminPaymentResync(request, env, corsHeaders) {
+    let admin;
+    try {
+        admin = await requireFirebaseAdmin(request, env);
+    } catch (error) {
+        return json({ message: error.message || '관리자 권한이 없습니다.', code: 'ADMIN_FORBIDDEN' }, error.status || 403, corsHeaders);
+    }
+
+    const body = await request.json().catch(() => null);
+    if (!body?.paymentId || !body?.uid) {
+        return json({ message: 'paymentId와 uid가 필요합니다.', code: 'MISSING_FIELDS' }, 400, corsHeaders);
+    }
+
+    const paymentId = String(body.paymentId).trim();
+    const uid = String(body.uid).trim();
+    const productId = String(body.productId || 'basic').trim();
+    const product = getApplicationProductForPayment(productId);
+    const amount = typeof body.amount === 'number' ? body.amount : product?.amount;
+    if (!paymentId || !uid || !product) {
+        return json({ message: '결제번호, 사용자 ID, 상품 정보가 올바르지 않습니다.', code: 'INVALID_REQUEST' }, 400, corsHeaders);
+    }
+
+    await savePaymentLog(env, paymentId, {
+        type: 'admin_portone_resync_requested',
+        paymentId,
+        orderId: paymentId,
+        user_id: uid,
+        userId: uid,
+        uid,
+        product_id: productId,
+        productId,
+        requested_amount: amount,
+        amount,
+        requestedBy: admin.email || admin.uid,
+        created_at: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+    }).catch((logError) => console.error(logError));
+
+    return handlePortOnePaymentConfirm({
+        paymentId,
+        uid,
+        courseId: body.courseId || DUI_COURSE_PRODUCT.courseId,
+        categoryId: body.categoryId || 'dui',
+        productId,
+        amount,
+        legalDisclaimerAccepted: true,
+        finalReviewResponsibilityAccepted: true,
+        adminResync: true
+    }, { uid, email: admin.email || null }, env, corsHeaders);
 }
 
 async function handleAdminPayments(request, env, corsHeaders) {

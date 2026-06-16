@@ -10,8 +10,14 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      // Email allowlist is the first 운영 방식. Later this can be replaced by Firebase Custom Claims.
-      return isSignedIn() && (request.auth.token.admin == true || request.auth.token.email in ["cfv47@naver.com"]);
+      return isSignedIn() && (
+        request.auth.token.admin == true
+        || request.auth.token.email in ["cfv47@naver.com"]
+        || (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == "admin"
+        )
+      );
     }
 
     function isAdminMemoOnlyUpdate() {
@@ -27,14 +33,73 @@ service cloud.firestore {
       return value == null || value is string;
     }
 
+    function allowedUserProfileKeys() {
+      return [
+        "uid",
+        "fullName",
+        "realName",
+        "email",
+        "isEmailVerified",
+        "emailVerifiedAt",
+        "phoneNumber",
+        "provider",
+        "providerLabel",
+        "nickname",
+        "caseType",
+        "caseStage",
+        "deadlineAt",
+        "marketingConsent",
+        "legalNoticeAcceptedAt",
+        "lastLoginAt",
+        "termsAccepted",
+        "privacyAccepted",
+        "sensitiveInfoAccepted",
+        "dateOfBirth",
+        "birthDate",
+        "certificateIdentity",
+        "createdAt",
+        "updatedAt"
+      ];
+    }
+
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create, update: if (isOwner(userId)
+      allow create: if isOwner(userId)
+        && request.resource.data.keys().hasOnly(allowedUserProfileKeys())
+        && isNonEmptyString(request.resource.data.fullName)
+        && isNullableString(request.resource.data.email)
+        && isNullableString(request.resource.data.phoneNumber);
+      allow update: if (isOwner(userId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedUserProfileKeys())
         && isNonEmptyString(request.resource.data.fullName)
         && isNullableString(request.resource.data.email)
         && isNullableString(request.resource.data.phoneNumber))
         || isAdminMemoOnlyUpdate();
       allow delete: if false;
+
+      match /enrollments/{courseId} {
+        allow read: if isOwner(userId) || isAdmin();
+        // Enrollment paymentStatus/enrollmentStatus must be created or changed only by trusted server/Admin SDK after PG verification.
+        allow create, update, delete: if false;
+      }
+
+      match /courseProgress/{courseId} {
+        // Client-side resume backup only. Final completion and certificate eligibility stay server-verified in /courseProgress/{uid_courseId}.
+        allow read: if isOwner(userId) || isAdmin();
+        allow create, update: if isOwner(userId)
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.courseId == courseId;
+        allow delete: if false;
+
+        match /lessons/{lessonId} {
+          allow read: if isOwner(userId) || isAdmin();
+          allow create, update: if isOwner(userId)
+            && request.resource.data.userId == request.auth.uid
+            && request.resource.data.courseId == courseId
+            && request.resource.data.lessonId == lessonId;
+          allow delete: if false;
+        }
+      }
     }
 
     match /courses/{courseId} {

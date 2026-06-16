@@ -20,31 +20,35 @@ export type ApplicationCourseCategory = {
   description: string;
   summary: string;
   icon: ApplicationIconName;
+  status: "available" | "comingSoon";
+  comingSoonText?: string;
   products: ApplicationProduct[];
   defaultProductId: string;
 };
 
 export const basicApplicationProduct: ApplicationProduct = {
   id: "basic",
-  title: "일반 수료형 교육",
+  title: "기본 수강권",
   price: APPLICATION_PRICES.BASIC,
-  description: "교육 이수 후 수료증 발급이 가능한 기본형 교육",
-  includes: ["온라인 강의 수강", "진도율 확인", "수료증 발급"],
+  badge: "강의 + 수료증",
+  description: "온라인 강의 수강과 수강 즉시 수료증 출력이 필요한 분을 위한 기본 과정입니다.",
+  includes: ["온라인 강의 5강 수강", "진도율 확인", "수강 즉시 수료증 출력", "교육 이수 기록 확인"],
 };
 
 export const duiDocumentsApplicationProduct: ApplicationProduct = {
   id: "dui-documents",
-  title: "실천자료 포함형",
+  title: "서식 포함 수강권",
   price: APPLICATION_PRICES.DUI_WITH_DOCUMENTS,
-  description: "교육 이수 후 수료증과 함께 실천계획 관련 참고서식 2종을 제공하는 상품",
+  badge: "강의 + 수료증 + 3종 서식",
+  description: "강의와 수료증에 더해 재발방지 관련 3종 서식을 출력·PDF 저장까지 이용하려는 분을 위한 과정입니다.",
   includes: [
-    "온라인 강의 수강",
+    "온라인 강의 5강 수강",
     "진도율 확인",
-    "수료증 발급",
-    "음주예방실천계획서 참고서식",
-    "재발방지계획서 참고서식",
+    "수강 즉시 수료증 출력",
+    "재발방지계획서 출력 및 PDF 저장",
+    "음주예방실천계획서 출력 및 PDF 저장",
+    "음주운전 재발방지 서약서 출력 및 PDF 저장",
   ],
-  badge: "자료 포함",
 };
 
 export const applicationCourseCategories: ApplicationCourseCategory[] = [
@@ -52,51 +56,60 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
     id: "dui",
     title: "음주운전 예방교육",
     description: "음주운전 위험성과 재발 예방을 온라인 강의로 차분히 점검합니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증, 참고서식 선택 가능",
+    summary: "기본 수강권과 3종 서식 포함 수강권 중 선택 가능",
     icon: "car",
+    status: "available",
     products: [basicApplicationProduct, duiDocumentsApplicationProduct],
-    defaultProductId: "dui-documents",
+    defaultProductId: "basic",
   },
   {
     id: "fraud",
     title: "사기 예방교육",
-    description: "거래 윤리와 책임 있는 의사결정을 학습하는 예방교육입니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
+    description: "사기 사건 이후 책임 인식과 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
+    summary: "준비중",
     icon: "fileSearch",
-    products: [basicApplicationProduct],
-    defaultProductId: "basic",
+    status: "comingSoon",
+    comingSoonText: "사기 사건 이후 책임 인식과 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
+    products: [],
+    defaultProductId: "",
   },
   {
     id: "gambling",
     title: "도박 예방교육",
-    description: "도박 위험 신호와 생활관리 원칙을 정리하는 예방교육입니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
+    description: "도박 문제와 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
+    summary: "준비중",
     icon: "dice",
-    products: [basicApplicationProduct],
-    defaultProductId: "basic",
+    status: "comingSoon",
+    comingSoonText: "도박 문제와 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
+    products: [],
+    defaultProductId: "",
   },
   {
     id: "drug",
     title: "마약 예방교육",
-    description: "약물 오남용 위험성과 자기점검 방법을 다루는 예방교육입니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
+    description: "마약류 문제와 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
+    summary: "준비중",
     icon: "alert",
-    products: [basicApplicationProduct],
-    defaultProductId: "basic",
+    status: "comingSoon",
+    comingSoonText: "마약류 문제의 위험성과 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
+    products: [],
+    defaultProductId: "",
   },
   {
     id: "sex-crime",
     title: "성범죄 예방교육",
-    description: "관계 윤리와 경계 존중, 책임 있는 행동 기준을 학습합니다.",
-    summary: "온라인 강의, 진도율 확인, 수료증",
+    description: "성범죄 예방과 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
+    summary: "준비중",
     icon: "shieldCheck",
-    products: [basicApplicationProduct],
-    defaultProductId: "basic",
+    status: "comingSoon",
+    comingSoonText: "성범죄 예방과 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
+    products: [],
+    defaultProductId: "",
   },
 ];
 
 export const applicationNoticeText =
-  "제공되는 수료증 및 참고서식은 교육 이수 사실과 수강자의 자기점검 및 실천계획 정리를 돕기 위한 자료입니다. 특정 법적 결과를 보장하는 서비스가 아닙니다.";
+  "55,000원 기본 수강권은 강의와 수강 즉시 수료증 출력 중심이며, 89,000원 서식 포함 수강권은 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서 출력 및 PDF 저장 기능을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
 
 export function formatApplicationKrw(value: number) {
   return value.toLocaleString("ko-KR") + "원";

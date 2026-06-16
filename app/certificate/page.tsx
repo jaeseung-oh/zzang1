@@ -3,11 +3,13 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
+import SealStamp from "@/app/components/SealStamp";
+import { hasCourseAccess } from "@/lib/course/enrollment-service";
 
 const issuerFallback = "리셋에듀센터";
 
@@ -170,9 +172,26 @@ function CertificatePageContent() {
       setProfile(userProfile);
       setBirthDateInput(userProfile?.dateOfBirth || userProfile?.birthDate || "");
 
+      if (!allowAdmin) {
+        const canAccessCourse = await hasCourseAccess(user, defaultCourse.id);
+        if (!canAccessCourse) {
+          const message = "수강권 결제 후 이용할 수 있습니다.";
+          setError(message);
+          router.replace("/courses/apply?categoryId=dui&notice=" + encodeURIComponent(message));
+          return;
+        }
+        const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + defaultCourse.id));
+        const progressData = progressSnapshot.exists() ? progressSnapshot.data() as { isCompleted?: boolean; certificateAvailable?: boolean; completionRate?: number; completedModuleCount?: number; totalModuleCount?: number } : null;
+        const completed = Boolean(progressData?.certificateAvailable || progressData?.isCompleted || (progressData?.completionRate ?? 0) >= 95 || ((progressData?.completedModuleCount ?? 0) > 0 && progressData?.completedModuleCount === progressData?.totalModuleCount));
+        if (!completed) {
+          setError("수료 기준 충족 후 수료증을 확인할 수 있습니다.");
+          return;
+        }
+      }
+
       if (allowAdmin && (requestedAdminPreview === "attendance" || requestedAdminPreview === "completion")) {
         setCertificate(buildAdminPreviewCertificate(user.uid, user.email || userProfile?.email || "", requestedAdminPreview));
-        setNotice("관리자 권한으로 서류 샘플을 미리보기 중입니다.");
+        setNotice("관리자 미리보기입니다.");
         return;
       }
 
@@ -184,7 +203,7 @@ function CertificatePageContent() {
       }
 
       if (requestedCertificateId && requestedCertificateId !== `${user.uid}_${defaultCourse.id}`) {
-        setNotice("관리자 권한으로 수료증을 조회했습니다.");
+        setNotice("관리자 미리보기입니다.");
         return;
       }
 
@@ -293,57 +312,88 @@ function CertificatePageContent() {
   const documentBody = isCompletionCertificate
     ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
     : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
-  const printedDate = useMemo(() => formatKoreanDate(new Date()), []);
+
+  const openPrintDialog = (mode: "print" | "pdf") => {
+    if (!certificate) return;
+    const previousTitle = document.title;
+    const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
+    document.title = documentTitle + "_" + safeNo;
+    window.setTimeout(() => window.print(), mode === "pdf" ? 80 : 0);
+    window.setTimeout(() => {
+      document.title = previousTitle;
+    }, 1200);
+  };
 
   return (
     <main className="min-h-screen bg-[#eef3f8] px-4 py-8 text-[#0f172a] print:bg-white print:p-0">
       <style jsx global>{`
-        @page { size: A4 portrait; margin: 8mm; }
+        @page { size: A4 portrait; margin: 0; }
+        @media screen and (max-width: 640px) {
+          .certificate-wrap { overflow-x: hidden; }
+          .certificate-paper { min-height: auto !important; width: 100% !important; max-width: 100% !important; padding: 14px !important; }
+          .certificate-inner { min-height: auto !important; padding: 18px 14px !important; }
+          .certificate-title { font-size: 30px !important; letter-spacing: 0.12em !important; }
+          .certificate-name { font-size: 26px !important; }
+          .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; }
+          .certificate-table-row { grid-template-columns: 96px minmax(0, 1fr) !important; }
+          .certificate-table-cell { padding: 10px 12px !important; font-size: 13px !important; }
+          .certificate-sign { padding-top: 32px !important; }
+          .certificate-issuer { font-size: 22px !important; }
+          .certificate-seal, .seal-stamp { width: 76px !important; height: 76px !important; }
+        }
         @media print {
-          html, body { width: 210mm !important; min-height: 297mm !important; background: #fff !important; overflow: visible !important; }
+          html, body { width: 210mm !important; height: 297mm !important; margin: 0 !important; background: #fff !important; overflow: hidden !important; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
           body > div.fixed, footer, .no-print { display: none !important; }
-          main { min-height: auto !important; padding: 0 !important; background: #fff !important; }
-          .certificate-wrap { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+          main { width: 210mm !important; height: 297mm !important; min-height: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
+          .certificate-wrap { width: 210mm !important; height: 297mm !important; max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
           .certificate-paper {
-            width: 194mm !important;
-            max-width: 194mm !important;
-            min-height: 281mm !important;
-            height: 281mm !important;
-            margin: 0 auto !important;
+            width: 210mm !important;
+            max-width: 210mm !important;
+            min-height: 297mm !important;
+            height: 297mm !important;
+            margin: 0 !important;
             padding: 8mm !important;
             box-shadow: none !important;
             border-radius: 0 !important;
+            page-break-before: avoid !important;
             page-break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-before: avoid !important;
             break-after: avoid !important;
+            break-inside: avoid !important;
+            overflow: hidden !important;
           }
-          .certificate-inner { min-height: 265mm !important; padding: 8mm 9mm !important; border-width: 2px !important; }
-          .certificate-title { margin-top: 10mm !important; font-size: 34px !important; }
-          .certificate-no { margin-top: 8mm !important; }
-          .certificate-person { margin-top: 10mm !important; padding: 5mm !important; }
-          .certificate-name { font-size: 28px !important; }
-          .certificate-birth { margin-top: 3mm !important; font-size: 15px !important; }
-          .certificate-body { margin-top: 10mm !important; font-size: 16px !important; line-height: 1.75 !important; }
-          .certificate-table { margin-top: 8mm !important; font-size: 13px !important; }
-          .certificate-table-row { grid-template-columns: 38mm minmax(0, 1fr) !important; }
-          .certificate-table-cell { padding: 2.5mm 3mm !important; }
-          .certificate-sign { padding-top: 8mm !important; }
-          .certificate-issuer { margin-top: 6mm !important; font-size: 24px !important; }
-          .certificate-seal { width: 26mm !important; height: 26mm !important; font-size: 10px !important; }
-          .certificate-refund-note { margin-top: 5mm !important; font-size: 11px !important; }
+          .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 7mm 9mm !important; border-width: 2px !important; overflow: hidden !important; }
+          .certificate-title { margin-top: 8mm !important; font-size: 33px !important; }
+          .certificate-no { margin-top: 6mm !important; }
+          .certificate-person { margin-top: 8mm !important; padding: 4.5mm !important; }
+          .certificate-name { font-size: 27px !important; }
+          .certificate-birth { margin-top: 2.5mm !important; font-size: 14px !important; }
+          .certificate-body { margin-top: 8mm !important; font-size: 15.5px !important; line-height: 1.68 !important; }
+          .certificate-table { margin-top: 7mm !important; font-size: 12.5px !important; }
+          .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
+          .certificate-table-cell { padding: 2.2mm 3mm !important; }
+          .certificate-sign { padding-top: 6mm !important; }
+          .certificate-issuer { margin-top: 5mm !important; font-size: 23px !important; }
+          .certificate-seal, .seal-stamp { width: 26mm !important; height: 26mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
       `}</style>
 
       <div className="certificate-wrap mx-auto max-w-5xl print:max-w-none">
-        <div className="no-print mb-5 flex flex-wrap items-center justify-between gap-3">
+        <div className="no-print mb-5 flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Certificate</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-[-0.04em] text-slate-950">수강증/수료증 확인 및 인쇄</h1>
+            <h1 className="mt-2 break-keep text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl sm:tracking-[-0.04em]">수강증/수료증 확인 및 인쇄</h1>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => window.print()} disabled={!certificate} className="rounded-full border-2 border-amber-200 bg-amber-400 px-5 py-3 text-sm font-black text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.28)] ring-2 ring-amber-100/70 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:ring-0">
+          <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+            <button type="button" onClick={() => openPrintDialog("print")} disabled={!certificate} className="rounded-full border-2 border-amber-200 bg-amber-400 px-5 py-3 text-center text-sm font-black text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.28)] ring-2 ring-amber-100/70 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:ring-0">
               {documentTitle} 인쇄하기
             </button>
-            <Link href="/dashboard" className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-sm font-semibold text-[#10213f]">
+            <button type="button" onClick={() => openPrintDialog("pdf")} disabled={!certificate} className="rounded-full border-2 border-[#173968] bg-[#173968] px-5 py-3 text-center text-sm font-black text-white shadow-[0_14px_28px_rgba(23,57,104,0.24)] transition hover:bg-[#10213f] disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none">
+              PDF 저장
+            </button>
+            <Link href="/dashboard" className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-center text-sm font-semibold text-[#10213f]">
               마이페이지로 돌아가기
             </Link>
           </div>
@@ -414,7 +464,7 @@ function CertificatePageContent() {
 
                 <div className="certificate-sign mt-auto pt-12">
                   <p className="text-lg font-semibold text-slate-900">{formatKoreanDate(issuedAt)}</p>
-                  <div className="mt-8 flex items-center justify-center gap-5"><p className="certificate-issuer text-3xl font-bold tracking-[0.08em] text-slate-950">{issuerName}</p><div className="certificate-seal relative flex h-24 w-24 shrink-0 items-center justify-center rounded-full border-[3px] border-rose-700 text-center text-[12px] font-black leading-tight text-rose-700"><span className="absolute inset-2 rounded-full border border-rose-700/70" aria-hidden="true" /><span className="relative tracking-[0.08em]">리셋<br />에듀<br />센터</span></div></div>
+                  <div className="mt-8 flex items-center justify-center gap-5"><p className="certificate-issuer text-3xl font-bold tracking-[0.08em] text-slate-950">{issuerName}</p><SealStamp size={112} className="certificate-seal shrink-0" withTexture /></div>
                   {(certificate.issuerBusinessNumber || certificate.issuerContact || certificate.issuerEmail) ? (
                     <p className="mt-4 text-sm leading-7 text-slate-500">
                       {certificate.issuerBusinessNumber ? `사업자등록번호 ${certificate.issuerBusinessNumber}` : ""}
@@ -422,16 +472,10 @@ function CertificatePageContent() {
                       {certificate.issuerEmail ? ` · 이메일 ${certificate.issuerEmail}` : ""}
                     </p>
                   ) : null}
-                  <p className="certificate-refund-note mt-6 text-sm text-slate-500">본 서류는 온라인 교육 시스템의 수강 기록을 기준으로 발급되었습니다. 서류 발급 또는 출력 이후에는 환불이 불가합니다.</p>
                 </div>
               </div>
             </section>
 
-            <div className="no-print mt-5 rounded-[1.25rem] border border-[#d7deea] bg-white p-5 text-sm leading-7 text-slate-600">
-              <p>수강 즉시 {documentTitle}을 온라인에서 출력할 수 있습니다.</p>
-              <p>{documentTitle}을 PDF로 저장하려면 인쇄 화면에서 대상을 ‘PDF로 저장’으로 선택해 주세요.</p>
-              <p className="mt-2 text-slate-500">출력 화면 기준일: {printedDate}</p>
-            </div>
           </>
         ) : null}
       </div>

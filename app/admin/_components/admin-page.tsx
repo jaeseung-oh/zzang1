@@ -8,9 +8,12 @@ import { useEffect, useMemo, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
 import { calculateRefundAmount } from "@/lib/payment/refund";
+import { paymentConfig } from "@/lib/payment/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { adminSettings, getAdminEmails, isAdminEmail } from "@/lib/admin/config";
+import SealStamp, { sealStampPath } from "@/app/components/SealStamp";
+import { preventionDocuments } from "@/lib/course/prevention-documents";
 
 type AdminView = "dashboard" | "users" | "payments" | "enrollments" | "certificates" | "refunds" | "courses" | "settings";
 type AdminMenuView = AdminView | "lectures";
@@ -136,6 +139,13 @@ function downloadCsv(filename: string, rows: AnyRecord[]) {
   URL.revokeObjectURL(url);
 }
 
+function downloadSealStampPng() {
+  const a = document.createElement("a");
+  a.href = sealStampPath;
+  a.download = "reset-edu-center-seal.png";
+  a.click();
+}
+
 function usePagination<T>(items: T[], pageSize = 10) {
   const [page, setPage] = useState(1);
   const maxPage = Math.max(1, Math.ceil(items.length / pageSize));
@@ -220,7 +230,7 @@ function AdminToolbar({ search, setSearch, filter, setFilter, filters, onRefresh
       <select value={filter} onChange={(event) => setFilter(event.target.value)} className="min-h-11 rounded-full border border-[#d7deea] px-4 text-sm outline-none focus:border-[#173968]">
         {filters.map((item) => <option key={item} value={item}>{item}</option>)}
       </select>
-      <button type="button" onClick={onRefresh} className="rounded-full border border-[#d7deea] bg-[#f8fafc] px-4 py-2 text-sm font-semibold">새로고침</button>
+      <button type="button" onClick={onRefresh} className="rounded-full border border-[#d7deea] bg-[#f8fafc] px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-white">새로고침</button>
       <button type="button" onClick={onCsv} className="rounded-full bg-[#173968] px-4 py-2 text-sm font-bold text-white">CSV 다운로드</button>
     </div>
   );
@@ -368,7 +378,25 @@ function DashboardView({ data, maps, refresh }: any) {
   const cards = [
     ["전체 회원 수", data.users.length, "/admin/users"], ["전체 결제 건수", data.payments.length, "/admin/payments"], ["총 결제금액", formatKrw(totalAmount), "/admin/payments"], ["오늘 결제금액", formatKrw(todayAmount), "/admin/payments"], ["이번 달 결제금액", formatKrw(monthAmount), "/admin/payments"], ["음주운전 예방교육 구매자 수", new Set(payments.filter((p: AnyRecord) => p.courseId === duiPreventionCourseProduct.courseId).map((p: AnyRecord) => p.uid || p.userId)).size, "/admin/enrollments"], ["수강 중인 회원 수", data.enrollments.filter((e: AnyRecord) => e.accessStatus === "active").length, "/admin/enrollments"], ["수강 완료 회원 수", completed.length, "/admin/enrollments"], ["수료증 발급 건수", data.certificates.length, "/admin/certificates"], ["수강기간 만료 건수", expired.length, "/admin/enrollments"], ["환불 가능 대상 건수", refundable.length, "/admin/refunds"],
   ];
-  return <section><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-3xl font-semibold tracking-[-0.04em]">운영 대시보드</h2><button type="button" onClick={() => void createAdminDemoData(refresh)} className="rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white">내 계정 시범 수강완료 만들기</button></div><div className="mb-4 rounded-[1.25rem] border border-[#d7deea] bg-white p-4 text-sm leading-7 text-slate-600">시범 버튼은 관리자 이메일 계정에서만 동작합니다. 생성 후 <Link href="/certificate" className="font-semibold text-[#173968] underline">/certificate</Link>에서 수료증을 발급하고 인쇄할 수 있습니다.</div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, href]) => <Link key={String(label)} href={String(href)} className="rounded-[1.25rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5"><p className="text-sm text-slate-500">{label}</p><p className="mt-3 text-2xl font-bold text-slate-950">{String(value)}</p></Link>)}</div></section>;
+  return <section><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-3xl font-semibold tracking-[-0.04em]">운영 대시보드</h2><button type="button" onClick={() => void createAdminDemoData(refresh)} className="rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white">내 계정 시범 수강완료 만들기</button></div><div className="mb-4 rounded-[1.25rem] border border-[#d7deea] bg-white p-4 text-sm leading-7 text-slate-600">시범 버튼은 관리자 이메일 계정에서만 동작합니다. 생성 후 <Link href="/certificate" className="font-semibold text-[#173968] underline">/certificate</Link>에서 수료증을 즉시 출력할 수 있습니다.</div><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value, href]) => <Link key={String(label)} href={String(href)} className="rounded-[1.25rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)] transition hover:-translate-y-0.5"><p className="text-sm text-slate-500">{label}</p><p className="mt-3 text-2xl font-bold text-slate-950">{String(value)}</p></Link>)}</div><div className="mt-5 rounded-[1.5rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">Document Preview</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-slate-950">참고서식 미리보기</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-600">89,000원 서식 포함 수강권 구매자에게 제공되는 서식의 인쇄 및 PDF 저장 화면을 관리자 권한으로 확인합니다.</p>
+        </div>
+        <Link href="/course-room" className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold text-[#173968]">수강실 서식 영역 확인</Link>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {preventionDocuments.map((document) => (
+          <Link key={document.id} href={`/prevention-documents?type=${document.id}`} className="rounded-[1.15rem] border border-[#d7deea] bg-[#f8fafc] p-4 transition hover:border-[#173968] hover:bg-[#eef4ff]">
+            <p className="text-base font-bold text-slate-950">{document.title}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">{document.description}</p>
+            <p className="mt-4 text-sm font-semibold text-[#173968]">서식 보기 · 인쇄/PDF 확인</p>
+          </Link>
+        ))}
+      </div>
+    </div></section>;
 }
 
 function UsersView(ctx: any) {
@@ -403,10 +431,50 @@ function PaymentsView(ctx: any) {
   const pager = usePagination(sorted);
   const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId);
   useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]);
-  return <section><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체", "결제완료", "결제실패", "결제취소", "환불완료", "오늘 결제", "이번 달 결제"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-payments.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "orderId", label: "주문번호" }, { key: "paymentId", label: "결제번호" }, { key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "상품명" }, { key: "amount", label: "결제금액", align: "right", render: (r) => formatKrw(Number(r.amount || 0)) }, { key: "method", label: "결제수단" }, { key: "paymentStatus", label: "상태", render: (r) => r.paymentStatus || r.status || "-" }, { key: "createdAt", label: "결제일시", render: (r) => formatDate(r.createdAt || r.orderedAt) }, { key: "approvedAt", label: "승인일시", render: (r) => formatDate(r.approvedAt) }, { key: "enrollmentGranted", label: "수강권", render: (r) => r.enrollmentGranted ? "부여" : "없음" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <PaymentDetail selected={selected} ctx={ctx} /> : null}</section>;
+  return <section><PaymentResyncPanel onRefresh={ctx.refresh} /><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체", "결제완료", "결제실패", "결제취소", "환불완료", "오늘 결제", "이번 달 결제"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-payments.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "orderId", label: "주문번호" }, { key: "paymentId", label: "결제번호" }, { key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "상품명" }, { key: "amount", label: "결제금액", align: "right", render: (r) => formatKrw(Number(r.amount || 0)) }, { key: "method", label: "결제수단" }, { key: "paymentStatus", label: "상태", render: (r) => r.paymentStatus || r.status || "-" }, { key: "createdAt", label: "결제일시", render: (r) => formatDate(r.createdAt || r.orderedAt) }, { key: "approvedAt", label: "승인일시", render: (r) => formatDate(r.approvedAt) }, { key: "enrollmentGranted", label: "수강권", render: (r) => r.enrollmentGranted ? "부여" : "없음" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <PaymentDetail selected={selected} ctx={ctx} /> : null}</section>;
 }
 
 function filterPayment(row: AnyRecord, filter: string) { const status = row.paymentStatus || row.status; if (filter === "결제완료") return status === "paid"; if (filter === "결제실패") return status === "failed"; if (filter === "결제취소") return status === "canceled" || status === "cancelled"; if (filter === "환불완료") return status === "refunded"; if (filter === "오늘 결제") return isToday(row.approvedAt || row.createdAt); if (filter === "이번 달 결제") return isThisMonth(row.approvedAt || row.createdAt); return true; }
+function PaymentResyncPanel({ onRefresh }: { onRefresh: () => void }) {
+  const [paymentId, setPaymentId] = useState("");
+  const [uid, setUid] = useState("");
+  const [productId, setProductId] = useState("basic");
+  const [amount, setAmount] = useState("55000");
+  const [status, setStatus] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const handleResync = async () => {
+    setStatus("");
+    if (!paymentId.trim() || !uid.trim()) {
+      setStatus("결제번호와 사용자 ID를 입력해 주세요.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const user = await requireAuthenticatedUser();
+      const idToken = await user.getIdToken();
+      const baseUrl = paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "");
+      if (!baseUrl) throw new Error("결제 확인 Worker URL이 설정되지 않았습니다.");
+      const response = await fetch(baseUrl + "/api/admin/payments/resync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+        body: JSON.stringify({ paymentId: paymentId.trim(), uid: uid.trim(), productId, amount: Number(amount) || undefined }),
+      });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(payload?.message || "결제 재조회에 실패했습니다.");
+      setStatus("결제 재조회 및 수강권 반영이 완료되었습니다.");
+      onRefresh();
+    } catch (error) {
+      console.error(error);
+      setStatus(error instanceof Error ? error.message : "결제 재조회 중 오류가 발생했습니다.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return <section className="mb-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"><p className="font-bold">결제 상태 재조회 / 수강권 수동지급</p><p className="mt-1 text-xs leading-5">카드 승인 후 수강권 반영이 누락된 경우 포트원 결제번호와 사용자 ID로 재조회합니다. 이미 지급된 거래는 중복 지급되지 않습니다.</p><div className="mt-3 grid gap-2 md:grid-cols-[1fr_1fr_150px_130px_auto]"><input value={paymentId} onChange={(e) => setPaymentId(e.target.value)} placeholder="paymentId / 주문번호" className="min-h-11 rounded-xl border border-amber-200 bg-white px-3 outline-none focus:border-amber-500" /><input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="사용자 ID(uid)" className="min-h-11 rounded-xl border border-amber-200 bg-white px-3 outline-none focus:border-amber-500" /><select value={productId} onChange={(e) => { setProductId(e.target.value); setAmount(e.target.value === "dui-documents" ? "89000" : "55000"); }} className="min-h-11 rounded-xl border border-amber-200 bg-white px-3 outline-none focus:border-amber-500"><option value="basic">기본</option><option value="dui-documents">서식 포함</option></select><input value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="금액" className="min-h-11 rounded-xl border border-amber-200 bg-white px-3 outline-none focus:border-amber-500" /><button type="button" onClick={handleResync} disabled={submitting} className="rounded-xl bg-[#173968] px-4 py-2 font-bold text-white disabled:bg-gray-300">{submitting ? "처리 중" : "재조회"}</button></div>{status ? <p className="mt-3 font-semibold">{status}</p> : null}</section>;
+}
+
 function PaymentDetail({ selected, ctx }: any) { const enrollment = ctx.data.enrollments.find((e: AnyRecord) => e.orderId === selected.orderId || e.paymentId === selected.paymentId); const certificate = ctx.maps.certificateByUserCourse.get(`${selected.uid || selected.userId}_${selected.courseId}`); const refund = getRefundInfo({ payment: selected, enrollment, certificate }); return <DetailPanel title="결제 상세" memoTarget="payments" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("payments", selected.id, ctx.memo)} rows={[["주문번호", selected.orderId], ["결제번호", selected.paymentId || selected.paymentKey || "-"], ["PG 원본 응답", <pre className="max-h-52 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(selected.rawResponse || {}, null, 2)}</pre>], ["연결 수강권", enrollment?.id || "수강권 없음"], ["연결 수료증", certificate ? <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="text-[#173968] underline">{certificate.certificateNo || "보기"}</Link> : "미발급"], ["예상 환불", `${formatKrw(refund.refundAmount)} / ${refund.reason}`]]} />; }
 
 function EnrollmentsView(ctx: any) {
@@ -460,6 +528,31 @@ function RefundsView(ctx: any) { const rows: AnyRecord[] = ctx.data.enrollments.
 
 function CoursesView() { return <section><h2 className="mb-4 text-3xl font-semibold tracking-[-0.04em]">강의 관리</h2><DetailPanel title="음주운전 예방교육" rows={[["courseId", duiPreventionCourseProduct.courseId], ["courseTitle", duiPreventionCourseProduct.courseTitle], ["결제금액", formatKrw(duiPreventionCourseProduct.price)], ["총 강의 수", `${duiPreventionCourseProduct.totalLessons}강`], ["수강기간", `${duiPreventionCourseProduct.durationDays}일`], ["환불 산정 기준", "실제 결제금액 × 미수강 강의 수 / 전체 강의 수"], ["수료증 발급", duiPreventionCourseProduct.certificateAvailable ? "가능" : "불가"], ["공개 여부", "공개"], ["설명", duiPreventionCourseProduct.description]]} /><div className="mt-5 grid gap-3">{defaultCourse.modules.map((m, i) => <div key={m.id} className="rounded-[1.25rem] border border-[#d7deea] bg-white p-4"><p className="font-bold">{i + 1}강. {m.title}</p><p className="mt-2 text-sm text-slate-600">lessonId: {m.id} / videoId: {m.cloudflareStreamUid || m.secureVideoPath || "미설정"} / 재생시간: {m.minutes}분 / 공개 여부: 공개 / 완료 기준: 100% 시청</p></div>)}</div></section>; }
 
-function SettingsView() { const settings = [["사이트명", adminSettings.siteName], ["운영자명", adminSettings.operatorName], ["사업자명", adminSettings.businessName], ["대표자명", adminSettings.representativeName], ["고객센터 이메일", adminSettings.supportEmail], ["고객센터 연락처", adminSettings.supportPhone], ["사업자등록번호", adminSettings.businessNumber], ["통신판매업 신고번호", adminSettings.commerceRegistrationNumber], ["수료증 발급기관명", adminSettings.certificateIssuerName], ["관리자 이메일 목록", getAdminEmails().join(", ")], ["결제사 이름", adminSettings.paymentProviderName], ["결제 환경", adminSettings.paymentEnvironment]]; return <section><h2 className="mb-4 text-3xl font-semibold tracking-[-0.04em]">시스템 설정</h2><DetailPanel title="운영 설정" rows={settings as Array<[string, React.ReactNode]>} /><p className="mt-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">PAYMENT_SECRET_KEY, PG Secret Key, Firebase private key, 서버 비밀키, API Secret은 관리자 화면에 표시하지 않습니다. 향후 Firebase Custom Claims 또는 admin role 필드로 확장할 수 있습니다.</p></section>; }
+function SettingsView() {
+  const settings = [["사이트명", adminSettings.siteName], ["운영자명", adminSettings.operatorName], ["사업자명", adminSettings.businessName], ["대표자명", adminSettings.representativeName], ["고객센터 이메일", adminSettings.supportEmail], ["고객센터 연락처", adminSettings.supportPhone], ["사업자등록번호", adminSettings.businessNumber], ["통신판매업 신고번호", adminSettings.commerceRegistrationNumber], ["수료증 발급기관명", adminSettings.certificateIssuerName], ["관리자 이메일 목록", getAdminEmails().join(", ")], ["결제사 이름", adminSettings.paymentProviderName], ["결제 환경", adminSettings.paymentEnvironment]];
+  return (
+    <section>
+      <h2 className="mb-4 text-3xl font-semibold tracking-[-0.04em]">시스템 설정</h2>
+      <DetailPanel title="운영 설정" rows={settings as Array<[string, React.ReactNode]>} />
+      <section className="mt-5 rounded-[1.5rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
+        <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">직인 설정</h3>
+            <p className="mt-2 text-sm leading-7 text-slate-600">수료증에 표시되는 리셋에듀센터 직인입니다.</p>
+            <p className="mt-2 text-xs leading-6 text-slate-500">직인은 수료증 미리보기, 인쇄, PDF 저장 화면에 동일하게 표시됩니다.</p>
+          </div>
+          <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+            <div className="rounded-2xl border border-rose-100 bg-white p-4">
+              <SealStamp size={120} withTexture />
+            </div>
+            <button type="button" onClick={() => void downloadSealStampPng()} className="cursor-pointer rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(23,57,104,0.18)] transition hover:bg-[#10213f]">직인 이미지 다운로드</button>
+          </div>
+        </div>
+        {/* TODO: 추후 직인 이미지 교체 업로드 기능을 관리자 전용으로 추가할 수 있습니다. */}
+      </section>
+      <p className="mt-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">PAYMENT_SECRET_KEY, PG Secret Key, Firebase private key, 서버 비밀키, API Secret은 관리자 화면에 표시하지 않습니다. 향후 Firebase Custom Claims 또는 admin role 필드로 확장할 수 있습니다.</p>
+    </section>
+  );
+}
 
-function Pagination({ page, maxPage, setPage }: { page: number; maxPage: number; setPage: (v: number) => void }) { return <div className="mt-4 flex items-center justify-end gap-2"><button onClick={() => setPage(Math.max(1, page - 1))} className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold">이전</button><span className="text-sm text-slate-600">{page}/{maxPage}</span><button onClick={() => setPage(Math.min(maxPage, page + 1))} className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold">다음</button></div>; }
+function Pagination({ page, maxPage, setPage }: { page: number; maxPage: number; setPage: (v: number) => void }) { return <div className="mt-4 flex items-center justify-end gap-2"><button onClick={() => setPage(Math.max(1, page - 1))} className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">이전</button><span className="text-sm text-slate-600">{page}/{maxPage}</span><button onClick={() => setPage(Math.min(maxPage, page + 1))} className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">다음</button></div>; }

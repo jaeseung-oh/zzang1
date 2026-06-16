@@ -1,17 +1,20 @@
 "use client";
 
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { isAdminEmail } from "@/lib/admin/config";
 import { defaultCourse } from "@/lib/course/catalog";
+import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import { getUserEnrollment, hasCourseAccess, isEnrollmentActive } from "@/lib/course/enrollment-service";
+import { isSuperAdmin } from "@/lib/auth/auth-role-service";
+import { hasPreventionDocumentsAccess, preventionDocuments } from "@/lib/course/prevention-documents";
 
 type SaveCourseProgressResponse = {
   progressId: string;
@@ -99,9 +102,12 @@ const caseTypeOptions: Array<{ value: CaseType; label: string }> = [
 const disclaimer =
   "본 과정은 법률 검토나 상담을 제공하지 않으며, 사용자가 자신의 생활 변화와 재발 방지 계획을 스스로 정리할 수 있도록 돕는 민간 교육 서비스입니다.";
 
+// TODO: 실제 운영에서는 Cloudflare Stream signed URL 또는 서버 발급 토큰을 사용해 결제자와 관리자만 영상 재생 URL을 받을 수 있도록 구현해야 함.
+
 const localStorageKey = `course-room-progress:${defaultCourse.id}`;
 
 const lectureActivityEvent = "resetedu:lecture-activity";
+const completionThreshold = 95;
 
 function dispatchLectureActivity(active: boolean) {
   if (typeof window === "undefined") {
@@ -138,18 +144,6 @@ function formatDateKey(value: unknown) {
 function isLegalAcceptedToday(remote: ProgressRecord | null, local: StoredPlaybackSnapshot | null) {
   const today = getTodayKey();
   return remote?.legalNoticeAcceptedDate === today || formatDateKey(remote?.legalNoticeAcceptedAt) === today || local?.legalAcceptedDate === today;
-}
-
-function parseAccessExpiry(value: unknown) {
-  if (!value) return null;
-  if (typeof value === "string") {
-    const time = new Date(value).getTime();
-    return Number.isFinite(time) ? time : null;
-  }
-  if (typeof value === "object" && value !== null && "seconds" in value && typeof (value as { seconds?: unknown }).seconds === "number") {
-    return (value as { seconds: number }).seconds * 1000;
-  }
-  return null;
 }
 
 function formatDuration(seconds: number) {
@@ -200,29 +194,24 @@ function truncateText(value: string, maxLength: number) {
 
 async function resolveCloudflareStreamUrl(uid: string) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
-
   if (!apiBaseUrl) {
-    return `https://iframe.videodelivery.net/${uid}`;
+    throw new Error("영상 토큰 발급 서버 URL이 설정되지 않았습니다.");
   }
 
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}`, {
-      method: "GET",
-      credentials: "include",
-    });
+  const user = await requireAuthenticatedUser();
+  const idToken = await user.getIdToken();
+  const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}&courseId=${encodeURIComponent(defaultCourse.id)}`, {
+    method: "GET",
+    headers: { Authorization: "Bearer " + idToken },
+  });
 
-    if (!response.ok) {
-      throw new Error(`Stream token request failed: ${response.status}`);
-    }
-
-    const data = (await response.json()) as { videoUrl?: string };
-    return data.videoUrl || `https://iframe.videodelivery.net/${uid}`;
-  } catch (error) {
-    console.error(error);
-    return `https://iframe.videodelivery.net/${uid}`;
+  const data = (await response.json().catch(() => ({}))) as { videoUrl?: string; message?: string; error?: string };
+  if (!response.ok || !data.videoUrl) {
+    throw new Error(data.message || data.error || `Stream token request failed: ${response.status}`);
   }
+
+  return data.videoUrl;
 }
-
 function buildEmptyModuleProgress() {
   return Object.fromEntries(
     defaultCourse.modules.map((module) => [
@@ -290,7 +279,7 @@ function mergeModuleProgress(
       durationSeconds,
       completionRate,
       lastPlaybackPositionSeconds,
-      isCompleted: completionRate >= 100,
+      isCompleted: completionRate >= completionThreshold,
     };
   }
 
@@ -352,6 +341,12 @@ export default function CourseRoomPage() {
   const [isVideoLoading, setIsVideoLoading] = useState(false);
   const [streamSdkReady, setStreamSdkReady] = useState(false);
   const [accessBlockedMessage, setAccessBlockedMessage] = useState("");
+  const [accessChecking, setAccessChecking] = useState(true);
+  const [adminPreview, setAdminPreview] = useState(false);
+  const [resumePromptVisible, setResumePromptVisible] = useState(false);
+  const [resumeToast, setResumeToast] = useState("");
+  const [progressSyncNotice, setProgressSyncNotice] = useState("");
+  const [hasDocumentFormsAccess, setHasDocumentFormsAccess] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamIframeRef = useRef<HTMLIFrameElement | null>(null);
@@ -359,6 +354,7 @@ export default function CourseRoomPage() {
   const saveInFlightRef = useRef(false);
   const restoreAppliedRef = useRef(false);
   const refreshTimeoutRef = useRef<number | null>(null);
+  const resumeToastTimeoutRef = useRef<number | null>(null);
   const lastSavedSnapshotRef = useRef<{ watchedSeconds: number; currentSeconds: number }>({
     watchedSeconds: -1,
     currentSeconds: -1,
@@ -434,6 +430,9 @@ export default function CourseRoomPage() {
     };
   }, [moduleProgress]);
 
+  const selectedModuleIndex = useMemo(() => defaultCourse.modules.findIndex((module) => module.id === selectedModuleId), [selectedModuleId]);
+  const previousModule = selectedModuleIndex > 0 ? defaultCourse.modules[selectedModuleIndex - 1] : null;
+  const nextModule = selectedModuleIndex >= 0 && selectedModuleIndex < defaultCourse.modules.length - 1 ? defaultCourse.modules[selectedModuleIndex + 1] : null;
   const selectedProgress = moduleProgress[selectedModuleId] ?? buildEmptyModuleProgress()[selectedModuleId];
   const selectedProgressRef = useRef(selectedProgress);
 
@@ -466,44 +465,25 @@ export default function CourseRoomPage() {
         setFullName(resolvedName);
 
         const { db } = getFirebaseServices();
-        const adminBypass = isAdminEmail(user.email);
-        const [purchaseSnapshot, enrollmentSnapshot] = await Promise.all([
-          getDocs(query(collection(db, "purchases"), where("uid", "==", user.uid), where("courseId", "==", defaultCourse.id), where("paymentStatus", "==", "paid"))),
-          getDoc(doc(db, "enrollments", user.uid + "_" + defaultCourse.id)),
-        ]);
-        const now = Date.now();
-        const paidPurchases = purchaseSnapshot.docs.map((snapshot) => snapshot.data());
-        const activePurchase = paidPurchases.find((purchase) => {
-          const expiresAt = parseAccessExpiry(purchase.expiresAt);
-          return (purchase.accessStatus ?? "active") === "active" && (expiresAt === null || expiresAt >= now);
-        });
-        const enrollment = enrollmentSnapshot.exists() ? enrollmentSnapshot.data() : null;
-        const enrollmentExpiresAt = parseAccessExpiry(enrollment?.expiresAt);
-        const activeEnrollment = Boolean(
-          enrollment &&
-          (enrollment.uid === user.uid || enrollment.userId === user.uid) &&
-          enrollment.courseId === defaultCourse.id &&
-          enrollment.paymentStatus === "paid" &&
-          (enrollment.accessStatus ?? "active") === "active" &&
-          (enrollmentExpiresAt === null || enrollmentExpiresAt >= now)
-        );
+        const adminBypass = isSuperAdmin(user);
+        setAdminPreview(adminBypass);
+        const allowed = await hasCourseAccess(user, defaultCourse.id);
+        const enrollment = await getUserEnrollment(user.uid, defaultCourse.id);
+        setHasDocumentFormsAccess(adminBypass || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId)));
 
-        if (!adminBypass && !activePurchase && !activeEnrollment) {
-          const hasExpiredPurchase = paidPurchases.some((purchase) => {
-            const expiresAt = parseAccessExpiry(purchase.expiresAt);
-            return expiresAt !== null && expiresAt < now;
-          });
-          const hasExpiredEnrollment = Boolean(enrollment && enrollment.paymentStatus === "paid" && enrollmentExpiresAt !== null && enrollmentExpiresAt < now);
-          const message = hasExpiredPurchase || hasExpiredEnrollment
+        if (!allowed) {
+          const expired = enrollment?.paymentStatus === "paid" && !isEnrollmentActive(enrollment);
+          const message = expired
             ? "해당 강의의 수강기간은 결제일로부터 90일이며, 현재 수강기간이 만료되어 수강할 수 없습니다."
-            : "결제 완료 후 음주운전 예방교육 수강권이 부여되면 강의를 수강할 수 있습니다.";
+            : "수강권 결제 후 이용할 수 있습니다.";
           setAccessBlockedMessage(message);
           setPlayerError(message);
+          router.replace("/courses/apply?categoryId=dui&notice=" + encodeURIComponent(message));
         } else {
           setAccessBlockedMessage("");
         }
-
-        const progressSnapshot = await getDoc(doc(db, "courseProgress", `${user.uid}_${defaultCourse.id}`));
+        setAccessChecking(false);
+        const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + defaultCourse.id));
         const remote = progressSnapshot.exists() ? (progressSnapshot.data() as ProgressRecord) : null;
         const local = readLocalSnapshot();
         const mergedProgress = mergeModuleProgress(buildEmptyModuleProgress(), remote?.moduleProgress, local?.moduleProgress);
@@ -536,6 +516,7 @@ export default function CourseRoomPage() {
 
           setError("Firebase 세션 준비에 실패했습니다. Authentication과 Firestore 연결 상태를 확인해 주세요.");
           setStatusMessage("세션 준비에 실패했습니다.");
+          setAccessChecking(false);
         }
       }
     };
@@ -569,12 +550,148 @@ export default function CourseRoomPage() {
 
   useEffect(() => {
     return () => {
+      if (resumeToastTimeoutRef.current) {
+        window.clearTimeout(resumeToastTimeoutRef.current);
+      }
       dispatchLectureActivity(false);
     };
   }, []);
 
+  function getActivePlaybackSeconds() {
+    if (videoProvider === "cloudflare-stream") {
+      const player = streamPlayerRef.current;
+      return Math.max(0, Math.round(player?.currentTime || selectedProgressRef.current.lastPlaybackPositionSeconds || 0));
+    }
+
+    const player = videoRef.current;
+    return Math.max(0, Math.round(player?.currentTime || selectedProgressRef.current.lastPlaybackPositionSeconds || 0));
+  }
+
+  function buildCurrentLessonProgress() {
+    const userId = uidRef.current;
+    const lessonId = selectedModuleIdRef.current;
+    const item = moduleProgressRef.current[lessonId];
+
+    if (!userId || !lessonId || !item) {
+      return null;
+    }
+
+    const currentTime = getActivePlaybackSeconds();
+    const duration = Math.max(item.durationSeconds, selectedProgressRef.current.durationSeconds, 1);
+    return moduleProgressToLessonProgress(userId, defaultCourse.id, lessonId, {
+      ...item,
+      durationSeconds: duration,
+      lastPlaybackPositionSeconds: Math.min(duration, currentTime),
+      watchedSeconds: Math.max(item.watchedSeconds, Math.min(duration, currentTime)),
+    });
+  }
+
+  function saveCurrentLessonLocally() {
+    const progress = buildCurrentLessonProgress();
+    if (!progress) return null;
+    try {
+      window.localStorage.setItem("lesson-progress-" + progress.userId + "-" + progress.courseId + "-" + progress.lessonId, JSON.stringify(progress));
+    } catch {
+      // localStorage 저장 실패는 수강을 막지 않습니다.
+    }
+    return progress;
+  }
+
+  async function syncCurrentLessonBackup() {
+    const progress = buildCurrentLessonProgress();
+    if (!progress) return;
+
+    const lessonResult = await saveLessonProgress(progress);
+    await updateCourseProgress(progress.userId, progress.courseId, {
+      lastLessonId: progress.lessonId,
+      lastLessonTime: progress.currentTime,
+    });
+
+    if (!lessonResult.ok) {
+      setProgressSyncNotice("진도 저장이 일시적으로 지연되었습니다. 네트워크 연결 후 자동으로 다시 저장됩니다.");
+    } else {
+      setProgressSyncNotice("");
+    }
+  }
+
+  function showResumeNotice(resumeTime: number, durationSeconds: number) {
+    if (resumeTime <= 5) return;
+    setResumePromptVisible(true);
+    setResumeToast("이전 시청 위치부터 이어집니다.");
+    if (resumeToastTimeoutRef.current) {
+      window.clearTimeout(resumeToastTimeoutRef.current);
+    }
+    resumeToastTimeoutRef.current = window.setTimeout(() => setResumeToast(""), 3000);
+
+    if (durationSeconds > 0 && resumeTime >= durationSeconds - 10) {
+      setStatusMessage("이전에 거의 끝까지 시청했습니다. 이어보기 또는 처음부터 보기를 선택할 수 있습니다.");
+    } else {
+      setStatusMessage("이전에 보던 위치부터 이어서 수강할 수 있습니다.");
+    }
+  }
+
+  function seekSelectedPlayback(seconds: number, options?: { play?: boolean; hidePrompt?: boolean }) {
+    const safeSeconds = Math.max(0, Math.round(seconds));
+
+    if (videoProvider === "cloudflare-stream") {
+      const player = streamPlayerRef.current;
+      if (player) {
+        player.currentTime = safeSeconds;
+      }
+    } else if (videoRef.current) {
+      videoRef.current.currentTime = safeSeconds;
+      if (options?.play) {
+        void videoRef.current.play().catch(() => undefined);
+      }
+    }
+
+    updateSelectedModuleProgress({ lastPlaybackPositionSeconds: safeSeconds });
+    if (options?.hidePrompt) {
+      setResumePromptVisible(false);
+    }
+  }
+
+  function handleResumeFromSavedPosition() {
+    seekSelectedPlayback(selectedProgressRef.current.lastPlaybackPositionSeconds, { play: true, hidePrompt: true });
+    setStatusMessage("이전에 보던 위치부터 이어서 수강합니다. 진도는 자동으로 저장됩니다.");
+  }
+
+  function handleRestartCurrentLesson() {
+    seekSelectedPlayback(0, { play: true, hidePrompt: true });
+    setStatusMessage("처음부터 다시 재생합니다. 기존 진도율은 유지되며 다시 시청하면서 업데이트됩니다.");
+  }
+
+  function handleMoveAdjacentLesson(moduleId: string | null | undefined) {
+    if (!moduleId) return;
+    handleSelectModule(moduleId);
+  }
+
   useEffect(() => {
-    if (!uid || !selectedModule) {
+    if (typeof window === "undefined") return;
+
+    const handleBeforeUnload = () => {
+      saveCurrentLessonLocally();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        saveCurrentLessonLocally();
+        void persistProgress("auto");
+        void syncCurrentLessonBackup();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!uid || !selectedModule || accessChecking) {
       return;
     }
 
@@ -586,6 +703,8 @@ export default function CourseRoomPage() {
         setPlayerError("");
         setPlayerReady(false);
         restoreAppliedRef.current = false;
+        setResumePromptVisible(false);
+        setResumeToast("");
 
         if (accessBlockedMessage) {
           setVideoProvider("storage");
@@ -658,7 +777,7 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [uid, selectedModule, accessBlockedMessage]);
+  }, [uid, selectedModule, accessBlockedMessage, accessChecking]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Stream) {
@@ -689,7 +808,9 @@ export default function CourseRoomPage() {
 
       if (!restoreAppliedRef.current) {
         restoreAppliedRef.current = true;
-        player.currentTime = Math.min(progress.lastPlaybackPositionSeconds, actualDuration);
+        const resumeTime = Math.min(progress.lastPlaybackPositionSeconds, Math.max(actualDuration - 1, 0));
+        player.currentTime = resumeTime;
+        showResumeNotice(resumeTime, actualDuration);
       }
     };
 
@@ -887,6 +1008,7 @@ export default function CourseRoomPage() {
       };
       setLastSavedLabel(new Date().toLocaleString("ko-KR"));
       setResult(response.data);
+      void syncCurrentLessonBackup();
 
       if (response.data.issuedCertificates.length) {
         setStatusMessage("음주운전 예방교육 수강을 완료했습니다. 수료증 등 교육 이수 자료를 즉시 출력할 수 있습니다.");
@@ -900,10 +1022,12 @@ export default function CourseRoomPage() {
     } catch (saveError) {
       console.error(saveError);
       const message = saveError instanceof Error ? saveError.message : "학습 진행 저장 중 문제가 발생했습니다.";
+      saveCurrentLessonLocally();
+      void syncCurrentLessonBackup();
       if (mode === "manual") {
         setError(message);
       } else {
-        setStatusMessage(`자동 저장 대기 중: ${message}`);
+        setStatusMessage("진도 저장이 일시적으로 지연되었습니다. 네트워크 연결 후 자동으로 다시 저장됩니다.");
       }
     } finally {
       saveInFlightRef.current = false;
@@ -937,7 +1061,7 @@ export default function CourseRoomPage() {
           durationSeconds,
           completionRate,
           lastPlaybackPositionSeconds,
-          isCompleted: completionRate >= 100,
+          isCompleted: completionRate >= completionThreshold,
         },
       };
     });
@@ -955,7 +1079,9 @@ export default function CourseRoomPage() {
 
     if (!restoreAppliedRef.current) {
       restoreAppliedRef.current = true;
-      player.currentTime = Math.min(selectedProgress.lastPlaybackPositionSeconds, actualDuration);
+      const resumeTime = Math.min(selectedProgress.lastPlaybackPositionSeconds, Math.max(actualDuration - 1, 0));
+      player.currentTime = resumeTime;
+      showResumeNotice(resumeTime, actualDuration);
     }
   };
 
@@ -1071,7 +1197,7 @@ export default function CourseRoomPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#06080c] px-4 py-5 text-white sm:px-6 lg:px-8 lg:py-8">
+    <main className="relative min-h-screen overflow-hidden bg-[#06080c] px-3 py-4 text-white sm:px-6 lg:px-8 lg:py-8">
       <Script
         src="https://embed.cloudflarestream.com/embed/sdk.latest.js"
         strategy="afterInteractive"
@@ -1120,14 +1246,15 @@ export default function CourseRoomPage() {
       ) : null}
 
       <div className="relative mx-auto max-w-[1520px]">
-        <section className="overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(135deg,#0a1424_0%,#0f1c33_45%,#162847_100%)] shadow-[0_30px_90px_rgba(2,6,23,0.34)]">
-          <div className="grid gap-8 px-6 py-7 sm:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:px-10 lg:py-9">
+        <section className="overflow-hidden rounded-[1.5rem] border border-white/10 bg-[linear-gradient(135deg,#0a1424_0%,#0f1c33_45%,#162847_100%)] shadow-[0_30px_90px_rgba(2,6,23,0.34)] sm:rounded-[2rem]">
+          <div className="grid gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:px-10 lg:py-9">
             <div>
               <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#c8d7f6]">
                 <span>Reset Edu Center</span>
                 <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-[11px] text-[#f0d59c]">Premium LMS</span>
+                {adminPreview ? <span className="rounded-full border border-slate-300/30 bg-slate-950 px-3 py-1 text-[11px] text-white">관리자 접근</span> : null}
               </div>
-              <h1 className="mt-4 max-w-4xl text-3xl font-semibold tracking-[-0.05em] text-white sm:text-4xl lg:text-[2.9rem]">
+              <h1 className="mt-4 max-w-4xl break-keep text-2xl font-semibold tracking-[-0.03em] text-white sm:text-4xl sm:tracking-[-0.05em] lg:text-[2.9rem]">
                 {defaultCourse.title}
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
@@ -1135,7 +1262,7 @@ export default function CourseRoomPage() {
               </p>
             </div>
 
-            <div className="flex flex-col items-stretch gap-3 sm:flex-row lg:flex-col lg:items-end">
+            <div className="flex flex-col items-stretch gap-2 sm:flex-row lg:flex-col lg:items-end">
               <Link
                 href="/"
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg hover:brightness-105 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
@@ -1157,7 +1284,7 @@ export default function CourseRoomPage() {
             </div>
           </div>
 
-          <div className="grid gap-4 border-t border-white/10 px-6 py-5 sm:grid-cols-2 lg:grid-cols-4 lg:px-10">
+          <div className="grid gap-3 border-t border-white/10 px-4 py-4 sm:grid-cols-2 lg:grid-cols-4 lg:px-10">
             <div className="rounded-[1.4rem] border border-white/10 bg-white/6 p-4 backdrop-blur">
               <p className="text-xs uppercase tracking-[0.22em] text-slate-400">수강생</p>
               <p className="mt-2 text-lg font-semibold text-white">{fullName || "실명 확인 대기"}</p>
@@ -1195,7 +1322,7 @@ export default function CourseRoomPage() {
                 style={{ width: `${aggregate.completionRate}%` }}
               />
             </div>
-            <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-slate-300">
+            <div className="mt-4 grid gap-2 text-center text-xs text-slate-300 sm:grid-cols-3">
               <div className="rounded-xl border border-white/12 bg-white/[0.06] px-2 py-3">
                 <p className="font-semibold text-white">{formatDuration(aggregate.watchedSeconds)}</p>
                 <p className="mt-1">누적 수강</p>
@@ -1264,15 +1391,15 @@ export default function CourseRoomPage() {
           </div>
         </section>
 
-        <div className="mt-6 grid gap-6 xl:grid-cols-[380px_minmax(0,1.9fr)]">
+        <div className="mt-5 grid gap-5 xl:grid-cols-[380px_minmax(0,1.9fr)]">
           <section className="space-y-6 xl:order-2">
-            <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_24px_60px_rgba(15,23,42,0.08)] sm:p-6 lg:p-7">
+            <section className="rounded-[1.5rem] border border-white/12 bg-white/[0.08] p-4 shadow-[0_24px_60px_rgba(15,23,42,0.08)] backdrop-blur-2xl sm:rounded-[2rem] sm:p-6 lg:p-7">
               <div className="space-y-5">
-                <div className="rounded-[1.8rem] border border-white/12 bg-[linear-gradient(180deg,#091221_0%,#0d1730_100%)] shadow-[0_24px_60px_rgba(15,23,42,0.18)]">
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-6">
+                <div className="rounded-[1.25rem] border border-white/12 bg-[linear-gradient(180deg,#091221_0%,#0d1730_100%)] shadow-[0_24px_60px_rgba(15,23,42,0.18)] sm:rounded-[1.8rem]">
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-white/10 px-4 py-4 sm:px-6">
                     <div className="max-w-3xl">
                       <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#9fbef9]">현재 재생 중인 강의</p>
-                      <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-[2rem]">{selectedModule?.title}</h2>
+                      <h2 className="mt-2 break-keep text-xl font-semibold tracking-[-0.03em] text-white sm:text-[2rem]">{selectedModule?.title}</h2>
                       <p className="mt-3 text-sm leading-7 text-slate-300">{selectedModule?.summary}</p>
                     </div>
                     <div className="flex flex-wrap gap-2">
@@ -1290,7 +1417,19 @@ export default function CourseRoomPage() {
 
                   <div className="relative bg-black">
                     <div className="aspect-video w-full">
-                      {videoUrl ? (
+                      {accessChecking ? (
+                        <div className="flex h-full items-center justify-center px-4 text-center text-sm leading-7 text-slate-300">수강권 정보를 확인하고 있습니다.</div>
+                      ) : accessBlockedMessage ? (
+                        <div className="flex h-full items-center justify-center px-8 text-center text-sm leading-7 text-slate-300">
+                          <div>
+                            <p className="font-semibold text-white">{accessBlockedMessage}</p>
+                            <div className="mt-4 flex flex-wrap justify-center gap-2">
+                              <Link href="/courses/apply?categoryId=dui" className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">수강 신청하기</Link>
+                              <Link href="/courses/dui-prevention" className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">강의 구성 보기</Link>
+                            </div>
+                          </div>
+                        </div>
+                      ) : videoUrl ? (
                         videoProvider === "cloudflare-stream" ? (
                           <iframe
                             ref={streamIframeRef}
@@ -1326,7 +1465,7 @@ export default function CourseRoomPage() {
                         )
                       ) : (
                         <div className="flex h-full items-center justify-center px-8 text-center text-sm leading-7 text-slate-300">
-                          {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : "선택한 강의 영상이 아직 준비되지 않았습니다."}
+                          {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : "강의 영상은 수강권을 구매 후 이용하실 수 있습니다. 결제 후에도 이 문구가 보이면 고객센터로 문의해 주세요."}
                         </div>
                       )}
                     </div>
@@ -1337,6 +1476,39 @@ export default function CourseRoomPage() {
                       </div>
                     </div>
                   </div>
+
+                  {resumeToast ? (
+                    <div className="border-t border-white/10 bg-emerald-400/10 px-5 py-3 text-sm font-semibold text-emerald-100 sm:px-6">
+                      {resumeToast}
+                    </div>
+                  ) : null}
+
+                  {resumePromptVisible ? (
+                    <div className="border-t border-white/10 bg-[#0b1528] px-5 py-4 sm:px-6">
+                      <div className="flex flex-col gap-4 rounded-[1.25rem] border border-indigo-300/25 bg-indigo-400/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="keep-korean text-sm leading-7 text-indigo-50">
+                          <p className="font-bold text-white">이전에 보던 위치부터 이어서 수강할 수 있습니다.</p>
+                          <p className="mt-1 text-indigo-100">이전에 {formatDuration(selectedProgress.lastPlaybackPositionSeconds)}까지 시청했습니다. 진도는 자동으로 저장됩니다.</p>
+                        </div>
+                        <div className="flex flex-col gap-2 sm:flex-row">
+                          <button
+                            type="button"
+                            onClick={handleResumeFromSavedPosition}
+                            className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-indigo-500 px-5 py-2 text-sm font-bold text-white transition hover:bg-indigo-400 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 focus:ring-offset-[#0b1528]"
+                          >
+                            이어보기
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleRestartCurrentLesson}
+                            className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-bold text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 focus:ring-offset-[#0b1528]"
+                          >
+                            처음부터 보기
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="grid gap-3 border-t border-white/10 bg-[linear-gradient(180deg,rgba(10,19,36,0.94),rgba(13,25,47,0.98))] px-5 py-5 sm:grid-cols-2 xl:grid-cols-4 sm:px-6">
                     <div className="rounded-[1.25rem] border border-white/10 bg-white/6 p-4">
@@ -1359,7 +1531,23 @@ export default function CourseRoomPage() {
                 </div>
 
                 <div className="rounded-[1.6rem] border border-white/12 bg-white/[0.08] p-5 shadow-[0_14px_28px_rgba(15,23,42,0.05)]">
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                      <button
+                        type="button"
+                        onClick={() => handleMoveAdjacentLesson(previousModule?.id)}
+                        disabled={!previousModule}
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        이전 강의
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleMoveAdjacentLesson(nextModule?.id)}
+                        disabled={!nextModule || !selectedProgress.isCompleted}
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        다음 강의
+                      </button>
                       <button
                         type="button"
                         onClick={() => void persistProgress("manual")}
@@ -1368,22 +1556,43 @@ export default function CourseRoomPage() {
                       >
                         {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                       </button>
-                      <Link
-                        href="/certificate"
-                        className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#111827]")}
-                      >
-                        수강증/수료증 발급
-                      </Link>
-                      <Link
-                        href="/certificate?print=1"
-                        className={buttonClass("warning", "md", "rounded-full px-5 font-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
-                      >
-                        바로 인쇄
-                      </Link>
+{aggregate.isCompleted ? (
+                        <Link
+                          href="/certificate"
+                          className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#111827]")}
+                        >
+                          수료증 발급
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="inline-flex min-h-12 cursor-not-allowed items-center justify-center rounded-full border border-white/15 bg-slate-600 px-5 py-3 text-sm font-bold text-slate-200 opacity-70"
+                        >
+                          수료 후 발급 가능
+                        </button>
+                      )}
+{aggregate.isCompleted ? (
+                        <Link
+                          href="/certificate?print=1"
+                          className={buttonClass("warning", "md", "rounded-full px-5 font-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
+                        >
+                          바로 인쇄
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="inline-flex min-h-12 cursor-not-allowed items-center justify-center rounded-full bg-slate-600 px-5 py-3 text-sm font-bold text-slate-200 opacity-70"
+                        >
+                          수료 후 인쇄 가능
+                        </button>
+                      )}
                     </div>
                     <div className="mt-4 rounded-[1.25rem] border border-white/12 bg-[#06080c]/45 px-4 py-4 text-sm leading-7 text-slate-300">
                       <p className="font-semibold text-slate-100">운영 상태</p>
                       <p className="mt-2">{statusMessage}</p>
+                      {progressSyncNotice ? <p className="mt-2 text-xs font-semibold text-amber-200">{progressSyncNotice}</p> : null}
                       <p className="mt-3 text-xs text-slate-400">마지막 저장 시각 {lastSavedLabel}</p>
                     </div>
                   </div>
@@ -1552,6 +1761,25 @@ export default function CourseRoomPage() {
                   </div>
                 ))}
               </div>
+
+              {hasDocumentFormsAccess ? (
+                <div className="mt-5 rounded-[1.35rem] border border-sky-200 bg-sky-50 p-4 text-sky-950">
+                  <p className="text-sm font-semibold">서식 포함 수강권 전용 참고서식</p>
+                  <p className="mt-2 text-sm leading-7">재발방지 관련 3종 서식을 확인하고 인쇄하거나 PDF로 저장할 수 있습니다.</p>
+                  <div className="mt-3 grid gap-2">
+                    {preventionDocuments.map((document) => (
+                      <Link key={document.id} href={`/prevention-documents?type=${document.id}`} className={buttonClass("secondary", "sm", "justify-between rounded-xl px-4")}>
+                        <span>{document.title}</span>
+                        <span className="font-semibold">보기</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-5 rounded-[1.35rem] border border-white/12 bg-white/[0.06] p-4 text-sm leading-7 text-slate-300">
+                  재발방지계획서, 음주예방실천계획서, 음주운전 재발방지 서약서는 서식 포함 수강권 구매자에게 제공됩니다.
+                </div>
+              )}
 
               {aggregate.isCompleted ? (
                 <div className="mt-5 rounded-[1.35rem] border border-emerald-200 bg-emerald-50 p-4">

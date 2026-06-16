@@ -7,33 +7,26 @@ import { isAdminEmail } from "@/lib/admin/config";
 import { defaultCourse } from "@/lib/course/catalog";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 
-function buildStreamUrl(uid?: string) {
-  return uid ? `https://iframe.videodelivery.net/${uid}` : "";
-}
-
 async function resolveCloudflareStreamUrl(uid: string) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
 
   if (!apiBaseUrl) {
-    return buildStreamUrl(uid);
+    throw new Error("영상 토큰 발급 서버 URL이 설정되지 않았습니다.");
   }
 
-  try {
-    const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}`, {
-      method: "GET",
-      credentials: "include",
-    });
+  const user = await requireAuthenticatedUser();
+  const idToken = await user.getIdToken();
+  const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}&courseId=${encodeURIComponent(defaultCourse.id)}`, {
+    method: "GET",
+    headers: { Authorization: "Bearer " + idToken },
+  });
 
-    if (!response.ok) {
-      throw new Error(`Stream token request failed: ${response.status}`);
-    }
-
-    const data = (await response.json()) as { videoUrl?: string };
-    return data.videoUrl || buildStreamUrl(uid);
-  } catch (error) {
-    console.error(error);
-    return buildStreamUrl(uid);
+  const data = (await response.json().catch(() => ({}))) as { videoUrl?: string; message?: string; error?: string };
+  if (!response.ok || !data.videoUrl) {
+    throw new Error(data.message || data.error || `Stream token request failed: ${response.status}`);
   }
+
+  return data.videoUrl;
 }
 
 export default function AdminLecturesPage() {
@@ -44,7 +37,7 @@ export default function AdminLecturesPage() {
     () => modules.find((module) => module.id === selectedModuleId) ?? modules[0],
     [modules, selectedModuleId]
   );
-  const [selectedStreamUrl, setSelectedStreamUrl] = useState(buildStreamUrl(selectedModule?.cloudflareStreamUid));
+  const [selectedStreamUrl, setSelectedStreamUrl] = useState("");
   const [streamStatus, setStreamStatus] = useState("재생 URL 준비 중");
   const [checkingAdmin, setCheckingAdmin] = useState(true);
   const [adminAllowed, setAdminAllowed] = useState(false);
@@ -104,7 +97,7 @@ export default function AdminLecturesPage() {
 
       if (!cancelled) {
         setSelectedStreamUrl(streamUrl);
-        setStreamStatus(streamUrl.includes(selectedModule.cloudflareStreamUid) ? "공개 UID URL 사용 중" : "Signed token URL 사용 중");
+        setStreamStatus("Signed token URL 사용 중");
       }
     };
 
@@ -199,7 +192,7 @@ export default function AdminLecturesPage() {
                         {hasStream ? "연결됨" : "UID 없음"}
                       </span>
                     </div>
-                    <p className="mt-2 truncate text-xs text-slate-500">UID: {module.cloudflareStreamUid ?? "미설정"}</p>
+                    <p className="mt-2 truncate text-xs text-slate-500">영상 ID: {module.cloudflareStreamUid ? "설정됨" : "미설정"}</p>
                   </button>
                 );
               })}
@@ -261,7 +254,7 @@ export default function AdminLecturesPage() {
               </div>
               <div className="rounded-[1rem] border border-[#e2e8f0] bg-[#f8fafc] p-4">
                 <p className="text-xs uppercase tracking-[0.16em] text-slate-500">Stream UID</p>
-                <p className="mt-2 break-all font-semibold text-slate-950">{selectedModule?.cloudflareStreamUid ?? "미설정"}</p>
+                <p className="mt-2 break-all font-semibold text-slate-950">{selectedModule?.cloudflareStreamUid ? "설정됨" : "미설정"}</p>
               </div>
             </div>
           </section>

@@ -127,13 +127,23 @@ export interface AiDraftDocument {
   createdAt: string;
 }
 
-export interface ReviewDocument {
+export interface PrivateSatisfactionSurveyDocument {
   uid: string;
-  authorName: string;
-  courseLabel: string;
-  title: string;
-  body: string;
-  rating: number;
+  courseId: string;
+  purchaseId?: string | null;
+  helpedMaterialsPreparation: boolean | null;
+  certificateFlowWasClear: boolean | null;
+  referenceFormsWereHelpful: boolean | null;
+  improvementNote?: string;
+  visibility: "admin-only";
   createdAt: string;
   updatedAt?: string;
 }
+
+// Future optional public testimonial workflow:
+// - only completed learners can submit
+// - never publish immediately
+// - admin approval is required before anonymous publication
+// - do not publish star ratings
+// - remove real names, case numbers, court names, disposition outcomes, and other sensitive data
+// - reject language implying guaranteed leniency, reduced punishment, suspended sentence, or other legal results

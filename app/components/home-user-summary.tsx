@@ -6,6 +6,7 @@ import { collection, onSnapshot, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { getUserProfile } from "@/lib/firebase/user-profile";
+import { buttonClass } from "@/app/components/ui/button-styles";
 
 type HomeUserSummaryProps = {
   currentUser: User;
@@ -111,10 +112,10 @@ export default function HomeUserSummary({ currentUser }: HomeUserSummaryProps) {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#d7b168_0%,#efd9aa_100%)] px-5 py-3 text-sm font-bold text-[#161109] shadow-[0_14px_28px_rgba(164,126,54,0.24)] transition hover:-translate-y-0.5 hover:brightness-105">
+        <Link href="/course-room" className={buttonClass("darkPrimary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#07111f]")}>
           최근 강의 이어서 보기
         </Link>
-        <Link href="/certificate" className="inline-flex min-h-12 items-center justify-center rounded-full border border-[#f0cb85] bg-[linear-gradient(135deg,#f0cb85_0%,#ffe6b7_100%)] px-5 py-3 text-sm font-bold text-[#2f2208] shadow-[0_16px_30px_rgba(164,126,54,0.28)] transition hover:-translate-y-0.5 hover:brightness-105">
+        <Link href="/certificate" className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#07111f]")}>
           수료증 및 서류 발급
         </Link>
       </div>

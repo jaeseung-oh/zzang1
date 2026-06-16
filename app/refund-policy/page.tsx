@@ -11,7 +11,7 @@ const refundTable = [
   ["2강 수강 후", "3강 미수강", "결제금액의 3/5"],
   ["3강 수강 후", "2강 미수강", "결제금액의 2/5"],
   ["4강 수강 후", "1강 미수강", "결제금액의 1/5"],
-  ["5강 수강 완료 후", "미수강 강의 없음", "환불 불가"],
+  ["5강 수강 즉시", "미수강 강의 없음", "환불 불가"],
   ["수료증 등 서류 발급·출력 후", "교육 이수 관련 서류 발급 또는 출력", "환불 불가"],
 ];
 
@@ -43,7 +43,7 @@ export default function RefundPolicyPage() {
         </section>
 
         <section className="rounded-[2rem] border border-[#d7dee8] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-          <h2 className="text-xl font-bold text-slate-950">3. 수강 완료 및 서류 출력 후</h2>
+          <h2 className="text-xl font-bold text-slate-950">3. 수강 즉시 서류 출력</h2>
           <ul className="mt-4 list-disc space-y-2 pl-5 text-sm leading-7 text-slate-700">
             <li>총 5강을 모두 수강 완료한 경우: 환불 불가</li>
             <li>수료증이 발급 또는 출력된 경우: 환불 불가</li>
