@@ -9,6 +9,9 @@ export const metadata: Metadata = {
   title: "리셋 에듀센터 | 재발 방지와 성찰을 위한 민간 온라인 교육 플랫폼",
   description:
     "사건 이후 자신의 생활을 돌아보고 재발 방지 학습과 실천 계획을 정리할 수 있도록 돕는 민간 온라인 교육 플랫폼",
+  other: {
+    "naver-site-verification": "db3e15bb35f8ea003187f523e7a0c41bb898603f",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
