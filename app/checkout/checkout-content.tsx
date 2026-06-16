@@ -156,14 +156,29 @@ export default function CheckoutContent() {
 
     let recoveryPaymentId = paymentId;
     let recoveryProductId = selectedProduct.id;
+    let paymentWindowRequested = false;
 
     try {
       const activePaymentId = paymentId || createPaymentId(verifiedUid);
       recoveryPaymentId = activePaymentId;
       recoveryProductId = selectedProduct.id;
       if (!paymentId) setPaymentId(activePaymentId);
+      const paymentUser = await requireAuthenticatedUser();
+      if (paymentUser.uid !== verifiedUid) throw new Error("USER_MISMATCH");
+      const idToken = await paymentUser.getIdToken();
+      const orderCreateUrl = paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-order");
+      const orderResponse = await fetch(orderCreateUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+        body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price }),
+      });
+      const orderPayload = await orderResponse.json().catch(() => ({}));
+      if (!orderResponse.ok) {
+        throw new Error(orderPayload?.message || "결제 주문 생성에 실패했습니다.");
+      }
       window.localStorage.setItem("resetedu:pending-portone-order", JSON.stringify({ paymentId: activePaymentId, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, savedAt: new Date().toISOString() }));
 
+      paymentWindowRequested = true;
       const response: PortOnePaymentResponse = await PortOne.requestPayment({
         storeId: paymentConfig.storeId,
         channelKey: paymentConfig.kcpChannelKey,
@@ -215,7 +230,7 @@ export default function CheckoutContent() {
       console.error(paymentError);
       setError(CARD_APPROVAL_DELAY_MESSAGE);
       setIsSubmitting(false);
-      if (recoveryPaymentId) {
+      if (paymentWindowRequested && recoveryPaymentId) {
         window.location.href = `/payment/success?paymentId=${encodeURIComponent(recoveryPaymentId)}&courseId=${encodeURIComponent(duiPreventionCourseProduct.courseId)}&productId=${encodeURIComponent(recoveryProductId)}&recovery=1`;
       }
     }

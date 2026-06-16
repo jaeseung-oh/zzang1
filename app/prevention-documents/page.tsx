@@ -83,9 +83,12 @@ function PreventionDocumentsContent() {
     const run = async () => {
       try {
         const user = await requireAuthenticatedUser();
-        const [profile, enrollment] = await Promise.all([getUserProfile(user.uid), getUserEnrollment(user.uid, defaultCourse.id)]);
+        const adminTargetUid = searchParams.get("adminUserId") || "";
+        const adminAccess = isSuperAdmin(user);
+        const targetUid = adminAccess && adminTargetUid ? adminTargetUid : user.uid;
+        const [profile, enrollment] = await Promise.all([getUserProfile(targetUid), getUserEnrollment(targetUid, defaultCourse.id)]);
         if (cancelled) return;
-        const allowed = isSuperAdmin(user) || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId));
+        const allowed = adminAccess || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId));
         setHasAccess(allowed);
         setIdentity(buildDocumentIdentity(profile));
         if (!allowed) {
@@ -107,7 +110,7 @@ function PreventionDocumentsContent() {
     };
     void run();
     return () => { cancelled = true; };
-  }, [router]);
+  }, [router, searchParams]);
 
   const printDocument = (mode: "print" | "pdf") => {
     const previousTitle = document.title;
