@@ -173,7 +173,6 @@ export default function CheckoutContent() {
         currency: "CURRENCY_KRW",
         payMethod: "CARD",
         redirectUrl: `${appOrigin}/payment/success?courseId=${duiPreventionCourseProduct.courseId}&productId=${selectedProduct.id}`,
-        forceRedirect: true,
         locale: "KO_KR",
         customer: {
           fullName: verifiedName,
@@ -206,7 +205,11 @@ export default function CheckoutContent() {
           return;
         }
         window.location.href = buildPaymentFailureUrl(duiPreventionCourseProduct.courseId, response.code, failureMessage);
+        return;
       }
+
+      const confirmedPaymentId = response?.paymentId || activePaymentId;
+      window.location.href = `/payment/success?paymentId=${encodeURIComponent(confirmedPaymentId)}&courseId=${encodeURIComponent(duiPreventionCourseProduct.courseId)}&productId=${encodeURIComponent(selectedProduct.id)}`;
     } catch (paymentError) {
       console.error(paymentError);
       setError(CARD_APPROVAL_DELAY_MESSAGE);

@@ -250,7 +250,7 @@ function PortOnePaymentSuccessContent() {
   const [result, setResult] = useState<ConfirmResponse | null>(null);
 
   useEffect(() => {
-    if (code || message) return;
+    if ((code || message) && !paymentId) return;
     if (!paymentId) {
       setError("결제번호가 전달되지 않았습니다. 결제내역 확인 후 수강권을 반영할 수 있습니다.");
       setLoading(false);
@@ -325,7 +325,7 @@ function PortOnePaymentSuccessContent() {
     return () => { cancelled = true; };
   }, [code, message, paymentId, router, searchParams]);
 
-  if (code || message) {
+  if ((code || message) && !paymentId) {
     return (
       <main className="min-h-screen bg-[#f3f6f9] px-4 py-10 text-slate-950 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm lg:p-8">
