@@ -163,20 +163,24 @@ export default function CheckoutContent() {
       recoveryPaymentId = activePaymentId;
       recoveryProductId = selectedProduct.id;
       if (!paymentId) setPaymentId(activePaymentId);
-      const paymentUser = await requireAuthenticatedUser();
-      if (paymentUser.uid !== verifiedUid) throw new Error("USER_MISMATCH");
-      const idToken = await paymentUser.getIdToken();
-      const orderCreateUrl = paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-order");
-      const orderResponse = await fetch(orderCreateUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-        body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price }),
-      });
-      const orderPayload = await orderResponse.json().catch(() => ({}));
-      if (!orderResponse.ok) {
-        throw new Error(orderPayload?.message || "결제 주문 생성에 실패했습니다.");
-      }
       window.localStorage.setItem("resetedu:pending-portone-order", JSON.stringify({ paymentId: activePaymentId, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, savedAt: new Date().toISOString() }));
+      try {
+        const paymentUser = await requireAuthenticatedUser();
+        if (paymentUser.uid !== verifiedUid) throw new Error("USER_MISMATCH");
+        const idToken = await paymentUser.getIdToken();
+        const orderCreateUrl = paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-order");
+        const orderResponse = await fetch(orderCreateUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+          body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price }),
+        });
+        if (!orderResponse.ok) {
+          const orderPayload = await orderResponse.json().catch(() => ({}));
+          console.error("PortOne pending order create failed", orderPayload);
+        }
+      } catch (orderCreateError) {
+        console.error("PortOne pending order create failed", orderCreateError);
+      }
 
       paymentWindowRequested = true;
       const response: PortOnePaymentResponse = await PortOne.requestPayment({
