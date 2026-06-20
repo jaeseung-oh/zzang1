@@ -2,14 +2,15 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
-import { getUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
+import { getVerifiedActiveUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
+import { hasPreventionDocumentsAccess, preventionDocuments } from "@/lib/course/prevention-documents";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -43,15 +44,30 @@ type CertificateRecord = {
   certificateIssuedAt?: { seconds: number };
 };
 
-type DraftRecord = {
-  id: string;
-  documentType: string;
-  caseType: string;
-  generatedDraft: string;
-  createdAt?: { seconds: number };
-};
-
 type EnrollmentListItem = EnrollmentRecord & { id?: string };
+
+function maskFirestoreSegment(value: string) {
+  if (!value) return "";
+  if (value.length <= 8) return value.slice(0, 2) + "***";
+  return value.slice(0, 4) + "***" + value.slice(-4);
+}
+
+function maskFirestorePath(path: string) {
+  return path
+    .split("/")
+    .map((segment, index) => (index % 2 === 1 ? maskFirestoreSegment(segment) : segment))
+    .join("/");
+}
+
+function logFirestoreFailure(operation: "getDoc" | "getDocs", path: string, error: unknown) {
+  const errorLike = error as { code?: unknown; message?: unknown };
+  console.error("[dashboard:firestore]", {
+    operation,
+    path: maskFirestorePath(path),
+    code: typeof errorLike?.code === "string" ? errorLike.code : undefined,
+    message: typeof errorLike?.message === "string" ? errorLike.message : "Firestore request failed",
+  });
+}
 
 function toDate(value: unknown) {
   if (!value) return null;
@@ -72,6 +88,17 @@ function formatDateOnly(value: unknown) {
   return date.toLocaleDateString("ko-KR");
 }
 
+function formatKrw(value: unknown) {
+  const amount = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(amount) && amount > 0 ? amount.toLocaleString("ko-KR") + "원" : "-";
+}
+
+function getCourseRoomButtonLabel(progressRate: number, completed: boolean) {
+  if (completed) return "다시보기";
+  if (progressRate > 0) return "이어보기";
+  return "수강 시작";
+}
+
 function getEnrollmentStatusLabel(enrollment: EnrollmentRecord) {
   if (isEnrollmentActive(enrollment)) return "수강 가능";
   const status = String(enrollment.enrollmentStatus || enrollment.accessStatus || enrollment.paymentStatus || "").toLowerCase();
@@ -87,11 +114,6 @@ const documentLabels: Record<string, string> = {
   completion: "음주운전 예방교육 수료증",
   "psychology-report": "인지행동 심리검사 결과지",
   "compliance-pledge": "준법 서약서",
-};
-
-const draftLabels: Record<string, string> = {
-  "reflection-letter-guide": "성찰문 글쓰기 가이드",
-  "petition-letter-guide": "주변인 의견문 정리 가이드",
 };
 
 function formatTimestamp(timestamp?: { seconds: number }) {
@@ -137,7 +159,6 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<ProgressRecord | null>(null);
   const [certificates, setCertificates] = useState<CertificateRecord[]>([]);
-  const [drafts, setDrafts] = useState<DraftRecord[]>([]);
   const [enrollments, setEnrollments] = useState<EnrollmentListItem[]>([]);
   const [hasActiveEnrollment, setHasActiveEnrollment] = useState(false);
   const [adminPreview, setAdminPreview] = useState(false);
@@ -150,13 +171,18 @@ export default function DashboardPage() {
         const user = await requireAuthenticatedUser();
         const { db } = getFirebaseServices();
         const isAdmin = isSuperAdmin(user);
-        const enrollments = await getUserEnrollments(user.uid).catch(() => []);
-        const activeEnrollment = enrollments.some((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment));
+        const enrollments = await getVerifiedActiveUserEnrollments(user);
+        const activeEnrollment = enrollments.some(isEnrollmentActive);
 
-        const [progressSnapshot, certificateSnapshot, draftSnapshot] = await Promise.all([
-          getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid))),
-          getDocs(query(collection(db, "certificates"), where("uid", "==", user.uid))),
-          getDocs(query(collection(db, "aiDocuments"), where("uid", "==", user.uid))),
+        const [progressSnapshot, certificateSnapshot] = await Promise.all([
+          getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid))).catch((error) => {
+            logFirestoreFailure("getDocs", "courseProgress?uid=<uid>", error);
+            return null;
+          }),
+          getDoc(doc(db, "certificates", user.uid + "_" + defaultCourse.id)).catch((error) => {
+            logFirestoreFailure("getDoc", "certificates/<uid_courseId>", error);
+            return null;
+          }),
         ]);
 
         if (cancelled) {
@@ -164,19 +190,13 @@ export default function DashboardPage() {
         }
 
         setAdminPreview(isAdmin);
-        setHasActiveEnrollment(isAdmin || activeEnrollment);
+        setHasActiveEnrollment(activeEnrollment);
         setEnrollments(enrollments as EnrollmentListItem[]);
-        setProgress(progressSnapshot.docs[0]?.data() ? (progressSnapshot.docs[0].data() as ProgressRecord) : null);
-        setCertificates(
-          certificateSnapshot.docs
-            .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<CertificateRecord, "id">) }))
-            .sort((a, b) => (b.issuedAt?.seconds || 0) - (a.issuedAt?.seconds || 0))
-        );
-        setDrafts(
-          draftSnapshot.docs
-            .map((doc) => ({ id: doc.id, ...(doc.data() as Omit<DraftRecord, "id">) }))
-            .sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0))
-        );
+        setProgress(progressSnapshot?.docs[0]?.data() ? (progressSnapshot.docs[0].data() as ProgressRecord) : null);
+        setCertificates(certificateSnapshot?.exists() ? [{
+          id: certificateSnapshot.id,
+          ...(certificateSnapshot.data() as Omit<CertificateRecord, "id">),
+        }] : []);
       } catch (loadError) {
         console.error(loadError);
         if (!cancelled) {
@@ -187,7 +207,7 @@ export default function DashboardPage() {
             return;
           }
 
-          setError("수강현황 데이터를 불러오지 못했습니다. Firebase 인증과 Firestore 인덱스 상태를 확인해 주세요.");
+          setError(message || "수강권 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
       } finally {
         if (!cancelled) {
@@ -236,6 +256,9 @@ export default function DashboardPage() {
     };
   }, [progress]);
 
+  const activeEnrollmentRecord = enrollments.find((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment));
+  const hasDocumentFormsAccess = adminPreview || Boolean(activeEnrollmentRecord && hasPreventionDocumentsAccess(activeEnrollmentRecord.productId, activeEnrollmentRecord.amount, activeEnrollmentRecord.productTitle));
+
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(211,173,98,0.14),transparent_22%),linear-gradient(180deg,#09111d_0%,#0d1728_32%,#eef3f8_32%,#f4f7fb_100%)] px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl rounded-[1.5rem] border border-[#d7deea] bg-white p-4 shadow-[0_30px_80px_rgba(15,23,42,0.14)] sm:rounded-[2rem] sm:p-6 lg:p-8">
@@ -250,9 +273,6 @@ export default function DashboardPage() {
           <div className="flex flex-wrap gap-3">
             <Link href="/course-room" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>
               수강실로 이동
-            </Link>
-            <Link href="/ai-draft" style={{ backgroundColor: "#facc15", color: "#111827", border: "2px solid #fde047", fontWeight: 900, boxShadow: "0 14px 28px rgba(250, 204, 21, 0.26)" }} className={buttonClass("warning", "md", "rounded-full px-6 font-black")}>
-              성찰문 글쓰기 가이드
             </Link>
             <Link href="/login" style={{ backgroundColor: "#ffffff", color: "#0f172a", border: "2px solid #173968", fontWeight: 900, boxShadow: "0 14px 28px rgba(15, 23, 42, 0.12)" }} className={buttonClass("secondary", "md", "rounded-full px-6 font-black")}>
               회원정보 변경
@@ -272,34 +292,40 @@ export default function DashboardPage() {
                 <p className="text-sm font-semibold text-[#274690]">내 수강권</p>
                 <h2 className="mt-1 text-2xl font-bold text-slate-950">수강권 목록</h2>
               </div>
-              <Link href="/courses/apply?categoryId=dui" className={buttonClass("secondary", "sm", "rounded-full font-bold")}>강의 구매하러 가기</Link>
+              <Link href="/courses/apply/?category=dui" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", boxShadow: "0 10px 24px rgba(16,33,63,0.24)" }} className={buttonClass("primary", "sm", "rounded-full px-5 font-black")}>강의 구매하러 가기</Link>
             </div>
             {adminPreview ? <p className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50 p-4 text-sm font-semibold text-indigo-900">관리자 계정은 모든 강의 접근이 가능합니다.</p> : null}
             {!adminPreview && enrollments.length === 0 ? (
               <div className="mt-4 rounded-xl border border-dashed border-slate-300 bg-white p-5 text-sm text-slate-700">
                 <p className="font-semibold text-slate-950">현재 이용 가능한 수강권이 없습니다.</p>
-                <Link href="/courses/apply?categoryId=dui" className={buttonClass("primary", "sm", "mt-4 rounded-full")}>강의 구매하러 가기</Link>
+                <Link href="/courses/apply/?category=dui" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", boxShadow: "0 10px 24px rgba(16,33,63,0.24)" }} className={buttonClass("primary", "sm", "mt-4 rounded-full px-5 font-black")}>강의 구매하러 가기</Link>
               </div>
             ) : null}
             {enrollments.length ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 {enrollments.map((enrollment) => {
                   const active = isEnrollmentActive(enrollment);
+                  const progressRate = enrollment.courseId === defaultCourse.id ? Math.max(enrollment.progress ?? 0, progressSummary.completionRate) : enrollment.progress ?? 0;
+                  const completed = progressRate >= 100 || progressSummary.isCompleted;
+                  const certificateReady = active;
                   return (
                     <article key={enrollment.courseId + (enrollment.paymentId || enrollment.orderId || "")} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-bold text-slate-950">{enrollment.courseTitle || defaultCourse.title}</p>
-                          <p className="mt-1 text-xs text-slate-500">{enrollment.productTitle || enrollment.productId || "수강권"}</p>
+                          <p className="mt-1 text-xs text-slate-500">{enrollment.productId === "basic" ? "기본형 수강권" : enrollment.productTitle || enrollment.productId || "수강권"}</p>
                         </div>
                         <span className={active ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600"}>{getEnrollmentStatusLabel(enrollment)}</span>
                       </div>
                       <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
+                        <div><dt className="font-semibold text-slate-500">결제금액</dt><dd className="mt-1 text-slate-900">{formatKrw(enrollment.amount)}</dd></div>
+                        <div><dt className="font-semibold text-slate-500">진행률</dt><dd className="mt-1 text-slate-900">{Math.floor(progressRate)}%</dd></div>
                         <div><dt className="font-semibold text-slate-500">수강 시작</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.purchasedAt || enrollment.createdAt)}</dd></div>
                         <div><dt className="font-semibold text-slate-500">수강 만료</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.expiresAt)}</dd></div>
                       </dl>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {active ? <Link href="/course-room" className={buttonClass("primary", "sm", "rounded-full")}>수강실 입장</Link> : <Link href="/courses/apply?categoryId=dui" className={buttonClass("secondary", "sm", "rounded-full")}>다시 구매하기</Link>}
+                      <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+                        {active ? <Link href="/course-room" className={buttonClass("primary", "sm", "w-full rounded-full sm:w-auto")}>{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className={buttonClass("secondary", "sm", "w-full rounded-full sm:w-auto")}>다시 구매하기</Link>}
+                        {certificateReady ? <Link href="/certificate" className={buttonClass("warning", "sm", "w-full rounded-full sm:w-auto")}>수료증 출력</Link> : null}
                       </div>
                     </article>
                   );
@@ -308,18 +334,30 @@ export default function DashboardPage() {
             ) : null}
           </section>
         ) : null}
+        {!loading && !error && hasActiveEnrollment ? (
+          <section id="paid-member-resources" className="mt-8 rounded-[1.5rem] border border-indigo-200 bg-[linear-gradient(135deg,#eef4ff_0%,#ffffff_65%,#fff7df_100%)] p-5 shadow-[0_18px_45px_rgba(39,70,144,0.12)] sm:p-6">
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-700">Paid Member Resources</p>
+            <h2 className="mt-2 text-2xl font-black text-slate-950">결제 회원 제공 자료</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-700">강의를 결제하신 회원에게 반성문 작성 가이드와 작성 예시를 제공합니다.</p>
+            <div className="mt-5 grid gap-3 sm:grid-cols-2">
+              <Link href="/resources/reflection-guide" className={buttonClass("primary", "lg", "w-full rounded-2xl px-5 text-center font-black")}>반성문 작성 가이드 보기</Link>
+              <Link href="/resources/dui-reflection-example" className={buttonClass("warning", "lg", "w-full rounded-2xl px-5 text-center font-black")}>음주운전 반성문 예시 보기</Link>
+            </div>
+          </section>
+        ) : null}
+
 
         {!loading && !error && !hasActiveEnrollment ? (
           <section className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-700">
             <p className="font-semibold text-slate-950">아직 수강 중인 교육이 없습니다.</p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link href="/courses/apply?categoryId=dui" className={buttonClass("primary", "sm", "rounded-full")}>수강 신청하기</Link>
+              <Link href="/courses/apply/?category=dui" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", boxShadow: "0 10px 24px rgba(16,33,63,0.24)" }} className={buttonClass("primary", "sm", "rounded-full px-5 font-black")}>수강 신청하기</Link>
               <Link href="/courses/dui-prevention" className={buttonClass("secondary", "sm", "rounded-full")}>강의 구성 보기</Link>
             </div>
           </section>
         ) : null}
 
-        {!loading && !error && hasActiveEnrollment ? (
+        {!loading && !error ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-[0.92fr_1.08fr]">
             <section className="space-y-6">
               <div className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
@@ -402,32 +440,25 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/10 bg-[#111f33] p-6">
-                <p className="text-sm font-semibold text-[#f0cb85]">글쓰기 가이드 이력</p>
-                <div className="mt-4 space-y-3">
-                  {drafts.length ? (
-                    drafts.slice(0, 3).map((draft) => (
-                      <article key={draft.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="font-semibold text-white">{draftLabels[draft.documentType] ?? draft.documentType}</p>
-                          <span className="text-xs text-white/55">{formatTimestamp(draft.createdAt)}</span>
-                        </div>
-                        <p className="mt-2 text-sm text-white/65">사건 유형: {draft.caseType}</p>
-                        <p className="mt-3 line-clamp-4 whitespace-pre-wrap text-sm leading-7 text-white/80">{draft.generatedDraft}</p>
-                      </article>
-                    ))
-                  ) : (
-                    <p className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">아직 저장된 글쓰기 가이드 이력이 없습니다.</p>
-                  )}
-                </div>
-              </div>
             </section>
 
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
+              <div className="mb-6 rounded-[1.5rem] border-2 border-sky-300 bg-sky-50 p-5 shadow-[0_18px_44px_rgba(14,165,233,0.20)]">
+                <p className="text-sm font-black text-sky-950">서류 인쇄하기</p>
+                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "아래 3종 서식을 열어 인쇄하거나 PDF로 저장할 수 있습니다." : "서식 포함 수강권을 선택하면 아래 3종 서식을 이용할 수 있습니다."}</p>
+                <div className="mt-4 grid gap-3">
+                  {preventionDocuments.map((document) => (
+                    <Link key={document.id} href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-[#10213f] px-4 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f]">
+                      <span>{document.title}</span>
+                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "109,000원 상품"}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
               <p className="text-sm font-semibold text-[#f0cb85]">수료증</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">수강증/수료증 확인 및 온라인 인쇄</h2>
               <p className="mt-4 text-sm leading-8 text-white/70">
-                수강 즉시 수료증을 온라인으로 출력할 수 있습니다.
+                결제가 확인된 수강권은 진도율과 관계없이 수료증을 바로 확인하고 출력할 수 있습니다.
               </p>
 
               <div className="mt-6 space-y-4">
@@ -449,10 +480,10 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   ))
-                ) : progressSummary.isCompleted ? (
+                ) : hasActiveEnrollment ? (
                   <div className="rounded-[1.5rem] border border-emerald-300/30 bg-emerald-400/10 p-6 text-sm leading-7 text-emerald-50">
-                    <p className="font-semibold text-white">음주운전 예방교육 총 5강을 모두 수강하셨습니다.</p>
-                    <p className="mt-2">수강 완료 상태입니다. 아래 버튼을 눌러 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
+                    <p className="font-semibold text-white">결제된 음주운전 예방교육 수강권이 확인되었습니다.</p>
+                    <p className="mt-2">아래 버튼을 눌러 진도율과 관계없이 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link href="/certificate" className={buttonClass("warning", "sm", "rounded-full")}>
                         서류 보기
@@ -464,9 +495,9 @@ export default function DashboardPage() {
                   </div>
                 ) : (
                   <div className="rounded-[1.5rem] border border-dashed border-white/15 bg-black/20 p-6 text-sm leading-7 text-white/65">
-                    <p>수료증은 전체 강의 수강 완료 후 확인할 수 있습니다.</p>
+                    <p>결제가 확인되면 수료증을 바로 확인할 수 있습니다.</p>
                     <button type="button" disabled className="mt-4 inline-flex min-h-10 cursor-not-allowed items-center justify-center rounded-full bg-slate-600 px-4 py-2 text-sm font-bold text-slate-200 opacity-70">
-                      수료 후 발급 가능
+                      결제 확인 후 발급 가능
                     </button>
                   </div>
                 )}

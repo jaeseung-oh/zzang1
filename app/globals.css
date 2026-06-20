@@ -85,3 +85,133 @@ button:disabled,
 .text-readable {
   color: #334155;
 }
+.resource-content {
+  color: #334155;
+  font-size: 16px;
+  line-height: 1.85;
+}
+
+.resource-content h2 {
+  margin-bottom: 0.75rem;
+  color: #0f172a;
+  font-size: 1.35rem;
+  font-weight: 900;
+  line-height: 1.4;
+  word-break: keep-all;
+}
+
+.resource-content ul,
+.resource-content ol {
+  margin-top: 0.75rem;
+  padding-left: 1.4rem;
+}
+
+.resource-content ul {
+  list-style: disc;
+}
+
+.resource-content ol {
+  list-style: decimal;
+}
+
+.resource-content li + li {
+  margin-top: 0.4rem;
+}
+
+.resource-lead {
+  border-radius: 0.9rem;
+  background: #f8fafc;
+  padding: 1rem;
+  font-weight: 600;
+}
+
+.resource-checklist {
+  list-style: none !important;
+  padding-left: 0 !important;
+}
+
+.resource-checklist li::before {
+  content: "□";
+  margin-right: 0.55rem;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 16mm 15mm 18mm;
+  }
+
+  html,
+  body {
+    width: auto;
+    max-width: none;
+    overflow: visible;
+    background: #fff !important;
+    color: #000 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body:has(.resource-print-root) > .fixed,
+  body:has(.resource-print-root) > footer,
+  .resource-screen-only {
+    display: none !important;
+  }
+
+  .resource-print-root {
+    min-height: auto !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  .resource-document {
+    width: auto !important;
+    max-width: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .resource-content {
+    font-size: 11.5pt;
+    line-height: 1.65;
+  }
+
+  .resource-content h2 {
+    break-after: avoid-page;
+    page-break-after: avoid;
+    font-size: 15pt;
+  }
+
+  .resource-section {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .resource-letter {
+    break-inside: auto;
+    border: 0 !important;
+    padding: 0 !important;
+  }
+
+  .resource-letter p,
+  .resource-example,
+  .resource-notice,
+  .resource-warning {
+    break-inside: avoid-page;
+    page-break-inside: avoid;
+  }
+
+  .resource-document a[href]::after {
+    content: "";
+  }
+
+  .resource-print-source {
+    color: #475569 !important;
+  }
+
+  .resource-page-number::after {
+    content: counter(page);
+  }
+}

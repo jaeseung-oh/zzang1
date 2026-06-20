@@ -233,7 +233,7 @@ function isAuthError(error: unknown, expectedCode: string) {
   return getAuthErrorCode(error) === expectedCode;
 }
 
-export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode: AuthMode; nextPath?: string | null }) {
+export default function AuthPage({ mode, nextPath: nextPathProp = null, notice = null }: { mode: AuthMode; nextPath?: string | null; notice?: string | null }) {
   const router = useRouter();
   const copy = modeCopy[mode];
   const nextPath = resolveNextPath(nextPathProp);
@@ -799,6 +799,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null }: { mode
                 홈으로
               </Link>
             </div>
+            {notice ? (
+              <div className="mt-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-semibold leading-7 text-amber-950">{notice}</div>
+            ) : null}
+
 
             {loading ? (
               <p className="mt-3 text-sm leading-7 text-slate-500">회원 상태를 확인하는 중입니다.</p>

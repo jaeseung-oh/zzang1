@@ -10,6 +10,7 @@ import { basicApplicationProduct, getApplicationProduct } from "@/lib/course/app
 import { getCertificateIdentity, getUserProfile } from "@/lib/firebase/user-profile";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
+import { getVerifiedUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
 
 const appOrigin = paymentConfig.siteUrl;
@@ -48,11 +49,14 @@ export default function CheckoutContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderNoticeChecked, setOrderNoticeChecked] = useState(false);
   const [refundNoticeChecked, setRefundNoticeChecked] = useState(false);
+  const [activeEnrollment, setActiveEnrollment] = useState<EnrollmentRecord | null>(null);
+  const [enrollmentCheckFailed, setEnrollmentCheckFailed] = useState(false);
   const [error, setError] = useState("");
 
   const selectedProduct = getApplicationProduct("dui", selectedProductId) || defaultCheckoutProduct;
   const hasPaymentConfig = Boolean(paymentConfig.storeId && paymentConfig.kcpChannelKey);
-  const canSubmit = hasPaymentConfig && isMember && profileReady && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
+  const hasActiveEnrollment = isEnrollmentActive(activeEnrollment);
+  const canSubmit = hasPaymentConfig && isMember && profileReady && !hasActiveEnrollment && !enrollmentCheckFailed && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
 
   useEffect(() => {
     let cancelled = false;
@@ -79,6 +83,17 @@ export default function CheckoutContent() {
         setBuyerBirthDate(birthDate);
         setBuyerEmail(user.email || profile?.email || "");
         setBuyerPhone(profile?.phoneNumber || "");
+        try {
+          const enrollments = await getVerifiedUserEnrollments(user, duiPreventionCourseProduct.courseId);
+          if (cancelled) return;
+          setActiveEnrollment(enrollments.find((row) => row.courseId === duiPreventionCourseProduct.courseId) ?? null);
+          setEnrollmentCheckFailed(false);
+        } catch (enrollmentError) {
+          if (cancelled) return;
+          console.error("Verified enrollment lookup failed before checkout", enrollmentError);
+          setEnrollmentCheckFailed(true);
+          setError("기존 결제 내역을 확인하지 못해 중복 결제 방지를 위해 결제를 중단했습니다. 잠시 후 다시 시도해 주세요.");
+        }
         setPaymentId(createPaymentId(user.uid));
         setProfileReady(Boolean(realName && birthDate));
         if (!realName || !birthDate) {
@@ -122,6 +137,23 @@ export default function CheckoutContent() {
       if (!verifiedName || !verifiedBirthDate) {
         throw new Error("PROFILE_REQUIRED");
       }
+      let enrollment: EnrollmentRecord | null = null;
+      try {
+        const enrollments = await getVerifiedUserEnrollments(user, duiPreventionCourseProduct.courseId);
+        enrollment = enrollments.find((row) => row.courseId === duiPreventionCourseProduct.courseId) ?? null;
+        setEnrollmentCheckFailed(false);
+      } catch (enrollmentError) {
+        console.error("Verified enrollment lookup failed immediately before payment", enrollmentError);
+        setEnrollmentCheckFailed(true);
+        setError("기존 결제 내역을 확인하지 못해 중복 결제 방지를 위해 결제를 중단했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }
+      if (isEnrollmentActive(enrollment)) {
+        setActiveEnrollment(enrollment);
+        setError("이미 결제 완료된 수강권이 있어 중복 결제를 진행할 수 없습니다.");
+        return;
+      }
+      setActiveEnrollment(enrollment);
       setCustomerUid(user.uid);
       setBuyerName(verifiedName);
       setBuyerBirthDate(verifiedBirthDate);
@@ -137,7 +169,17 @@ export default function CheckoutContent() {
         setError("로그인 후 결제할 수 있습니다.");
         return;
       }
-      setError("결제 전 회원정보에서 수료증에 출력될 실명과 생년월일을 정확히 저장해 주세요.");
+      if (message === "PROFILE_REQUIRED") {
+        setError("결제 전 회원정보에서 수료증에 출력될 실명과 생년월일을 정확히 저장해 주세요.");
+      } else {
+        console.error("Payment preflight failed", guardError);
+        setError("결제 전 회원정보를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      }
+      return;
+    }
+
+    if (hasActiveEnrollment) {
+      setError("이미 결제 완료된 수강권이 있어 중복 결제를 진행할 수 없습니다.");
       return;
     }
 
@@ -175,14 +217,17 @@ export default function CheckoutContent() {
           body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price }),
         });
         if (!orderResponse.ok) {
-          const orderPayload = await orderResponse.json().catch(() => ({}));
-          console.error("PortOne pending order create failed", orderPayload);
+          const orderText = await orderResponse.text().catch(() => "");
+          let orderPayload: unknown = {};
+          try { orderPayload = orderText ? JSON.parse(orderText) : {}; } catch { orderPayload = { raw: orderText }; }
+          console.error("PortOne pending order create failed", { url: orderCreateUrl, method: "POST", status: orderResponse.status, responseText: orderText, payload: orderPayload, paymentId: activePaymentId });
         }
       } catch (orderCreateError) {
         console.error("PortOne pending order create failed", orderCreateError);
       }
 
       paymentWindowRequested = true;
+      console.info("PortOne requestPayment started", { paymentId: activePaymentId, amount: selectedProduct.price, confirmUrl: paymentConfig.confirmUrl, webhookUrl: paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook") });
       const response: PortOnePaymentResponse = await PortOne.requestPayment({
         storeId: paymentConfig.storeId,
         channelKey: paymentConfig.kcpChannelKey,
@@ -195,6 +240,7 @@ export default function CheckoutContent() {
         noticeUrls: [paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook")],
         locale: "KO_KR",
         customer: {
+          customerId: verifiedUid,
           fullName: verifiedName,
           email: buyerEmail.trim() || undefined,
           phoneNumber: buyerPhone.trim() || undefined,
@@ -218,6 +264,9 @@ export default function CheckoutContent() {
         },
       });
 
+      console.info("PortOne requestPayment returned", { requestedPaymentId: activePaymentId, returnedPaymentId: response?.paymentId, code: response?.code, message: response?.message });
+      if (response?.paymentId && response.paymentId !== activePaymentId) console.error("PortOne paymentId mismatch", { requestedPaymentId: activePaymentId, returnedPaymentId: response.paymentId });
+
       if (response?.code !== undefined) {
         const failureMessage = response.message || "결제가 완료되지 않았습니다.";
         if (/fetch|network|timeout|통신|네트워크/i.test(failureMessage)) {
@@ -231,8 +280,9 @@ export default function CheckoutContent() {
       const confirmedPaymentId = response?.paymentId || activePaymentId;
       window.location.href = `/payment/success?paymentId=${encodeURIComponent(confirmedPaymentId)}&courseId=${encodeURIComponent(duiPreventionCourseProduct.courseId)}&productId=${encodeURIComponent(selectedProduct.id)}`;
     } catch (paymentError) {
-      console.error(paymentError);
-      setError(CARD_APPROVAL_DELAY_MESSAGE);
+      const message = paymentError instanceof Error ? paymentError.message : String(paymentError);
+      console.error("PortOne requestPayment failed", { stage: paymentWindowRequested ? "requestPayment_or_redirect" : "before_requestPayment", paymentId: recoveryPaymentId, productId: recoveryProductId, message, error: paymentError });
+      setError(`결제창 처리 실패: ${message}. paymentId=${recoveryPaymentId || "없음"}`);
       setIsSubmitting(false);
       if (paymentWindowRequested && recoveryPaymentId) {
         window.location.href = `/payment/success?paymentId=${encodeURIComponent(recoveryPaymentId)}&courseId=${encodeURIComponent(duiPreventionCourseProduct.courseId)}&productId=${encodeURIComponent(recoveryProductId)}&recovery=1`;
@@ -285,9 +335,16 @@ export default function CheckoutContent() {
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">제공자료</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-950">수강 즉시 수료증 출력</dd>
+                <dd className="mt-1 text-sm font-bold text-slate-950">수료증 · 반성문 가이드/예시</dd>
               </div>
             </dl>
+
+            <div className="mt-4 rounded-2xl border border-[#d3b271]/45 bg-[#fffaf0] p-4 sm:p-5">
+              <p className="text-sm font-bold text-[#10213f]">결제 회원 제공 자료</p>
+              <p className="mt-1 text-sm leading-6 text-slate-700">
+                결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다.
+              </p>
+            </div>
           </article>
 
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -330,8 +387,8 @@ export default function CheckoutContent() {
                 />
               </label>
             </div>
-            {!isInitializing && !isMember ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900"><p className="font-bold">로그인 후 결제할 수 있습니다.</p><Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="mt-2 inline-flex font-bold text-[#10213f] underline underline-offset-4">로그인 또는 회원가입하기</Link></div> : null}
-            {!isInitializing && isMember && !profileReady ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900"><p className="font-bold">수료증에 출력될 실명과 생년월일이 필요합니다.</p><p>회원정보에서 실제 성명과 생년월일을 정확히 저장한 뒤 결제를 진행해 주세요.</p><Link href={`/login?next=${encodeURIComponent("/checkout")}`} className="mt-2 inline-flex font-bold text-[#10213f] underline underline-offset-4">회원정보 저장하기</Link></div> : null}
+            {!isInitializing && !isMember ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900"><p className="font-bold">로그인 후 결제할 수 있습니다.</p><Link href={`/login?next=${encodeURIComponent("/courses/apply/?category=dui")}`} className="mt-2 inline-flex font-bold text-[#10213f] underline underline-offset-4">로그인 또는 회원가입하기</Link></div> : null}
+            {!isInitializing && isMember && !profileReady ? <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900"><p className="font-bold">수료증에 출력될 실명과 생년월일이 필요합니다.</p><p>회원정보에서 실제 성명과 생년월일을 정확히 저장한 뒤 결제를 진행해 주세요.</p><Link href={`/login?next=${encodeURIComponent("/courses/apply/?category=dui")}`} className="mt-2 inline-flex font-bold text-[#10213f] underline underline-offset-4">회원정보 저장하기</Link></div> : null}
           </article>
         </section>
 
@@ -379,9 +436,11 @@ export default function CheckoutContent() {
             {!isInitializing && !isMember ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">로그인 및 회원가입 후 결제를 진행할 수 있습니다.</p> : null}
             {!isInitializing && isMember && !profileReady ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">수료증에 출력될 실명과 생년월일을 회원정보에 먼저 저장해 주세요.</p> : null}
             {!isInitializing && !hasPaymentConfig ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">결제 설정 확인이 필요합니다. 잠시 후 다시 시도해 주세요.</p> : null}
+            {enrollmentCheckFailed ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">기존 결제 내역 확인에 실패했습니다. 중복 결제 방지를 위해 결제를 진행하지 않습니다.</p> : null}
+            {hasActiveEnrollment ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900"><p className="font-bold">이미 결제 완료된 수강권이 있습니다.</p><p>중복 결제를 막기 위해 결제 버튼을 비활성화했습니다.</p><div className="mt-3 flex flex-wrap gap-2"><Link href="/course-room" className={buttonClass("primary", "sm", "rounded-full px-4 font-bold")}>강의실로 이동</Link><Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full px-4 font-bold")}>수료증 출력</Link></div></div> : null}
 
             <button type="button" onClick={() => void handleRequestPayment()} disabled={!canSubmit} className={buttonClass("primary", "lg", "mt-5 w-full rounded-xl font-bold disabled:opacity-100")}>
-              {isSubmitting ? "결제 진행 중..." : `${formatKrw(selectedProduct.price)} 결제하기`}
+              {hasActiveEnrollment ? "이미 결제된 강의입니다" : isSubmitting ? "결제 진행 중..." : `${formatKrw(selectedProduct.price)} 결제하기`}
             </button>
 
             <div className="mt-4 space-y-1 text-center text-xs font-medium leading-5 text-slate-500">

@@ -12,7 +12,7 @@ import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 import { buttonClass } from "@/app/components/ui/button-styles";
-import { getUserEnrollment, hasCourseAccess, isEnrollmentActive } from "@/lib/course/enrollment-service";
+import { getVerifiedUserEnrollments, isEnrollmentActive } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { hasPreventionDocumentsAccess, preventionDocuments } from "@/lib/course/prevention-documents";
 
@@ -467,9 +467,10 @@ export default function CourseRoomPage() {
         const { db } = getFirebaseServices();
         const adminBypass = isSuperAdmin(user);
         setAdminPreview(adminBypass);
-        const allowed = await hasCourseAccess(user, defaultCourse.id);
-        const enrollment = await getUserEnrollment(user.uid, defaultCourse.id);
-        setHasDocumentFormsAccess(adminBypass || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId)));
+        const enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, defaultCourse.id);
+        const enrollment = enrollments.find((item) => item.courseId === defaultCourse.id);
+        const allowed = adminBypass || isEnrollmentActive(enrollment);
+        setHasDocumentFormsAccess(adminBypass || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId, enrollment?.amount, enrollment?.productTitle)));
 
         if (!allowed) {
           const expired = enrollment?.paymentStatus === "paid" && !isEnrollmentActive(enrollment);
@@ -478,7 +479,7 @@ export default function CourseRoomPage() {
             : "수강권 결제 후 이용할 수 있습니다.";
           setAccessBlockedMessage(message);
           setPlayerError(message);
-          router.replace("/courses/apply?categoryId=dui&notice=" + encodeURIComponent(message));
+          router.replace("/courses/apply/?category=dui&notice=" + encodeURIComponent(message));
         } else {
           setAccessBlockedMessage("");
         }
@@ -1160,9 +1161,7 @@ export default function CourseRoomPage() {
   const legalGateOpen = !legalAccepted;
   const certificateStatus = result?.issuedCertificates.length
     ? "수료증 발급 완료"
-    : aggregate.isCompleted
-      ? "수료증 발급 조건 충족"
-      : "강의 수강 시 발급 안내";
+    : "수강권 확인 후 즉시 발급 가능";
 
   const handleLegalGateAccept = async () => {
     setLegalAccepted(true);
@@ -1304,6 +1303,37 @@ export default function CourseRoomPage() {
           </div>
         </section>
 
+        <section className="mt-5 rounded-[1.5rem] border border-[#d3b271]/35 bg-[linear-gradient(135deg,rgba(15,42,87,0.96),rgba(29,78,216,0.88))] p-5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] sm:p-6">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f0d59c]">결제 회원 전용 자료</p>
+              <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">반성문 작성에 도움이 필요하신가요?</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-200 sm:text-base">
+                결제 회원은 반성문 작성 가이드와 예시를 확인하고 인쇄하거나 PDF로 저장할 수 있습니다.
+              </p>
+            </div>
+            <div className="grid shrink-0 gap-3 sm:grid-cols-2">
+              <a
+                href="/resources/reflection-guide"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-5 py-3 text-center text-sm font-bold text-[#10213f] transition hover:bg-[#f8ecd2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f0d59c]/70"
+              >
+                작성 가이드
+              </a>
+              <a
+                href="/resources/dui-reflection-example"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/35 bg-white/10 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50"
+              >
+                반성문 예시
+              </a>
+            </div>
+          </div>
+        </section>
+
+
         <section className="mt-5 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
           <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
             <div className="flex items-center justify-between gap-3">
@@ -1424,7 +1454,7 @@ export default function CourseRoomPage() {
                           <div>
                             <p className="font-semibold text-white">{accessBlockedMessage}</p>
                             <div className="mt-4 flex flex-wrap justify-center gap-2">
-                              <Link href="/courses/apply?categoryId=dui" className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">수강 신청하기</Link>
+                              <Link href="/courses/apply/?category=dui" className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">수강 신청하기</Link>
                               <Link href="/courses/dui-prevention" className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">강의 구성 보기</Link>
                             </div>
                           </div>
@@ -1556,38 +1586,18 @@ export default function CourseRoomPage() {
                       >
                         {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                       </button>
-{aggregate.isCompleted ? (
                         <Link
                           href="/certificate"
                           className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#111827]")}
                         >
                           수료증 발급
                         </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled
-                          className="inline-flex min-h-12 cursor-not-allowed items-center justify-center rounded-full border border-white/15 bg-slate-600 px-5 py-3 text-sm font-bold text-slate-200 opacity-70"
-                        >
-                          수료 후 발급 가능
-                        </button>
-                      )}
-{aggregate.isCompleted ? (
                         <Link
                           href="/certificate?print=1"
                           className={buttonClass("warning", "md", "rounded-full px-5 font-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
                         >
                           바로 인쇄
                         </Link>
-                      ) : (
-                        <button
-                          type="button"
-                          disabled
-                          className="inline-flex min-h-12 cursor-not-allowed items-center justify-center rounded-full bg-slate-600 px-5 py-3 text-sm font-bold text-slate-200 opacity-70"
-                        >
-                          수료 후 인쇄 가능
-                        </button>
-                      )}
                     </div>
                     <div className="mt-4 rounded-[1.25rem] border border-white/12 bg-[#06080c]/45 px-4 py-4 text-sm leading-7 text-slate-300">
                       <p className="font-semibold text-slate-100">운영 상태</p>
@@ -1647,13 +1657,13 @@ export default function CourseRoomPage() {
                       onChange={(event) => setPurchaseNoticeAccepted(event.target.checked)}
                       className="mt-1 h-4 w-4 accent-[#8a6a2d]"
                     />
-                    <span className="font-semibold text-slate-100">결제 전 안내와 수료 문서 발급 조건을 확인했습니다.</span>
+                    <span className="font-semibold text-slate-100">결제 전 안내와 수료 문서 즉시 발급 내용을 확인했습니다.</span>
                   </label>
                 </div>
 
                 {purchaseChecklistReady ? (
                   <Link
-                    href="/checkout"
+                    href="/courses/apply/?category=dui"
                     className="inline-flex min-h-12 w-full cursor-pointer items-center justify-center rounded-full bg-[linear-gradient(135deg,#8a6a2d_0%,#d3ad62_100%)] px-5 py-3 text-sm font-bold text-[#1a140b] shadow-[0_14px_28px_rgba(138,106,45,0.18)] transition-all hover:-translate-y-0.5 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827]"
                   >
                     주문서로 이동
@@ -1754,37 +1764,24 @@ export default function CourseRoomPage() {
             <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Completion Assets</p>
               <h3 className="mt-2 text-xl font-semibold text-white">수강 즉시 출력 자료</h3>
-              <div className="mt-4 space-y-2.5">
-                {defaultCourse.outputs.map((item) => (
-                  <div key={item} className="rounded-[1.25rem] border border-white/12 bg-white/[0.06] px-4 py-4 text-sm font-medium text-slate-200">
-                    {item}
-                  </div>
+              <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-sky-300 bg-sky-50 p-4 shadow-[0_18px_44px_rgba(14,165,233,0.20)]">
+                <p className="text-sm font-black text-sky-950">재발방지 관련 3종 서식</p>
+                <p className="text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "서식을 열어 인쇄하거나 PDF로 저장할 수 있습니다." : "서식 포함 수강권을 선택하면 이용할 수 있습니다."}</p>
+                {preventionDocuments.map((document) => (
+                  <Link
+                    key={document.id}
+                    href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"}
+                    className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:shadow-lg"
+                  >
+                    <span>{document.title}</span>
+                    <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "서식 포함 수강권"}</span>
+                  </Link>
                 ))}
               </div>
 
-              {hasDocumentFormsAccess ? (
-                <div className="mt-5 rounded-[1.35rem] border border-sky-200 bg-sky-50 p-4 text-sky-950">
-                  <p className="text-sm font-semibold">서식 포함 수강권 전용 참고서식</p>
-                  <p className="mt-2 text-sm leading-7">재발방지 관련 3종 서식을 확인하고 인쇄하거나 PDF로 저장할 수 있습니다.</p>
-                  <div className="mt-3 grid gap-2">
-                    {preventionDocuments.map((document) => (
-                      <Link key={document.id} href={`/prevention-documents?type=${document.id}`} className={buttonClass("secondary", "sm", "justify-between rounded-xl px-4")}>
-                        <span>{document.title}</span>
-                        <span className="font-semibold">보기</span>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-5 rounded-[1.35rem] border border-white/12 bg-white/[0.06] p-4 text-sm leading-7 text-slate-300">
-                  재발방지계획서, 음주예방실천계획서, 음주운전 재발방지 서약서는 서식 포함 수강권 구매자에게 제공됩니다.
-                </div>
-              )}
-
-              {aggregate.isCompleted ? (
-                <div className="mt-5 rounded-[1.35rem] border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-semibold text-emerald-800">음주운전 예방교육 총 5강을 모두 수강하셨습니다.</p>
-                  <p className="mt-2 text-sm leading-7 text-emerald-900">수강 완료 상태입니다. 아래 버튼을 눌러 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
+              <div className="mt-5 rounded-[1.35rem] border border-emerald-200 bg-emerald-50 p-4">
+                  <p className="text-sm font-semibold text-emerald-800">수강권이 확인되면 수료증을 바로 확인할 수 있습니다.</p>
+                  <p className="mt-2 text-sm leading-7 text-emerald-900">진도율과 관계없이 아래 버튼을 눌러 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                   <div className="mt-3 space-y-3 text-sm text-emerald-900">
                     {result?.issuedCertificates.length ? (
                       result.issuedCertificates.map((certificate) => (
@@ -1817,7 +1814,6 @@ export default function CourseRoomPage() {
                     )}
                   </div>
                 </div>
-              ) : null}
             </section>
           </aside>
         </div>

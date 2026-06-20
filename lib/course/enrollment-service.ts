@@ -1,12 +1,34 @@
 import type { User } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { defaultCourse } from "@/lib/course/catalog";
-import { duiPreventionCourseProduct } from "@/lib/course/product";
-import { getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
+import { getApplicationCategory } from "@/lib/course/application-products";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 
 export type EnrollmentStatus = "active" | "cancelled" | "expired" | "pending" | "refunded";
+
+function maskFirestoreSegment(value: string) {
+  if (!value) return "";
+  if (value.length <= 8) return value.slice(0, 2) + "***";
+  return value.slice(0, 4) + "***" + value.slice(-4);
+}
+
+function maskFirestorePath(path: string) {
+  return path
+    .split("/")
+    .map((segment, index) => (index % 2 === 1 ? maskFirestoreSegment(segment) : segment))
+    .join("/");
+}
+
+function logFirestoreFailure(operation: "getDoc" | "getDocs", path: string, error: unknown) {
+  const errorLike = error as { code?: unknown; message?: unknown };
+  console.error("[enrollment:firestore]", {
+    operation,
+    path: maskFirestorePath(path),
+    code: typeof errorLike?.code === "string" ? errorLike.code : undefined,
+    message: typeof errorLike?.message === "string" ? errorLike.message : "Firestore request failed",
+  });
+}
 
 export type EnrollmentRecord = {
   userId: string;
@@ -23,20 +45,12 @@ export type EnrollmentRecord = {
   purchasedAt?: string | Date | { seconds: number } | null;
   expiresAt?: string | Date | { seconds: number } | null;
   certificateAvailable?: boolean;
+  amount?: number;
+  progress?: number;
+  completedLessons?: number;
+  totalLessons?: number;
   createdAt?: unknown;
   updatedAt?: unknown;
-};
-
-export type CreateEnrollmentAfterPaymentInput = {
-  userId: string;
-  courseId?: string;
-  categoryId?: string | null;
-  productId?: string | null;
-  paymentId?: string;
-  orderId?: string;
-  paymentStatus?: string;
-  purchasedAt?: string;
-  expiresAt?: string | null;
 };
 
 export const OPERATING_COURSE_ID = defaultCourse.id;
@@ -71,82 +85,247 @@ function toMillis(value: unknown) {
 
 export function isEnrollmentActive(enrollment: EnrollmentRecord | null | undefined) {
   if (!enrollment) return false;
-  const status = enrollment.enrollmentStatus ?? enrollment.accessStatus ?? "active";
   const expiresAt = toMillis(enrollment.expiresAt);
   const paymentStatus = String(enrollment.paymentStatus || "").toLowerCase();
+  const paid = ["paid", "done", "completed", "approved", "success"].includes(paymentStatus);
+  const status = enrollment.enrollmentStatus ?? enrollment.accessStatus ?? (paid ? "active" : "");
   const accessStatus = String(status || "").toLowerCase();
-  return paymentStatus === "paid" && accessStatus === "active" && (expiresAt === null || expiresAt >= Date.now());
+  const blocked = ["cancelled", "canceled", "refunded", "expired", "failed"].includes(accessStatus);
+  return paid && !blocked && accessStatus === "active" && (expiresAt === null || expiresAt >= Date.now());
 }
 
 export async function getUserEnrollment(userId: string, courseIdOrCategory: string) {
   const courseId = resolveCourseId(courseIdOrCategory);
   const { db } = getFirebaseServices();
+  let fallback: EnrollmentRecord | null = null;
 
-  const nested = await getDoc(doc(db, "users", userId, "enrollments", courseId));
-  if (nested.exists()) return nested.data() as EnrollmentRecord;
+  const choose = (rows: EnrollmentRecord[]) => {
+    const active = rows.find(isEnrollmentActive);
+    if (active) return active;
+    if (!fallback && rows.length > 0) fallback = rows[0];
+    return null;
+  };
 
-  const rootById = await getDoc(doc(db, "enrollments", userId + "_" + courseId));
-  if (rootById.exists()) return rootById.data() as EnrollmentRecord;
+  const nestedPath = `users/${userId}/enrollments/${courseId}`;
+  try {
+    const nested = await getDoc(doc(db, "users", userId, "enrollments", courseId));
+    if (nested.exists()) {
+      const active = choose([nested.data() as EnrollmentRecord]);
+      if (active) return active;
+    }
+  } catch (error) {
+    logFirestoreFailure("getDoc", nestedPath, error);
+  }
 
-  const rootQuery = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId), where("userId", "==", userId)));
-  if (!rootQuery.empty) return rootQuery.docs[0].data() as EnrollmentRecord;
+  const rootByIdPath = `enrollments/${userId}_${courseId}`;
+  try {
+    const rootById = await getDoc(doc(db, "enrollments", userId + "_" + courseId));
+    if (rootById.exists()) {
+      const active = choose([rootById.data() as EnrollmentRecord]);
+      if (active) return active;
+    }
+  } catch (error) {
+    logFirestoreFailure("getDoc", rootByIdPath, error);
+  }
 
-  const legacyQuery = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId), where("uid", "==", userId)));
-  if (!legacyQuery.empty) return legacyQuery.docs[0].data() as EnrollmentRecord;
+  try {
+    const rootQuery = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId), where("userId", "==", userId)));
+    const active = choose(rootQuery.docs.map((snapshot) => snapshot.data() as EnrollmentRecord));
+    if (active) return active;
+  } catch (error) {
+    logFirestoreFailure("getDocs", "enrollments?courseId=<courseId>&userId=<uid>", error);
+  }
 
-  return null;
+  try {
+    const legacyQuery = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId), where("uid", "==", userId)));
+    const active = choose(legacyQuery.docs.map((snapshot) => snapshot.data() as EnrollmentRecord));
+    if (active) return active;
+  } catch (error) {
+    logFirestoreFailure("getDocs", "enrollments?courseId=<courseId>&uid=<uid>", error);
+  }
+
+  return fallback;
 }
 
 export async function getUserEnrollments(userId: string) {
   const { db } = getFirebaseServices();
-  const nested = await getDocs(collection(db, "users", userId, "enrollments"));
-  const nestedRows = nested.docs.map((snapshot) => snapshot.data() as EnrollmentRecord);
-  const root = await getDocs(query(collection(db, "enrollments"), where("userId", "==", userId)));
-  const legacy = await getDocs(query(collection(db, "enrollments"), where("uid", "==", userId)));
   const byCourse = new Map<string, EnrollmentRecord>();
-  [...nestedRows, ...root.docs.map((d) => d.data() as EnrollmentRecord), ...legacy.docs.map((d) => d.data() as EnrollmentRecord)].forEach((row) => {
-    byCourse.set(row.courseId, row);
-  });
+  let failedReads = 0;
+
+  const addEnrollment = (row: EnrollmentRecord | null | undefined) => {
+    if (!row?.courseId) return;
+    const existing = byCourse.get(row.courseId);
+    if (!existing || isEnrollmentActive(row) || !isEnrollmentActive(existing)) {
+      byCourse.set(row.courseId, row);
+    }
+  };
+
+  try {
+    const nested = await getDocs(collection(db, "users", userId, "enrollments"));
+    nested.docs.forEach((snapshot) => addEnrollment(snapshot.data() as EnrollmentRecord));
+  } catch (error) {
+    failedReads += 1;
+    logFirestoreFailure("getDocs", "users/" + userId + "/enrollments", error);
+  }
+
+  const operatingCoursePath = "enrollments/" + userId + "_" + OPERATING_COURSE_ID;
+  try {
+    const rootById = await getDoc(doc(db, "enrollments", userId + "_" + OPERATING_COURSE_ID));
+    if (rootById.exists()) addEnrollment(rootById.data() as EnrollmentRecord);
+  } catch (error) {
+    failedReads += 1;
+    logFirestoreFailure("getDoc", operatingCoursePath, error);
+  }
+
+  try {
+    const root = await getDocs(query(collection(db, "enrollments"), where("userId", "==", userId)));
+    root.docs.forEach((snapshot) => addEnrollment(snapshot.data() as EnrollmentRecord));
+  } catch (error) {
+    failedReads += 1;
+    logFirestoreFailure("getDocs", "enrollments?userId=<uid>", error);
+  }
+
+  try {
+    const legacy = await getDocs(query(collection(db, "enrollments"), where("uid", "==", userId)));
+    legacy.docs.forEach((snapshot) => addEnrollment(snapshot.data() as EnrollmentRecord));
+  } catch (error) {
+    failedReads += 1;
+    logFirestoreFailure("getDocs", "enrollments?uid=<uid>", error);
+  }
+
+  if (byCourse.size === 0 && failedReads > 0) {
+    throw new Error("수강권 조회 중 Firestore 요청이 실패했습니다.");
+  }
+
   return Array.from(byCourse.values());
 }
 
+function logDashboardEnrollmentEvent(event: string, details: Record<string, unknown> = {}) {
+  console.info("[enrollments:frontend]", { event, ...details });
+}
+
+type EnrollmentsApiFailureKind = "auth" | "forbidden" | "not_found" | "server" | "network" | "config" | "invalid_response";
+
+class EnrollmentsApiError extends Error {
+  constructor(
+    message: string,
+    readonly kind: EnrollmentsApiFailureKind,
+    readonly status?: number,
+    readonly code?: string,
+  ) {
+    super(message);
+    this.name = "EnrollmentsApiError";
+  }
+}
+
+function getEnrollmentsApiError(status: number, code?: string) {
+  if (status === 401) return new EnrollmentsApiError("로그인 세션이 만료되었습니다. 다시 로그인해 주세요.", "auth", status, code);
+  if (status === 403) return new EnrollmentsApiError("수강권 조회 권한이 없습니다.", "forbidden", status, code);
+  if (status === 404) return new EnrollmentsApiError("수강권 조회 API가 배포되지 않았거나 URL이 올바르지 않습니다.", "not_found", status, code);
+  if (status >= 500) return new EnrollmentsApiError("수강권 조회 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", "server", status, code);
+  return new EnrollmentsApiError("수강권 조회 요청을 처리하지 못했습니다.", "server", status, code);
+}
+
+export async function getVerifiedUserEnrollments(user: User, courseIdOrCategory: string | null = defaultCourse.id) {
+  const requestAllCourses = courseIdOrCategory === null;
+  const courseId = requestAllCourses ? "all" : resolveCourseId(courseIdOrCategory);
+  const maskedUid = maskFirestoreSegment(user.uid);
+  const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
+  const allowFirestoreFallback = process.env.NODE_ENV !== "production";
+
+  logDashboardEnrollmentEvent("auth_user_ready", { uid: maskedUid, courseId });
+
+  if (!apiBaseUrl) {
+    const error = new EnrollmentsApiError("수강권 조회 API URL 설정이 없습니다.", "config");
+    logDashboardEnrollmentEvent("enrollments_api_failed", { uid: maskedUid, courseId, kind: error.kind, code: "API_URL_MISSING" });
+    if (!allowFirestoreFallback) throw error;
+  } else {
+    const apiUrl = requestAllCourses
+      ? apiBaseUrl + "/api/enrollments/me?scope=all"
+      : apiBaseUrl + "/api/enrollments/me?courseId=" + encodeURIComponent(courseId);
+    try {
+      const token = await user.getIdToken(true);
+      logDashboardEnrollmentEvent("id_token_acquired", { uid: maskedUid, courseId, forcedRefresh: true });
+      logDashboardEnrollmentEvent("enrollments_api_request_started", { uid: maskedUid, courseId, method: "GET", url: apiUrl });
+
+      let response: Response;
+      try {
+        response = await fetch(apiUrl, {
+          method: "GET",
+          headers: { Authorization: "Bearer " + token },
+        });
+      } catch (cause) {
+        throw new EnrollmentsApiError(
+          "수강권 조회 서버에 연결할 수 없습니다. 네트워크 또는 CORS 상태를 확인해 주세요.",
+          "network",
+          undefined,
+          cause instanceof Error ? cause.name : "FETCH_FAILED",
+        );
+      }
+
+      const responseText = await response.text();
+      let payload: { enrollments?: unknown; courseId?: unknown; access?: unknown; code?: unknown; message?: unknown } = {};
+      if (responseText) {
+        try {
+          payload = JSON.parse(responseText) as typeof payload;
+        } catch {
+          if (response.ok) throw new EnrollmentsApiError("수강권 조회 API 응답 형식이 올바르지 않습니다.", "invalid_response", response.status, "INVALID_JSON");
+        }
+      }
+      const responseCode = typeof payload.code === "string" ? payload.code : undefined;
+      const count = Array.isArray(payload.enrollments) ? payload.enrollments.length : undefined;
+      logDashboardEnrollmentEvent("enrollments_api_response", { uid: maskedUid, courseId, status: response.status, ok: response.ok, code: responseCode, count });
+
+      if (!response.ok) throw getEnrollmentsApiError(response.status, responseCode);
+      if (!Array.isArray(payload.enrollments)) {
+        throw new EnrollmentsApiError("수강권 조회 API 응답에 enrollments 배열이 없습니다.", "invalid_response", response.status, "INVALID_PAYLOAD");
+      }
+      return payload.enrollments as EnrollmentRecord[];
+    } catch (cause) {
+      const error = cause instanceof EnrollmentsApiError
+        ? cause
+        : new EnrollmentsApiError(
+            cause instanceof Error && cause.message ? cause.message : "Firebase ID 토큰을 갱신하지 못했습니다.",
+            "auth",
+            undefined,
+            "ID_TOKEN_ACQUISITION_FAILED",
+          );
+      logDashboardEnrollmentEvent("enrollments_api_failed", {
+        uid: maskedUid,
+        courseId,
+        kind: error.kind,
+        status: error.status,
+        code: error.code,
+      });
+      if (!allowFirestoreFallback) throw error;
+    }
+  }
+
+  // Explicit development-only compatibility path. Production access decisions
+  // are made exclusively by the Worker API.
+  const rows = await getUserEnrollments(user.uid);
+  if (requestAllCourses) {
+    const activeRows = rows.filter(isEnrollmentActive);
+    logDashboardEnrollmentEvent("enrollments_api_development_fallback", { uid: maskedUid, courseId, count: activeRows.length });
+    return activeRows;
+  }
+  const operatingEnrollment = rows.find((row) => row.courseId === courseId) ?? await getUserEnrollment(user.uid, courseId);
+  const merged = operatingEnrollment && !rows.some((row) => row.courseId === courseId) ? [...rows, operatingEnrollment] : rows;
+  logDashboardEnrollmentEvent("enrollments_api_development_fallback", { uid: maskedUid, courseId, count: merged.length });
+  return merged;
+}
+
+
+export async function getVerifiedActiveUserEnrollments(user: User) {
+  const enrollments = await getVerifiedUserEnrollments(user, null);
+  return enrollments.filter(isEnrollmentActive);
+}
 export async function hasCourseAccess(user: User | null, courseIdOrCategory: string) {
   if (!user || !courseIdOrCategory) return false;
   if (isSuperAdmin(user)) return true;
   const availability = getCourseAvailability(courseIdOrCategory);
   if (availability.comingSoon) return false;
-  const enrollment = await getUserEnrollment(user.uid, courseIdOrCategory);
-  return isEnrollmentActive(enrollment);
-}
-
-export async function createEnrollmentAfterPayment(input: CreateEnrollmentAfterPaymentInput) {
-  // TODO: 실제 운영에서는 프론트엔드 결제 성공 화면 진입만으로 수강권을 만들지 말고, 서버에서 PG 승인 검증 후 이 구조의 enrollment를 생성해야 함.
-  const courseId = resolveCourseId(input.courseId || input.categoryId || defaultCourse.id);
-  const category = input.categoryId ? getApplicationCategory(input.categoryId) : null;
-  const product = input.categoryId ? getApplicationProduct(input.categoryId, input.productId) : null;
-  const purchasedAt = input.purchasedAt || new Date().toISOString();
-  const expiresAt = input.expiresAt ?? new Date(Date.now() + duiPreventionCourseProduct.durationDays * 24 * 60 * 60 * 1000).toISOString();
-  const enrollment: EnrollmentRecord = {
-    userId: input.userId,
-    uid: input.userId,
-    courseId,
-    courseTitle: category?.title || defaultCourse.title,
-    productId: product?.id || input.productId || "basic",
-    productTitle: product?.title || "수강 즉시 수료증 출력 과정",
-    paymentId: input.paymentId,
-    orderId: input.orderId,
-    paymentStatus: input.paymentStatus || "paid",
-    enrollmentStatus: "active",
-    accessStatus: "active",
-    purchasedAt,
-    expiresAt,
-    certificateAvailable: false,
-  };
-
-  const { db } = getFirebaseServices();
-  await Promise.all([
-    setDoc(doc(db, "users", input.userId, "enrollments", courseId), { ...enrollment, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true }),
-    setDoc(doc(db, "enrollments", input.userId + "_" + courseId), { ...enrollment, createdAt: serverTimestamp(), updatedAt: serverTimestamp() }, { merge: true }),
-  ]);
-  return enrollment;
+  const courseId = resolveCourseId(courseIdOrCategory);
+  const enrollments = await getVerifiedUserEnrollments(user, courseId);
+  return enrollments.some((enrollment) => enrollment.courseId === courseId && isEnrollmentActive(enrollment));
 }

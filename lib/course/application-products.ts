@@ -1,6 +1,6 @@
 export const APPLICATION_PRICES = {
-  BASIC: 55000,
-  DUI_WITH_DOCUMENTS: 89000,
+  BASIC: 59000,
+  DUI_WITH_DOCUMENTS: 109000,
 } as const;
 
 export type ApplicationProduct = {
@@ -32,7 +32,13 @@ export const basicApplicationProduct: ApplicationProduct = {
   price: APPLICATION_PRICES.BASIC,
   badge: "강의 + 수료증",
   description: "온라인 강의 수강과 수강 즉시 수료증 출력이 필요한 분을 위한 기본 과정입니다.",
-  includes: ["온라인 강의 5강 수강", "진도율 확인", "수강 즉시 수료증 출력", "교육 이수 기록 확인"],
+  includes: [
+    "온라인 강의 5강 수강",
+    "진도율 확인",
+    "수강 즉시 수료증 출력",
+    "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
+    "교육 이수 기록 확인",
+  ],
 };
 
 export const duiDocumentsApplicationProduct: ApplicationProduct = {
@@ -45,6 +51,7 @@ export const duiDocumentsApplicationProduct: ApplicationProduct = {
     "온라인 강의 5강 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
+    "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
     "재발방지계획서 출력 및 PDF 저장",
     "음주예방실천계획서 출력 및 PDF 저장",
     "음주운전 재발방지 서약서 출력 및 PDF 저장",
@@ -109,7 +116,7 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
 ];
 
 export const applicationNoticeText =
-  "55,000원 기본 수강권은 강의와 수강 즉시 수료증 출력 중심이며, 89,000원 서식 포함 수강권은 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서 출력 및 PDF 저장 기능을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
+  "모든 결제 완료 회원에게 반성문 작성 가이드와 예시 열람·인쇄·PDF 저장 기능을 제공합니다. 109,000원 서식 포함 수강권은 여기에 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서까지 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
 
 export function formatApplicationKrw(value: number) {
   return value.toLocaleString("ko-KR") + "원";

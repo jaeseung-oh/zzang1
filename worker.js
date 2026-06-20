@@ -66,6 +66,10 @@ async function handleRequest(request, env) {
             return handleCurrentUser(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/enrollments/me' && request.method === 'GET') {
+            return await handleCurrentUserEnrollments(request, env, corsHeaders);
+        }
+
         if (url.pathname === PROVIDERS.kakao.logoutCallbackPath && request.method === 'GET') {
             return handleProviderLogoutCallback(request, env);
         }
@@ -83,7 +87,7 @@ async function handleRequest(request, env) {
         }
 
         if (url.pathname === '/api/stream/token' && request.method === 'GET') {
-            return handleStreamToken(request, env, corsHeaders);
+            return await handleStreamToken(request, env, corsHeaders);
         }
 
         if (url.pathname === '/api/payments/portone-order' && request.method === 'POST') {
@@ -95,7 +99,7 @@ async function handleRequest(request, env) {
         }
 
         if (url.pathname === '/api/payments/portone-webhook' && request.method === 'POST') {
-            return handlePortOneWebhook(request, env, corsHeaders);
+            return handlePortOneWebhookSafely(request, env, corsHeaders);
         }
 
         if (url.pathname === '/api/certificates/issue' && request.method === 'POST') {
@@ -606,23 +610,358 @@ function isWorkerAdminUser(user, env) {
     return Boolean(user?.email && getAdminEmailsFromEnvValue(env).includes(String(user.email).toLowerCase()));
 }
 
+function maskLogIdentifier(value) {
+    const text = String(value || '');
+    if (!text) return '';
+    if (text.length <= 8) return text.slice(0, 2) + '***';
+    return text.slice(0, 4) + '***' + text.slice(-4);
+}
+
+function logEnrollmentWorkerEvent(event, details = {}) {
+    console.info('[enrollments:worker]', {
+        event,
+        ...details
+    });
+}
+
 function isFirestoreEnrollmentActiveRecord(enrollment) {
     if (!enrollment) return false;
-    const paymentStatus = String(enrollment.paymentStatus || '').toLowerCase();
-    const accessStatus = String(enrollment.enrollmentStatus || enrollment.accessStatus || '').toLowerCase();
+    const paymentStatus = String(enrollment.paymentStatus || enrollment.status || '').toLowerCase();
+    const paid = ['paid', 'done', 'completed', 'approved', 'success'].includes(paymentStatus);
+    const accessStatus = String(enrollment.enrollmentStatus || enrollment.accessStatus || (paid ? 'active' : '')).toLowerCase();
+    const blocked = ['cancelled', 'canceled', 'refunded', 'expired', 'failed'].includes(accessStatus)
+        || ['cancelled', 'canceled', 'refunded', 'failed'].includes(paymentStatus);
     const expiresAt = enrollment.expiresAt ? new Date(enrollment.expiresAt).getTime() : null;
-    return paymentStatus === 'paid' && accessStatus === 'active' && (!expiresAt || expiresAt >= Date.now());
+    return paid && !blocked && accessStatus === 'active' && (!expiresAt || expiresAt >= Date.now());
+}
+
+function isExplicitlyBlockedEnrollmentRecord(enrollment) {
+    if (!enrollment) return false;
+    const paymentStatus = String(enrollment.paymentStatus || enrollment.status || '').toLowerCase();
+    const accessStatus = String(enrollment.enrollmentStatus || enrollment.accessStatus || '').toLowerCase();
+    return ['cancelled', 'canceled', 'refunded', 'failed'].includes(paymentStatus)
+        || ['cancelled', 'canceled', 'refunded'].includes(accessStatus);
+}
+
+async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canonicalPath) {
+    const nowIso = new Date().toISOString();
+    const sourceAmount = Number(source.amount);
+    const sourceProductId = source.productId === 'dui-documents' || sourceAmount >= 89000
+        ? 'dui-documents' : (source.productId || 'basic');
+    const repaired = {
+        enrollmentId: uid + '_' + courseId,
+        userId: uid,
+        uid,
+        courseId,
+        courseTitle: source.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
+        categoryId: source.categoryId || 'dui',
+        productId: sourceProductId,
+        productTitle: source.productTitle || APPLICATION_PRODUCTS[sourceProductId]?.title || APPLICATION_PRODUCTS.basic.title,
+        amount: Number(source.amount) || APPLICATION_PRODUCTS[sourceProductId]?.amount || APPLICATION_PRODUCTS.basic.amount,
+        paymentId: source.paymentId || source.paymentKey || null,
+        orderId: source.orderId || source.id || null,
+        purchasedAt: source.purchasedAt || source.approvedAt || source.orderedAt || source.createdAt || nowIso,
+        expiresAt: source.expiresAt || null,
+        paymentStatus: 'paid',
+        accessStatus: 'active',
+        progress: Number(source.progress) || 0,
+        completedLessons: Number(source.completedLessons) || 0,
+        totalLessons: Number(source.totalLessons) || DUI_COURSE_PRODUCT.totalLessons,
+        certificateIssued: Boolean(source.certificateIssued),
+        certificateIssuedAt: source.certificateIssuedAt || null,
+        certificateId: source.certificateId || null,
+        certificateNo: source.certificateNo || null,
+        recoveredFrom: source.recordSource || 'trusted_payment_record',
+        recoveredAt: nowIso,
+        createdAt: source.createdAt || nowIso,
+        updatedAt: nowIso
+    };
+    await firestorePatch(env, canonicalPath, repaired);
+    logEnrollmentWorkerEvent('enrollment_canonical_repaired', { uid: maskLogIdentifier(uid), courseId, source: repaired.recoveredFrom });
+    return { ...source, ...repaired, id: repaired.enrollmentId, documentPath: canonicalPath, recordSource: 'root_repaired' };
+}
+
+async function getWorkerCourseAccessDecision(env, user, courseId) {
+    if (isWorkerAdminUser(user, env)) {
+        return { allowed: true, enrollment: null, adminBypass: true };
+    }
+    const enrollment = await getWorkerEnrollmentRecord(env, user.uid, courseId);
+    return { allowed: isFirestoreEnrollmentActiveRecord(enrollment), enrollment, adminBypass: false };
 }
 
 async function userHasWorkerCourseAccess(env, user, courseId) {
-    if (isWorkerAdminUser(user, env)) return true;
-    const enrollmentId = user.uid + '_' + courseId;
-    const byId = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    if (byId) return isFirestoreEnrollmentActiveRecord(fromFirestoreFields(byId.fields || {}));
+    const decision = await getWorkerCourseAccessDecision(env, user, courseId);
+    return decision.allowed;
+}
 
-    const nested = await firestoreGet(env, firestoreDocumentPath(env, 'users/' + user.uid + '/enrollments', courseId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    if (nested) return isFirestoreEnrollmentActiveRecord(fromFirestoreFields(nested.fields || {}));
-    return false;
+async function getWorkerEnrollmentRecord(env, uid, courseId) {
+    const enrollmentId = uid + '_' + courseId;
+    const canonicalPath = firestoreDocumentPath(env, 'enrollments', enrollmentId);
+    const byId = await firestoreGet(env, canonicalPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    const canonical = byId ? { id: enrollmentId, documentPath: canonicalPath, ...fromFirestoreFields(byId.fields || {}), recordSource: 'root' } : null;
+    logEnrollmentWorkerEvent('enrollment_root_checked', { uid: maskLogIdentifier(uid), courseId, exists: Boolean(canonical), active: isFirestoreEnrollmentActiveRecord(canonical) });
+    if (isFirestoreEnrollmentActiveRecord(canonical)) return canonical;
+
+    const nestedPath = firestoreDocumentPath(env, 'users/' + uid + '/enrollments', courseId);
+    const nested = await firestoreGet(env, nestedPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    const nestedRecord = nested ? { id: courseId, documentPath: nestedPath, ...fromFirestoreFields(nested.fields || {}), recordSource: 'nested' } : null;
+    logEnrollmentWorkerEvent('enrollment_nested_checked', { uid: maskLogIdentifier(uid), courseId, exists: Boolean(nestedRecord), active: isFirestoreEnrollmentActiveRecord(nestedRecord) });
+    if (isFirestoreEnrollmentActiveRecord(nestedRecord)) {
+        return repairCanonicalWorkerEnrollment(env, uid, courseId, nestedRecord, canonicalPath).catch((error) => {
+            logEnrollmentWorkerEvent('enrollment_canonical_repair_failed', { uid: maskLogIdentifier(uid), courseId, source: 'nested', message: error instanceof Error ? error.message : String(error) });
+            return nestedRecord;
+        });
+    }
+    if (isExplicitlyBlockedEnrollmentRecord(canonical) || isExplicitlyBlockedEnrollmentRecord(nestedRecord)) {
+        return canonical || nestedRecord;
+    }
+
+    // Historical purchases may use a payment/order ID as the document ID.
+    const [byUserId, byUid] = await Promise.all([
+        firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]),
+        firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }])
+    ]);
+    const matchesCourse = (row) => row.courseId === courseId || (!row.courseId && row.categoryId === 'dui');
+    const candidates = [canonical, nestedRecord, ...byUserId, ...byUid].filter((row) => row && matchesCourse(row));
+    const activeEnrollment = candidates.find(isFirestoreEnrollmentActiveRecord);
+    if (activeEnrollment) {
+        return repairCanonicalWorkerEnrollment(env, uid, courseId, activeEnrollment, canonicalPath).catch((error) => {
+            logEnrollmentWorkerEvent('enrollment_canonical_repair_failed', { uid: maskLogIdentifier(uid), courseId, source: activeEnrollment.recordSource || 'historical_enrollment', message: error instanceof Error ? error.message : String(error) });
+            return activeEnrollment;
+        });
+    }
+
+    // Recover access from trusted, server-written purchase/payment records when
+    // an enrollment document was removed or reset.
+    const [purchasesByUserId, purchasesByUid, paymentsByUserId, paymentsByUid] = await Promise.all([
+        firestoreQuery(env, 'purchases', [{ field: 'userId', value: uid }]),
+        firestoreQuery(env, 'purchases', [{ field: 'uid', value: uid }]),
+        firestoreQuery(env, 'payments', [{ field: 'userId', value: uid }]),
+        firestoreQuery(env, 'payments', [{ field: 'uid', value: uid }])
+    ]);
+    const paidRecords = [...purchasesByUserId, ...purchasesByUid, ...paymentsByUserId, ...paymentsByUid]
+        .filter(matchesCourse)
+        .map((row) => {
+            const purchasedAt = row.purchasedAt || row.approvedAt || row.orderedAt || row.createdAt || null;
+            const purchasedTime = purchasedAt ? new Date(purchasedAt).getTime() : NaN;
+            const expiresAt = row.expiresAt || (Number.isFinite(purchasedTime)
+                ? new Date(purchasedTime + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString()
+                : null);
+            return {
+                ...row,
+                userId: row.userId || row.uid || uid,
+                uid: row.uid || row.userId || uid,
+                courseId,
+                paymentStatus: row.paymentStatus || row.status,
+                accessStatus: row.accessStatus || row.enrollmentStatus || 'active',
+                purchasedAt,
+                expiresAt
+            };
+        });
+    const recovered = paidRecords.find(isFirestoreEnrollmentActiveRecord);
+    if (!recovered) return candidates[0] || null;
+    return repairCanonicalWorkerEnrollment(env, uid, courseId, { ...recovered, recordSource: recovered.recordSource || 'trusted_payment_record' }, canonicalPath).catch((error) => {
+        logEnrollmentWorkerEvent('enrollment_canonical_repair_failed', { uid: maskLogIdentifier(uid), courseId, source: recovered.recordSource || 'trusted_payment_record', message: error instanceof Error ? error.message : String(error) });
+        return recovered;
+    });
+}
+
+async function enrichWorkerEnrollmentEntitlement(env, uid, courseId, enrollment) {
+    try {
+        const [purchasesByUserId, purchasesByUid, paymentsByUserId, paymentsByUid] = await Promise.all([
+            firestoreQuery(env, 'purchases', [{ field: 'userId', value: uid }]),
+            firestoreQuery(env, 'purchases', [{ field: 'uid', value: uid }]),
+            firestoreQuery(env, 'payments', [{ field: 'userId', value: uid }]),
+            firestoreQuery(env, 'payments', [{ field: 'uid', value: uid }])
+        ]);
+        const records = [...purchasesByUserId, ...purchasesByUid, ...paymentsByUserId, ...paymentsByUid]
+            .filter((row) => {
+                const paid = ['paid', 'done', 'completed', 'approved', 'success'].includes(String(row.paymentStatus || row.status || '').toLowerCase());
+                const sameCourse = row.courseId === courseId || (!row.courseId && row.categoryId === 'dui');
+                return paid && sameCourse;
+            })
+            .sort((a, b) => {
+                const time = (row) => new Date(row.approvedAt || row.purchasedAt || row.orderedAt || row.createdAt || 0).getTime() || 0;
+                return time(b) - time(a);
+            });
+        const exact = records.find((row) =>
+            (enrollment.orderId && (row.orderId === enrollment.orderId || row.id === enrollment.orderId))
+            || (enrollment.paymentId && (row.paymentId === enrollment.paymentId || row.paymentKey === enrollment.paymentId))
+        );
+        const entitlement = exact || records[0];
+        if (!entitlement) return enrollment;
+
+        const amount = Number(entitlement.amount ?? enrollment.amount);
+        const productTitle = String(entitlement.productTitle || enrollment.productTitle || '');
+        const premium = entitlement.productId === 'dui-documents'
+            || enrollment.productId === 'dui-documents'
+            || amount >= 89000
+            || productTitle.replace(/\s/g, '').includes('서식포함');
+        return {
+            ...enrollment,
+            categoryId: entitlement.categoryId || enrollment.categoryId || 'dui',
+            productId: premium ? 'dui-documents' : (entitlement.productId || enrollment.productId || 'basic'),
+            productTitle: premium ? APPLICATION_PRODUCTS['dui-documents'].title : (entitlement.productTitle || enrollment.productTitle),
+            amount: Number.isFinite(amount) && amount > 0 ? amount : enrollment.amount
+        };
+    } catch (error) {
+        logEnrollmentWorkerEvent('enrollment_entitlement_lookup_failed', {
+            uid: maskLogIdentifier(uid),
+            courseId,
+            message: error instanceof Error ? error.message : String(error)
+        });
+        return enrollment;
+    }
+}
+
+function buildEnrollmentApiRecord(enrollment, progress) {
+    const product = APPLICATION_PRODUCTS[enrollment.productId] || APPLICATION_PRODUCTS.basic;
+    const completedLessons = Number(progress?.completedModuleCount ?? enrollment.completedLessons ?? 0);
+    const totalLessons = Number(progress?.totalModuleCount ?? enrollment.totalLessons ?? DUI_COURSE_PRODUCT.totalLessons);
+    const progressRate = Number(progress?.completionRate ?? enrollment.progress ?? (totalLessons > 0 ? Math.floor((completedLessons / totalLessons) * 100) : 0));
+    const enrollmentId = enrollment.id || enrollment.enrollmentId || ((enrollment.uid || enrollment.userId) + '_' + enrollment.courseId);
+    return {
+        id: enrollmentId,
+        enrollmentId,
+        userId: enrollment.userId || enrollment.uid,
+        uid: enrollment.uid || enrollment.userId,
+        courseId: enrollment.courseId,
+        courseTitle: enrollment.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
+        categoryId: enrollment.categoryId || product.categoryId,
+        productId: enrollment.productId || product.productId,
+        productTitle: enrollment.productTitle || product.title,
+        paymentId: enrollment.paymentId || null,
+        orderId: enrollment.orderId || null,
+        amount: typeof enrollment.amount === 'number' ? enrollment.amount : product.amount,
+        paymentStatus: enrollment.paymentStatus || '',
+        enrollmentStatus: enrollment.enrollmentStatus || enrollment.accessStatus || '',
+        accessStatus: enrollment.accessStatus || enrollment.enrollmentStatus || '',
+        purchasedAt: enrollment.purchasedAt || enrollment.approvedAt || null,
+        expiresAt: enrollment.expiresAt || null,
+        progress: Math.max(0, Math.min(100, Number.isFinite(progressRate) ? progressRate : 0)),
+        completedLessons: Number.isFinite(completedLessons) ? completedLessons : 0,
+        totalLessons: Number.isFinite(totalLessons) ? totalLessons : DUI_COURSE_PRODUCT.totalLessons,
+        certificateIssued: Boolean(enrollment.certificateIssued),
+        certificateId: enrollment.certificateId || null,
+        certificateNo: enrollment.certificateNo || null,
+    };
+}
+
+async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
+    const uid = firebaseUser.uid;
+    const currentCourseEnrollment = await getWorkerEnrollmentRecord(env, uid, DUI_COURSE_PRODUCT.courseId);
+    const [byUserId, byUid] = await Promise.all([
+        firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]),
+        firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }])
+    ]);
+
+    const byCourse = new Map();
+    [currentCourseEnrollment, ...byUserId, ...byUid]
+        .filter((enrollment) => enrollment?.courseId && isFirestoreEnrollmentActiveRecord(enrollment))
+        .forEach((enrollment) => {
+            const existing = byCourse.get(enrollment.courseId);
+            if (!existing || enrollment.recordSource === 'root_repaired' || enrollment.recordSource === 'root') {
+                byCourse.set(enrollment.courseId, enrollment);
+            }
+        });
+
+    return Promise.all(Array.from(byCourse.values()).map(async (enrollment) => {
+        const courseId = enrollment.courseId;
+        const enriched = await enrichWorkerEnrollmentEntitlement(env, uid, courseId, enrollment);
+        const progressId = uid + '_' + courseId;
+        const progress = await firestoreGetData(env, 'courseProgress', progressId).catch(() => null);
+        return buildEnrollmentApiRecord(enriched, progress);
+    }));
+}
+
+async function handleCurrentUserEnrollments(request, env, corsHeaders) {
+    const url = new URL(request.url);
+    const courseId = (url.searchParams.get('courseId') || DUI_COURSE_PRODUCT.courseId).trim();
+    const scope = url.searchParams.get('scope') === 'all' ? 'all' : 'course';
+    const authHeader = request.headers.get('Authorization') || '';
+    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+    logEnrollmentWorkerEvent('enrollments_me_received', { method: request.method, courseId, scope });
+    logEnrollmentWorkerEvent('auth_header_present', { present: Boolean(idToken), schemeValid: authHeader.startsWith('Bearer ') });
+    if (!idToken) {
+        logEnrollmentWorkerEvent('enrollments_me_completed', { status: 401, code: 'AUTH_REQUIRED', courseId });
+        return json({ message: '로그인이 필요합니다.', code: 'AUTH_REQUIRED' }, 401, corsHeaders);
+    }
+
+    let firebaseUser;
+    try {
+        firebaseUser = await verifyFirebaseIdToken(idToken, env);
+    } catch (error) {
+        logEnrollmentWorkerEvent('enrollments_me_completed', { status: 401, code: 'AUTH_TOKEN_INVALID', courseId });
+        return json({ message: 'Firebase 로그인 토큰이 만료되었거나 올바르지 않습니다.', code: 'AUTH_TOKEN_INVALID' }, 401, corsHeaders);
+    }
+    const maskedUid = maskLogIdentifier(firebaseUser.uid);
+    logEnrollmentWorkerEvent('firebase_token_verified', { uid: maskedUid, courseId });
+
+    if (scope === 'all') {
+        try {
+            const enrollments = await getWorkerAllActiveEnrollmentRecords(env, firebaseUser);
+            logEnrollmentWorkerEvent('enrollments_me_completed', { status: 200, code: enrollments.length ? 'ACTIVE_ENROLLMENTS' : 'NO_ACTIVE_ENROLLMENT', uid: maskedUid, scope, count: enrollments.length });
+            return json({ enrollments, scope, access: enrollments.length > 0 }, 200, corsHeaders);
+        } catch (error) {
+            logEnrollmentWorkerEvent('enrollments_me_completed', { status: 500, code: 'ENROLLMENT_LOOKUP_FAILED', uid: maskedUid, scope });
+            return json({ message: '수강권 서버 조회 중 오류가 발생했습니다.', code: 'ENROLLMENT_LOOKUP_FAILED' }, 500, corsHeaders);
+        }
+    }
+
+    if (courseId !== DUI_COURSE_PRODUCT.courseId) {
+        logEnrollmentWorkerEvent('enrollments_me_completed', { status: 400, code: 'INVALID_COURSE', uid: maskedUid, courseId });
+        return json({ message: '지원하지 않는 교육과정입니다.', code: 'INVALID_COURSE' }, 400, corsHeaders);
+    }
+
+    let enrollment;
+    try {
+        const accessDecision = await getWorkerCourseAccessDecision(env, firebaseUser, courseId);
+        enrollment = accessDecision.enrollment;
+    } catch (error) {
+        const errorLike = error || {};
+        logEnrollmentWorkerEvent('enrollment_access_result', {
+            uid: maskedUid,
+            courseId,
+            allowed: false,
+            reason: 'lookup_failed',
+            firestoreStatus: typeof errorLike.status === 'number' ? errorLike.status : undefined
+        });
+        logEnrollmentWorkerEvent('enrollments_me_completed', { status: 500, code: 'ENROLLMENT_LOOKUP_FAILED', uid: maskedUid, courseId });
+        return json({ message: '수강권 서버 조회 중 오류가 발생했습니다.', code: 'ENROLLMENT_LOOKUP_FAILED' }, 500, corsHeaders);
+    }
+
+    if (!enrollment || !isFirestoreEnrollmentActiveRecord(enrollment)) {
+        logEnrollmentWorkerEvent('enrollment_access_result', {
+            uid: maskedUid,
+            courseId,
+            allowed: false,
+            source: enrollment?.recordSource || 'none',
+            paymentStatus: String(enrollment?.paymentStatus || enrollment?.status || '').toLowerCase(),
+            accessStatus: String(enrollment?.enrollmentStatus || enrollment?.accessStatus || '').toLowerCase(),
+            hasExpiresAt: Boolean(enrollment?.expiresAt)
+        });
+        logEnrollmentWorkerEvent('enrollments_me_completed', { status: 200, code: 'NO_ACTIVE_ENROLLMENT', uid: maskedUid, courseId, count: 0 });
+        return json({ enrollments: [], courseId, access: false }, 200, corsHeaders);
+    }
+
+    logEnrollmentWorkerEvent('enrollment_access_result', {
+        uid: maskedUid,
+        courseId,
+        allowed: true,
+        source: enrollment.recordSource || 'unknown',
+        paymentStatus: String(enrollment.paymentStatus || enrollment.status || '').toLowerCase(),
+        accessStatus: String(enrollment.enrollmentStatus || enrollment.accessStatus || '').toLowerCase(),
+        hasExpiresAt: Boolean(enrollment.expiresAt)
+    });
+    enrollment = await enrichWorkerEnrollmentEntitlement(env, firebaseUser.uid, courseId, enrollment);
+    const progressId = firebaseUser.uid + '_' + courseId;
+    const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => {
+        logEnrollmentWorkerEvent('enrollment_progress_unavailable', { uid: maskedUid, courseId, firestoreStatus: typeof error?.status === 'number' ? error.status : undefined });
+        return null;
+    });
+    const apiEnrollment = buildEnrollmentApiRecord(enrollment, progress);
+    logEnrollmentWorkerEvent('enrollments_me_completed', { status: 200, code: 'ACTIVE_ENROLLMENT', uid: maskedUid, courseId, count: 1 });
+    return json({ enrollments: [apiEnrollment], courseId, access: true }, 200, corsHeaders);
 }
 
 async function handleStreamToken(request, env, corsHeaders) {
@@ -645,7 +984,12 @@ async function handleStreamToken(request, env, corsHeaders) {
         return json({ error: 'auth_required', message: '로그인이 필요한 서비스입니다.' }, 401, corsHeaders);
     }
 
-    const firebaseUser = await verifyFirebaseIdToken(idToken, env);
+    let firebaseUser;
+    try {
+        firebaseUser = await verifyFirebaseIdToken(idToken, env);
+    } catch {
+        return json({ error: 'auth_token_invalid', message: 'Firebase 로그인 토큰이 만료되었거나 올바르지 않습니다.' }, 401, corsHeaders);
+    }
     const url = new URL(request.url);
     const uid = (url.searchParams.get('uid') || '').trim();
     const courseId = (url.searchParams.get('courseId') || DUI_COURSE_PRODUCT.courseId).trim();
@@ -860,11 +1204,11 @@ function assertStreamEnv(env) {
 const DUI_COURSE_PRODUCT = {
     courseId: 'dui-prevention-basic',
     courseTitle: '음주운전 예방교육',
-    price: 55000,
+    price: 59000,
     currency: 'KRW',
     durationDays: 90,
     totalLessons: 5,
-    pricePerLesson: 11000,
+    pricePerLesson: 11800,
     description: '음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정',
     certificateAvailable: true
 };
@@ -873,14 +1217,14 @@ const APPLICATION_PRODUCTS = {
     basic: {
         categoryId: 'dui',
         productId: 'basic',
-        title: '기본 수강권',
-        amount: 55000
+        title: '기본형 수강권',
+        amount: 59000
     },
     'dui-documents': {
         categoryId: 'dui',
         productId: 'dui-documents',
         title: '서식 포함 수강권',
-        amount: 89000
+        amount: 109000
     }
 };
 
@@ -935,9 +1279,8 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const user = await firestoreGetData(env, 'users', uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
     if (!user) return json({ message: '회원 정보를 확인할 수 없습니다.', code: 'USER_NOT_FOUND' }, 400, corsHeaders);
 
-    const enrollmentId = `${uid}_${courseId}`;
-    const enrollment = await firestoreGetData(env, 'enrollments', enrollmentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    if (!enrollment || enrollment.paymentStatus !== 'paid' || enrollment.accessStatus !== 'active') {
+    const enrollment = await getWorkerEnrollmentRecord(env, uid, courseId);
+    if (!isFirestoreEnrollmentActiveRecord(enrollment)) {
         return json({ message: '정상 결제된 교육과정이 확인되지 않습니다.', code: 'ENROLLMENT_NOT_ACTIVE' }, 400, corsHeaders);
     }
 
@@ -948,9 +1291,9 @@ async function handleCertificateIssue(request, env, corsHeaders) {
 
     const progressId = `${uid}_${courseId}`;
     const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    const completedLessons = Math.max(Number(enrollment.completedLessons || 0), Number(progress?.completedModuleCount || 0));
-    const progressRate = Math.max(Number(enrollment.progress || 0), Number(progress?.completionRate || 0));
-    const isCompleted = Boolean(progress?.isCompleted) || completedLessons >= DUI_COURSE_PRODUCT.totalLessons || progressRate >= 100;
+    const completedLessons = DUI_COURSE_PRODUCT.totalLessons;
+    const progressRate = 100;
+    const isCompleted = true;
 
     const locked = user.certificateIdentity || {};
     const userName = String(locked.realName || user.realName || user.fullName || '').trim();
@@ -963,7 +1306,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const payments = await firestoreList(env, 'purchases').catch(() => []);
     const purchase = payments.find((item) => (item.uid || item.userId) === uid && item.courseId === courseId && item.paymentStatus === 'paid') || {};
     const issuedAt = new Date().toISOString();
-    const completedAt = isCompleted ? (progress?.completedAt || issuedAt) : null;
+    const completedAt = progress?.completedAt || issuedAt;
     const certificateNo = await makeCertificateNo(certificateId, issuedAt);
     const issuerName = env.CERTIFICATE_ISSUER_NAME || '리셋에듀센터';
     const certificateRecord = {
@@ -992,7 +1335,9 @@ async function handleCertificateIssue(request, env, corsHeaders) {
 
 async function updateCertificateFlags(env, uid, courseId, certificateNo, certificateId, issuedAt, isCompletion = true) {
     const enrollmentId = `${uid}_${courseId}`;
-    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), {
+    const enrollment = await getWorkerEnrollmentRecord(env, uid, courseId).catch(() => null);
+    const targetEnrollmentPath = enrollment?.documentPath || firestoreDocumentPath(env, 'enrollments', enrollmentId);
+    await firestorePatch(env, targetEnrollmentPath, {
         certificateIssued: true,
         certificateIssuedAt: issuedAt,
         attendanceCertificateIssued: !isCompletion,
@@ -1159,6 +1504,7 @@ function normalizePortOneCurrency(currency) {
 }
 
 function getPortOnePaidAt(payment) {
+    if (!payment) return new Date().toISOString();
     const paidHistory = Array.isArray(payment.history) ? payment.history.find((item) => item?.status === 'PAID') : null;
     return payment.paidAt || payment.approvedAt || payment.statusChangedAt || paidHistory?.changedAt || payment.requestedAt || new Date().toISOString();
 }
@@ -1242,6 +1588,16 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
         return json({ message: '주문 생성 정보가 올바르지 않습니다.', code: 'INVALID_ORDER' }, 400, corsHeaders);
     }
 
+    const enrollmentId = uid + '_' + courseId;
+    const existingEnrollment = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingEnrollment) {
+        const enrollment = fromFirestoreFields(existingEnrollment.fields || {});
+        const expiresAtTime = parseTime(enrollment.expiresAt);
+        if (enrollment.paymentStatus === 'paid' && enrollment.accessStatus === 'active' && (expiresAtTime === null || expiresAtTime >= Date.now())) {
+            return json({ message: '이미 결제 완료된 수강권이 있어 중복 결제를 진행할 수 없습니다.', code: 'ACTIVE_ENROLLMENT_EXISTS' }, 409, corsHeaders);
+        }
+    }
+
     const nowIso = new Date().toISOString();
     const orderRecord = {
         paymentId,
@@ -1313,16 +1669,171 @@ function getWebhookPaymentId(payload) {
     return payload?.data?.paymentId || payload?.data?.payment_id || payload?.paymentId || payload?.payment_id || null;
 }
 
+function getWebhookEventType(payload) {
+    return payload?.type || payload?.status || null;
+}
+
+function isPortOneTransactionEvent(payload) {
+    const type = getWebhookEventType(payload);
+    if (!type) return false;
+    if (String(type).startsWith('Transaction.')) return true;
+    return ['Ready', 'Paid', 'VirtualAccountIssued', 'PartialCancelled', 'Cancelled', 'Failed', 'PayPending', 'CancelPending'].includes(String(type));
+}
+
+function isPortOnePaidEvent(payload) {
+    const type = getWebhookEventType(payload);
+    return type === 'Transaction.Paid' || type === 'Paid';
+}
+
+function isLikelyPortOneConsoleTestPaymentId(paymentId) {
+    const value = String(paymentId || '').toLowerCase();
+    if (!value) return true;
+    if (value.includes('test') || value.includes('example') || value.includes('dummy')) return true;
+    if (value.startsWith('payment-')) return true;
+    return !value.startsWith('pay');
+}
+
+function getWebhookStoreId(payload) {
+    return payload?.data?.storeId || payload?.storeId || null;
+}
+
+function getErrorLogPayload(request, payload, paymentId, error, extra = {}) {
+    return {
+        path: new URL(request.url).pathname,
+        webhookType: getWebhookEventType(payload),
+        paymentId: paymentId || getWebhookPaymentId(payload) || null,
+        errorName: error instanceof Error ? error.name : typeof error,
+        errorMessage: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack || null : null,
+        ...extra
+    };
+}
+
+function logWebhookError(request, payload, paymentId, error, extra = {}) {
+    console.error('PortOne webhook error', getErrorLogPayload(request, payload, paymentId, error, extra));
+}
+
+async function logWebhookStep(env, step, context = {}) {
+    const record = {
+        type: step,
+        step,
+        paymentId: context.paymentId || null,
+        orderId: context.orderId || context.paymentId || null,
+        userId: context.userId || context.uid || null,
+        uid: context.uid || context.userId || null,
+        webhookType: context.webhookType || null,
+        created_at: new Date().toISOString(),
+        createdAt: new Date().toISOString()
+    };
+    console.log('PortOne webhook step', record);
+    await savePaymentLog(env, record.orderId || 'unknown_webhook', record).catch((error) => console.error('PortOne webhook step log failed', { step, message: error instanceof Error ? error.message : String(error) }));
+}
+
+function decodeWebhookSecret(secret) {
+    const raw = String(secret || '');
+    if (raw.startsWith('whsec_')) {
+        return Uint8Array.from(atob(raw.slice(6)), (char) => char.charCodeAt(0));
+    }
+    return new TextEncoder().encode(raw);
+}
+
+function timingSafeEqual(a, b) {
+    if (a.length !== b.length) return false;
+    let diff = 0;
+    for (let index = 0; index < a.length; index += 1) diff |= a.charCodeAt(index) ^ b.charCodeAt(index);
+    return diff === 0;
+}
+
+async function verifyPortOneWebhookSignature(request, rawBody, env) {
+    const secret = env.PORTONE_WEBHOOK_SECRET;
+    if (!secret) {
+        const error = new Error('PORTONE_WEBHOOK_SECRET is not configured');
+        error.status = 500;
+        throw error;
+    }
+
+    const id = request.headers.get('webhook-id');
+    const timestamp = request.headers.get('webhook-timestamp');
+    const signature = request.headers.get('webhook-signature');
+    if (!id || !timestamp || !signature) {
+        const error = new Error('Missing Standard Webhooks signature headers');
+        error.status = 401;
+        throw error;
+    }
+
+    const key = await crypto.subtle.importKey('raw', decodeWebhookSecret(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+    const signedPayload = id + "." + timestamp + "." + rawBody;
+    const signatureBytes = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(signedPayload));
+    const expected = btoa(String.fromCharCode(...new Uint8Array(signatureBytes)));
+    const candidates = signature.split(' ').flatMap((part) => part.split(',').slice(1));
+    if (!candidates.some((candidate) => timingSafeEqual(candidate, expected))) {
+        const error = new Error('Invalid PortOne webhook signature');
+        error.status = 401;
+        throw error;
+    }
+    return { verified: true };
+}
+
+async function getPendingPaymentRecord(env, paymentId) {
+    if (!paymentId) return null;
+    return firestoreGetData(env, 'payments', paymentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
+}
+
+async function handlePortOneWebhookSafely(request, env, corsHeaders) {
+    try {
+        return await handlePortOneWebhook(request, env, corsHeaders);
+    } catch (error) {
+        const nowIso = new Date().toISOString();
+        console.error('PortOne webhook fatal error', { path: new URL(request.url).pathname, errorName: error instanceof Error ? error.name : typeof error, errorMessage: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack || null : null });
+        await savePaymentLog(env, 'fatal_webhook_' + Date.now(), {
+            type: 'portone_webhook_fatal_error',
+            message: error instanceof Error ? error.message : String(error),
+            error_stack: error instanceof Error ? error.stack || error.message : null,
+            created_at: nowIso,
+            createdAt: nowIso
+        }).catch((logError) => console.error(logError));
+        return json({
+            ok: false,
+            message: error instanceof Error ? error.message : '웹훅 처리 중 오류가 발생했습니다.',
+            code: 'PORTONE_WEBHOOK_FATAL_ERROR'
+        }, 500, corsHeaders);
+    }
+}
+
 async function handlePortOneWebhook(request, env, corsHeaders) {
     const rawBody = await request.text();
     let payload;
     try {
+        await verifyPortOneWebhookSignature(request, rawBody, env);
+    } catch (error) {
+        logWebhookError(request, {}, null, error, { phase: 'signature_verification' });
+        return json({ ok: false, message: error instanceof Error ? error.message : '웹훅 서명 검증에 실패했습니다.', code: 'PORTONE_WEBHOOK_SIGNATURE_INVALID' }, error.status || 401, corsHeaders);
+    }
+
+    try {
         payload = rawBody ? JSON.parse(rawBody) : {};
     } catch (error) {
-        return json({ ok: false, message: '웹훅 본문 형식이 올바르지 않습니다.' }, 400, corsHeaders);
+        logWebhookError(request, {}, null, error, { phase: 'json_parse' });
+        return json({ ok: false, message: '웹훅 본문 형식이 올바르지 않습니다.', code: 'INVALID_WEBHOOK_BODY' }, 400, corsHeaders);
     }
 
     const paymentId = getWebhookPaymentId(payload);
+    const webhookType = getWebhookEventType(payload);
+    await logWebhookStep(env, 'webhook_received', { paymentId, orderId: paymentId, webhookType });
+    await logWebhookStep(env, 'signature_verified', { paymentId, orderId: paymentId, webhookType });
+    if (!isPortOneTransactionEvent(payload)) {
+        await savePaymentLog(env, paymentId || 'unknown_webhook_' + Date.now(), {
+            type: 'portone_webhook_ignored',
+            reason: 'non_transaction_event',
+            webhookType: getWebhookEventType(payload),
+            paymentId,
+            rawWebhook: payload,
+            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString()
+        }).catch((logError) => console.error(logError));
+        return json({ ok: true, ignored: true, reason: 'non_transaction_event' }, 200, corsHeaders);
+    }
+
     if (!paymentId) {
         await savePaymentLog(env, 'unknown_webhook_' + Date.now(), {
             type: 'portone_webhook_ignored',
@@ -1344,29 +1855,46 @@ async function handlePortOneWebhook(request, env, corsHeaders) {
         createdAt: new Date().toISOString()
     }).catch((logError) => console.error(logError));
 
+    if (!isPortOnePaidEvent(payload)) {
+        await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_non_paid_ignored', paymentId, orderId: paymentId, status: getWebhookEventType(payload) })).catch((logError) => console.error(logError));
+        return json({ ok: true, ignored: true, status: getWebhookEventType(payload) }, 200, corsHeaders);
+    }
+
     let approved;
     try {
+        await logWebhookStep(env, 'payment_lookup_started', { paymentId, orderId: paymentId, webhookType });
         approved = await getPortOnePayment(env, paymentId);
+        await logWebhookStep(env, 'payment_lookup_succeeded', { paymentId, orderId: paymentId, webhookType });
     } catch (error) {
+        logWebhookError(request, payload, paymentId, error, { phase: 'portone_payment_lookup' });
         await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_lookup_failed', paymentId, orderId: paymentId, status: 'lookup_failed', error })).catch((logError) => console.error(logError));
-        return json({ ok: false, message: error instanceof Error ? error.message : '포트원 결제 조회에 실패했습니다.' }, 500, corsHeaders);
+        if (isLikelyPortOneConsoleTestPaymentId(paymentId)) {
+            await savePaymentLog(env, paymentId, { type: 'portone_webhook_console_test_ignored', paymentId, orderId: paymentId, webhookType, reason: error instanceof Error ? error.message : String(error), created_at: new Date().toISOString(), createdAt: new Date().toISOString() }).catch((logError) => console.error(logError));
+            return json({ ok: true, ignored: true, reason: 'console_test_payment_not_found' }, 200, corsHeaders);
+        }
+        return json({ ok: false, message: error instanceof Error ? error.message : '포트원 결제 조회에 실패했습니다.', code: 'PORTONE_PAYMENT_LOOKUP_FAILED' }, 500, corsHeaders);
     }
 
     if (approved.status !== 'PAID') {
         await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_non_paid_ignored', paymentId, orderId: paymentId, approved, status: approved.status })).catch((logError) => console.error(logError));
         return json({ ok: true, ignored: true, status: approved.status }, 200, corsHeaders);
     }
+    await logWebhookStep(env, 'payment_status_verified', { paymentId, orderId: paymentId, webhookType });
 
     const customData = parsePortOneCustomData(approved.customData);
-    const uid = String(customData.uid || customData.userId || '').trim();
-    const courseId = String(customData.courseId || DUI_COURSE_PRODUCT.courseId).trim();
-    const categoryId = String(customData.categoryId || 'dui').trim();
-    const productId = String(customData.productId || 'basic').trim();
+    const pendingOrder = await getPendingPaymentRecord(env, paymentId);
+    if (pendingOrder) await logWebhookStep(env, 'order_found', { paymentId, orderId: paymentId, userId: pendingOrder.uid || pendingOrder.userId, uid: pendingOrder.uid || pendingOrder.userId, webhookType });
+    const uid = String(customData.uid || customData.userId || pendingOrder?.uid || pendingOrder?.userId || approved.customer?.id || approved.customer?.customerId || '').trim();
+    const courseId = String(customData.courseId || pendingOrder?.courseId || DUI_COURSE_PRODUCT.courseId).trim();
+    const categoryId = String(customData.categoryId || pendingOrder?.categoryId || 'dui').trim();
+    const productId = String(customData.productId || pendingOrder?.productId || 'basic').trim();
     const amount = Number(approved.amount?.total);
 
     if (!uid) {
-        await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_missing_uid', paymentId, orderId: paymentId, courseId, productId, amount, approved, status: 'paid_missing_uid', error: new Error('포트원 결제 customData에 uid가 없습니다.') })).catch((logError) => console.error(logError));
-        return json({ ok: true, ignored: true, reason: 'missing_uid' }, 200, corsHeaders);
+        const error = new Error('포트원 결제와 pending 주문에서 사용자 uid를 찾지 못했습니다.');
+        logWebhookError(request, payload, paymentId, error, { phase: 'identity_resolution' });
+        await savePaymentLog(env, paymentId, buildPaymentLogRecord({ type: 'portone_webhook_missing_uid', paymentId, orderId: paymentId, courseId, productId, amount, approved, status: 'paid_missing_uid', error })).catch((logError) => console.error(logError));
+        return json({ ok: false, message: error.message, code: 'WEBHOOK_UID_NOT_FOUND' }, 500, corsHeaders);
     }
 
     const confirmResponse = await handlePortOnePaymentConfirm({
@@ -1382,11 +1910,14 @@ async function handlePortOneWebhook(request, env, corsHeaders) {
     }, { uid }, env, corsHeaders);
     const confirmPayload = await confirmResponse.clone().json().catch(() => ({}));
 
-    if (confirmResponse.status >= 500) {
-        return json({ ok: false, paymentId, confirmStatus: confirmResponse.status, confirmPayload }, 500, corsHeaders);
+    if (!confirmResponse.ok) {
+        const error = new Error(confirmPayload?.message || '웹훅 결제 반영에 실패했습니다.');
+        logWebhookError(request, payload, paymentId, error, { phase: 'payment_confirm', confirmStatus: confirmResponse.status, confirmPayload });
+        return json({ ok: false, paymentId, confirmStatus: confirmResponse.status, confirmPayload }, confirmResponse.status, corsHeaders);
     }
 
-    return json({ ok: confirmResponse.ok, paymentId, confirmStatus: confirmResponse.status, confirmPayload }, 200, corsHeaders);
+    await logWebhookStep(env, 'webhook_completed', { paymentId, orderId: paymentId, userId: uid, uid, webhookType });
+    return json({ ok: true, paymentId, confirmStatus: confirmResponse.status, confirmPayload }, 200, corsHeaders);
 }
 
 async function getPortOnePayment(env, paymentId) {
@@ -1401,7 +1932,13 @@ async function getPortOnePayment(env, paymentId) {
 }
 
 async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders) {
-    const { paymentId, uid, courseId, productId = 'basic', categoryId = 'dui', amount } = body;
+    const paymentId = String(body?.paymentId || '').trim();
+    const pendingOrder = await getPendingPaymentRecord(env, paymentId);
+    const uid = String(body?.uid || pendingOrder?.uid || pendingOrder?.userId || '').trim();
+    const courseId = String(body?.courseId || pendingOrder?.courseId || DUI_COURSE_PRODUCT.courseId).trim();
+    const productId = String(body?.productId || pendingOrder?.productId || 'basic').trim();
+    const categoryId = String(body?.categoryId || pendingOrder?.categoryId || 'dui').trim();
+    const amount = typeof body?.amount === 'number' ? body.amount : (typeof pendingOrder?.amount === 'number' ? pendingOrder.amount : undefined);
     if (!paymentId || !uid || !courseId || !productId) {
         return json({ message: 'paymentId, uid, courseId, productId가 모두 필요합니다.', code: 'MISSING_FIELDS' }, 400, corsHeaders);
     }
@@ -1516,7 +2053,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
     };
     const enrollmentRecord = {
         enrollmentId, userId: uid, uid, courseId,
-        categoryId, productId, productTitle: product.title,
+        categoryId, productId, productTitle: product.title, amount: product.amount,
         courseTitle: DUI_COURSE_PRODUCT.courseTitle,
         paymentId, orderId,
         purchasedAt: purchasedAt.toISOString(), expiresAt,
@@ -1545,7 +2082,9 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
 
     try {
         await firestorePatch(env, orderDocPath, paymentRecord);
+        if (body.source === 'portone_webhook') await logWebhookStep(env, 'payment_record_saved', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
         await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
+        if (body.source === 'portone_webhook') await logWebhookStep(env, 'enrollment_created', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
         await firestorePatch(env, paymentKeyPath, { paymentKey: paymentId, paymentId, orderId, userId: uid, courseId, createdAt: nowIso });
         await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
@@ -1674,9 +2213,29 @@ async function verifyFirebaseIdToken(idToken, env) {
     }
     return { uid: user.localId, email: user.email || null, name: user.displayName || null };
 }
+function normalizeFirebasePrivateKey(value) {
+    let key = String(value || "").trim();
+    const first = key.charCodeAt(0);
+    const last = key.charCodeAt(key.length - 1);
+    if ((first === 34 && last === 34) || (first === 39 && last === 39)) key = key.slice(1, -1);
+    try {
+        if (key.startsWith("{")) key = JSON.parse(key).private_key || key;
+        else if (key.charCodeAt(0) === 34) key = JSON.parse(key);
+    } catch {
+        // Keep original value when it is not JSON-encoded.
+    }
+    key = String(key || "").replace(/\\n/g, "\n").replace(/\n/g, "\n").replace(/\r/g, "").trim();
+    const begin = "-----BEGIN PRIVATE KEY-----";
+    const end = "-----END PRIVATE KEY-----";
+    const beginIndex = key.indexOf(begin);
+    const endIndex = key.indexOf(end);
+    if (beginIndex >= 0 && endIndex > beginIndex) key = key.slice(beginIndex, endIndex + end.length);
+    return key.trim();
+}
+
 async function getGoogleAccessToken(env) {
     const clientEmail = env.FIREBASE_CLIENT_EMAIL || env.GOOGLE_CLIENT_EMAIL;
-    const privateKey = (env.FIREBASE_PRIVATE_KEY || env.GOOGLE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
+    const privateKey = normalizeFirebasePrivateKey(env.FIREBASE_PRIVATE_KEY || env.GOOGLE_PRIVATE_KEY || '');
     if (!clientEmail || !privateKey) throw new Error('FIREBASE_CLIENT_EMAIL/FIREBASE_PRIVATE_KEY 서비스 계정 비밀값이 필요합니다.');
     const now = Math.floor(Date.now() / 1000);
     const header = { alg: 'RS256', typ: 'JWT' };
@@ -1696,7 +2255,8 @@ async function getGoogleAccessToken(env) {
 }
 
 async function importPrivateKeyFromPem(pem) {
-    const body = pem.replace('-----BEGIN PRIVATE KEY-----', '').replace('-----END PRIVATE KEY-----', '').replace(/\s/g, '');
+    const body = normalizeFirebasePrivateKey(pem).replace('-----BEGIN PRIVATE KEY-----', '').replace('-----END PRIVATE KEY-----', '').replace(/\s/g, '');
+    if (!/^[A-Za-z0-9+/=]+$/.test(body)) throw new Error('FIREBASE_PRIVATE_KEY PEM 형식이 올바르지 않습니다.');
     const binary = Uint8Array.from(atob(body), (char) => char.charCodeAt(0));
     return crypto.subtle.importKey('pkcs8', binary, { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']);
 }
@@ -2088,6 +2648,37 @@ async function firestoreList(env, collectionName) {
     }
     const data = await response.json().catch(() => ({}));
     return (data.documents || []).map((doc) => ({ id: String(doc.name || '').split('/').pop(), ...fromFirestoreFields(doc.fields || {}) }));
+}
+
+async function firestoreQuery(env, collectionName, filters) {
+    const projectId = env.FIREBASE_PROJECT_ID || env.GOOGLE_CLOUD_PROJECT || 'jaeseung-try-2-34973152-e44aa';
+    const token = await getGoogleAccessToken(env);
+    const fieldFilters = filters.map(({ field, value }) => ({
+        fieldFilter: {
+            field: { fieldPath: field },
+            op: 'EQUAL',
+            value: toFirestoreValue(value)
+        }
+    }));
+    const where = fieldFilters.length === 1
+        ? fieldFilters[0]
+        : { compositeFilter: { op: 'AND', filters: fieldFilters } };
+    const response = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ structuredQuery: { from: [{ collectionId: collectionName }], where, limit: 100 } })
+    });
+    if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        throw new Error(`Firestore QUERY failed: ${response.status} ${body}`);
+    }
+    const rows = await response.json().catch(() => []);
+    return rows.flatMap((row) => {
+        const document = row.document;
+        if (!document) return [];
+        const documentPath = String(document.name || '');
+        return [{ id: documentPath.split('/').pop(), documentPath, ...fromFirestoreFields(document.fields || {}), recordSource: collectionName + '_query' }];
+    });
 }
 
 function fromFirestoreFields(fields) {
