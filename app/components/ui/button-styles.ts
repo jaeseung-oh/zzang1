@@ -2,15 +2,15 @@ export type ButtonVariant = "primary" | "secondary" | "darkPrimary" | "darkSecon
 export type ButtonSize = "sm" | "md" | "lg";
 
 export const buttonBase =
-  "inline-flex cursor-pointer items-center justify-center font-semibold shadow-sm transition-all active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:shadow-none";
+  "inline-flex cursor-pointer items-center justify-center font-semibold shadow-sm transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:shadow-none";
 
 export const buttonVariants: Record<ButtonVariant, string> = {
-  primary: "bg-indigo-600 text-white hover:bg-indigo-700 hover:text-white hover:shadow-md disabled:bg-gray-300 disabled:text-gray-600",
-  secondary: "border border-slate-300 bg-white text-slate-900 hover:border-slate-400 hover:bg-slate-50 hover:text-slate-950 disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-500",
-  darkPrimary: "bg-white text-slate-950 hover:bg-slate-100 hover:text-slate-950 disabled:bg-gray-300 disabled:text-gray-600",
-  darkSecondary: "border border-white/70 bg-transparent text-white hover:bg-white hover:text-slate-950 disabled:border-white/30 disabled:text-white/60",
-  outline: "border border-slate-300 bg-transparent text-slate-900 hover:bg-slate-50 hover:text-slate-950 disabled:border-gray-200 disabled:text-gray-500",
-  danger: "bg-red-600 text-white hover:bg-red-700 hover:text-white disabled:bg-gray-300 disabled:text-gray-600",
+  primary: "border-2 border-indigo-800 bg-indigo-700 text-white hover:border-indigo-900 hover:bg-indigo-800 hover:text-white hover:shadow-md disabled:border-gray-400 disabled:bg-gray-300 disabled:text-gray-800",
+  secondary: "border-2 border-slate-400 bg-white text-slate-950 hover:border-slate-600 hover:bg-slate-100 hover:text-slate-950 disabled:border-gray-300 disabled:bg-gray-200 disabled:text-gray-700",
+  darkPrimary: "border-2 border-white bg-white text-slate-950 hover:border-slate-200 hover:bg-slate-100 hover:text-slate-950 disabled:border-gray-400 disabled:bg-gray-300 disabled:text-gray-800",
+  darkSecondary: "border-2 border-white bg-transparent text-white hover:bg-white hover:text-slate-950 disabled:border-white/50 disabled:text-white/70",
+  outline: "border-2 border-slate-500 bg-white text-slate-950 hover:border-slate-700 hover:bg-slate-100 hover:text-slate-950 disabled:border-gray-300 disabled:bg-gray-200 disabled:text-gray-700",
+  danger: "border-2 border-red-800 bg-red-700 text-white hover:border-red-900 hover:bg-red-800 hover:text-white disabled:border-gray-400 disabled:bg-gray-300 disabled:text-gray-800",
   warning: "border-2 border-amber-200 bg-amber-400 text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.24)] ring-2 ring-amber-100/70 hover:bg-amber-300 hover:text-slate-950 hover:shadow-[0_18px_36px_rgba(250,204,21,0.32)] disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:ring-0",
 };
 

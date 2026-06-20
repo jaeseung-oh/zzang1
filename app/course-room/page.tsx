@@ -1262,6 +1262,24 @@ export default function CourseRoomPage() {
             </div>
 
             <div className="flex flex-col items-stretch gap-2 sm:flex-row lg:flex-col lg:items-end">
+              <a
+                href="/resources/reflection-guide"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ backgroundColor: "#facc15", color: "#111827", borderColor: "#fde047" }}
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 px-6 py-3 text-center text-sm font-black shadow-[0_18px_36px_rgba(250,204,21,0.34)] ring-2 ring-amber-100/70 transition-all hover:-translate-y-0.5 hover:bg-amber-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200"
+              >
+                반성문 작성 가이드
+              </a>
+              <a
+                href="/resources/dui-reflection-example"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ backgroundColor: "#ffffff", color: "#10213f", borderColor: "#cbd5e1" }}
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 px-6 py-3 text-center text-sm font-black shadow-[0_14px_30px_rgba(15,23,42,0.22)] transition-all hover:-translate-y-0.5 hover:bg-slate-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
+              >
+                음주운전 반성문 예시
+              </a>
               <Link
                 href="/"
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg hover:brightness-105 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
@@ -1303,12 +1321,12 @@ export default function CourseRoomPage() {
           </div>
         </section>
 
-        <section className="mt-5 rounded-[1.5rem] border border-[#d3b271]/35 bg-[linear-gradient(135deg,rgba(15,42,87,0.96),rgba(29,78,216,0.88))] p-5 shadow-[0_18px_48px_rgba(15,23,42,0.16)] sm:p-6">
+        <section id="reflection-resources" className="mt-5 rounded-[1.5rem] border-2 border-amber-300 bg-[#fff8e6] p-5 text-slate-950 shadow-[0_20px_50px_rgba(250,204,21,0.20)] ring-2 ring-amber-100 sm:p-6">
           <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#f0d59c]">결제 회원 전용 자료</p>
-              <h2 className="mt-2 text-xl font-semibold text-white sm:text-2xl">반성문 작성에 도움이 필요하신가요?</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-7 text-slate-200 sm:text-base">
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">결제 회원 전용 자료</p>
+              <h2 className="mt-2 text-xl font-black text-slate-950 sm:text-2xl">반성문 작성에 도움이 필요하신가요?</h2>
+              <p className="mt-2 max-w-3xl text-sm font-semibold leading-7 text-slate-700 sm:text-base">
                 결제 회원은 반성문 작성 가이드와 예시를 확인하고 인쇄하거나 PDF로 저장할 수 있습니다.
               </p>
             </div>
@@ -1317,17 +1335,19 @@ export default function CourseRoomPage() {
                 href="/resources/reflection-guide"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl bg-white px-5 py-3 text-center text-sm font-bold text-[#10213f] transition hover:bg-[#f8ecd2] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#f0d59c]/70"
+                style={{ backgroundColor: "#173968", color: "#ffffff", borderColor: "#173968" }}
+                className="inline-flex min-h-14 items-center justify-center rounded-xl border-2 px-6 py-3 text-center text-base font-black shadow-[0_14px_28px_rgba(23,57,104,0.28)] transition hover:bg-[#10213f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
               >
-                작성 가이드
+                반성문 작성 가이드 보기
               </a>
               <a
                 href="/resources/dui-reflection-example"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex min-h-12 items-center justify-center rounded-xl border border-white/35 bg-white/10 px-5 py-3 text-center text-sm font-bold text-white transition hover:bg-white/20 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/50"
+                style={{ backgroundColor: "#facc15", color: "#111827", borderColor: "#eab308" }}
+                className="inline-flex min-h-14 items-center justify-center rounded-xl border-2 px-6 py-3 text-center text-base font-black shadow-[0_14px_28px_rgba(250,204,21,0.28)] transition hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-300"
               >
-                반성문 예시
+                음주운전 반성문 예시 보기
               </a>
             </div>
           </div>
@@ -1338,7 +1358,7 @@ export default function CourseRoomPage() {
           <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">전체 수강률</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200">전체 수강률</p>
                 <p className="mt-1 text-4xl font-semibold tracking-[-0.05em] text-white">{aggregate.completionRate}%</p>
               </div>
               <div className="text-right text-sm text-slate-300">
@@ -1531,7 +1551,7 @@ export default function CourseRoomPage() {
                           <button
                             type="button"
                             onClick={handleRestartCurrentLesson}
-                            className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-bold text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 focus:ring-offset-[#0b1528]"
+                            className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-white px-5 py-2 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-slate-100 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-300 focus:ring-offset-2 focus:ring-offset-[#0b1528]"
                           >
                             처음부터 보기
                           </button>
@@ -1566,7 +1586,7 @@ export default function CourseRoomPage() {
                         type="button"
                         onClick={() => handleMoveAdjacentLesson(previousModule?.id)}
                         disabled={!previousModule}
-                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-slate-100 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
                       >
                         이전 강의
                       </button>
@@ -1574,7 +1594,7 @@ export default function CourseRoomPage() {
                         type="button"
                         onClick={() => handleMoveAdjacentLesson(nextModule?.id)}
                         disabled={!nextModule || !selectedProgress.isCompleted}
-                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-white/15 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-950 shadow-sm transition hover:bg-slate-100 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#111827] disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
                       >
                         다음 강의
                       </button>
@@ -1630,10 +1650,10 @@ export default function CourseRoomPage() {
                 <div className="rounded-[1.3rem] border border-white/12 bg-white/[0.06] p-4 text-sm leading-7 text-slate-200">
                   <div className="flex items-center justify-between gap-4">
                     <div>
-                      <p className="text-xs uppercase tracking-[0.18em] text-[#8a6a2d]">주문 과정</p>
+                      <p className="text-xs uppercase tracking-[0.18em] text-amber-200">주문 과정</p>
                       <p className="mt-2 font-semibold text-slate-100">{defaultCourse.title}</p>
                     </div>
-                    <span className="rounded-full border border-[#e2c57b] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-[#7a5a1b]">
+                    <span className="rounded-full border border-amber-300 bg-amber-300 px-3 py-1 text-xs font-black text-slate-950">
                       {defaultCourse.priceLabel}
                     </span>
                   </div>
