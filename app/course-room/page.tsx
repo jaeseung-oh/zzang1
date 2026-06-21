@@ -1813,22 +1813,12 @@ export default function CourseRoomPage() {
                             <span>수료증 / {certificate.issueNumber}</span>
                             <span className="font-semibold">수료증 보기</span>
                           </Link>
-                          <Link
-                            href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}&print=1`}
-                            className={buttonClass("warning", "md", "w-full justify-between rounded-2xl px-4 font-black shadow-[0_18px_36px_rgba(250,204,21,0.26)] ring-2 ring-amber-100/70")}
-                          >
-                            <span>수료증 / {certificate.issueNumber}</span>
-                            <span>바로 인쇄</span>
-                          </Link>
                         </div>
                       ))
                     ) : (
                       <div className="flex flex-wrap gap-2">
                         <Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full")}>
                           수강증/수료증 발급 및 보기
-                        </Link>
-                        <Link href="/certificate?print=1" className={buttonClass("warning", "sm", "rounded-full font-black shadow-[0_12px_24px_rgba(250,204,21,0.24)] ring-2 ring-amber-100/70")}>
-                          바로 인쇄
                         </Link>
                       </div>
                     )}

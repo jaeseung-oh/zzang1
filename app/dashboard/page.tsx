@@ -270,11 +270,17 @@ export default function DashboardPage() {
               강의별 진도, 누적 수강 시간, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <Link href="/course-room" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>
-              수강실로 이동
+          <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
+            <Link href="/course-room" className={buttonClass("primary", "lg", "w-full rounded-2xl px-7 font-black")}>
+              강의 목록 보기
             </Link>
-            <Link href="/login" style={{ backgroundColor: "#ffffff", color: "#0f172a", border: "2px solid #173968", fontWeight: 900, boxShadow: "0 14px 28px rgba(15, 23, 42, 0.12)" }} className={buttonClass("secondary", "md", "rounded-full px-6 font-black")}>
+            <Link
+              href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"}
+              className={buttonClass("warning", "lg", "w-full rounded-2xl px-7 font-black")}
+            >
+              서류 인쇄하기
+            </Link>
+            <Link href="/login" style={{ backgroundColor: "#ffffff", color: "#0f172a", border: "2px solid #173968", fontWeight: 900, boxShadow: "0 14px 28px rgba(15, 23, 42, 0.12)" }} className={buttonClass("secondary", "md", "w-full rounded-2xl px-6 font-black sm:col-span-2")}>
               회원정보 변경
             </Link>
           </div>
