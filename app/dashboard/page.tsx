@@ -270,21 +270,24 @@ export default function DashboardPage() {
               강의별 진도, 누적 수강 시간, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
             </p>
           </div>
-          <div className="grid w-full gap-3 sm:grid-cols-2 lg:w-auto">
-            <Link href="/course-room" className={buttonClass("primary", "lg", "w-full rounded-2xl px-7 font-black")}>
-              강의 목록 보기
-            </Link>
-            <Link
-              href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"}
-              className={buttonClass("warning", "lg", "w-full rounded-2xl px-7 font-black")}
-            >
-              서류 인쇄하기
-            </Link>
-            <Link href="/login" style={{ backgroundColor: "#ffffff", color: "#0f172a", border: "2px solid #173968", fontWeight: 900, boxShadow: "0 14px 28px rgba(15, 23, 42, 0.12)" }} className={buttonClass("secondary", "md", "w-full rounded-2xl px-6 font-black sm:col-span-2")}>
+          <div className="w-full lg:w-auto">
+            <Link href="/login" style={{ backgroundColor: "#ffffff", color: "#0f172a", border: "2px solid #173968", fontWeight: 900, boxShadow: "0 14px 28px rgba(15, 23, 42, 0.12)" }} className={buttonClass("secondary", "md", "w-full rounded-2xl px-6 font-black")}>
               회원정보 변경
             </Link>
           </div>
         </div>
+        <section aria-label="빠른 메뉴" className="mt-6 rounded-[1.5rem] border-4 border-amber-300 bg-[#10213f] p-4 shadow-[0_20px_50px_rgba(16,33,63,0.30)] sm:p-6">
+          <p className="text-sm font-black text-amber-300">자주 찾는 메뉴</p>
+          <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">강의와 인쇄 서류를 바로 확인하세요</h2>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <Link href="/course-room" className="flex min-h-16 items-center justify-center rounded-2xl border-2 border-white bg-white px-6 py-4 text-lg font-black text-[#10213f] shadow-lg transition hover:bg-slate-100">
+              강의 목록 보기
+            </Link>
+            <Link href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-16 items-center justify-center rounded-2xl border-2 border-amber-200 bg-amber-400 px-6 py-4 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-300">
+              서류 인쇄하기
+            </Link>
+          </div>
+        </section>
 
         {loading ? <p className="mt-8 text-sm text-slate-600">수강현황을 불러오는 중입니다...</p> : null}
         {error ? <p className="mt-8 text-sm text-[#f2a39b]">{error}</p> : null}
