@@ -2,16 +2,13 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { duiPreventionCourseProduct } from "@/lib/course/product";
-import { formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
+import { getApplicationProduct } from "@/lib/course/application-products";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
 import { ensureCertificateIdentityLock } from "@/lib/firebase/user-profile";
-import type { PaymentMethod } from "@/lib/payment/payment-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
-import { createEnrollmentAfterPayment } from "@/lib/course/enrollment-service";
-import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 
 type ConfirmResponse = {
   savedPurchaseId?: string;
@@ -39,18 +36,26 @@ async function waitForRetry(attempt: number) {
 
 async function fetchJsonWithRetry(url: string, init: RequestInit, attempts = 3) {
   let lastError: unknown;
+  const method = init.method || "GET";
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     try {
       const response = await fetch(url, init);
-      const payload = await response.json().catch(() => ({}));
+      const responseText = await response.text();
+      const payload = responseText ? (() => { try { return JSON.parse(responseText); } catch { return { raw: responseText }; } })() : {};
       if (!response.ok) {
-        const error = new Error(payload?.message || "결제 검증 처리에 실패했습니다.") as Error & { status?: number; payload?: unknown };
+        const error = new Error(payload?.message || "결제 검증 처리에 실패했습니다.") as Error & { status?: number; payload?: unknown; url?: string; method?: string; responseText?: string; attempt?: number };
         error.status = response.status;
         error.payload = payload;
+        error.url = url;
+        error.method = method;
+        error.responseText = responseText;
+        error.attempt = attempt;
+        console.error("Payment confirm API failed", { url, method, status: response.status, responseText, payload, attempt });
         throw error;
       }
       return payload;
     } catch (error) {
+      if (error instanceof TypeError) console.error("Payment confirm fetch failed before HTTP response", { url, method, attempt, message: error.message });
       lastError = error;
       if (attempt === attempts) break;
       await waitForRetry(attempt);
@@ -58,12 +63,6 @@ async function fetchJsonWithRetry(url: string, init: RequestInit, attempts = 3) 
   }
   throw lastError instanceof Error ? lastError : new Error("결제 검증 처리에 실패했습니다.");
 }
-
-const paymentMethodLabels: Record<PaymentMethod, string> = {
-  kakaopay: "카카오페이",
-  "danal-mobile": "핸드폰결제 - 다날",
-  card: "신용카드결제",
-};
 
 function CheckIcon() {
   return (
@@ -128,21 +127,6 @@ function LegacyPaymentSuccessContent() {
         });
 
         setResult(payload);
-
-        try {
-          // TODO: 실제 운영에서는 서버에서 PG 승인 검증 후 수강권을 생성해야 하며, 이 호출은 서버 검증 결과 보강/동기화 용도로만 사용해야 합니다.
-          await createEnrollmentAfterPayment({
-            userId: sessionUser.uid,
-            courseId,
-            paymentId: paymentKey,
-            orderId: payload.orderId || orderId,
-            paymentStatus: "paid",
-            purchasedAt: payload.approvedAt,
-            expiresAt: payload.expiresAt ?? null,
-          });
-        } catch (enrollmentError) {
-          console.error(enrollmentError);
-        }
 
         try {
           await ensureCertificateIdentityLock({
@@ -315,7 +299,12 @@ function PortOnePaymentSuccessContent() {
           if (!cancelled) setError("로그인한 회원만 결제 완료를 계정에 연결할 수 있습니다.");
           return;
         }
-        if (!cancelled) setError(CARD_APPROVAL_DELAY_MESSAGE);
+        if (!cancelled) {
+          const detail = syncError instanceof Error && "status" in syncError
+            ? `결제 검증 API 실패: ${(syncError as any).method || "POST"} ${(syncError as any).url || confirmUrl} / status ${(syncError as any).status || "network"} / response ${(syncError as any).responseText || syncError.message}`
+            : CARD_APPROVAL_DELAY_MESSAGE;
+          setError(detail);
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -337,7 +326,7 @@ function PortOnePaymentSuccessContent() {
             {message || "결제 실패 사유를 확인하지 못했습니다."}
           </div>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-            <Link href="/checkout" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>주문서로 돌아가기</Link>
+            <Link href="/courses/apply/?category=dui" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>결제 페이지로 돌아가기</Link>
             <Link href="/refund-policy" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>환불규정 보기</Link>
           </div>
         </div>
@@ -369,96 +358,22 @@ function PortOnePaymentSuccessContent() {
         </div>
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link href="/course-room" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>내 강의실로 이동</Link>
-          <Link href="/checkout" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>주문서로 이동</Link>
+          <Link href="/courses/apply/?category=dui" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>결제 페이지로 이동</Link>
         </div>
       </div>
     </main>
   );
 }
 
-function MockPaymentSuccessContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [enrollmentNotice, setEnrollmentNotice] = useState("수강권 정보를 준비하는 중입니다.");
-  const categoryId = searchParams.get("categoryId");
-  const productId = searchParams.get("productId");
-  const orderId = searchParams.get("orderId");
-  const paymentMethod = searchParams.get("paymentMethod") as PaymentMethod | null;
-  const category = useMemo(() => getApplicationCategory(categoryId), [categoryId]);
-  const product = useMemo(() => getApplicationProduct(categoryId, productId), [categoryId, productId]);
-  const methodLabel = paymentMethod ? paymentMethodLabels[paymentMethod] : null;
-
-  useEffect(() => {
-    let cancelled = false;
-    const createMockEnrollment = async () => {
-      try {
-        const user = await requireAuthenticatedUser();
-        if (isSuperAdmin(user)) {
-          if (!cancelled) setEnrollmentNotice("관리자 계정은 결제 없이 모든 과정에 접근할 수 있습니다.");
-          return;
-        }
-        if (!category || category.status !== "available" || !product) {
-          if (!cancelled) setEnrollmentNotice("준비중 과정은 수강권을 생성하지 않습니다.");
-          return;
-        }
-        // TODO: mock 결제는 개발/검수 편의용입니다. 운영에서는 PG 승인 서버 검증 후 수강권을 생성해야 합니다.
-        await createEnrollmentAfterPayment({
-          userId: user.uid,
-          categoryId: category.id,
-          productId: product.id,
-          orderId: orderId || "mock-order",
-          paymentStatus: "paid",
-        });
-        if (!cancelled) setEnrollmentNotice("결제 완료 수강권이 준비되었습니다.");
-      } catch (error) {
-        console.error(error);
-        const message = error instanceof Error ? error.message : "";
-        if (message === "AUTH_LOGIN_REQUIRED") {
-          router.replace("/login?next=" + encodeURIComponent("/payment/success?" + searchParams.toString()));
-          if (!cancelled) setEnrollmentNotice("로그인 후 결제 완료 정보를 계정에 연결할 수 있습니다.");
-          return;
-        }
-        if (!cancelled) setEnrollmentNotice("수강권 생성은 서버 검증 후 반영됩니다. 잠시 후 내 강의실에서 확인해 주세요.");
-      }
-    };
-    void createMockEnrollment();
-    return () => { cancelled = true; };
-  }, [category, product, orderId, router, searchParams]);
-
+function InvalidPaymentSuccessContent() {
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#edf3f9_48%,#f8fafc_100%)] px-4 py-10 text-slate-950 sm:px-6 lg:px-8">
+    <main className="min-h-screen bg-[#f3f6f9] px-4 py-10 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl rounded-[1.75rem] border border-[#d7e1ef] bg-white p-6 text-center shadow-[0_24px_60px_rgba(15,23,42,0.10)] sm:p-8">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#173968] text-white">
-          <CheckIcon />
-        </div>
-        <p className="mt-5 text-xs font-semibold uppercase tracking-[0.24em] text-[#274690]">Payment Complete</p>
-        <h1 className="mt-3 text-3xl font-semibold sm:text-4xl">결제가 완료되었습니다.</h1>
-        <p className="mt-4 text-sm leading-7 text-slate-600">신청하신 교육을 수강할 수 있습니다.</p>
-        <p className="mt-2 text-sm font-semibold text-[#173968]">{enrollmentNotice}</p>
-
-        {category && product ? (
-          <div className="mt-7 rounded-[1.25rem] border border-[#dbe4ef] bg-[#f8fafc] p-5 text-left">
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div><dt className="text-xs font-semibold text-slate-500">신청한 교육명</dt><dd className="mt-1 text-base font-semibold text-slate-950">{category.title}</dd></div>
-              <div><dt className="text-xs font-semibold text-slate-500">상품명</dt><dd className="mt-1 text-base font-semibold text-slate-950">{product.title}</dd></div>
-              <div><dt className="text-xs font-semibold text-slate-500">결제금액</dt><dd className="mt-1 text-2xl font-bold text-[#0f2f5f]">{formatApplicationKrw(product.price)}</dd></div>
-              <div><dt className="text-xs font-semibold text-slate-500">결제수단</dt><dd className="mt-1 text-base font-semibold text-slate-950">{methodLabel || "mock 결제"}</dd></div>
-            </dl>
-            {orderId ? <p className="mt-4 text-xs text-slate-500">주문번호: {orderId}</p> : null}
-          </div>
-        ) : (
-          <div className="mt-7 rounded-[1.25rem] border border-[#dbe4ef] bg-[#f8fafc] p-5 text-sm leading-7 text-slate-600">
-            결제 결과 정보가 없는 상태입니다. 수강신청 화면에서 다시 신청 정보를 확인할 수 있습니다.
-          </div>
-        )}
-
+        <h1 className="text-3xl font-bold sm:text-4xl">결제 정보가 없습니다.</h1>
+        <p className="mt-4 text-sm leading-7 text-slate-600">공식 결제 페이지에서 결제를 진행해 주세요. 이 화면에서는 수강권을 생성하거나 변경하지 않습니다.</p>
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/course-room" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>
-            내 강의실로 이동
-          </Link>
-          <Link href="/" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>
-            홈으로 이동
-          </Link>
+          <Link href="/courses/apply/?category=dui" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>결제 페이지로 이동</Link>
+          <Link href="/dashboard" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>내 수강권 확인</Link>
         </div>
       </div>
     </main>
@@ -469,7 +384,7 @@ function PaymentSuccessContent() {
   const searchParams = useSearchParams();
   if (searchParams.get("paymentKey")) return <LegacyPaymentSuccessContent />;
   if (searchParams.get("paymentId") || searchParams.get("code") || searchParams.get("message")) return <PortOnePaymentSuccessContent />;
-  return <MockPaymentSuccessContent />;
+  return <InvalidPaymentSuccessContent />;
 }
 
 export default function PaymentSuccessPage() {

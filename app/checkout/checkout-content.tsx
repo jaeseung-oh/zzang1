@@ -394,7 +394,7 @@ export default function CheckoutContent() {
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-2xl font-bold text-slate-950">결제 요약</h2>
+            <h2 className="text-2xl font-bold text-slate-950">선택한 과정의 제공내용을 다시 확인하세요</h2>
 
             <dl className="mt-5 space-y-4 border-b border-slate-200 pb-5">
               <div className="flex items-start justify-between gap-4">
@@ -417,6 +417,7 @@ export default function CheckoutContent() {
             </div>
 
             <div className="mt-6 space-y-3">
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-xs leading-6 text-amber-950">본 교육과 자료는 예방교육, 자기점검 및 재발방지 계획 수립을 지원하기 위한 콘텐츠입니다. 교육 수강이나 자료 제출만으로 개별 사건의 선처, 감형 또는 특정한 법률적 결과가 보장되지는 않습니다.</div>
               <label className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium leading-6 text-slate-700">
                 <input type="checkbox" checked={orderNoticeChecked} onChange={(event) => setOrderNoticeChecked(event.target.checked)} className="mt-1 h-4 w-4 accent-[#10213f]" />
                 <span>상품명, 결제금액, 수강기간을 확인했습니다.</span>
@@ -440,7 +441,7 @@ export default function CheckoutContent() {
             {hasActiveEnrollment ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900"><p className="font-bold">이미 결제 완료된 수강권이 있습니다.</p><p>중복 결제를 막기 위해 결제 버튼을 비활성화했습니다.</p><div className="mt-3 flex flex-wrap gap-2"><Link href="/course-room" className={buttonClass("primary", "sm", "rounded-full px-4 font-bold")}>강의실로 이동</Link><Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full px-4 font-bold")}>수료증 출력</Link></div></div> : null}
 
             <button type="button" onClick={() => void handleRequestPayment()} disabled={!canSubmit} className={buttonClass("primary", "lg", "mt-5 w-full rounded-xl font-bold disabled:opacity-100")}>
-              {hasActiveEnrollment ? "이미 결제된 강의입니다" : isSubmitting ? "결제 진행 중..." : `${formatKrw(selectedProduct.price)} 결제하기`}
+              {hasActiveEnrollment ? "이미 결제된 강의입니다" : isSubmitting ? "결제 진행 중..." : "내용 확인 후 결제하기"}
             </button>
 
             <div className="mt-4 space-y-1 text-center text-xs font-medium leading-5 text-slate-500">

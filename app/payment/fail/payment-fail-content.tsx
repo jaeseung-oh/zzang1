@@ -21,8 +21,8 @@ export default function PaymentFailContent() {
         </div>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/checkout" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>
-            주문서로 돌아가기
+          <Link href="/courses/apply/?category=dui" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>
+            결제 페이지로 돌아가기
           </Link>
           <Link href="/refund-policy" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>
             환불규정 보기

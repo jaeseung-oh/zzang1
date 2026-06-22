@@ -25,6 +25,8 @@ export default function LegalFooter() {
           <div className="rounded-[1.5rem] border border-white/10 bg-white/5 p-5">
             <p className="text-sm font-bold text-[#f1d59c]">바로가기</p>
             <div className="mt-4 flex flex-wrap gap-4 text-sm font-bold text-white">
+              <Link href="/guides/reflection-letter/" className="transition hover:text-[#f1d59c]">반성문 작성 가이드</Link>
+              <Link href="/guides/prevention-plan/" className="transition hover:text-[#f1d59c]">재발방지계획 가이드</Link>
               <Link href="/terms" className="transition hover:text-[#f1d59c]">이용약관</Link>
               <Link href="/privacy-policy" className="transition hover:text-[#f1d59c]">개인정보처리방침</Link>
               <Link href="/refund-policy" className="transition hover:text-[#f1d59c]">환불규정</Link>

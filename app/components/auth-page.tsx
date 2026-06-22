@@ -908,7 +908,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                       type="button"
                       onClick={handlePasswordReset}
                       disabled={isResettingPassword}
-                      className="font-semibold text-indigo-700 transition hover:text-slate-950 disabled:cursor-not-allowed disabled:text-gray-600 disabled:opacity-100"
+                      className="font-semibold text-indigo-700 transition hover:text-slate-950 disabled:cursor-not-allowed disabled:text-gray-800 disabled:opacity-100"
                     >
                       {isResettingPassword ? "발송 중..." : "비밀번호 찾기"}
                     </button>

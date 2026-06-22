@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "이용약관 | 리셋 에듀센터",
   description: "리셋 에듀센터 이용약관 안내",
+  alternates: { canonical: "/terms/" },
 };
 
 export default function TermsPage() {

@@ -24,8 +24,11 @@ export const preventionDocuments: PreventionDocumentDefinition[] = [
   { id: "pledge", title: "음주운전 재발방지 서약서", description: "음주 후 운전하지 않겠다는 구체적 서약사항을 정리하는 서식입니다." },
 ];
 
-export function hasPreventionDocumentsAccess(productId?: string | null) {
-  return productId === DOCUMENTS_PRODUCT_ID;
+export function hasPreventionDocumentsAccess(productId?: string | null, amount?: number | null, productTitle?: string | null) {
+  const normalizedTitle = String(productTitle || "").replace(/\s/g, "");
+  return productId === DOCUMENTS_PRODUCT_ID
+    || Number(amount) >= 89000
+    || normalizedTitle.includes("서식포함");
 }
 
 export function getPreventionDocument(type?: string | null) {

@@ -1196,7 +1196,7 @@ export default function CourseRoomPage() {
   };
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#06080c] px-3 py-4 text-white sm:px-6 lg:px-8 lg:py-8">
+    <main className="relative min-h-screen overflow-hidden bg-[linear-gradient(145deg,#07111f_0%,#0b1930_45%,#10213f_100%)] px-3 py-4 text-white sm:px-6 lg:px-8 lg:py-8">
       <Script
         src="https://embed.cloudflarestream.com/embed/sdk.latest.js"
         strategy="afterInteractive"
@@ -1250,10 +1250,10 @@ export default function CourseRoomPage() {
             <div>
               <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#c8d7f6]">
                 <span>Reset Edu Center</span>
-                <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-[11px] text-[#f0d59c]">Premium LMS</span>
+                <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-[11px] text-[#f0d59c]">온라인 학습실</span>
                 {adminPreview ? <span className="rounded-full border border-slate-300/30 bg-slate-950 px-3 py-1 text-[11px] text-white">관리자 접근</span> : null}
               </div>
-              <h1 className="mt-4 max-w-4xl break-keep text-2xl font-semibold tracking-[-0.03em] text-white sm:text-4xl sm:tracking-[-0.05em] lg:text-[2.9rem]">
+              <h1 className="mt-4 max-w-4xl break-keep text-2xl font-black tracking-[-0.03em] text-white sm:text-4xl sm:tracking-[-0.05em] lg:text-[2.9rem]">
                 {defaultCourse.title}
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
@@ -1261,7 +1261,7 @@ export default function CourseRoomPage() {
               </p>
             </div>
 
-            <div className="flex flex-col items-stretch gap-2 sm:flex-row lg:flex-col lg:items-end">
+            <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[360px]">
               <a
                 href="/resources/reflection-guide"
                 target="_blank"
@@ -1269,7 +1269,7 @@ export default function CourseRoomPage() {
                 style={{ backgroundColor: "#facc15", color: "#111827", borderColor: "#fde047" }}
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 px-6 py-3 text-center text-sm font-black shadow-[0_18px_36px_rgba(250,204,21,0.34)] ring-2 ring-amber-100/70 transition-all hover:-translate-y-0.5 hover:bg-amber-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200"
               >
-                반성문 작성 가이드
+                반성문 가이드
               </a>
               <a
                 href="/resources/dui-reflection-example"
@@ -1278,25 +1278,25 @@ export default function CourseRoomPage() {
                 style={{ backgroundColor: "#ffffff", color: "#10213f", borderColor: "#cbd5e1" }}
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 px-6 py-3 text-center text-sm font-black shadow-[0_14px_30px_rgba(15,23,42,0.22)] transition-all hover:-translate-y-0.5 hover:bg-slate-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
               >
-                음주운전 반성문 예시
+                반성문 예시
               </a>
               <Link
                 href="/"
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg hover:brightness-105 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-white/60 bg-transparent px-6 py-3 text-sm font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-white/50"
               >
                 홈으로 이동
               </Link>
               <Link
                 href="/dashboard"
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-6 py-3 text-sm font-bold text-white shadow-[0_14px_28px_rgba(16,33,63,0.22)] transition-all hover:-translate-y-0.5 hover:bg-indigo-700 hover:shadow-lg hover:brightness-105 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
+                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-white/60 bg-transparent px-6 py-3 text-sm font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-white/50"
               >
                 내 수강현황
               </Link>
               <Link
                 href="/certificate"
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-amber-200 bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 shadow-[0_18px_36px_rgba(250,204,21,0.34)] ring-2 ring-amber-100/70 transition-all hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
+                className="inline-flex min-h-12 sm:col-span-2 cursor-pointer items-center justify-center rounded-full border-2 border-amber-200 bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 shadow-[0_18px_36px_rgba(250,204,21,0.34)] ring-2 ring-amber-100/70 transition-all hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
               >
-                수강증/수료증 출력
+                수료증 바로 출력
               </Link>
             </div>
           </div>
@@ -1391,7 +1391,7 @@ export default function CourseRoomPage() {
           <div className="rounded-[1.5rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-4 shadow-[0_18px_48px_rgba(15,23,42,0.08)]">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">강의 바로가기</p>
+                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200">강의 바로가기</p>
                 <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">1강부터 5강까지 한눈에 보기</h2>
               </div>
               <span className="rounded-full border border-[#d7deea] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-slate-200">현재 {selectedModule?.title.split(".")[0] ?? "선택 대기"}</span>
@@ -1740,17 +1740,17 @@ export default function CourseRoomPage() {
                         </defs>
                       </svg>
                       <div className="pointer-events-none absolute text-center">
-                        <p className="text-xl font-semibold tracking-[-0.04em] text-white">{aggregate.completionRate}%</p>
-                        <p className="mt-0.5 text-[10px] uppercase tracking-[0.16em] text-slate-400">completion</p>
+                        <p className="text-xl font-black tracking-[-0.04em] text-slate-950">{aggregate.completionRate}%</p>
+                        <p className="mt-0.5 text-[10px] font-bold text-slate-500">전체 진도율</p>
                       </div>
                     </div>
 
                     <div>
-                      <div className="flex items-center justify-between text-xs text-slate-300">
+                      <div className="flex items-center justify-between text-xs text-slate-600">
                         <span>과정 진행률</span>
-                        <span className="font-semibold text-slate-100">{aggregate.completionRate}%</span>
+                        <span className="font-black text-slate-950">{aggregate.completionRate}%</span>
                       </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-200">
+                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-slate-300">
                         <div
                           className="h-full rounded-full bg-[linear-gradient(90deg,#0f2a57_0%,#1d4ed8_58%,#d3b271_100%)]"
                           style={{ width: `${aggregate.completionRate}%` }}

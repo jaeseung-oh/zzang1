@@ -4,6 +4,7 @@ import { buttonClass } from "@/app/components/ui/button-styles";
 import { notFound } from "next/navigation";
 import { getIntroCourse, introCourses } from "@/lib/course/intro-courses";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
+import { basicApplicationProduct, duiDocumentsApplicationProduct } from "@/lib/course/application-products";
 
 export function generateStaticParams() {
   return introCourses.map((course) => ({ slug: course.slug }));
@@ -22,8 +23,10 @@ export async function generateMetadata({ params }: CourseIntroPageProps): Promis
   }
 
   return {
-    title: `${course.title} | 리셋에듀센터`,
-    description: course.summary,
+    title: course.slug === "dui-prevention" ? "음주운전 예방교육·재발방지 수료증 과정 | Reset Edu Center" : `${course.title} | Reset Edu Center`,
+    description: course.slug === "dui-prevention" ? "음주운전 사건 이후 행동원인과 위험상황을 점검하고 재발방지 실천계획을 세우는 온라인 예방교육 과정입니다." : course.summary,
+    alternates: { canonical: `/courses/${course.slug}/` },
+    robots: course.slug === "dui-prevention" ? { index: true, follow: true } : { index: false, follow: true },
   };
 }
 
@@ -47,7 +50,7 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
             <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">해당 교육 과정은 현재 콘텐츠를 준비하고 있습니다. 과정 구성과 제공 자료가 확정되면 순차적으로 안내될 예정입니다.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/courses" className={buttonClass("darkPrimary", "md", "rounded-full px-6 font-black focus:ring-offset-[#10213f]")}>강의 구성 보기</Link>
-              <button type="button" disabled className={buttonClass("secondary", "md", "rounded-full px-6 font-bold disabled:bg-gray-300 disabled:text-gray-600")}>준비중</button>
+              <button type="button" disabled className={buttonClass("secondary", "md", "rounded-full px-6 font-bold disabled:bg-gray-300 disabled:text-gray-800")}>준비중</button>
             </div>
           </div>
         </section>
@@ -55,8 +58,25 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
     );
   }
 
+  const courseJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Course",
+    name: course.title,
+    description: course.summary,
+    url: "https://resetedu.kr/courses/dui-prevention/",
+    provider: { "@type": "Organization", name: "Reset Edu Center", url: "https://resetedu.kr/" },
+    offers: [basicApplicationProduct, duiDocumentsApplicationProduct].map((product) => ({
+      "@type": "Offer",
+      name: product.title,
+      price: product.price,
+      priceCurrency: "KRW",
+      url: "https://resetedu.kr/courses/apply/?category=dui&productId=" + product.id,
+      availability: "https://schema.org/InStock",
+    })),
+  };
+
   return (
-    <main className="min-h-screen bg-[#eef3f8] text-slate-900">
+    <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd).replace(/</g, "\\u003c") }} /><main className="min-h-screen bg-[#eef3f8] text-slate-900">
       <section className="relative overflow-hidden bg-[#06101b] text-white">
         <div className="absolute inset-0">
           <img src={course.image} alt="" className="h-full w-full object-cover opacity-45" />
@@ -98,7 +118,7 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
           <aside className="rounded-[1.5rem] border border-[#173968]/20 bg-[#f8fafc] p-6 shadow-sm">
             <p className="text-sm font-bold text-slate-600">실판매 금액</p>
             <p className="mt-2 text-4xl font-black text-[#0f2f5f]">{formatKrw(duiPreventionCourseProduct.price)}</p>
-            <p className="mt-3 text-xs font-semibold leading-6 text-slate-500">기본 수강권과 3종 서식 포함 수강권 중 필요한 구성을 선택할 수 있습니다.</p>
+            <p className="mt-3 text-xs font-semibold leading-6 text-slate-500">기본과정 59,000원과 교육·자료 포함 과정 109,000원 중 필요한 준비 범위에 따라 선택할 수 있습니다.</p>
             <Link href="/courses/apply?category=dui" className={buttonClass("primary", "lg", "mt-5 w-full rounded-[1rem] font-black")}>
               음주운전 교육 수강 신청
             </Link>
@@ -153,10 +173,10 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
             ))}
           </div>
           <div className="mt-6 rounded-[1.5rem] border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-950">
-            본 서비스는 민간 온라인 교육 서비스이며 법률 자문이나 사건 결과 보장을 제공하지 않습니다. 자료 제출 필요성, 제출 방식, 반영 여부는 제출처 또는 담당 전문가 기준을 확인해 주세요.
+            본 교육과 자료는 예방교육, 자기점검 및 재발방지 계획 수립을 지원하기 위한 콘텐츠입니다. 교육 수강이나 자료 제출만으로 개별 사건의 선처, 감형 또는 특정한 법률적 결과가 보장되지는 않습니다.
           </div>
         </div>
       </section>
-    </main>
+    </main></>
   );
 }

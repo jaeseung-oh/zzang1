@@ -4,7 +4,8 @@ import { buttonClass } from "@/app/components/ui/button-styles";
 
 export const metadata: Metadata = {
   title: "센터소개 | 리셋 에듀센터",
-  description: "양형자료 준비를 위한 민간 온라인 예방교육 플랫폼 소개",
+  description: "사건 이후 자기점검과 재발방지 계획 수립을 돕는 민간 온라인 예방교육 플랫폼의 운영 방향을 안내합니다.",
+  alternates: { canonical: "/about/" },
 };
 
 const applyHref = "/courses/apply?category=dui";
@@ -45,7 +46,7 @@ const currentCourses = [
 const process = [
   ["과정 확인", "현재 운영 중인 음주운전 예방교육의 구성을 확인합니다."],
   ["온라인 수강", "결제 후 내 강의실에서 온라인으로 수강합니다."],
-  ["수료 기준 충족", "진도율 기준을 충족하면 이수 자료를 확인합니다."],
+  ["자료 즉시 확인", "수강권 결제 후 이수 자료를 바로 확인합니다."],
   ["참고서식 정리", "필요한 경우 자가 작성용 참고서식을 직접 작성합니다."],
 ];
 
@@ -86,7 +87,7 @@ export default function AboutPage() {
       <section className="bg-white px-4 py-14 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Courses" title="현재 운영 현황" body="실제 수강 가능한 과정과 준비중인 과정을 구분해 안내합니다." />
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            {currentCourses.map(([title, status, body, available]) => <article key={title} className="flex min-w-0 flex-col rounded-[1.25rem] border border-slate-200 bg-slate-50 p-5"><div className="flex items-center justify-between gap-3"><Icon name={available ? "car" : "lock"} className="h-7 w-7 text-indigo-700" /><span className={available ? "rounded-full bg-indigo-600 px-3 py-1 text-xs font-black text-white" : "rounded-full bg-gray-300 px-3 py-1 text-xs font-black text-gray-700"}>{status}</span></div><h3 className="mt-4 text-lg font-black leading-snug text-slate-950">{title}</h3><p className="mt-3 flex-1 text-sm leading-relaxed text-slate-700">{body}</p>{available ? <Link href="/courses" className={buttonClass("secondary", "sm", "mt-5 w-full whitespace-nowrap rounded-xl font-bold")}>강의 구성 보기</Link> : <button type="button" disabled className={buttonClass("secondary", "sm", "mt-5 w-full whitespace-nowrap rounded-xl font-bold disabled:bg-gray-300 disabled:text-gray-600")}>준비중</button>}</article>)}
+            {currentCourses.map(([title, status, body, available]) => <article key={title} className="flex min-w-0 flex-col rounded-[1.25rem] border border-slate-200 bg-slate-50 p-5"><div className="flex items-center justify-between gap-3"><Icon name={available ? "car" : "lock"} className="h-7 w-7 text-indigo-700" /><span className={available ? "rounded-full bg-indigo-600 px-3 py-1 text-xs font-black text-white" : "rounded-full bg-gray-300 px-3 py-1 text-xs font-black text-gray-700"}>{status}</span></div><h3 className="mt-4 text-lg font-black leading-snug text-slate-950">{title}</h3><p className="mt-3 flex-1 text-sm leading-relaxed text-slate-700">{body}</p>{available ? <Link href="/courses" className={buttonClass("secondary", "sm", "mt-5 w-full whitespace-nowrap rounded-xl font-bold")}>강의 구성 보기</Link> : <button type="button" disabled className={buttonClass("secondary", "sm", "mt-5 w-full whitespace-nowrap rounded-xl font-bold disabled:bg-gray-300 disabled:text-gray-800")}>준비중</button>}</article>)}
           </div>
         </div>
       </section>
@@ -104,7 +105,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white p-5 text-xs leading-relaxed text-slate-700 sm:text-sm"><p>리셋 에듀센터는 민간 온라인 교육 플랫폼입니다. 본 사이트에서 제공하는 수료증, 교육 이수 확인 자료, 재발방지계획서, 음주예방실천계획서, 서약서 등은 수강자가 양형자료 준비 과정에서 참고할 수 있는 자가 작성용 자료입니다.</p><p className="mt-2">본 센터는 개별 사건에 대한 법률상담, 법률문서 작성대행, 법원 제출대행, 감형 또는 처벌 감경 보장 서비스를 제공하지 않습니다. 자료의 제출 가능 여부, 반영 여부, 법적 평가는 제출처 또는 관련 전문가의 판단에 따라 달라질 수 있습니다.</p></div></section>
+      <section className="px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white p-5 text-xs leading-relaxed text-slate-700 sm:text-sm"><p>리셋 에듀센터는 민간 온라인 교육 플랫폼입니다. 본 사이트에서 제공하는 수료증, 교육 이수 확인 자료, 재발방지계획서, 음주예방실천계획서, 서약서 등은 수강자가 양형자료 준비 과정에서 참고할 수 있는 자가 작성용 자료입니다.</p><p className="mt-2">본 센터는 개별 사건에 대한 법률상담, 법률문서 작성대행, 감형 또는 처벌 감경 보장 서비스를 제공하지 않습니다. 자료의 제출 가능 여부, 반영 여부, 법적 평가는 제출처 또는 관련 전문가의 판단에 따라 달라질 수 있습니다.</p></div></section>
     </main>
   );
 }

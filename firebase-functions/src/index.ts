@@ -20,8 +20,8 @@ const LEGAL_NOTICE =
 const COURSE_ACCESS_VALID_MONTHS = 3;
 const COURSE_ACCESS_VALID_DAYS = 90;
 const COURSE_PRICE_KRW: Record<string, number> = {
-  "dui-prevention-basic": 55000,
-  "rapid-sentencing-prep": 55000,
+  "dui-prevention-basic": 59000,
+  "rapid-sentencing-prep": 59000,
 };
 const DUI_COURSE_ID = "dui-prevention-basic";
 const DUI_COURSE_TITLE = "음주운전 예방교육";

@@ -51,6 +51,29 @@ type CertificateRecord = {
   documentType?: "completion" | "attendance" | string;
 };
 
+function maskFirestoreSegment(value: string) {
+  if (!value) return "";
+  if (value.length <= 8) return value.slice(0, 2) + "***";
+  return value.slice(0, 4) + "***" + value.slice(-4);
+}
+
+function maskFirestorePath(path: string) {
+  const segments = path.split("/");
+  return segments
+    .map((segment, index) => (index % 2 === 1 ? maskFirestoreSegment(segment) : segment))
+    .join("/");
+}
+
+function logFirestoreFailure(operation: "getDoc" | "setDoc", path: string, error: unknown) {
+  const errorLike = error as { code?: unknown; message?: unknown };
+  console.error("[certificate:firestore]", {
+    operation,
+    path: maskFirestorePath(path),
+    code: typeof errorLike?.code === "string" ? errorLike.code : undefined,
+    message: typeof errorLike?.message === "string" ? errorLike.message : "Firestore request failed",
+  });
+}
+
 function toDate(value?: TimestampLike) {
   if (!value) return null;
   if (value instanceof Date) return Number.isFinite(value.getTime()) ? value : null;
@@ -140,12 +163,19 @@ function CertificatePageContent() {
   const loadCertificate = async (userId: string, allowAdmin = false) => {
     const { db } = getFirebaseServices();
     const certificateId = requestedCertificateId || `${userId}_${defaultCourse.id}`;
+    const path = `certificates/${certificateId}`;
 
     if (requestedCertificateId && requestedCertificateId !== `${userId}_${defaultCourse.id}` && !allowAdmin) {
       throw new Error("다른 사용자의 수료증은 조회할 수 없습니다.");
     }
 
-    const snapshot = await getDoc(doc(db, "certificates", certificateId));
+    let snapshot;
+    try {
+      snapshot = await getDoc(doc(db, "certificates", certificateId));
+    } catch (error) {
+      logFirestoreFailure("getDoc", path, error);
+      throw error;
+    }
     if (!snapshot.exists()) {
       return null;
     }
@@ -177,14 +207,7 @@ function CertificatePageContent() {
         if (!canAccessCourse) {
           const message = "수강권 결제 후 이용할 수 있습니다.";
           setError(message);
-          router.replace("/courses/apply?categoryId=dui&notice=" + encodeURIComponent(message));
-          return;
-        }
-        const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + defaultCourse.id));
-        const progressData = progressSnapshot.exists() ? progressSnapshot.data() as { isCompleted?: boolean; certificateAvailable?: boolean; completionRate?: number; completedModuleCount?: number; totalModuleCount?: number } : null;
-        const completed = Boolean(progressData?.certificateAvailable || progressData?.isCompleted || (progressData?.completionRate ?? 0) >= 95 || ((progressData?.completedModuleCount ?? 0) > 0 && progressData?.completedModuleCount === progressData?.totalModuleCount));
-        if (!completed) {
-          setError("수료 기준 충족 후 수료증을 확인할 수 있습니다.");
+          router.replace("/courses/apply/?category=dui&notice=" + encodeURIComponent(message));
           return;
         }
       }
@@ -195,15 +218,14 @@ function CertificatePageContent() {
         return;
       }
 
-      const existing = await loadCertificate(user.uid, allowAdmin);
-      if (existing) {
-        setCertificate(existing);
-        setNotice("음주운전 예방교육 서류가 발급되었습니다.");
-        return;
-      }
-
       if (requestedCertificateId && requestedCertificateId !== `${user.uid}_${defaultCourse.id}`) {
-        setNotice("관리자 미리보기입니다.");
+        const existing = await loadCertificate(user.uid, allowAdmin);
+        if (existing) {
+          setCertificate(existing);
+          setNotice("음주운전 예방교육 서류가 발급되었습니다.");
+        } else {
+          setNotice("관리자 미리보기입니다.");
+        }
         return;
       }
 
@@ -288,15 +310,20 @@ function CertificatePageContent() {
     }
 
     const { db } = getFirebaseServices();
-    await setDoc(
-      doc(db, "users", uid),
-      {
-        dateOfBirth: birthDateInput,
-        birthDate: birthDateInput,
-        updatedAt: serverTimestamp(),
-      },
-      { merge: true }
-    );
+    try {
+      await setDoc(
+        doc(db, "users", uid),
+        {
+          dateOfBirth: birthDateInput,
+          birthDate: birthDateInput,
+          updatedAt: serverTimestamp(),
+        },
+        { merge: true }
+      );
+    } catch (error) {
+      logFirestoreFailure("setDoc", `users/${uid}`, error);
+      throw error;
+    }
     setProfile({ ...profile, dateOfBirth: birthDateInput, birthDate: birthDateInput });
     setNotice("입력한 생년월일을 저장했습니다. 서류 발급을 진행합니다.");
     await issueCertificate(uid);
@@ -387,10 +414,10 @@ function CertificatePageContent() {
             <h1 className="mt-2 break-keep text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl sm:tracking-[-0.04em]">수강증/수료증 확인 및 인쇄</h1>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button type="button" onClick={() => openPrintDialog("print")} disabled={!certificate} className="rounded-full border-2 border-amber-200 bg-amber-400 px-5 py-3 text-center text-sm font-black text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.28)] ring-2 ring-amber-100/70 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:ring-0">
+            <button type="button" onClick={() => openPrintDialog("print")} disabled={!certificate} className="rounded-full border-2 border-amber-200 bg-amber-400 px-5 py-3 text-center text-sm font-black text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.28)] ring-2 ring-amber-100/70 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-800 disabled:shadow-none disabled:ring-0">
               {documentTitle} 인쇄하기
             </button>
-            <button type="button" onClick={() => openPrintDialog("pdf")} disabled={!certificate} className="rounded-full border-2 border-[#173968] bg-[#173968] px-5 py-3 text-center text-sm font-black text-white shadow-[0_14px_28px_rgba(23,57,104,0.24)] transition hover:bg-[#10213f] disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none">
+            <button type="button" onClick={() => openPrintDialog("pdf")} disabled={!certificate} className="rounded-full border-2 border-[#173968] bg-[#173968] px-5 py-3 text-center text-sm font-black text-white shadow-[0_14px_28px_rgba(23,57,104,0.24)] transition hover:bg-[#10213f] disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-800 disabled:shadow-none">
               PDF 저장
             </button>
             <Link href="/dashboard" className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-center text-sm font-semibold text-[#10213f]">

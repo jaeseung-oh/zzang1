@@ -7,5 +7,5 @@ export const metadata: Metadata = {
 };
 
 export default function Page() {
-  redirect("/checkout");
+  redirect("/courses/apply/?category=dui");
 }

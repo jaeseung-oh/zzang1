@@ -11,11 +11,11 @@ export const buttonVariants: Record<ButtonVariant, string> = {
   darkSecondary: "border-2 border-white bg-transparent text-white hover:bg-white hover:text-slate-950 disabled:border-white/50 disabled:text-white/70",
   outline: "border-2 border-slate-500 bg-white text-slate-950 hover:border-slate-700 hover:bg-slate-100 hover:text-slate-950 disabled:border-gray-300 disabled:bg-gray-200 disabled:text-gray-700",
   danger: "border-2 border-red-800 bg-red-700 text-white hover:border-red-900 hover:bg-red-800 hover:text-white disabled:border-gray-400 disabled:bg-gray-300 disabled:text-gray-800",
-  warning: "border-2 border-amber-200 bg-amber-400 text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.24)] ring-2 ring-amber-100/70 hover:bg-amber-300 hover:text-slate-950 hover:shadow-[0_18px_36px_rgba(250,204,21,0.32)] disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-600 disabled:shadow-none disabled:ring-0",
+  warning: "border-2 border-amber-200 bg-amber-400 text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.24)] ring-2 ring-amber-100/70 hover:bg-amber-300 hover:text-slate-950 hover:shadow-[0_18px_36px_rgba(250,204,21,0.32)] disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-800 disabled:shadow-none disabled:ring-0",
 };
 
 export const buttonSizes: Record<ButtonSize, string> = {
-  sm: "min-h-10 rounded-xl px-4 py-2 text-sm",
+  sm: "min-h-11 rounded-xl px-4 py-2 text-sm",
   md: "min-h-12 rounded-xl px-5 py-3 text-sm",
   lg: "min-h-14 rounded-xl px-6 py-4 text-base",
 };

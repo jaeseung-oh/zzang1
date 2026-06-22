@@ -155,7 +155,13 @@ export async function saveLessonProgress(progress: LessonProgress) {
     await setDoc(
       doc(db, "users", progress.userId, "courseProgress", progress.courseId, "lessons", progress.lessonId),
       {
-        ...progress,
+        userId: progress.userId,
+        courseId: progress.courseId,
+        lessonId: progress.lessonId,
+        currentTime: progress.currentTime,
+        duration: progress.duration,
+        progressRate: progress.progressRate,
+        lastWatchedAt: progress.lastWatchedAt,
         updatedAt: serverTimestamp(),
       },
       { merge: true }
@@ -207,7 +213,12 @@ export async function updateCourseProgress(userId: string, courseId: string, opt
     await setDoc(
       doc(db, "users", userId, "courseProgress", courseId),
       {
-        ...progress,
+        userId: progress.userId,
+        courseId: progress.courseId,
+        totalLessons: progress.totalLessons,
+        overallProgressRate: progress.overallProgressRate,
+        lastLessonId: progress.lastLessonId,
+        lastLessonTime: progress.lastLessonTime,
         updatedAt: progress.updatedAt,
         updatedAtServer: serverTimestamp(),
       },

@@ -28,10 +28,10 @@ export type ApplicationCourseCategory = {
 
 export const basicApplicationProduct: ApplicationProduct = {
   id: "basic",
-  title: "기본 수강권",
+  title: "교육과 수료증이 필요한 분",
   price: APPLICATION_PRICES.BASIC,
   badge: "강의 + 수료증",
-  description: "온라인 강의 수강과 수강 즉시 수료증 출력이 필요한 분을 위한 기본 과정입니다.",
+  description: "온라인 예방교육을 수강하고 수강 즉시 수료증을 발급·출력할 수 있는 기본 구성입니다.",
   includes: [
     "온라인 강의 5강 수강",
     "진도율 확인",
@@ -43,10 +43,10 @@ export const basicApplicationProduct: ApplicationProduct = {
 
 export const duiDocumentsApplicationProduct: ApplicationProduct = {
   id: "dui-documents",
-  title: "서식 포함 수강권",
+  title: "교육과 재발방지 자료를 함께 준비하는 분",
   price: APPLICATION_PRICES.DUI_WITH_DOCUMENTS,
-  badge: "강의 + 수료증 + 3종 서식",
-  description: "강의와 수료증에 더해 재발방지 관련 3종 서식을 출력·PDF 저장까지 이용하려는 분을 위한 과정입니다.",
+  badge: "교육과 실천자료 포함",
+  description: "예방교육과 수료증에 더해 재발방지계획서, 실천계획서, 서약서를 직접 작성하고 출력할 수 있는 구성입니다.",
   includes: [
     "온라인 강의 5강 수강",
     "진도율 확인",

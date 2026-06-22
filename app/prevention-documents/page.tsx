@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { defaultCourse } from "@/lib/course/catalog";
-import { getUserEnrollment, isEnrollmentActive } from "@/lib/course/enrollment-service";
+import { getVerifiedUserEnrollments, isEnrollmentActive } from "@/lib/course/enrollment-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
@@ -86,15 +86,19 @@ function PreventionDocumentsContent() {
         const adminTargetUid = searchParams.get("adminUserId") || "";
         const adminAccess = isSuperAdmin(user);
         const targetUid = adminAccess && adminTargetUid ? adminTargetUid : user.uid;
-        const [profile, enrollment] = await Promise.all([getUserProfile(targetUid), getUserEnrollment(targetUid, defaultCourse.id)]);
+        const enrollments = adminAccess && adminTargetUid
+          ? []
+          : await getVerifiedUserEnrollments(user, defaultCourse.id);
+        const enrollment = enrollments.find((item) => item.courseId === defaultCourse.id && isEnrollmentActive(item));
+        const profile = await getUserProfile(targetUid);
         if (cancelled) return;
-        const allowed = adminAccess || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId));
+        const allowed = adminAccess || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId, enrollment?.amount, enrollment?.productTitle));
         setHasAccess(allowed);
         setIdentity(buildDocumentIdentity(profile));
         if (!allowed) {
           const message = "수강권 결제 후 이용할 수 있습니다.";
           setError("참고서식 포함 과정 구매자만 해당 서식을 확인할 수 있습니다.");
-          router.replace("/courses/apply?categoryId=dui&productId=dui-documents&notice=" + encodeURIComponent(message));
+          router.replace("/courses/apply/?category=dui&productId=dui-documents&notice=" + encodeURIComponent(message));
         }
       } catch (err) {
         console.error(err);

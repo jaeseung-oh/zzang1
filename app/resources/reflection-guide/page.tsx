@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import ResourceDocumentPage from "../_components/resource-document-page";
 
 export const metadata: Metadata = {
-  title: "음주운전 반성문 작성 가이드 | 리셋 에듀센터",
-  description: "결제 회원에게 제공되는 음주운전 반성문 작성 교육자료",
+  title: "반성문 작성 가이드와 참고 예시 | Reset Edu Center",
+  description: "형사사건 반성문에 포함할 내용, 작성순서, 피해야 할 표현과 재발방지 계획 작성방법을 확인하세요.",
 };
 
 export default function ReflectionGuidePage() {

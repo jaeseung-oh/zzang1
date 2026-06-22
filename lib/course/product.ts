@@ -1,7 +1,9 @@
+import { APPLICATION_PRICES } from "./application-products";
+
 export const duiPreventionCourseProduct = {
   courseId: "dui-prevention-basic",
   courseTitle: "음주운전 예방교육",
-  price: 55000,
+  price: APPLICATION_PRICES.BASIC,
   currency: "KRW",
   durationDays: 90,
   totalLessons: 5,

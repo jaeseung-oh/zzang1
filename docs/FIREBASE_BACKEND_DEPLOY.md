@@ -74,7 +74,7 @@ Worker 공개 vars는 `wrangler.worker.toml`에 있습니다.
 - Cloudflare Worker: `PAYMENT_SECRET_KEY` 운영 Secret Key 설정
 - Cloudflare Worker: Firebase 서비스 계정 secrets 설정
 - Cloudflare Worker: `ADMIN_API_KEY` 설정 후 `/admin/payments` 내부 확인
-- 상품 금액: `55,000원`
+- 상품 금액: `59,000원`
 - 수강기간: `90일`
 - 환불표: `실제 결제금액 × 미수강 강의 수 / 전체 강의 수`
 
