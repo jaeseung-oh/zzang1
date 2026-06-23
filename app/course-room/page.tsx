@@ -479,7 +479,9 @@ export default function CourseRoomPage() {
             : "수강권 결제 후 이용할 수 있습니다.";
           setAccessBlockedMessage(message);
           setPlayerError(message);
+          setAccessChecking(false);
           router.replace("/courses/apply/?category=dui&notice=" + encodeURIComponent(message));
+          return;
         } else {
           setAccessBlockedMessage("");
         }
@@ -1195,6 +1197,29 @@ export default function CourseRoomPage() {
     }
   };
 
+  if (accessChecking) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 text-white">
+        <p className="rounded-xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.24)]">수강권 정보를 먼저 확인하고 있습니다.</p>
+      </main>
+    );
+  }
+
+  if (accessBlockedMessage) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 text-white">
+        <section className="max-w-md rounded-xl border border-white/15 bg-white/10 p-6 text-center shadow-[0_18px_48px_rgba(0,0,0,0.24)]">
+          <h1 className="text-2xl font-black">수강권 확인이 필요합니다.</h1>
+          <p className="mt-3 text-sm leading-7 text-slate-200">{accessBlockedMessage}</p>
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <Link href="/courses/apply/?category=dui" className={buttonClass("warning", "sm", "rounded-full font-black")}>과정 선택하기</Link>
+            <Link href="/courses" className={buttonClass("darkSecondary", "sm", "rounded-full focus:ring-offset-[#07111f]")}>교육과정 보기</Link>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[linear-gradient(145deg,#07111f_0%,#0b1930_45%,#10213f_100%)] px-3 py-4 text-white sm:px-6 lg:px-8 lg:py-8">
       <Script
@@ -1291,12 +1316,6 @@ export default function CourseRoomPage() {
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-white/60 bg-transparent px-6 py-3 text-sm font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-white/50"
               >
                 내 수강현황
-              </Link>
-              <Link
-                href="/certificate"
-                className="inline-flex min-h-12 sm:col-span-2 cursor-pointer items-center justify-center rounded-full border-2 border-amber-200 bg-amber-400 px-6 py-3 text-sm font-black text-slate-950 shadow-[0_18px_36px_rgba(250,204,21,0.34)] ring-2 ring-amber-100/70 transition-all hover:-translate-y-0.5 hover:bg-amber-300 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-amber-300 focus:ring-offset-2 focus:ring-offset-[#0a1424]"
-              >
-                수료증 바로 출력
               </Link>
             </div>
           </div>
@@ -1798,32 +1817,6 @@ export default function CourseRoomPage() {
                   </Link>
                 ))}
               </div>
-
-              <div className="mt-5 rounded-[1.35rem] border border-emerald-200 bg-emerald-50 p-4">
-                  <p className="text-sm font-semibold text-emerald-800">수강권이 확인되면 수료증을 바로 확인할 수 있습니다.</p>
-                  <p className="mt-2 text-sm leading-7 text-emerald-900">진도율과 관계없이 아래 버튼을 눌러 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
-                  <div className="mt-3 space-y-3 text-sm text-emerald-900">
-                    {result?.issuedCertificates.length ? (
-                      result.issuedCertificates.map((certificate) => (
-                        <div key={certificate.certificateId} className="space-y-2">
-                          <Link
-                            href={`/certificate?certificateId=${encodeURIComponent(certificate.certificateId)}`}
-                            className={buttonClass("secondary", "md", "w-full justify-between rounded-2xl px-4")}
-                          >
-                            <span>수료증 / {certificate.issueNumber}</span>
-                            <span className="font-semibold">수료증 보기</span>
-                          </Link>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        <Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full")}>
-                          수강증/수료증 발급 및 보기
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                </div>
             </section>
           </aside>
         </div>

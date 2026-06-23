@@ -7,8 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: ["/", "/_next/static/", "/images/"],
-        disallow: ["/admin/", "/docs/", "/api/"],
+        allow: "/",
       },
     ],
     sitemap: "https://resetedu.kr/sitemap.xml",

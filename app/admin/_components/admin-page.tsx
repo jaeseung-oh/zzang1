@@ -181,9 +181,9 @@ function AdminGuard({ children, view }: { children: React.ReactNode; view: Admin
     return () => { cancelled = true; };
   }, [router, view]);
 
-  if (checking) return <AdminFrame email="확인 중" view={view}><p className="p-6 text-sm text-slate-600">관리자 데이터를 불러오는 중입니다.</p></AdminFrame>;
+  if (checking) return <main className="flex min-h-screen items-center justify-center bg-[#eef3f8] px-4 text-[#0f172a]"><p className="rounded-xl border border-[#d7deea] bg-white px-5 py-4 text-sm font-semibold shadow-[0_18px_48px_rgba(15,23,42,0.08)]">관리자 권한을 확인하고 있습니다.</p></main>;
   if (!allowed) {
-    return <AdminFrame email={email || "미로그인"} view={view}><div className="rounded-[1.25rem] border border-rose-200 bg-rose-50 p-6 text-rose-800"><p className="font-bold">관리자 권한이 없습니다.</p><p className="mt-2 text-sm">관리자 계정으로 로그인한 경우에만 접근할 수 있습니다.</p></div></AdminFrame>;
+    return <main className="flex min-h-screen items-center justify-center bg-[#eef3f8] px-4 text-[#0f172a]"><section className="max-w-md rounded-xl border border-rose-200 bg-white p-6 text-center shadow-[0_18px_48px_rgba(15,23,42,0.08)]"><h1 className="text-2xl font-black text-rose-800">관리자 권한이 없습니다.</h1><p className="mt-3 text-sm leading-6 text-slate-600">관리자 계정으로 로그인한 경우에만 접근할 수 있습니다.</p><Link href="/" className="mt-5 inline-flex rounded-full bg-[#10213f] px-4 py-2 text-sm font-bold text-white">사이트로 이동</Link></section></main>;
   }
   return <>{children}</>;
 }

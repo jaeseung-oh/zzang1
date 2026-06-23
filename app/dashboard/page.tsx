@@ -276,14 +276,14 @@ export default function DashboardPage() {
             </Link>
           </div>
         </div>
-        <section aria-label="빠른 메뉴" className="mt-6 rounded-[1.5rem] border-4 border-amber-300 bg-[#10213f] p-4 shadow-[0_20px_50px_rgba(16,33,63,0.30)] sm:p-6">
+        <section aria-label="빠른 메뉴" className="mt-6 rounded-xl border-4 border-amber-300 bg-[#10213f] p-4 shadow-[0_24px_60px_rgba(16,33,63,0.38)] sm:p-6">
           <p className="text-sm font-black text-amber-300">자주 찾는 메뉴</p>
           <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">강의와 인쇄 서류를 바로 확인하세요</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Link href="/course-room" className="flex min-h-16 items-center justify-center rounded-2xl border-2 border-white bg-white px-6 py-4 text-lg font-black text-[#10213f] shadow-lg transition hover:bg-slate-100">
+            <Link href="/course-room" className="flex min-h-16 items-center justify-center rounded-xl border-2 border-white bg-white px-6 py-4 text-lg font-black text-[#10213f] shadow-[0_16px_34px_rgba(255,255,255,0.20)] ring-2 ring-white/40 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white">
               강의 목록 보기
             </Link>
-            <Link href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-16 items-center justify-center rounded-2xl border-2 border-amber-200 bg-amber-400 px-6 py-4 text-lg font-black text-slate-950 shadow-lg transition hover:bg-amber-300">
+            <Link href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-16 items-center justify-center rounded-xl border-2 border-amber-100 bg-amber-300 px-6 py-4 text-lg font-black text-slate-950 shadow-[0_18px_38px_rgba(250,204,21,0.36)] ring-2 ring-amber-100 transition hover:-translate-y-0.5 hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-100">
               서류 인쇄하기
             </Link>
           </div>
@@ -418,10 +418,10 @@ export default function DashboardPage() {
                   <p><span className="font-semibold text-white">마지막 시청:</span> {progressSummary.lastLessonLabel} {progressSummary.lastLessonTime > 0 ? formatDuration(progressSummary.lastLessonTime) : ""}</p>
                   <p className="mt-1">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <Link href="/course-room" className={buttonClass("warning", "sm", "rounded-full font-black")}>
+                    <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-amber-100 bg-amber-300 px-5 py-3 text-sm font-black text-slate-950 shadow-[0_14px_30px_rgba(250,204,21,0.32)] ring-2 ring-amber-100 transition hover:-translate-y-0.5 hover:bg-amber-200">
                       이어보기
                     </Link>
-                    <Link href="/course-room" className={buttonClass("secondary", "sm", "rounded-full")}>
+                    <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-white bg-white px-5 py-3 text-sm font-black text-[#10213f] shadow-[0_14px_30px_rgba(255,255,255,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-100">
                       강의 목록
                     </Link>
                   </div>
@@ -457,7 +457,7 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "아래 3종 서식을 열어 인쇄하거나 PDF로 저장할 수 있습니다." : "서식 포함 수강권을 선택하면 아래 3종 서식을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
                   {preventionDocuments.map((document) => (
-                    <Link key={document.id} href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-14 items-center justify-between gap-3 rounded-xl bg-[#10213f] px-4 py-3 text-sm font-black text-white shadow-[0_10px_24px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f]">
+                    <Link key={document.id} href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border-2 border-sky-100 bg-[#10213f] px-4 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(16,33,63,0.30)] ring-2 ring-sky-100/70 transition hover:-translate-y-0.5 hover:bg-[#1d3d6f]">
                       <span>{document.title}</span>
                       <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "109,000원 상품"}</span>
                     </Link>
