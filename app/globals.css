@@ -31,6 +31,8 @@ body {
     linear-gradient(180deg, #07111f 0%, #09111d 45%, #050a12 100%);
   color: var(--text);
   font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 a {
@@ -43,6 +45,23 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+p,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+li,
+a,
+button,
+span,
+dt,
+dd {
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 input,
