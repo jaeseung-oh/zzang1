@@ -7,7 +7,6 @@ import AuthNav from "@/app/components/auth-nav";
 const navItems = [
   { href: "/courses", label: "교육과정" },
   { href: "/about", label: "센터소개" },
-  { href: "/dashboard", label: "마이페이지" },
   { href: "/certificate", label: "수료증" },
 ];
 
