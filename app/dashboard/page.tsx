@@ -276,16 +276,22 @@ export default function DashboardPage() {
             </Link>
           </div>
         </div>
-        <section aria-label="빠른 메뉴" className="mt-6 rounded-xl border-4 border-amber-300 bg-[#10213f] p-4 shadow-[0_24px_60px_rgba(16,33,63,0.38)] sm:p-6">
-          <p className="text-sm font-black text-amber-300">자주 찾는 메뉴</p>
-          <h2 className="mt-1 text-xl font-black text-white sm:text-2xl">강의와 인쇄 서류를 바로 확인하세요</h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            <Link href="/course-room" className="flex min-h-16 items-center justify-center rounded-xl border-2 border-white bg-white px-6 py-4 text-lg font-black text-[#10213f] shadow-[0_16px_34px_rgba(255,255,255,0.20)] ring-2 ring-white/40 transition hover:-translate-y-0.5 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white">
-              강의 목록 보기
-            </Link>
-            <Link href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-16 items-center justify-center rounded-xl border-2 border-amber-100 bg-amber-300 px-6 py-4 text-lg font-black text-slate-950 shadow-[0_18px_38px_rgba(250,204,21,0.36)] ring-2 ring-amber-100 transition hover:-translate-y-0.5 hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-100">
-              서류 인쇄하기
-            </Link>
+        <section aria-label="대시보드 빠른 실행" className="sticky top-[72px] z-30 mt-6 rounded-2xl border-4 border-[#111827] bg-white p-4 text-slate-950 shadow-[0_28px_70px_rgba(15,23,42,0.34)] sm:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.18em] text-[#10213f]">Dashboard Quick Actions</p>
+              <h2 className="mt-1 text-2xl font-black leading-tight text-slate-950 sm:text-3xl">강의 목록과 서류 인쇄를 여기서 바로 실행하세요</h2>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[560px]">
+              <Link href="/course-room" className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#003b8f] bg-[#0052cc] px-5 py-4 text-left text-white shadow-[0_18px_36px_rgba(0,82,204,0.34)] transition hover:-translate-y-0.5 hover:bg-[#003b8f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#9cc3ff]">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-base font-black text-[#0052cc]">01</span>
+                <span className="min-w-0"><span className="block text-xl font-black leading-tight">강의 목록 보기</span><span className="mt-1 block text-sm font-bold text-blue-100">수강실로 이동</span></span>
+              </Link>
+              <Link href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"} className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-base font-black text-[#ffdd00]">02</span>
+                <span className="min-w-0"><span className="block text-xl font-black leading-tight">서류 인쇄하기</span><span className="mt-1 block text-sm font-bold text-slate-800">재발방지 서식 열기</span></span>
+              </Link>
+            </div>
           </div>
         </section>
 
@@ -418,11 +424,11 @@ export default function DashboardPage() {
                   <p><span className="font-semibold text-white">마지막 시청:</span> {progressSummary.lastLessonLabel} {progressSummary.lastLessonTime > 0 ? formatDuration(progressSummary.lastLessonTime) : ""}</p>
                   <p className="mt-1">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-amber-100 bg-amber-300 px-5 py-3 text-sm font-black text-slate-950 shadow-[0_14px_30px_rgba(250,204,21,0.32)] ring-2 ring-amber-100 transition hover:-translate-y-0.5 hover:bg-amber-200">
+                    <Link href="/course-room" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#003b8f] bg-[#0052cc] px-6 py-4 text-base font-black text-white shadow-[0_18px_38px_rgba(0,82,204,0.34)] ring-2 ring-[#9cc3ff] transition hover:-translate-y-0.5 hover:bg-[#003b8f]">
                       이어보기
                     </Link>
-                    <Link href="/course-room" className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-white bg-white px-5 py-3 text-sm font-black text-[#10213f] shadow-[0_14px_30px_rgba(255,255,255,0.18)] transition hover:-translate-y-0.5 hover:bg-slate-100">
-                      강의 목록
+                    <Link href="/course-room" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000]">
+                      강의 목록 보기
                     </Link>
                   </div>
                 </div>
@@ -452,12 +458,12 @@ export default function DashboardPage() {
             </section>
 
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
-              <div className="mb-6 rounded-[1.5rem] border-2 border-sky-300 bg-sky-50 p-5 shadow-[0_18px_44px_rgba(14,165,233,0.20)]">
-                <p className="text-sm font-black text-sky-950">서류 인쇄하기</p>
+              <div className="mb-6 rounded-2xl border-4 border-[#facc15] bg-white p-5 shadow-[0_22px_54px_rgba(250,204,21,0.26)]">
+                <p className="text-xl font-black text-slate-950">서류 인쇄하기</p>
                 <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "아래 3종 서식을 열어 인쇄하거나 PDF로 저장할 수 있습니다." : "서식 포함 수강권을 선택하면 아래 3종 서식을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
                   {preventionDocuments.map((document) => (
-                    <Link key={document.id} href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-14 items-center justify-between gap-3 rounded-xl border-2 border-sky-100 bg-[#10213f] px-4 py-3 text-sm font-black text-white shadow-[0_14px_30px_rgba(16,33,63,0.30)] ring-2 ring-sky-100/70 transition hover:-translate-y-0.5 hover:bg-[#1d3d6f]">
+                    <Link key={document.id} href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000]">
                       <span>{document.title}</span>
                       <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "109,000원 상품"}</span>
                     </Link>

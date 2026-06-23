@@ -25,7 +25,7 @@ export default function GlobalSiteHeader() {
   const normalizedPath = pathname?.replace(/\/$/, "") || "/";
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm backdrop-blur">
+    <header className="sticky top-0 z-50 border-b-2 border-slate-200 bg-white/98 text-slate-950 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:flex-nowrap lg:px-8">
         <Link href="/" className="flex min-w-0 items-center gap-3 text-left" aria-label="Reset Edu Center 홈">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-950 text-white">
@@ -47,8 +47,8 @@ export default function GlobalSiteHeader() {
                 href={item.href}
                 className={
                   active
-                    ? "whitespace-nowrap rounded-full bg-slate-950 px-3.5 py-2 text-white"
-                    : "whitespace-nowrap rounded-full px-3.5 py-2 text-slate-700 hover:bg-slate-100 hover:text-slate-950"
+                    ? "whitespace-nowrap rounded-full border-2 border-[#111827] bg-[#ffdd00] px-3.5 py-2 text-[#111827] shadow-[0_8px_18px_rgba(255,221,0,0.28)]"
+                    : "whitespace-nowrap rounded-full border-2 border-slate-300 bg-white px-3.5 py-2 text-[#111827] hover:border-[#0052cc] hover:bg-[#0052cc] hover:text-white"
                 }
               >
                 {item.label}
