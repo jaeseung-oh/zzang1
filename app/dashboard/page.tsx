@@ -339,8 +339,8 @@ export default function DashboardPage() {
                         <div><dt className="font-semibold text-slate-500">수강 만료</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.expiresAt)}</dd></div>
                       </dl>
                       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        {active ? <Link href="/course-room" className={buttonClass("primary", "sm", "w-full rounded-full sm:w-auto")}>{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className={buttonClass("secondary", "sm", "w-full rounded-full sm:w-auto")}>다시 구매하기</Link>}
-                        {certificateReady ? <Link href="/certificate" className={buttonClass("warning", "sm", "w-full rounded-full sm:w-auto")}>수료증 출력</Link> : null}
+                        {active ? <Link href="/course-room" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#003b8f] bg-[#0052cc] px-6 py-4 text-base font-black text-white shadow-[0_18px_38px_rgba(0,82,204,0.34)] ring-2 ring-[#9cc3ff] transition hover:-translate-y-0.5 hover:bg-[#003b8f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#9cc3ff] sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
+                        {certificateReady ? <Link href="/certificate" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
                       </div>
                     </article>
                   );
@@ -486,10 +486,10 @@ export default function DashboardPage() {
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt || certificate.certificateIssuedAt)}</p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className={buttonClass("warning", "sm", "rounded-full")}>
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#003b8f] bg-[#0052cc] px-6 py-4 text-base font-black text-white shadow-[0_18px_38px_rgba(0,82,204,0.34)] ring-2 ring-[#9cc3ff] transition hover:-translate-y-0.5 hover:bg-[#003b8f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#9cc3ff]">
                           서류 보기
                         </Link>
-                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}&print=1`} className={buttonClass("secondary", "sm", "rounded-full")}>
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}&print=1`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                           서류 인쇄하기
                         </Link>
                       </div>
@@ -500,10 +500,10 @@ export default function DashboardPage() {
                     <p className="font-semibold text-white">결제된 음주운전 예방교육 수강권이 확인되었습니다.</p>
                     <p className="mt-2">아래 버튼을 눌러 진도율과 관계없이 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <Link href="/certificate" className={buttonClass("warning", "sm", "rounded-full")}>
+                      <Link href="/certificate" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#003b8f] bg-[#0052cc] px-6 py-4 text-base font-black text-white shadow-[0_18px_38px_rgba(0,82,204,0.34)] ring-2 ring-[#9cc3ff] transition hover:-translate-y-0.5 hover:bg-[#003b8f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#9cc3ff]">
                         서류 보기
                       </Link>
-                      <Link href="/certificate?print=1" className={buttonClass("secondary", "sm", "rounded-full")}>
+                      <Link href="/certificate?print=1" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                         바로 인쇄
                       </Link>
                     </div>
