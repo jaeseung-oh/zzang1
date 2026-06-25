@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { buttonClass } from "@/app/components/ui/button-styles";
 
 export function AccessDeniedCard({ title = "접근할 수 없습니다.", message, primaryHref = "/courses/apply", primaryLabel = "수강 신청하기", secondaryHref = "/", secondaryLabel = "홈으로 이동" }: { title?: string; message: string; primaryHref?: string; primaryLabel?: string; secondaryHref?: string; secondaryLabel?: string }) {
   return (
@@ -10,8 +11,8 @@ export function AccessDeniedCard({ title = "접근할 수 없습니다.", messag
         <h1 className="mt-3 text-3xl font-semibold tracking-[-0.04em]">{title}</h1>
         <p className="mt-4 text-sm leading-7 text-slate-600">{message}</p>
         <div className="mt-6 flex flex-wrap gap-3">
-          <Link href={primaryHref} className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full bg-indigo-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-indigo-700">{primaryLabel}</Link>
-          <Link href={secondaryHref} className="inline-flex min-h-11 cursor-pointer items-center justify-center rounded-full border border-slate-300 bg-white px-5 py-3 text-sm font-semibold text-slate-900 transition hover:bg-slate-50">{secondaryLabel}</Link>
+          <Link href={primaryHref} className={buttonClass("warning", "sm", "rounded-full px-5 font-bold")}>{primaryLabel}</Link>
+          <Link href={secondaryHref} className={buttonClass("secondary", "sm", "rounded-full px-5 font-semibold")}>{secondaryLabel}</Link>
         </div>
       </section>
     </main>

@@ -11,6 +11,7 @@ import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import SealStamp from "@/app/components/SealStamp";
 import { hasCourseAccess } from "@/lib/course/enrollment-service";
 import { trackEvent } from "@/lib/analytics/ga";
+import { buttonClass } from "@/app/components/ui/button-styles";
 
 const issuerFallback = "리셋에듀센터";
 
@@ -394,8 +395,8 @@ function CertificatePageContent() {
             overflow: hidden !important;
           }
           .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 7mm 9mm !important; border-width: 2px !important; overflow: hidden !important; }
-          .certificate-title { margin-top: 8mm !important; font-size: 33px !important; }
-          .certificate-no { margin-top: 6mm !important; }
+          .certificate-title { margin-top: 12mm !important; font-size: 33px !important; }
+          .certificate-no { margin-top: 0 !important; font-size: 12px !important; }
           .certificate-person { margin-top: 8mm !important; padding: 4.5mm !important; }
           .certificate-identity-value { font-size: 18px !important; }
           .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
@@ -416,13 +417,13 @@ function CertificatePageContent() {
             <h1 className="mt-2 break-keep text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl sm:tracking-[-0.04em]">수강증/수료증 확인 및 인쇄</h1>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button type="button" onClick={() => openPrintDialog("print")} disabled={!certificate} className="rounded-full border-2 border-amber-200 bg-amber-400 px-5 py-3 text-center text-sm font-black text-slate-950 shadow-[0_14px_28px_rgba(250,204,21,0.28)] ring-2 ring-amber-100/70 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-800 disabled:shadow-none disabled:ring-0">
+            <button type="button" onClick={() => openPrintDialog("print")} disabled={!certificate} className={buttonClass("warning", "md", "rounded-full px-5 font-black disabled:opacity-100")}>
               {documentTitle} 인쇄하기
             </button>
-            <button type="button" onClick={() => openPrintDialog("pdf")} disabled={!certificate} className="rounded-full border-2 border-[#173968] bg-[#173968] px-5 py-3 text-center text-sm font-black text-white shadow-[0_14px_28px_rgba(23,57,104,0.24)] transition hover:bg-[#10213f] disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-800 disabled:shadow-none">
+            <button type="button" onClick={() => openPrintDialog("pdf")} disabled={!certificate} className={buttonClass("primary", "md", "rounded-full px-5 font-black disabled:opacity-100")}>
               PDF 저장
             </button>
-            <Link href="/dashboard" className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-center text-sm font-semibold text-[#10213f]">
+            <Link href="/dashboard" className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
               마이페이지로 돌아가기
             </Link>
           </div>
@@ -434,8 +435,8 @@ function CertificatePageContent() {
           <section className="no-print rounded-[1.25rem] border border-rose-200 bg-rose-50 p-5 text-sm leading-7 text-rose-800">
             <p>{error}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/course-room" className="rounded-full border border-rose-200 bg-white px-4 py-2 font-semibold text-slate-900 hover:bg-rose-50">수강실로 이동</Link>
-              <Link href="/dashboard" className="rounded-full border border-rose-200 bg-white px-4 py-2 font-semibold text-slate-900 hover:bg-rose-50">마이페이지</Link>
+              <Link href="/course-room" className={buttonClass("secondary", "sm", "rounded-full px-4 font-semibold")}>수강실로 이동</Link>
+              <Link href="/dashboard" className={buttonClass("secondary", "sm", "rounded-full px-4 font-semibold")}>마이페이지</Link>
             </div>
           </section>
         ) : null}
@@ -448,7 +449,7 @@ function CertificatePageContent() {
               생년월일
               <input value={birthDateInput} onChange={(event) => setBirthDateInput(event.target.value)} placeholder="1990-01-01" className="mt-2 min-h-12 w-full rounded-xl border border-[#d7deea] px-4 outline-none focus:border-[#173968]" />
             </label>
-            <button type="button" onClick={() => void saveBirthDateAndIssue()} disabled={issuing} className="mt-4 rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+            <button type="button" onClick={() => void saveBirthDateAndIssue()} disabled={issuing} className={buttonClass("warning", "md", "mt-4 rounded-full px-5 font-bold disabled:opacity-50")}>
               {issuing ? "발급 중" : "생년월일 저장 후 서류 발급"}
             </button>
           </section>
@@ -460,9 +461,9 @@ function CertificatePageContent() {
           <>
             <section className="certificate-paper mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0">
               <div className="certificate-inner flex h-full min-h-[257mm] flex-col border-[3px] border-[#d9c08a] px-8 py-10 text-center">
-                <p className="text-sm font-semibold tracking-[0.26em] text-[#8a6a2d]">{documentEnglishTitle}</p>
+                <p className="certificate-no self-start text-left text-sm font-semibold text-slate-600">발급번호: {certificateNo}</p>
+                <p className="mt-4 text-sm font-semibold tracking-[0.26em] text-[#8a6a2d]">{documentEnglishTitle}</p>
                 <h2 className="certificate-title mt-8 text-5xl font-bold tracking-[0.22em] text-[#111827]">{documentHeading}</h2>
-                <p className="certificate-no mt-8 text-sm font-semibold text-slate-600">발급번호: {certificateNo}</p>
 
                 <div className="certificate-person mx-auto mt-12 w-full max-w-[560px] overflow-hidden rounded-xl border border-[#d9c08a] bg-white text-left shadow-[0_10px_28px_rgba(138,106,45,0.08)]">
                   <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">

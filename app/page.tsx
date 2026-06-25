@@ -18,7 +18,7 @@ const organizationJsonLd = {
 
 const applyHref = "/courses/apply?category=dui&productId=dui-documents";
 const basicApplyHref = "/courses/apply?category=dui";
-const materialsButtonClass = "inline-flex min-h-14 w-full items-center justify-center rounded-xl border-2 border-slate-950 bg-white px-7 py-4 text-center text-base font-black text-slate-950 shadow-[0_18px_38px_rgba(15,23,42,0.26)] ring-4 ring-[#facc15] transition hover:-translate-y-0.5 hover:bg-[#fff7cc] hover:shadow-[0_22px_46px_rgba(15,23,42,0.32)] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#facc15] sm:w-auto sm:rounded-full";
+const materialsButtonClass = buttonClass("secondary", "lg", "w-full rounded-full px-7 font-bold sm:w-auto");
 
 function Icon({ name, className = "h-6 w-6" }: { name: string; className?: string }) {
   const common = { className: className + " fill-none stroke-current", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, viewBox: "0 0 24 24", "aria-hidden": true };
