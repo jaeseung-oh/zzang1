@@ -362,9 +362,9 @@ function CertificatePageContent() {
           .certificate-paper { min-height: auto !important; width: 100% !important; max-width: 100% !important; padding: 14px !important; }
           .certificate-inner { min-height: auto !important; padding: 18px 14px !important; }
           .certificate-title { font-size: 30px !important; letter-spacing: 0.12em !important; }
-          .certificate-name { font-size: 26px !important; }
+          .certificate-identity-value { font-size: 22px !important; }
           .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; }
-          .certificate-table-row { grid-template-columns: 96px minmax(0, 1fr) !important; }
+          .certificate-identity-row, .certificate-table-row { grid-template-columns: 96px minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 10px 12px !important; font-size: 13px !important; }
           .certificate-sign { padding-top: 32px !important; }
           .certificate-issuer { font-size: 22px !important; }
@@ -397,8 +397,8 @@ function CertificatePageContent() {
           .certificate-title { margin-top: 8mm !important; font-size: 33px !important; }
           .certificate-no { margin-top: 6mm !important; }
           .certificate-person { margin-top: 8mm !important; padding: 4.5mm !important; }
-          .certificate-name { font-size: 27px !important; }
-          .certificate-birth { margin-top: 2.5mm !important; font-size: 14px !important; }
+          .certificate-identity-value { font-size: 18px !important; }
+          .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
           .certificate-body { margin-top: 8mm !important; font-size: 15.5px !important; line-height: 1.68 !important; }
           .certificate-table { margin-top: 7mm !important; font-size: 12.5px !important; }
           .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
@@ -464,10 +464,15 @@ function CertificatePageContent() {
                 <h2 className="certificate-title mt-8 text-5xl font-bold tracking-[0.22em] text-[#111827]">{documentHeading}</h2>
                 <p className="certificate-no mt-8 text-sm font-semibold text-slate-600">발급번호: {certificateNo}</p>
 
-                <div className="certificate-person mt-12 rounded-2xl border border-[#e5dcc8] bg-[#fbf8f1] px-6 py-6">
-                  <p className="text-sm font-semibold text-[#8a6a2d]">성명</p>
-                  <p className="certificate-name mt-2 text-4xl font-bold tracking-[0.08em] text-slate-950">{certificate.userName || profileName}</p>
-                  <p className="certificate-birth mt-5 text-lg font-semibold text-slate-800">생년월일: {formatBirthDate(certificate.birthDate)}</p>
+                <div className="certificate-person mx-auto mt-12 w-full max-w-[560px] overflow-hidden rounded-xl border border-[#d9c08a] bg-white text-left shadow-[0_10px_28px_rgba(138,106,45,0.08)]">
+                  <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
+                    <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">성명</div>
+                    <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{certificate.userName || profileName}</div>
+                  </div>
+                  <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)]">
+                    <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">생년월일</div>
+                    <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{formatBirthDate(certificate.birthDate)}</div>
+                  </div>
                 </div>
 
                 <p className="certificate-body mx-auto mt-12 max-w-[620px] text-xl leading-[2.1] text-slate-800">
