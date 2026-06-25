@@ -12,6 +12,7 @@ import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
 import { getVerifiedUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import { trackBeginCheckout } from "@/lib/analytics/ga";
 
 const appOrigin = paymentConfig.siteUrl;
 const defaultCheckoutProduct = basicApplicationProduct;
@@ -227,6 +228,11 @@ export default function CheckoutContent() {
       }
 
       paymentWindowRequested = true;
+      trackBeginCheckout({
+        value: selectedProduct.price,
+        currency: "KRW",
+        items: [{ item_id: selectedProduct.id, item_name: duiPreventionCourseProduct.courseTitle, price: selectedProduct.price, quantity: 1 }],
+      });
       console.info("PortOne requestPayment started", { paymentId: activePaymentId, amount: selectedProduct.price, confirmUrl: paymentConfig.confirmUrl, webhookUrl: paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook") });
       const response: PortOnePaymentResponse = await PortOne.requestPayment({
         storeId: paymentConfig.storeId,

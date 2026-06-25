@@ -10,6 +10,7 @@ import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import { trackEvent } from "@/lib/analytics/ga";
 import { buildDocumentIdentity, getPreventionDocument, hasPreventionDocumentsAccess, preventionDocuments, type PreventionDocumentIdentity } from "@/lib/course/prevention-documents";
 
 const blank = "____________";
@@ -117,6 +118,7 @@ function PreventionDocumentsContent() {
   }, [router, searchParams]);
 
   const printDocument = (mode: "print" | "pdf") => {
+    trackEvent("material_download", { method: mode, material_id: selected.id, material_name: selected.title });
     const previousTitle = document.title;
     document.title = selected.title.replace(/\s+/g, "_");
     window.setTimeout(() => window.print(), mode === "pdf" ? 80 : 0);

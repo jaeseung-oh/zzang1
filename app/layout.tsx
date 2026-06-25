@@ -1,7 +1,10 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
+import { Suspense } from "react";
 import IdleSessionGuard from "./components/idle-session-guard";
 import GlobalSiteHeader from "./components/global-site-header";
 import LegalFooter from "./components/legal-footer";
+import GoogleAnalyticsPageTracker from "./components/analytics/google-analytics";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -22,10 +25,28 @@ export const metadata: Metadata = {
   },
 };
 
+const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "";
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
-      <body><IdleSessionGuard /><GlobalSiteHeader /><div className="min-h-screen bg-white">{children}</div><LegalFooter /></body>
+      <body>
+        {gaMeasurementId ? (
+          <>
+            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`} strategy="afterInteractive" />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${gaMeasurementId}', { send_page_view: false });
+              `}
+            </Script>
+            <Suspense fallback={null}><GoogleAnalyticsPageTracker /></Suspense>
+          </>
+        ) : null}
+        <IdleSessionGuard /><GlobalSiteHeader /><div className="min-h-screen bg-white">{children}</div><LegalFooter />
+      </body>
     </html>
   );
 }

@@ -81,7 +81,11 @@ function SectionTitle({ eyebrow, title, body, light = false }: { eyebrow?: strin
 }
 
 function CtaButton({ children, href = applyHref, variant = "warning" }: { children: React.ReactNode; href?: string; variant?: "warning" | "primary" | "secondary" }) {
-  return <Link href={href} className={buttonClass(variant, "lg", "w-full whitespace-normal rounded-xl px-7 text-center font-black sm:w-auto sm:rounded-full")}>{children}</Link>;
+  const analyticsProps = href.startsWith("/courses/apply") ? { "data-ga-event": "click_enroll", "data-ga-item-id": href.includes("dui-documents") ? "dui-documents" : "dui-prevention-basic", "data-ga-item-name": "음주운전 예방교육", "data-ga-location": "about" } : {};
+  if (variant === "secondary") {
+    return <Link href={href} {...analyticsProps} className="inline-flex min-h-14 w-full items-center justify-center rounded-xl border-2 border-amber-300 bg-white px-7 py-4 text-center text-base font-black text-slate-950 shadow-[0_16px_34px_rgba(250,204,21,0.24)] transition hover:-translate-y-0.5 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200 sm:w-auto sm:rounded-full">{children}</Link>;
+  }
+  return <Link href={href} {...analyticsProps} className={buttonClass(variant, "lg", "w-full whitespace-normal rounded-xl px-7 text-center font-black sm:w-auto sm:rounded-full")}>{children}</Link>;
 }
 
 export default function AboutPage() {

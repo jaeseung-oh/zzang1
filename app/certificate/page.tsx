@@ -10,6 +10,7 @@ import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import SealStamp from "@/app/components/SealStamp";
 import { hasCourseAccess } from "@/lib/course/enrollment-service";
+import { trackEvent } from "@/lib/analytics/ga";
 
 const issuerFallback = "리셋에듀센터";
 
@@ -342,6 +343,7 @@ function CertificatePageContent() {
 
   const openPrintDialog = (mode: "print" | "pdf") => {
     if (!certificate) return;
+    trackEvent("certificate_download", { method: mode, document_type: isCompletionCertificate ? "completion" : "attendance" });
     const previousTitle = document.title;
     const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
     document.title = documentTitle + "_" + safeNo;
@@ -466,7 +468,6 @@ function CertificatePageContent() {
                   <p className="text-sm font-semibold text-[#8a6a2d]">성명</p>
                   <p className="certificate-name mt-2 text-4xl font-bold tracking-[0.08em] text-slate-950">{certificate.userName || profileName}</p>
                   <p className="certificate-birth mt-5 text-lg font-semibold text-slate-800">생년월일: {formatBirthDate(certificate.birthDate)}</p>
-                  <p className="mt-2 text-base text-slate-600">이메일: {certificate.email || profile?.email || "-"}</p>
                 </div>
 
                 <p className="certificate-body mx-auto mt-12 max-w-[620px] text-xl leading-[2.1] text-slate-800">

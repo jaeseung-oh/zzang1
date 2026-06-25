@@ -28,4 +28,4 @@ export const selectableCardClass =
   "cursor-pointer rounded-[1.25rem] border border-slate-200 bg-white text-left text-slate-900 transition-all hover:-translate-y-0.5 hover:border-indigo-300 hover:bg-slate-50 hover:text-slate-950 hover:shadow-[0_14px_28px_rgba(15,23,42,0.08)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
 
 export const selectedCardClass =
-  "cursor-pointer rounded-[1.25rem] border-2 border-indigo-600 bg-indigo-50 text-left text-slate-950 shadow-[0_16px_34px_rgba(79,70,229,0.14)] transition-all hover:-translate-y-0.5 hover:border-indigo-700 hover:bg-indigo-50 hover:text-slate-950 hover:shadow-[0_18px_36px_rgba(79,70,229,0.16)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2";
+  "cursor-pointer rounded-[1.25rem] border-2 border-[#173968] bg-[#173968] text-left text-white shadow-[0_18px_42px_rgba(23,57,104,0.26)] transition-all hover:-translate-y-0.5 hover:border-[#10213f] hover:bg-[#10213f] hover:text-white hover:shadow-[0_20px_46px_rgba(23,57,104,0.30)] active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-[#173968] focus:ring-offset-2";

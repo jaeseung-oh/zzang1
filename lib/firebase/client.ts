@@ -11,6 +11,7 @@ const defaultFirebaseConfig = {
   storageBucket: "jaeseung-try-2-34973152-e44aa.firebasestorage.app",
   messagingSenderId: "385012475164",
   appId: "1:385012475164:web:a09491f1654c6e1ac486d9",
+  measurementId: "G-26W9V3JG3E",
 };
 
 let firestoreInstance: Firestore | null = null;
@@ -24,6 +25,7 @@ function getFirebaseConfig() {
     messagingSenderId:
       process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || defaultFirebaseConfig.messagingSenderId,
     appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || defaultFirebaseConfig.appId,
+    measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID || defaultFirebaseConfig.measurementId,
   };
 }
 

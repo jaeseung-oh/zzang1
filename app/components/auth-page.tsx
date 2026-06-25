@@ -26,6 +26,7 @@ import {
   upsertUserProfile,
   type StoredUserProfile,
 } from "@/lib/firebase/user-profile";
+import { trackEvent } from "@/lib/analytics/ga";
 
 type AuthMode = "signup" | "login";
 
@@ -440,6 +441,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
         }
 
         const storedProfile = await getUserProfile(credential.user.uid);
+        trackEvent("sign_up", { method: "password" });
         setProfile(storedProfile);
         setPassword("");
         setPasswordConfirm("");
@@ -472,6 +474,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
         const { auth } = getFirebaseServices();
         const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
         const storedProfile = await getUserProfile(credential.user.uid);
+        trackEvent("login", { method: "password" });
         setProfile(storedProfile);
         setMessage(
           credential.user.emailVerified

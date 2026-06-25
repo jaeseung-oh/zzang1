@@ -9,6 +9,7 @@ import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
 import { ensureCertificateIdentityLock } from "@/lib/firebase/user-profile";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import { trackPurchaseOnce } from "@/lib/analytics/ga";
 
 type ConfirmResponse = {
   savedPurchaseId?: string;
@@ -127,6 +128,12 @@ function LegacyPaymentSuccessContent() {
         });
 
         setResult(payload);
+        trackPurchaseOnce({
+          transaction_id: payload.savedPurchaseId || payload.orderId || orderId,
+          value: typeof payload.totalAmount === "number" ? payload.totalAmount : amount,
+          currency: "KRW",
+          items: [{ item_id: courseId, item_name: payload.courseTitle || duiPreventionCourseProduct.courseTitle, price: typeof payload.totalAmount === "number" ? payload.totalAmount : amount, quantity: 1 }],
+        });
 
         try {
           await ensureCertificateIdentityLock({
@@ -279,6 +286,12 @@ function PortOnePaymentSuccessContent() {
 
         if (!cancelled) {
           setResult(payload);
+          trackPurchaseOnce({
+            transaction_id: payload.savedPurchaseId || payload.orderId || paymentId,
+            value: typeof payload.totalAmount === "number" ? payload.totalAmount : amount,
+            currency: "KRW",
+            items: [{ item_id: productId, item_name: payload.courseTitle || duiPreventionCourseProduct.courseTitle, price: typeof payload.totalAmount === "number" ? payload.totalAmount : amount, quantity: 1 }],
+          });
           window.localStorage.removeItem("resetedu:pending-portone-order");
         }
 

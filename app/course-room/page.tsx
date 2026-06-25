@@ -15,6 +15,7 @@ import { buttonClass } from "@/app/components/ui/button-styles";
 import { getVerifiedUserEnrollments, isEnrollmentActive } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { hasPreventionDocumentsAccess, preventionDocuments } from "@/lib/course/prevention-documents";
+import { trackCourseComplete, trackCourseStart } from "@/lib/analytics/ga";
 
 type SaveCourseProgressResponse = {
   progressId: string;
@@ -829,6 +830,7 @@ export default function CourseRoomPage() {
     };
 
     const handleStreamPlay = () => {
+      trackCourseStart(defaultCourse.id, selectedModule?.id);
       dispatchLectureActivity(true);
     };
 
@@ -1013,6 +1015,10 @@ export default function CourseRoomPage() {
       setResult(response.data);
       void syncCurrentLessonBackup();
 
+      if (response.data.isCompleted) {
+        trackCourseComplete(defaultCourse.id);
+      }
+
       if (response.data.issuedCertificates.length) {
         setStatusMessage("음주운전 예방교육 수강을 완료했습니다. 수료증 등 교육 이수 자료를 즉시 출력할 수 있습니다.");
       } else if (response.data.isCompleted && !response.data.paymentVerified) {
@@ -1104,6 +1110,7 @@ export default function CourseRoomPage() {
   };
 
   const handlePlay = () => {
+    trackCourseStart(defaultCourse.id, selectedModule?.id);
     dispatchLectureActivity(true);
   };
 
