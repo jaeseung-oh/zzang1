@@ -271,7 +271,7 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="w-full lg:w-auto">
-            <Link href="/login" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", fontWeight: 900, boxShadow: "0 14px 28px rgba(16, 33, 63, 0.24)" }} className={buttonClass("primary", "md", "w-full rounded-2xl px-6 font-black text-white hover:text-white")}>
+            <Link href="/login" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", fontWeight: 900, boxShadow: "0 14px 28px rgba(16, 33, 63, 0.24)" }} className={buttonClass("primary", "md", "w-full rounded-2xl px-6 font-black !text-white hover:!text-white")}>
               회원정보 변경
             </Link>
           </div>
@@ -355,8 +355,8 @@ export default function DashboardPage() {
             <h2 className="mt-2 text-2xl font-black text-slate-950">결제 회원 제공 자료</h2>
             <p className="mt-3 text-sm leading-7 text-slate-700">강의를 결제하신 회원에게 반성문 작성 가이드와 작성 예시를 제공합니다.</p>
             <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Link href="/resources/reflection-guide" className={buttonClass("primary", "lg", "w-full rounded-2xl px-5 text-center font-black text-white hover:text-white")}>반성문 작성 가이드 보기</Link>
-              <Link href="/resources/dui-reflection-example" className={buttonClass("warning", "lg", "w-full rounded-2xl px-5 text-center font-black text-black hover:text-black")}>음주운전 반성문 예시 보기</Link>
+              <Link href="/resources/reflection-guide" className={buttonClass("primary", "lg", "w-full rounded-2xl px-5 text-center font-black !text-white hover:!text-white")}>반성문 작성 가이드 보기</Link>
+              <Link href="/resources/dui-reflection-example" className={buttonClass("warning", "lg", "w-full rounded-2xl px-5 text-center font-black !text-black hover:!text-black")}>음주운전 반성문 예시 보기</Link>
             </div>
           </section>
         ) : null}
@@ -367,7 +367,7 @@ export default function DashboardPage() {
             <p className="font-semibold text-slate-950">아직 수강 중인 교육이 없습니다.</p>
             <div className="mt-4 flex flex-wrap gap-3">
               <Link href="/courses/apply/?category=dui" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", boxShadow: "0 10px 24px rgba(16,33,63,0.24)" }} className={buttonClass("primary", "sm", "rounded-full px-5 font-black")}>수강 신청하기</Link>
-              <Link href="/courses/dui-prevention" className={buttonClass("primary", "sm", "rounded-full text-white hover:text-white")}>강의 구성 보기</Link>
+              <Link href="/courses/dui-prevention" className={buttonClass("primary", "sm", "rounded-full !text-white hover:!text-white")}>강의 구성 보기</Link>
             </div>
           </section>
         ) : null}

@@ -942,7 +942,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                   type="button"
                   onClick={mode === "signup" ? handleSignup : handleLogin}
                   disabled={loading || isSubmitting || (mode === "signup" && (!isSignupConsentComplete || verificationCooldown > 0))}
-                  className={buttonClass("primary", "md", "w-full rounded-2xl px-5 font-semibold text-white hover:text-white disabled:opacity-100")}
+                  className={buttonClass("primary", "md", "w-full rounded-2xl px-5 font-semibold !text-white hover:!text-white disabled:opacity-100")}
                 >
                   {isSubmitting ? "처리 중..." : mode === "signup" && verificationCooldown > 0 ? `${verificationCooldown}초 후 다시 시도` : copy.submitLabel}
                 </button>
