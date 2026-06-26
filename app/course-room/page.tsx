@@ -1634,13 +1634,13 @@ export default function CourseRoomPage() {
                       </button>
                         <Link
                           href="/certificate"
-                          className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#111827]")}
+                          className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold text-black hover:text-black focus:ring-offset-[#111827]")}
                         >
                           수료증 발급
                         </Link>
                         <Link
                           href="/certificate?print=1"
-                          className={buttonClass("warning", "md", "rounded-full px-5 font-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
+                          className={buttonClass("warning", "md", "rounded-full px-5 font-black text-black hover:text-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
                         >
                           바로 인쇄
                         </Link>

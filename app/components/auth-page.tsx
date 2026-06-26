@@ -942,7 +942,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                   type="button"
                   onClick={mode === "signup" ? handleSignup : handleLogin}
                   disabled={loading || isSubmitting || (mode === "signup" && (!isSignupConsentComplete || verificationCooldown > 0))}
-                  className={buttonClass("primary", "md", "w-full rounded-2xl px-5 font-semibold disabled:opacity-100")}
+                  className={buttonClass("primary", "md", "w-full rounded-2xl px-5 font-semibold text-white hover:text-white disabled:opacity-100")}
                 >
                   {isSubmitting ? "처리 중..." : mode === "signup" && verificationCooldown > 0 ? `${verificationCooldown}초 후 다시 시도` : copy.submitLabel}
                 </button>
@@ -1105,7 +1105,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Link
                       href="/dashboard"
-                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#d3ad62_0%,#f0cb85_100%)] px-5 py-3 text-sm font-bold text-[#2f2208] shadow-[0_12px_24px_rgba(164,126,54,0.18)] transition hover:-translate-y-0.5 hover:brightness-105"
+                      className="inline-flex min-h-11 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#d3ad62_0%,#f0cb85_100%)] px-5 py-3 text-sm font-bold text-black shadow-[0_12px_24px_rgba(164,126,54,0.18)] transition hover:-translate-y-0.5 hover:brightness-105"
                     >
                       내 수강현황 보기
                     </Link>

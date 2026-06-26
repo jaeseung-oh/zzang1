@@ -11,7 +11,7 @@ export const buttonVariants: Record<ButtonVariant, string> = {
   darkSecondary: "border-2 border-slate-400 bg-white text-slate-950 shadow-[0_10px_22px_rgba(15,23,42,0.12)] hover:border-slate-600 hover:bg-slate-100 hover:text-slate-950 disabled:border-gray-300 disabled:bg-gray-200 disabled:text-gray-700",
   outline: "border-2 border-slate-400 bg-white text-slate-950 shadow-[0_10px_22px_rgba(15,23,42,0.12)] hover:border-slate-600 hover:bg-slate-100 hover:text-slate-950 disabled:border-gray-300 disabled:bg-gray-200 disabled:text-gray-700",
   danger: "border-2 border-red-800 bg-red-700 text-white shadow-[0_10px_22px_rgba(185,28,28,0.18)] hover:border-red-900 hover:bg-red-800 hover:text-white disabled:border-gray-400 disabled:bg-gray-300 disabled:text-gray-800",
-  warning: "border-2 border-slate-950 bg-[#facc15] text-slate-950 shadow-[0_18px_36px_rgba(250,204,21,0.38)] ring-2 ring-amber-100 hover:-translate-y-0.5 hover:bg-[#fde047] hover:text-slate-950 hover:shadow-[0_22px_44px_rgba(250,204,21,0.46)] disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-800 disabled:shadow-none disabled:ring-0",
+  warning: "border-2 border-slate-950 bg-[#facc15] text-black shadow-[0_18px_36px_rgba(250,204,21,0.38)] ring-2 ring-amber-100 hover:-translate-y-0.5 hover:bg-[#fde047] hover:text-black hover:shadow-[0_22px_44px_rgba(250,204,21,0.46)] disabled:border-gray-200 disabled:bg-gray-300 disabled:text-gray-800 disabled:shadow-none disabled:ring-0",
 };
 
 export const buttonSizes: Record<ButtonSize, string> = {
