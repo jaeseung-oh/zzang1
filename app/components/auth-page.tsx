@@ -798,7 +798,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                   {authUser ? `${displayName} 님` : mode === "signup" ? "회원가입" : "로그인"}
                 </h2>
               </div>
-              <Link href="/" className={buttonClass("primary", "sm", "rounded-full px-4 text-xs font-bold")}>
+              <Link href="/" className={buttonClass("primary", "sm", "rounded-full px-4 text-xs font-bold !text-white hover:!text-white")}>
                 홈으로
               </Link>
             </div>
