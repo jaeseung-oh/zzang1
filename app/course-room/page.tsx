@@ -468,10 +468,11 @@ export default function CourseRoomPage() {
         const { db } = getFirebaseServices();
         const adminBypass = isSuperAdmin(user);
         setAdminPreview(adminBypass);
-        const enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, defaultCourse.id);
-        const enrollment = enrollments.find((item) => item.courseId === defaultCourse.id);
+        const enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
+        const enrollment = enrollments.find((item) => item.courseId === defaultCourse.id && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === defaultCourse.id);
         const allowed = adminBypass || isEnrollmentActive(enrollment);
-        setHasDocumentFormsAccess(adminBypass || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId, enrollment?.amount, enrollment?.productTitle)));
+        const documentFormsAllowed = enrollments.some((item) => item.courseId === defaultCourse.id && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
+        setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
 
         if (!allowed) {
           const expired = enrollment?.paymentStatus === "paid" && !isEnrollmentActive(enrollment);
@@ -1817,10 +1818,10 @@ export default function CourseRoomPage() {
                   <Link
                     key={document.id}
                     href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"}
-                    className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:shadow-lg"
+                    className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg"
                   >
                     <span>{document.title}</span>
-                    <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "서식 포함 수강권"}</span>
+                    <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-black !text-white">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "서식 포함 수강권"}</span>
                   </Link>
                 ))}
               </div>

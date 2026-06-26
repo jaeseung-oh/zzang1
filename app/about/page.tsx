@@ -83,7 +83,7 @@ function SectionTitle({ eyebrow, title, body, light = false }: { eyebrow?: strin
 function CtaButton({ children, href = applyHref, variant = "warning" }: { children: React.ReactNode; href?: string; variant?: "warning" | "primary" | "secondary" }) {
   const analyticsProps = href.startsWith("/courses/apply") ? { "data-ga-event": "click_enroll", "data-ga-item-id": href.includes("dui-documents") ? "dui-documents" : "dui-prevention-basic", "data-ga-item-name": "음주운전 예방교육", "data-ga-location": "about" } : {};
   if (variant === "secondary") {
-    return <Link href={href} {...analyticsProps} className={buttonClass("secondary", "lg", "w-full rounded-full px-7 text-center font-bold sm:w-auto")}>{children}</Link>;
+    return <Link href={href} {...analyticsProps} className={buttonClass("secondary", "lg", "w-full rounded-full px-7 text-center font-bold !text-black hover:!text-black sm:w-auto")}>{children}</Link>;
   }
   return <Link href={href} {...analyticsProps} className={buttonClass(variant, "lg", "w-full whitespace-normal rounded-xl px-7 text-center font-black sm:w-auto sm:rounded-full")}>{children}</Link>;
 }

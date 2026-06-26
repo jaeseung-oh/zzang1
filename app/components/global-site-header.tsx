@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 import AuthNav from "@/app/components/auth-nav";
 
 const navItems = [
-  { href: "/courses", label: "교육과정" },
   { href: "/about", label: "센터소개" },
+  { href: "/courses", label: "교육과정" },
   { href: "/certificate", label: "수료증" },
 ];
 

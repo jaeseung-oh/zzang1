@@ -89,11 +89,11 @@ function PreventionDocumentsContent() {
         const targetUid = adminAccess && adminTargetUid ? adminTargetUid : user.uid;
         const enrollments = adminAccess && adminTargetUid
           ? []
-          : await getVerifiedUserEnrollments(user, defaultCourse.id);
+          : await getVerifiedUserEnrollments(user, null);
         const enrollment = enrollments.find((item) => item.courseId === defaultCourse.id && isEnrollmentActive(item));
         const profile = await getUserProfile(targetUid);
         if (cancelled) return;
-        const allowed = adminAccess || (isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment?.productId, enrollment?.amount, enrollment?.productTitle));
+        const allowed = adminAccess || enrollments.some((item) => item.courseId === defaultCourse.id && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
         setHasAccess(allowed);
         setIdentity(buildDocumentIdentity(profile));
         if (!allowed) {

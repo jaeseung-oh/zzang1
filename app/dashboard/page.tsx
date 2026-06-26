@@ -257,7 +257,7 @@ export default function DashboardPage() {
   }, [progress]);
 
   const activeEnrollmentRecord = enrollments.find((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment));
-  const hasDocumentFormsAccess = adminPreview || Boolean(activeEnrollmentRecord && hasPreventionDocumentsAccess(activeEnrollmentRecord.productId, activeEnrollmentRecord.amount, activeEnrollmentRecord.productTitle));
+  const hasDocumentFormsAccess = adminPreview || enrollments.some((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(211,173,98,0.14),transparent_22%),linear-gradient(180deg,#09111d_0%,#0d1728_32%,#eef3f8_32%,#f4f7fb_100%)] px-4 py-10 sm:px-6 lg:px-8">
@@ -283,11 +283,11 @@ export default function DashboardPage() {
               <h2 className="mt-1 text-2xl font-black leading-tight text-slate-950 sm:text-3xl">강의 목록과 서류 인쇄를 여기서 바로 실행하세요</h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[560px]">
-              <Link href="/course-room" className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.34)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-base font-black text-[#111827]">01</span>
-                <span className="min-w-0"><span className="block text-xl font-black leading-tight">강의 목록 보기</span><span className="mt-1 block text-sm font-bold text-slate-800">수강실로 이동</span></span>
+              <Link href="/course-room" className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-5 py-4 text-left !text-white shadow-[0_18px_36px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-base font-black text-[#10213f]">01</span>
+                <span className="min-w-0"><span className="block text-xl font-black leading-tight !text-white">강의 목록 보기</span><span className="mt-1 block text-sm font-bold !text-white/80">수강실로 이동</span></span>
               </Link>
-              <Link href={hasDocumentFormsAccess ? "/prevention-documents" : "/courses/apply/?category=dui&productId=dui-documents"} className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+              <Link href="/prevention-documents" className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-base font-black text-[#ffdd00]">02</span>
                 <span className="min-w-0"><span className="block text-xl font-black leading-tight">서류 인쇄하기</span><span className="mt-1 block text-sm font-bold text-slate-800">재발방지 서식 열기</span></span>
               </Link>
@@ -339,7 +339,7 @@ export default function DashboardPage() {
                         <div><dt className="font-semibold text-slate-500">수강 만료</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.expiresAt)}</dd></div>
                       </dl>
                       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        {active ? <Link href="/course-room" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
+                        {active ? <Link href="/course-room" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-6 py-4 text-base font-black !text-white shadow-[0_18px_38px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
                         {certificateReady ? <Link href="/certificate" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
                       </div>
                     </article>
@@ -424,10 +424,10 @@ export default function DashboardPage() {
                   <p><span className="font-semibold text-white">마지막 시청:</span> {progressSummary.lastLessonLabel} {progressSummary.lastLessonTime > 0 ? formatDuration(progressSummary.lastLessonTime) : ""}</p>
                   <p className="mt-1">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <Link href="/course-room" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000]">
+                    <Link href="/course-room" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       이어보기
                     </Link>
-                    <Link href="/course-room" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000]">
+                    <Link href="/course-room" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       강의 목록 보기
                     </Link>
                   </div>
@@ -463,7 +463,7 @@ export default function DashboardPage() {
                 <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "아래 3종 서식을 열어 인쇄하거나 PDF로 저장할 수 있습니다." : "서식 포함 수강권을 선택하면 아래 3종 서식을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
                   {preventionDocuments.map((document) => (
-                    <Link key={document.id} href={hasDocumentFormsAccess ? `/prevention-documents?type=${document.id}` : "/courses/apply/?category=dui&productId=dui-documents"} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000]">
+                    <Link key={document.id} href={`/prevention-documents?type=${document.id}`} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       <span>{document.title}</span>
                       <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "109,000원 상품"}</span>
                     </Link>
@@ -486,10 +486,10 @@ export default function DashboardPage() {
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt || certificate.certificateIssuedAt)}</p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-3">
-                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                           서류 보기
                         </Link>
-                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}&print=1`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                        <Link href={`/certificate?certificateId=${encodeURIComponent(certificate.id)}&print=1`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                           서류 인쇄하기
                         </Link>
                       </div>
@@ -500,10 +500,10 @@ export default function DashboardPage() {
                     <p className="font-semibold text-white">결제된 음주운전 예방교육 수강권이 확인되었습니다.</p>
                     <p className="mt-2">아래 버튼을 눌러 진도율과 관계없이 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
-                      <Link href="/certificate" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                      <Link href="/certificate" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                         서류 보기
                       </Link>
-                      <Link href="/certificate?print=1" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                      <Link href="/certificate?print=1" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                         바로 인쇄
                       </Link>
                     </div>
