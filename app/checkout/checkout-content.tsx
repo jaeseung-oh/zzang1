@@ -65,7 +65,7 @@ export default function CheckoutContent() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerBirthDate, setBuyerBirthDate] = useState("");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>("card");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>(() => paymentConfig.kakaoPayChannelKey ? "kakaopay" : "card");
   const [isMember, setIsMember] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -502,7 +502,7 @@ export default function CheckoutContent() {
             {hasActiveEnrollment ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900"><p className="font-bold">이미 결제 완료된 수강권이 있습니다.</p><p>중복 결제를 막기 위해 결제 버튼을 비활성화했습니다.</p><div className="mt-3 flex flex-wrap gap-2"><Link href="/course-room" className={buttonClass("primary", "sm", "rounded-full px-4 font-bold")}>강의실로 이동</Link><Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full px-4 font-bold")}>수료증 출력</Link></div></div> : null}
 
             <button type="button" onClick={() => void handleRequestPayment()} disabled={!canSubmit} className={buttonClass("primary", "lg", "mt-5 w-full rounded-xl font-bold disabled:opacity-100")}>
-              {hasActiveEnrollment ? "이미 결제된 강의입니다" : isSubmitting ? "결제 진행 중..." : "내용 확인 후 결제하기"}
+              {hasActiveEnrollment ? "이미 결제된 강의입니다" : isSubmitting ? "결제 진행 중..." : `${paymentMethodLabels[selectedPaymentMethod]}로 결제하기`}
             </button>
 
             <div className="mt-4 space-y-1 text-center text-xs font-medium leading-5 text-slate-500">
