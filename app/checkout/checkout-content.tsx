@@ -65,7 +65,7 @@ export default function CheckoutContent() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerBirthDate, setBuyerBirthDate] = useState("");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>(() => paymentConfig.kakaoPayChannelKey ? "kakaopay" : "card");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>("kakaopay");
   const [isMember, setIsMember] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
