@@ -24,23 +24,42 @@ type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>
 type CheckoutPaymentMethod = "card" | "kakaopay";
 
 const paymentMethodOptions: Array<{ id: CheckoutPaymentMethod; label: string; description: string }> = [
-  { id: "card", label: "NHN KCP 카드", description: "신용/체크카드 결제" },
-  { id: "kakaopay", label: "카카오페이", description: "카카오페이머니 또는 카드" },
+  { id: "card", label: "신용카드 결제", description: "NHN KCP 카드 결제" },
+  { id: "kakaopay", label: "카카오페이 결제", description: "카카오페이머니 또는 카드" },
 ];
 
 const paymentMethodLabels: Record<CheckoutPaymentMethod, string> = {
-  card: "NHN KCP 카드",
+  card: "신용카드",
   kakaopay: "카카오페이",
 };
 
 function paymentMethodButtonClass(isSelected: boolean, isUnavailable: boolean) {
-  const stateClass = isSelected ? "border-[#10213f] bg-[#eef3f8]" : "border-slate-200 bg-white hover:border-slate-300";
+  const stateClass = isSelected ? "border-[#10213f] bg-[#eef3f8] shadow-[0_10px_22px_rgba(16,33,63,0.10)]" : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50";
   const availabilityClass = isUnavailable ? "cursor-not-allowed opacity-50" : "";
-  return `flex min-h-16 items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition ${stateClass} ${availabilityClass}`;
+  return `flex min-h-20 items-center gap-3 rounded-xl border px-4 py-3 text-left transition ${stateClass} ${availabilityClass}`;
+}
+
+function paymentMethodIcon(method: CheckoutPaymentMethod) {
+  if (method === "kakaopay") {
+    return (
+      <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#FEE500] text-[11px] font-black lowercase tracking-tight text-[#111111] shadow-sm">
+        pay
+      </span>
+    );
+  }
+
+  return (
+    <span className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#10213f] shadow-sm">
+      <span className="h-7 w-9 rounded-md bg-white shadow-sm">
+        <span className="mt-2 block h-1.5 w-full bg-[#d3b271]" />
+        <span className="ml-1 mt-1 block h-1 w-4 rounded bg-slate-300" />
+      </span>
+    </span>
+  );
 }
 
 function paymentMethodIndicatorClass(isSelected: boolean) {
-  return `h-4 w-4 rounded-full border ${isSelected ? "border-[#10213f] bg-[#10213f] shadow-[inset_0_0_0_3px_white]" : "border-slate-300 bg-white"}`;
+  return `ml-auto h-4 w-4 shrink-0 rounded-full border ${isSelected ? "border-[#10213f] bg-[#10213f] shadow-[inset_0_0_0_3px_white]" : "border-slate-300 bg-white"}`;
 }
 
 function createPaymentId(seed: string) {
@@ -433,7 +452,7 @@ export default function CheckoutContent() {
 
             <div className="mt-5">
               <p className="text-sm font-semibold text-slate-500">결제수단</p>
-              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 {paymentMethodOptions.map((option) => {
                   const isSelected = selectedPaymentMethod === option.id;
                   const isUnavailable = option.id === "kakaopay" && !paymentConfig.kakaoPayChannelKey;
@@ -446,8 +465,9 @@ export default function CheckoutContent() {
                       className={paymentMethodButtonClass(isSelected, isUnavailable)}
                       aria-pressed={isSelected}
                     >
-                      <span>
-                        <span className="block text-sm font-bold text-slate-950">{option.label}</span>
+                      {paymentMethodIcon(option.id)}
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-base font-extrabold text-slate-950">{option.label}</span>
                         <span className="mt-1 block text-xs font-medium text-slate-500">{isUnavailable ? "채널키 설정 필요" : option.description}</span>
                       </span>
                       <span className={paymentMethodIndicatorClass(isSelected)} />
