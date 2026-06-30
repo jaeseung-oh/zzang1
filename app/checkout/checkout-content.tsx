@@ -21,6 +21,27 @@ const CARD_APPROVAL_DELAY_MESSAGE =
   "안녕하세요. 리셋에듀센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
 
 type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>;
+type CheckoutPaymentMethod = "card" | "kakaopay";
+
+const paymentMethodOptions: Array<{ id: CheckoutPaymentMethod; label: string; description: string }> = [
+  { id: "card", label: "신용카드", description: "KCP 카드 결제" },
+  { id: "kakaopay", label: "카카오페이", description: "카카오페이머니 또는 카드" },
+];
+
+const paymentMethodLabels: Record<CheckoutPaymentMethod, string> = {
+  card: "신용카드",
+  kakaopay: "카카오페이",
+};
+
+function paymentMethodButtonClass(isSelected: boolean, isUnavailable: boolean) {
+  const stateClass = isSelected ? "border-[#10213f] bg-[#eef3f8]" : "border-slate-200 bg-white hover:border-slate-300";
+  const availabilityClass = isUnavailable ? "cursor-not-allowed opacity-50" : "";
+  return `flex min-h-16 items-center justify-between gap-3 rounded-xl border px-4 py-3 text-left transition ${stateClass} ${availabilityClass}`;
+}
+
+function paymentMethodIndicatorClass(isSelected: boolean) {
+  return `h-4 w-4 rounded-full border ${isSelected ? "border-[#10213f] bg-[#10213f] shadow-[inset_0_0_0_3px_white]" : "border-slate-300 bg-white"}`;
+}
 
 function createPaymentId(seed: string) {
   const randomValue = crypto.getRandomValues(new Uint32Array(1))[0]?.toString(36) || "0";
@@ -44,6 +65,7 @@ export default function CheckoutContent() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerBirthDate, setBuyerBirthDate] = useState("");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>("card");
   const [isMember, setIsMember] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
@@ -55,7 +77,9 @@ export default function CheckoutContent() {
   const [error, setError] = useState("");
 
   const selectedProduct = getApplicationProduct("dui", selectedProductId) || defaultCheckoutProduct;
-  const hasPaymentConfig = Boolean(paymentConfig.storeId && paymentConfig.kcpChannelKey);
+  const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
+  const selectedPaymentProvider = selectedPaymentMethod === "kakaopay" ? "portone-kakaopay-v2" : "portone-kcp-v2";
+  const hasPaymentConfig = Boolean(paymentConfig.storeId && selectedChannelKey);
   const hasActiveEnrollment = isEnrollmentActive(activeEnrollment);
   const canSubmit = hasPaymentConfig && isMember && profileReady && !hasActiveEnrollment && !enrollmentCheckFailed && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
 
@@ -215,7 +239,7 @@ export default function CheckoutContent() {
         const orderResponse = await fetch(orderCreateUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-          body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price }),
+          body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price, paymentMethod: selectedPaymentMethod, paymentProvider: selectedPaymentProvider }),
         });
         if (!orderResponse.ok) {
           const orderText = await orderResponse.text().catch(() => "");
@@ -233,15 +257,15 @@ export default function CheckoutContent() {
         currency: "KRW",
         items: [{ item_id: selectedProduct.id, item_name: duiPreventionCourseProduct.courseTitle, price: selectedProduct.price, quantity: 1 }],
       });
-      console.info("PortOne requestPayment started", { paymentId: activePaymentId, amount: selectedProduct.price, confirmUrl: paymentConfig.confirmUrl, webhookUrl: paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook") });
+      console.info("PortOne requestPayment started", { paymentId: activePaymentId, amount: selectedProduct.price, paymentMethod: selectedPaymentMethod, provider: selectedPaymentProvider, confirmUrl: paymentConfig.confirmUrl, webhookUrl: paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook") });
       const response: PortOnePaymentResponse = await PortOne.requestPayment({
         storeId: paymentConfig.storeId,
-        channelKey: paymentConfig.kcpChannelKey,
+        channelKey: selectedChannelKey,
         paymentId: activePaymentId,
         orderName: duiPreventionCourseProduct.courseTitle,
         totalAmount: selectedProduct.price,
-        currency: "CURRENCY_KRW",
-        payMethod: "CARD",
+        currency: "KRW",
+        payMethod: selectedPaymentMethod === "kakaopay" ? "EASY_PAY" : "CARD",
         redirectUrl: `${appOrigin}/payment/success?courseId=${duiPreventionCourseProduct.courseId}&productId=${selectedProduct.id}`,
         noticeUrls: [paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook")],
         locale: "KO_KR",
@@ -251,20 +275,25 @@ export default function CheckoutContent() {
           email: buyerEmail.trim() || undefined,
           phoneNumber: buyerPhone.trim() || undefined,
         },
-        bypass: {
-          kcp_v2: {
-            site_name: "리셋 에듀센터",
-            kcp_pay_title: "리셋 에듀센터 수강권 결제",
-            shop_user_id: verifiedUid,
-          },
-        },
+        ...(selectedPaymentMethod === "kakaopay"
+          ? { windowType: { pc: "IFRAME", mobile: "REDIRECTION" } }
+          : {
+              bypass: {
+                kcp_v2: {
+                  site_name: "리셋 에듀센터",
+                  kcp_pay_title: "리셋 에듀센터 수강권 결제",
+                  shop_user_id: verifiedUid,
+                },
+              },
+            }),
         customData: {
           uid: verifiedUid,
           courseId: duiPreventionCourseProduct.courseId,
           purchaseType: "member",
           categoryId: "dui",
           productId: selectedProduct.id,
-          paymentMethod: "card",
+          paymentMethod: selectedPaymentMethod,
+          paymentProvider: selectedPaymentProvider,
           certificateName: verifiedName,
           certificateBirthDate: verifiedBirthDate,
         },
@@ -402,6 +431,32 @@ export default function CheckoutContent() {
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <h2 className="text-2xl font-bold text-slate-950">선택한 과정의 제공내용을 다시 확인하세요</h2>
 
+            <div className="mt-5">
+              <p className="text-sm font-semibold text-slate-500">결제수단</p>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
+                {paymentMethodOptions.map((option) => {
+                  const isSelected = selectedPaymentMethod === option.id;
+                  const isUnavailable = option.id === "kakaopay" && !paymentConfig.kakaoPayChannelKey;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => { if (!isUnavailable) setSelectedPaymentMethod(option.id); }}
+                      disabled={isUnavailable || isSubmitting}
+                      className={paymentMethodButtonClass(isSelected, isUnavailable)}
+                      aria-pressed={isSelected}
+                    >
+                      <span>
+                        <span className="block text-sm font-bold text-slate-950">{option.label}</span>
+                        <span className="mt-1 block text-xs font-medium text-slate-500">{isUnavailable ? "채널키 설정 필요" : option.description}</span>
+                      </span>
+                      <span className={paymentMethodIndicatorClass(isSelected)} />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             <dl className="mt-5 space-y-4 border-b border-slate-200 pb-5">
               <div className="flex items-start justify-between gap-4">
                 <dt className="text-sm font-semibold text-slate-500">상품명</dt>
@@ -409,7 +464,7 @@ export default function CheckoutContent() {
               </div>
               <div className="flex items-start justify-between gap-4">
                 <dt className="text-sm font-semibold text-slate-500">결제수단</dt>
-                <dd className="text-sm font-bold text-slate-950">신용카드</dd>
+                <dd className="text-sm font-bold text-slate-950">{paymentMethodLabels[selectedPaymentMethod]}</dd>
               </div>
               <div className="flex items-start justify-between gap-4">
                 <dt className="text-sm font-semibold text-slate-500">수강기간</dt>

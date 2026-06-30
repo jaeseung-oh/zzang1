@@ -1580,6 +1580,8 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
     const product = getApplicationProductForPayment(productId);
     const amount = typeof body?.amount === 'number' ? body.amount : product?.amount;
     const paymentId = String(body?.paymentId || createPortOnePaymentId(uid)).trim();
+    const requestedPaymentMethod = String(body?.paymentMethod || 'card').trim() === 'kakaopay' ? 'kakaopay' : 'card';
+    const requestedPaymentProvider = requestedPaymentMethod === 'kakaopay' ? 'portone-kakaopay-v2' : 'portone-kcp-v2';
 
     if (uid !== firebaseUser.uid) {
         return json({ message: '로그인한 사용자와 주문 사용자 정보가 일치하지 않습니다.', code: 'USER_MISMATCH' }, 403, corsHeaders);
@@ -1613,8 +1615,8 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
         orderName: DUI_COURSE_PRODUCT.courseTitle,
         amount: product.amount,
         requestedAmount: product.amount,
-        method: 'card',
-        paymentProvider: 'portone-kcp-v2',
+        method: requestedPaymentMethod,
+        paymentProvider: requestedPaymentProvider,
         status: 'pending',
         paymentStatus: 'pending',
         frontendOrigin: request.headers.get('origin') || null,
@@ -1637,7 +1639,8 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
             requested_amount: product.amount,
             amount: product.amount,
             approval_status: 'pending',
-            payment_method: 'card',
+            payment_method: requestedPaymentMethod,
+            payment_provider: requestedPaymentProvider,
             endpoint: '/api/payments/portone-order',
             frontendOrigin: request.headers.get('origin') || null,
             created_at: nowIso,
