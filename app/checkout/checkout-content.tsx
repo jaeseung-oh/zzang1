@@ -24,12 +24,12 @@ type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>
 type CheckoutPaymentMethod = "card" | "kakaopay";
 
 const paymentMethodOptions: Array<{ id: CheckoutPaymentMethod; label: string; description: string }> = [
-  { id: "card", label: "신용카드", description: "KCP 카드 결제" },
+  { id: "card", label: "NHN KCP 카드", description: "신용/체크카드 결제" },
   { id: "kakaopay", label: "카카오페이", description: "카카오페이머니 또는 카드" },
 ];
 
 const paymentMethodLabels: Record<CheckoutPaymentMethod, string> = {
-  card: "신용카드",
+  card: "NHN KCP 카드",
   kakaopay: "카카오페이",
 };
 
@@ -65,7 +65,7 @@ export default function CheckoutContent() {
   const [buyerEmail, setBuyerEmail] = useState("");
   const [buyerPhone, setBuyerPhone] = useState("");
   const [buyerBirthDate, setBuyerBirthDate] = useState("");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>("kakaopay");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<CheckoutPaymentMethod>("card");
   const [isMember, setIsMember] = useState(false);
   const [profileReady, setProfileReady] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
