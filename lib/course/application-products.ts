@@ -1,6 +1,7 @@
 export const APPLICATION_PRICES = {
   BASIC: 59000,
   DUI_WITH_DOCUMENTS: 109000,
+  DUI_CBT_ADVANCED: 290000,
 } as const;
 
 export type ApplicationProduct = {
@@ -10,6 +11,7 @@ export type ApplicationProduct = {
   description: string;
   includes: string[];
   badge?: string;
+  courseId?: string;
 };
 
 export type ApplicationIconName = "car" | "fileSearch" | "dice" | "alert" | "shieldCheck";
@@ -33,7 +35,7 @@ export const basicApplicationProduct: ApplicationProduct = {
   badge: "강의 + 수료증",
   description: "온라인 예방교육을 수강하고 수강 즉시 수료증을 발급·출력할 수 있는 기본 구성입니다.",
   includes: [
-    "온라인 강의 5강 수강",
+    "온라인 강의 1~3강 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
     "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
@@ -48,13 +50,29 @@ export const duiDocumentsApplicationProduct: ApplicationProduct = {
   badge: "교육과 실천자료 포함",
   description: "예방교육과 수료증에 더해 재발방지계획서, 실천계획서, 서약서를 직접 작성하고 출력할 수 있는 구성입니다.",
   includes: [
-    "온라인 강의 5강 수강",
+    "온라인 강의 1~3강 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
     "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
     "재발방지계획서 출력 및 PDF 저장",
     "음주예방실천계획서 출력 및 PDF 저장",
     "음주운전 재발방지 서약서 출력 및 PDF 저장",
+  ],
+};
+
+export const duiCbtAdvancedApplicationProduct: ApplicationProduct = {
+  id: "dui-cbt-advanced",
+  courseId: "dui-cbt-advanced",
+  title: "인지행동기반 재발방지교육 심화과정",
+  price: APPLICATION_PRICES.DUI_CBT_ADVANCED,
+  badge: "CBT 심화 4·5강",
+  description: "인지행동기반 재발방지 교육 4·5강을 수강하고 CBT 이수증과 재범방지 교육 이수 상세 내역서를 발급받는 심화 구성입니다.",
+  includes: [
+    "인지행동기반 재발방지 교육 4·5강 수강",
+    "CBT 기반 위험사고·자동반응 점검",
+    "재음주운전 고위험 상황별 대처전략 정리",
+    "인지행동기반 재발방지교육 이수증 출력",
+    "재범방지 교육 이수 상세 내역서 출력",
   ],
 };
 
@@ -68,6 +86,16 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
     status: "available",
     products: [basicApplicationProduct, duiDocumentsApplicationProduct],
     defaultProductId: "basic",
+  },
+  {
+    id: "cbt",
+    title: "인지행동개선 교육",
+    description: "인지행동기반 재발방지 교육 4·5강을 별도 심화과정으로 수강합니다.",
+    summary: "CBT 심화과정 290,000원",
+    icon: "shieldCheck",
+    status: "available",
+    products: [duiCbtAdvancedApplicationProduct],
+    defaultProductId: "dui-cbt-advanced",
   },
   {
     id: "fraud",
@@ -116,7 +144,7 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
 ];
 
 export const applicationNoticeText =
-  "모든 결제 완료 회원에게 반성문 작성 가이드와 예시 열람·인쇄·PDF 저장 기능을 제공합니다. 109,000원 서식 포함 수강권은 여기에 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서까지 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
+  "음주운전 예방교육 결제 완료 회원에게 반성문 작성 가이드와 예시 열람·인쇄·PDF 저장 기능을 제공합니다. 109,000원 서식 포함 수강권은 여기에 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서까지 함께 제공합니다. 인지행동개선 교육 290,000원 심화과정은 CBT 4·5강과 이수 서류를 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
 
 export function formatApplicationKrw(value: number) {
   return value.toLocaleString("ko-KR") + "원";

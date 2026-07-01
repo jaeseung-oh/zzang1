@@ -908,7 +908,7 @@ async function handleCurrentUserEnrollments(request, env, corsHeaders) {
         }
     }
 
-    if (courseId !== DUI_COURSE_PRODUCT.courseId) {
+    if (!getCourseProduct(courseId)) {
         logEnrollmentWorkerEvent('enrollments_me_completed', { status: 400, code: 'INVALID_COURSE', uid: maskedUid, courseId });
         return json({ message: '지원하지 않는 교육과정입니다.', code: 'INVALID_COURSE' }, 400, corsHeaders);
     }
@@ -997,7 +997,7 @@ async function handleStreamToken(request, env, corsHeaders) {
     if (!COURSE_STREAM_UIDS.has(uid)) {
         return json({ error: 'invalid_stream_uid', message: '지원하지 않는 강의 영상입니다.' }, 400, corsHeaders);
     }
-    if (courseId !== DUI_COURSE_PRODUCT.courseId) {
+    if (!getCourseProduct(courseId)) {
         return json({ error: 'invalid_course', message: '지원하지 않는 교육과정입니다.' }, 400, corsHeaders);
     }
 
@@ -1207,24 +1207,55 @@ const DUI_COURSE_PRODUCT = {
     price: 59000,
     currency: 'KRW',
     durationDays: 90,
-    totalLessons: 5,
-    pricePerLesson: 11800,
+    totalLessons: 3,
+    pricePerLesson: 19667,
     description: '음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정',
     certificateAvailable: true
 };
+
+const CBT_COURSE_PRODUCT = {
+    courseId: 'dui-cbt-advanced',
+    courseTitle: '인지행동기반 재발방지교육 심화과정',
+    price: 290000,
+    currency: 'KRW',
+    durationDays: 90,
+    totalLessons: 2,
+    pricePerLesson: 145000,
+    description: '인지행동기반 재발방지 교육 심화과정',
+    certificateAvailable: true
+};
+
+function getCourseProduct(courseId) {
+    return courseId === CBT_COURSE_PRODUCT.courseId ? CBT_COURSE_PRODUCT : courseId === DUI_COURSE_PRODUCT.courseId ? DUI_COURSE_PRODUCT : null;
+}
 
 const APPLICATION_PRODUCTS = {
     basic: {
         categoryId: 'dui',
         productId: 'basic',
         title: '기본형 수강권',
-        amount: 59000
+        amount: 59000,
+        courseId: DUI_COURSE_PRODUCT.courseId,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        totalLessons: DUI_COURSE_PRODUCT.totalLessons
     },
     'dui-documents': {
         categoryId: 'dui',
         productId: 'dui-documents',
         title: '서식 포함 수강권',
-        amount: 109000
+        amount: 109000,
+        courseId: DUI_COURSE_PRODUCT.courseId,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        totalLessons: DUI_COURSE_PRODUCT.totalLessons
+    },
+    'dui-cbt-advanced': {
+        categoryId: 'cbt',
+        productId: 'dui-cbt-advanced',
+        title: '인지행동기반 재발방지교육 심화과정',
+        amount: 290000,
+        courseId: CBT_COURSE_PRODUCT.courseId,
+        courseTitle: CBT_COURSE_PRODUCT.courseTitle,
+        totalLessons: CBT_COURSE_PRODUCT.totalLessons
     }
 };
 
@@ -1264,14 +1295,15 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const firebaseUser = await verifyFirebaseIdToken(idToken, env);
     const body = await request.json().catch(() => ({}));
     const courseId = body.courseId || DUI_COURSE_PRODUCT.courseId;
-    if (courseId !== DUI_COURSE_PRODUCT.courseId) {
+    const product = getCourseProduct(courseId);
+    if (!product) {
         return json({ message: '지원하지 않는 교육과정입니다.', code: 'INVALID_COURSE' }, 400, corsHeaders);
     }
 
     const uid = firebaseUser.uid;
     const certificateId = `${uid}_${courseId}`;
     const existing = await firestoreGetData(env, 'certificates', certificateId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    if ((existing?.certificateNo || existing?.issueNumber) && existing.documentType === 'completion') {
+    if ((existing?.certificateNo || existing?.issueNumber) && ['completion', 'cbt-completion'].includes(existing.documentType)) {
         await updateCertificateFlags(env, uid, courseId, existing.certificateNo || existing.issueNumber, certificateId, existing.issuedAt || existing.createdAt, true).catch((error) => console.error(error));
         return json({ certificateId, certificateNo: existing.certificateNo || existing.issueNumber, alreadyIssued: true }, 200, corsHeaders);
     }
@@ -1291,7 +1323,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
 
     const progressId = `${uid}_${courseId}`;
     const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    const completedLessons = DUI_COURSE_PRODUCT.totalLessons;
+    const completedLessons = product.totalLessons;
     const progressRate = 100;
     const isCompleted = true;
 
@@ -1323,7 +1355,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
         issuerBusinessNumber: env.CERTIFICATE_ISSUER_BUSINESS_NUMBER || '',
         issuerContact: env.CERTIFICATE_ISSUER_CONTACT || '',
         issuerEmail: env.CERTIFICATE_ISSUER_EMAIL || '',
-        status: 'issued', documentType: isCompleted ? 'completion' : 'attendance',
+        status: 'issued', documentType: courseId === CBT_COURSE_PRODUCT.courseId ? 'cbt-completion' : (isCompleted ? 'completion' : 'attendance'),
         createdAt: issuedAt, updatedAt: issuedAt
     };
 
@@ -1424,9 +1456,10 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
         return json({ message: error instanceof Error ? error.message : '결제 승인 중 오류가 발생했습니다.', code: 'PAYMENT_CONFIRM_FAILED' }, 400, corsHeaders);
     }
 
+    const product = APPLICATION_PRODUCTS.basic;
     const approvedAt = approved.approvedAt || new Date().toISOString();
     const purchasedAt = new Date(approvedAt);
-    const expiresAt = new Date(purchasedAt.getTime() + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(purchasedAt.getTime() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();
     const paymentId = approved.paymentKey || paymentKey;
 
@@ -1456,7 +1489,7 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
         paymentProvider: 'toss-payments', amount: DUI_COURSE_PRODUCT.price,
         method: approved.method || null, receiptUrl: approved.receipt?.url || null,
         orderedAt: approvedAt, approvedAt, purchasedAt: purchasedAt.toISOString(), expiresAt,
-        accessValidDays: DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
+        accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
         totalLessons: DUI_COURSE_PRODUCT.totalLessons, completedLessons: 0,
         certificateIssued: false,
         legalDisclaimerAccepted: Boolean(body.legalDisclaimerAccepted),
@@ -1586,7 +1619,7 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
     if (uid !== firebaseUser.uid) {
         return json({ message: '로그인한 사용자와 주문 사용자 정보가 일치하지 않습니다.', code: 'USER_MISMATCH' }, 403, corsHeaders);
     }
-    if (!paymentId || !product || courseId !== DUI_COURSE_PRODUCT.courseId || categoryId !== 'dui' || amount !== product.amount) {
+    if (!paymentId || !product || courseId !== product.courseId || categoryId !== product.categoryId || amount !== product.amount) {
         return json({ message: '주문 생성 정보가 올바르지 않습니다.', code: 'INVALID_ORDER' }, 400, corsHeaders);
     }
 
@@ -1948,7 +1981,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
     if (uid !== firebaseUser.uid) {
         return json({ message: '로그인한 사용자와 결제 사용자 정보가 일치하지 않습니다.', code: 'USER_MISMATCH' }, 403, corsHeaders);
     }
-    if (courseId !== DUI_COURSE_PRODUCT.courseId || categoryId !== 'dui') {
+    if (!product || courseId !== product.courseId || categoryId !== product.categoryId) {
         return json({ message: '지원하지 않는 교육 상품입니다.', code: 'INVALID_PRODUCT' }, 400, corsHeaders);
     }
 
@@ -1983,7 +2016,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
                     orderId: existing.orderId || orderId,
                     enrollmentId,
                     courseId,
-                    courseTitle: existing.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
+                    courseTitle: existing.courseTitle || product.courseTitle,
                     totalAmount: Number(existing.amount || product.amount),
                     expiresAt: enrollment.expiresAt || existing.expiresAt || null,
                     accessStatus: 'active',
@@ -2022,7 +2055,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         if (approved.status !== 'PAID') throw new Error('결제가 완료된 상태가 아닙니다.');
         if (expectedChannelType && channelType && channelType !== expectedChannelType) throw new Error('포트원 채널이 실연동 채널이 아닙니다.');
         if (configuredStoreId && storeId && storeId !== configuredStoreId) throw new Error('포트원 상점 ID가 일치하지 않습니다.');
-        if (approved.orderName !== DUI_COURSE_PRODUCT.courseTitle) throw new Error('주문명이 현재 상품과 일치하지 않습니다.');
+        if (approved.orderName !== product.courseTitle) throw new Error('주문명이 현재 상품과 일치하지 않습니다.');
         if (paidAmount !== product.amount) throw new Error('결제 승인 금액이 상품 금액과 일치하지 않습니다.');
         if (currency !== DUI_COURSE_PRODUCT.currency) throw new Error('결제 통화가 올바르지 않습니다.');
         if (customData.courseId && customData.courseId !== courseId) throw new Error('결제 상품 정보가 일치하지 않습니다.');
@@ -2043,8 +2076,8 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
     const paymentRecord = {
         paymentId, orderId, paymentKey: paymentId, userId: uid, uid, courseId,
         categoryId, productId, productTitle: product.title,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        orderName: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
+        orderName: product.courseTitle,
         amount: product.amount,
         method,
         status: 'paid', paymentStatus: 'paid', paymentProvider: 'portone-kcp-v2',
@@ -2057,16 +2090,16 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
     const enrollmentRecord = {
         enrollmentId, userId: uid, uid, courseId,
         categoryId, productId, productTitle: product.title, amount: product.amount,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
         paymentId, orderId,
         purchasedAt: purchasedAt.toISOString(), expiresAt,
         paymentStatus: 'paid', accessStatus: 'active', progress: 0,
-        completedLessons: 0, totalLessons: DUI_COURSE_PRODUCT.totalLessons,
+        completedLessons: 0, totalLessons: product.totalLessons,
         certificateIssued: false, certificateIssuedAt: null,
         createdAt: nowIso, updatedAt: nowIso
     };
     const purchaseRecord = {
-        uid, userId: uid, courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        uid, userId: uid, courseId, courseTitle: product.courseTitle,
         categoryId, productId, productTitle: product.title,
         orderId, paymentKey: paymentId, paymentStatus: 'paid', accessStatus: 'active',
         paymentProvider: 'portone-kcp-v2', amount: product.amount,
@@ -2075,8 +2108,8 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         kcpResponseCode: getPortOneResponseCode(approved),
         kcpResponseMessage: getPortOneResponseMessage(approved),
         orderedAt: approvedAt, approvedAt, purchasedAt: purchasedAt.toISOString(), expiresAt,
-        accessValidDays: DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
-        totalLessons: DUI_COURSE_PRODUCT.totalLessons, completedLessons: 0,
+        accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
+        totalLessons: product.totalLessons, completedLessons: 0,
         certificateIssued: false,
         legalDisclaimerAccepted: Boolean(body.legalDisclaimerAccepted),
         finalReviewResponsibilityAccepted: Boolean(body.finalReviewResponsibilityAccepted),
@@ -2103,7 +2136,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         orderId,
         enrollmentId,
         courseId,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
         productId,
         productTitle: product.title,
         totalAmount: product.amount,
@@ -2424,7 +2457,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     const product = getApplicationProductForPayment(productId);
     const amount = typeof body?.amount === 'number' ? body.amount : product?.amount;
 
-    if (!uid || !product || courseId !== DUI_COURSE_PRODUCT.courseId || categoryId !== 'dui') {
+    if (!uid || !product || courseId !== product.courseId || categoryId !== product.categoryId) {
         return json({ message: '사용자 ID 또는 수강권 상품 정보가 올바르지 않습니다.', code: 'INVALID_REQUEST' }, 400, corsHeaders);
     }
 
@@ -2519,7 +2552,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         approvedAt: nowIso,
         purchasedAt: nowIso,
         expiresAt,
-        accessValidDays: DUI_COURSE_PRODUCT.durationDays,
+        accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays,
         accessValidMonths: 3,
         totalLessons: DUI_COURSE_PRODUCT.totalLessons,
         completedLessons: 0,

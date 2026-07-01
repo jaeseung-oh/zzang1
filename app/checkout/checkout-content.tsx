@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { defaultCourse } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
-import { basicApplicationProduct, getApplicationProduct } from "@/lib/course/application-products";
+import { basicApplicationProduct, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
 import { getCertificateIdentity, getUserProfile } from "@/lib/firebase/user-profile";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
@@ -78,6 +78,7 @@ function buildPaymentFailureUrl(courseId: string, code?: string, message?: strin
 export default function CheckoutContent() {
   const router = useRouter();
   const [paymentId, setPaymentId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("dui");
   const [selectedProductId, setSelectedProductId] = useState(defaultCheckoutProduct.id);
   const [customerUid, setCustomerUid] = useState("");
   const [buyerName, setBuyerName] = useState("");
@@ -95,7 +96,11 @@ export default function CheckoutContent() {
   const [enrollmentCheckFailed, setEnrollmentCheckFailed] = useState(false);
   const [error, setError] = useState("");
 
-  const selectedProduct = getApplicationProduct("dui", selectedProductId) || defaultCheckoutProduct;
+  const selectedProduct = getApplicationProduct(selectedCategoryId, selectedProductId) || defaultCheckoutProduct;
+  const selectedCourseId = selectedProduct.courseId || duiPreventionCourseProduct.courseId;
+  const selectedCourseTitle = selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle;
+  const selectedTotalLessons = selectedProduct.courseId ? 2 : 3;
+  const selectedResourceLabel = selectedProduct.courseId ? "CBT 이수증 · 상세 내역서" : "수료증 · 반성문 가이드/예시";
   const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
   const selectedPaymentProvider = selectedPaymentMethod === "kakaopay" ? "portone-kakaopay-v2" : "portone-kcp-v2";
   const hasPaymentConfig = Boolean(paymentConfig.storeId && selectedChannelKey);
@@ -106,9 +111,12 @@ export default function CheckoutContent() {
     let cancelled = false;
 
     const params = new URLSearchParams(window.location.search);
-    const requestedProductId = params.get("productId");
-    if (getApplicationProduct("dui", requestedProductId)) {
-      setSelectedProductId(requestedProductId || defaultCheckoutProduct.id);
+    const requestedCategoryId = params.get("categoryId") || params.get("category") || "dui";
+    const requestedCategory = getApplicationCategory(requestedCategoryId) || getApplicationCategory("dui");
+    const requestedProductId = params.get("productId") || requestedCategory?.defaultProductId || defaultCheckoutProduct.id;
+    if (requestedCategory) setSelectedCategoryId(requestedCategory.id);
+    if (requestedCategory && getApplicationProduct(requestedCategory.id, requestedProductId)) {
+      setSelectedProductId(requestedProductId);
     }
 
     const prepareOrder = async () => {
@@ -128,9 +136,9 @@ export default function CheckoutContent() {
         setBuyerEmail(user.email || profile?.email || "");
         setBuyerPhone(profile?.phoneNumber || "");
         try {
-          const enrollments = await getVerifiedUserEnrollments(user, duiPreventionCourseProduct.courseId);
+          const enrollments = await getVerifiedUserEnrollments(user, selectedCourseId);
           if (cancelled) return;
-          setActiveEnrollment(enrollments.find((row) => row.courseId === duiPreventionCourseProduct.courseId) ?? null);
+          setActiveEnrollment(enrollments.find((row) => row.courseId === selectedCourseId) ?? null);
           setEnrollmentCheckFailed(false);
         } catch (enrollmentError) {
           if (cancelled) return;
@@ -164,7 +172,7 @@ export default function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, selectedCourseId, selectedCategoryId]);
 
   const handleRequestPayment = async () => {
     let verifiedUid = customerUid;
@@ -183,8 +191,8 @@ export default function CheckoutContent() {
       }
       let enrollment: EnrollmentRecord | null = null;
       try {
-        const enrollments = await getVerifiedUserEnrollments(user, duiPreventionCourseProduct.courseId);
-        enrollment = enrollments.find((row) => row.courseId === duiPreventionCourseProduct.courseId) ?? null;
+        const enrollments = await getVerifiedUserEnrollments(user, selectedCourseId);
+        enrollment = enrollments.find((row) => row.courseId === selectedCourseId) ?? null;
         setEnrollmentCheckFailed(false);
       } catch (enrollmentError) {
         console.error("Verified enrollment lookup failed immediately before payment", enrollmentError);
@@ -249,7 +257,7 @@ export default function CheckoutContent() {
       recoveryPaymentId = activePaymentId;
       recoveryProductId = selectedProduct.id;
       if (!paymentId) setPaymentId(activePaymentId);
-      window.localStorage.setItem("resetedu:pending-portone-order", JSON.stringify({ paymentId: activePaymentId, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, savedAt: new Date().toISOString() }));
+      window.localStorage.setItem("resetedu:pending-portone-order", JSON.stringify({ paymentId: activePaymentId, categoryId: selectedCategoryId, productId: selectedProduct.id, courseId: selectedCourseId, amount: selectedProduct.price, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, savedAt: new Date().toISOString() }));
       try {
         const paymentUser = await requireAuthenticatedUser();
         if (paymentUser.uid !== verifiedUid) throw new Error("USER_MISMATCH");
@@ -258,7 +266,7 @@ export default function CheckoutContent() {
         const orderResponse = await fetch(orderCreateUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-          body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: "dui", productId: selectedProduct.id, courseId: duiPreventionCourseProduct.courseId, amount: selectedProduct.price, paymentMethod: selectedPaymentMethod, paymentProvider: selectedPaymentProvider }),
+          body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: selectedCategoryId, productId: selectedProduct.id, courseId: selectedCourseId, amount: selectedProduct.price, paymentMethod: selectedPaymentMethod, paymentProvider: selectedPaymentProvider }),
         });
         if (!orderResponse.ok) {
           const orderText = await orderResponse.text().catch(() => "");
@@ -274,18 +282,18 @@ export default function CheckoutContent() {
       trackBeginCheckout({
         value: selectedProduct.price,
         currency: "KRW",
-        items: [{ item_id: selectedProduct.id, item_name: duiPreventionCourseProduct.courseTitle, price: selectedProduct.price, quantity: 1 }],
+        items: [{ item_id: selectedProduct.id, item_name: selectedCourseTitle, price: selectedProduct.price, quantity: 1 }],
       });
       console.info("PortOne requestPayment started", { paymentId: activePaymentId, amount: selectedProduct.price, paymentMethod: selectedPaymentMethod, provider: selectedPaymentProvider, confirmUrl: paymentConfig.confirmUrl, webhookUrl: paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook") });
       const response: PortOnePaymentResponse = await PortOne.requestPayment({
         storeId: paymentConfig.storeId,
         channelKey: selectedChannelKey,
         paymentId: activePaymentId,
-        orderName: duiPreventionCourseProduct.courseTitle,
+        orderName: selectedCourseTitle,
         totalAmount: selectedProduct.price,
         currency: "KRW",
         payMethod: selectedPaymentMethod === "kakaopay" ? "EASY_PAY" : "CARD",
-        redirectUrl: `${appOrigin}/payment/success?courseId=${duiPreventionCourseProduct.courseId}&productId=${selectedProduct.id}`,
+        redirectUrl: `${appOrigin}/payment/success?courseId=${selectedCourseId}&productId=${selectedProduct.id}`,
         noticeUrls: [paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "/api/payments/portone-webhook")],
         locale: "KO_KR",
         customer: {
@@ -307,9 +315,9 @@ export default function CheckoutContent() {
             }),
         customData: {
           uid: verifiedUid,
-          courseId: duiPreventionCourseProduct.courseId,
+          courseId: selectedCourseId,
           purchaseType: "member",
-          categoryId: "dui",
+          categoryId: selectedCategoryId,
           productId: selectedProduct.id,
           paymentMethod: selectedPaymentMethod,
           paymentProvider: selectedPaymentProvider,
@@ -324,22 +332,22 @@ export default function CheckoutContent() {
       if (response?.code !== undefined) {
         const failureMessage = response.message || "결제가 완료되지 않았습니다.";
         if (/fetch|network|timeout|통신|네트워크/i.test(failureMessage)) {
-          window.location.href = `/payment/success?paymentId=${encodeURIComponent(activePaymentId)}&courseId=${encodeURIComponent(duiPreventionCourseProduct.courseId)}&productId=${encodeURIComponent(selectedProduct.id)}&recovery=1`;
+          window.location.href = `/payment/success?paymentId=${encodeURIComponent(activePaymentId)}&courseId=${encodeURIComponent(selectedCourseId)}&productId=${encodeURIComponent(selectedProduct.id)}&recovery=1`;
           return;
         }
-        window.location.href = buildPaymentFailureUrl(duiPreventionCourseProduct.courseId, response.code, failureMessage);
+        window.location.href = buildPaymentFailureUrl(selectedCourseId, response.code, failureMessage);
         return;
       }
 
       const confirmedPaymentId = response?.paymentId || activePaymentId;
-      window.location.href = `/payment/success?paymentId=${encodeURIComponent(confirmedPaymentId)}&courseId=${encodeURIComponent(duiPreventionCourseProduct.courseId)}&productId=${encodeURIComponent(selectedProduct.id)}`;
+      window.location.href = `/payment/success?paymentId=${encodeURIComponent(confirmedPaymentId)}&courseId=${encodeURIComponent(selectedCourseId)}&productId=${encodeURIComponent(selectedProduct.id)}`;
     } catch (paymentError) {
       const message = paymentError instanceof Error ? paymentError.message : String(paymentError);
       console.error("PortOne requestPayment failed", { stage: paymentWindowRequested ? "requestPayment_or_redirect" : "before_requestPayment", paymentId: recoveryPaymentId, productId: recoveryProductId, message, error: paymentError });
       setError(`결제창 처리 실패: ${message}. paymentId=${recoveryPaymentId || "없음"}`);
       setIsSubmitting(false);
       if (paymentWindowRequested && recoveryPaymentId) {
-        window.location.href = `/payment/success?paymentId=${encodeURIComponent(recoveryPaymentId)}&courseId=${encodeURIComponent(duiPreventionCourseProduct.courseId)}&productId=${encodeURIComponent(recoveryProductId)}&recovery=1`;
+        window.location.href = `/payment/success?paymentId=${encodeURIComponent(recoveryPaymentId)}&courseId=${encodeURIComponent(selectedCourseId)}&productId=${encodeURIComponent(recoveryProductId)}&recovery=1`;
       }
     }
   };
@@ -352,7 +360,7 @@ export default function CheckoutContent() {
             <h1 className="text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">수강권 결제</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">결제 정보를 확인한 후 결제를 진행해 주세요.</p>
           </div>
-          <Link href="/courses/dui-prevention" className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
+          <Link href={selectedProduct.courseId ? "/courses/apply?category=cbt" : "/courses/dui-prevention"} className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
             상품 상세보기
           </Link>
         </div>
@@ -364,8 +372,8 @@ export default function CheckoutContent() {
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-500">주문 상품</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-950">{duiPreventionCourseProduct.courseTitle} 수강권</h2>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{duiPreventionCourseProduct.description}</p>
+                <h2 className="mt-2 text-2xl font-bold text-slate-950">{selectedCourseTitle} 수강권</h2>
+                <p className="mt-3 text-sm leading-7 text-slate-600">{selectedProduct.courseId ? selectedProduct.description : duiPreventionCourseProduct.description}</p>
                 <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{selectedProduct.title}</p>
               </div>
               <div className="shrink-0 rounded-xl bg-slate-50 px-5 py-4 text-left sm:text-right">
@@ -377,11 +385,11 @@ export default function CheckoutContent() {
             <dl className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">교육 과정</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-950">{defaultCourse.title}</dd>
+                <dd className="mt-1 text-sm font-bold text-slate-950">{selectedProduct.courseId ? selectedProduct.title : defaultCourse.title}</dd>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">강의 수</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-950">총 {duiPreventionCourseProduct.totalLessons}강</dd>
+                <dd className="mt-1 text-sm font-bold text-slate-950">총 {selectedTotalLessons}강</dd>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">수강기간</dt>
@@ -396,7 +404,7 @@ export default function CheckoutContent() {
             <div className="mt-4 rounded-2xl border border-[#d3b271]/45 bg-[#fffaf0] p-4 sm:p-5">
               <p className="text-sm font-bold text-[#10213f]">결제 회원 제공 자료</p>
               <p className="mt-1 text-sm leading-6 text-slate-700">
-                결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다.
+                {selectedProduct.courseId ? "결제 완료 후 CBT 심화 4·5강을 수강하고 이수증과 상세 내역서를 출력할 수 있습니다." : "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다."}
               </p>
             </div>
           </article>
@@ -480,7 +488,7 @@ export default function CheckoutContent() {
             <dl className="mt-5 space-y-4 border-b border-slate-200 pb-5">
               <div className="flex items-start justify-between gap-4">
                 <dt className="text-sm font-semibold text-slate-500">상품명</dt>
-                <dd className="text-right text-sm font-bold text-slate-950">{duiPreventionCourseProduct.courseTitle} 수강권</dd>
+                <dd className="text-right text-sm font-bold text-slate-950">{selectedCourseTitle} 수강권</dd>
               </div>
               <div className="flex items-start justify-between gap-4">
                 <dt className="text-sm font-semibold text-slate-500">결제수단</dt>

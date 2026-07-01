@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
-import { defaultCourse } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
@@ -112,6 +112,8 @@ function getEnrollmentStatusLabel(enrollment: EnrollmentRecord) {
 
 const documentLabels: Record<string, string> = {
   completion: "음주운전 예방교육 수료증",
+  "cbt-completion": "인지행동기반 재발방지교육 이수증",
+  "cbt-detail": "재범방지 교육 이수 상세 내역서",
   "psychology-report": "인지행동 심리검사 결과지",
   "compliance-pledge": "준법 서약서",
 };
@@ -339,8 +341,9 @@ export default function DashboardPage() {
                         <div><dt className="font-semibold text-slate-500">수강 만료</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.expiresAt)}</dd></div>
                       </dl>
                       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        {active ? <Link href="/course-room" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-6 py-4 text-base font-black !text-white shadow-[0_18px_38px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
-                        {certificateReady ? <Link href="/certificate" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
+                        {active ? <Link href={enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? "/course-room?courseId=dui-cbt-advanced" : "/course-room"} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-6 py-4 text-base font-black !text-white shadow-[0_18px_38px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
+                        {certificateReady ? <Link href={enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" : "/certificate"} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
+                        {certificateReady && enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-detail" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 sm:w-auto">상세 내역서 출력</Link> : null}
                       </div>
                     </article>
                   );

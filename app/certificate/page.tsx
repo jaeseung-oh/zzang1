@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { defaultCourse } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiCbtAdvancedModules } from "@/lib/course/catalog";
 import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -134,7 +134,11 @@ function CertificatePageContent() {
   const requestedCertificateId = searchParams.get("certificateId");
   const requestedAdminPreview = searchParams.get("adminPreview");
   const shouldAutoPrint = searchParams.get("print") === "1";
-  const expectedCertificateId = uid ? `${uid}_${defaultCourse.id}` : "";
+  const requestedCourseId = searchParams.get("courseId") === DUI_CBT_ADVANCED_COURSE_ID ? DUI_CBT_ADVANCED_COURSE_ID : defaultCourse.id;
+  const requestedDocumentType = searchParams.get("documentType") || "";
+  const requestedCourseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육 심화과정" : defaultCourse.title;
+  const requestedTotalLessons = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? duiCbtAdvancedModules.length : defaultCourse.modules.length;
+  const expectedCertificateId = uid ? `${uid}_${requestedCourseId}` : "";
   const profileBirthDate = profile?.certificateIdentity?.dateOfBirth || profile?.dateOfBirth || profile?.birthDate || "";
   const profileName = profile?.certificateIdentity?.realName || profile?.realName || profile?.fullName || "";
   const needsBirthDate = Boolean(uid && profile && !profileBirthDate && !certificate);
@@ -164,10 +168,10 @@ function CertificatePageContent() {
 
   const loadCertificate = async (userId: string, allowAdmin = false) => {
     const { db } = getFirebaseServices();
-    const certificateId = requestedCertificateId || `${userId}_${defaultCourse.id}`;
+    const certificateId = requestedCertificateId || `${userId}_${requestedCourseId}`;
     const path = `certificates/${certificateId}`;
 
-    if (requestedCertificateId && requestedCertificateId !== `${userId}_${defaultCourse.id}` && !allowAdmin) {
+    if (requestedCertificateId && requestedCertificateId !== `${userId}_${requestedCourseId}` && !allowAdmin) {
       throw new Error("다른 사용자의 수료증은 조회할 수 없습니다.");
     }
 
@@ -205,7 +209,7 @@ function CertificatePageContent() {
       setBirthDateInput(userProfile?.dateOfBirth || userProfile?.birthDate || "");
 
       if (!allowAdmin) {
-        const canAccessCourse = await hasCourseAccess(user, defaultCourse.id);
+        const canAccessCourse = await hasCourseAccess(user, requestedCourseId);
         if (!canAccessCourse) {
           const message = "수강권 결제 후 이용할 수 있습니다.";
           setError(message);
@@ -220,7 +224,7 @@ function CertificatePageContent() {
         return;
       }
 
-      if (requestedCertificateId && requestedCertificateId !== `${user.uid}_${defaultCourse.id}`) {
+      if (requestedCertificateId && requestedCertificateId !== `${user.uid}_${requestedCourseId}`) {
         const existing = await loadCertificate(user.uid, allowAdmin);
         if (existing) {
           setCertificate(existing);
@@ -267,7 +271,7 @@ function CertificatePageContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ courseId: defaultCourse.id }),
+        body: JSON.stringify({ courseId: requestedCourseId }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -334,13 +338,20 @@ function CertificatePageContent() {
   const certificateNo = certificate?.certificateNo || certificate?.issueNumber || "발급번호 확인 중";
   const issuedAt = certificate?.issuedAt || certificate?.certificateIssuedAt || certificate?.completedAt || null;
   const issuerName = certificate?.issuerName || issuerFallback;
+  const effectiveDocumentType = requestedDocumentType || certificate?.documentType || "completion";
+  const isCbtCertificate = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
+  const isDetailDocument = effectiveDocumentType === "cbt-detail";
   const isCompletionCertificate = certificate?.documentType !== "attendance";
-  const documentTitle = isCompletionCertificate ? "수료증" : "수강확인증";
-  const documentHeading = isCompletionCertificate ? "수 료 증" : "수 강 확 인 증";
-  const documentEnglishTitle = isCompletionCertificate ? "CERTIFICATE OF COMPLETION" : "CERTIFICATE OF ATTENDANCE";
-  const documentBody = isCompletionCertificate
-    ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
-    : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
+  const documentTitle = isDetailDocument ? "재범방지 교육 이수 상세 내역서" : isCbtCertificate ? "인지행동기반 재발방지교육 이수증" : isCompletionCertificate ? "수료증" : "수강확인증";
+  const documentHeading = isDetailDocument ? "이 수 상 세 내 역 서" : isCbtCertificate ? "이 수 증" : isCompletionCertificate ? "수 료 증" : "수 강 확 인 증";
+  const documentEnglishTitle = isDetailDocument ? "TRAINING COMPLETION DETAILS" : isCompletionCertificate ? "CERTIFICATE OF COMPLETION" : "CERTIFICATE OF ATTENDANCE";
+  const documentBody = isDetailDocument
+    ? "위 사람은 본 기관에서 운영하는 인지행동기반 재발방지교육 심화과정을 수강하였으며, 아래와 같이 교육 이수 상세 내역을 확인합니다."
+    : isCbtCertificate
+      ? "위 사람은 본 기관에서 운영하는 「인지행동기반 재발방지교육」 심화과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
+      : isCompletionCertificate
+        ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
+        : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
 
   const openPrintDialog = (mode: "print" | "pdf") => {
     if (!certificate) return;
@@ -482,11 +493,11 @@ function CertificatePageContent() {
 
                 <div className="certificate-table mt-10 overflow-hidden rounded-xl border border-[#d9c08a] text-left text-base">
                   {[
-                    ["교육과정명", certificate.courseTitle || defaultCourse.title],
+                    ["교육과정명", requestedCourseTitle],
                     ["교육방식", "온라인 교육"],
-                    ["교육구성", `총 ${certificate.totalLessons || defaultCourse.modules.length}강`],
+                    ["교육구성", `총 ${certificate.totalLessons || requestedTotalLessons}강`],
                     ["교육시간", "온라인 동영상 교육 과정"],
-                    [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 강의 수강 완료" : `${certificate.completedLessons || 0}/${certificate.totalLessons || defaultCourse.modules.length}강 수강`],
+                    [isDetailDocument ? "이수 강의" : isCompletionCertificate ? "수료조건" : "수강상태", isDetailDocument ? (isCbtCertificate ? "4강 자동사고와 고위험 상황 점검 / 5강 대처기술과 재발방지 계획" : "교육과정 상세 내역") : isCompletionCertificate ? "전체 강의 수강 완료" : `${certificate.completedLessons || 0}/${certificate.totalLessons || requestedTotalLessons}강 수강`],
                     [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate.completedAt || issuedAt)],
                   ].map(([label, value]) => (
                     <div key={label} className="certificate-table-row grid grid-cols-[150px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">

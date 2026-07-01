@@ -1,6 +1,6 @@
 import type { User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
-import { defaultCourse } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse } from "@/lib/course/catalog";
 import { getApplicationCategory } from "@/lib/course/application-products";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
@@ -54,7 +54,7 @@ export type EnrollmentRecord = {
 };
 
 export const OPERATING_COURSE_ID = defaultCourse.id;
-export const APPLICATION_TO_COURSE_ID: Record<string, string> = { dui: defaultCourse.id };
+export const APPLICATION_TO_COURSE_ID: Record<string, string> = { dui: defaultCourse.id, cbt: DUI_CBT_ADVANCED_COURSE_ID };
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {
   if (!courseIdOrCategory || courseIdOrCategory === "dui") return defaultCourse.id;

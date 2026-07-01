@@ -94,36 +94,36 @@ export const courseCatalog: CourseDefinition[] = [
       },
       {
         id: "dui-lesson-4",
-        title: "4강. 재음주운전 위험 상황 진단과 차단 전략",
+        title: "4강. 인지행동기반 재발방지: 자동사고와 고위험 상황 점검",
         minutes: 10,
-        summary: "회식, 모임, 야간 귀가, 대리운전 취소, 차량을 미리 가져간 날처럼 반복되기 쉬운 장면을 중심으로 위험 상황을 분해합니다. 재발은 의지 부족만이 아니라 준비 부족에서도 생긴다는 점을 다룹니다.",
+        summary: "음주 후 운전으로 이어지는 자동사고, 감정 반응, 행동 선택의 연결고리를 CBT 관점에서 점검합니다. 반복되는 고위험 상황을 구체적으로 분해하고 다른 선택을 준비합니다.",
         highlights: [
-          "재발 가능성이 높은 시간대, 장소, 관계, 감정 상태 구분",
-          "술자리 전 준비와 술자리 중 차단 행동의 차이 이해",
-          "차량 키 보관, 동행 요청, 귀가 예약 같은 사전 장치 설계",
+          "음주운전으로 이어지는 자동사고와 합리화 언어 파악",
+          "감정, 장소, 관계, 시간대가 위험 행동에 미치는 영향 점검",
+          "고위험 상황별 대안 사고와 행동 차단 전략 설계",
         ],
         actionChecklist: [
-          "내 재발 위험 상황을 시간, 사람, 장소 기준으로 적어보기",
-          "술 마시는 날 차량을 아예 두고 가는 원칙 세우기",
-          "대리운전 실패 시 사용할 2차, 3차 대안 만들기",
+          "내가 반복해 온 자동사고 문장 3가지 적어보기",
+          "고위험 상황을 감정, 사람, 장소 기준으로 분류하기",
+          "위험 신호가 보일 때 사용할 대체 행동 2가지 정하기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-4.mp4",
         cloudflareStreamUid: "7c452891a700328cdb8f56cb39260970",
       },
       {
         id: "dui-lesson-5",
-        title: "5강. 가족·직장·사회적 신뢰 회복 행동 설계",
+        title: "5강. 인지행동기반 재발방지: 대처기술과 재발방지 계획",
         minutes: 10,
-        summary: "신뢰 회복은 말보다 반복 행동으로 이뤄진다는 전제에서 출발합니다. 가족, 동료, 지인 앞에서 보여줄 수 있는 구체 행동과 약속 관리 방식을 정리합니다.",
+        summary: "CBT 기반 대처기술을 활용해 음주 약속 전후의 행동 기준, 도움 요청, 대체 이동수단, 자기점검 루틴을 재발방지 계획으로 정리합니다.",
         highlights: [
-          "신뢰 회복에서 중요한 것은 해명보다 일관된 행동이라는 점 이해",
-          "가까운 관계에서 불안감을 낮추는 보고·공유 방식 설계",
-          "생활 루틴 변화가 재발 방지 신호가 되는 이유 파악",
+          "충동과 갈망이 올라오는 순간의 대처기술 이해",
+          "실패 가능성을 전제로 한 2차, 3차 안전 계획 구성",
+          "가족·직장과 공유할 재발방지 점검 루틴 설계",
         ],
         actionChecklist: [
-          "가족이나 동료에게 공유할 변화 계획 3가지 적기",
-          "음주 약속 전후로 보고할 기준 문장 만들기",
-          "한 달 동안 유지할 생활관리 항목 정리하기",
+          "위험 상황에서 사용할 멈춤 문장과 도움 요청 문장 만들기",
+          "대리운전 실패 시 사용할 2차, 3차 대안 정리하기",
+          "한 달간 점검할 CBT 재발방지 루틴 작성하기",
         ],
         secureVideoPath: "course-videos/rapid-sentencing-prep/lesson-5.mp4",
         cloudflareStreamUid: "afa89d104a50e779ee12112f1ec59655",
@@ -133,3 +133,7 @@ export const courseCatalog: CourseDefinition[] = [
 ];
 
 export const defaultCourse = courseCatalog[0];
+
+export const DUI_CBT_ADVANCED_COURSE_ID = "dui-cbt-advanced";
+export const duiBasicModules = defaultCourse.modules.slice(0, 3);
+export const duiCbtAdvancedModules = defaultCourse.modules.slice(3, 5);

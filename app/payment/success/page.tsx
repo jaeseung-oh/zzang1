@@ -262,8 +262,9 @@ function PortOnePaymentSuccessContent() {
         const idToken = await user.getIdToken();
         const raw = window.localStorage.getItem("resetedu:pending-portone-order");
         const pending = raw ? JSON.parse(raw) as { paymentId?: string; categoryId?: string; productId?: string; courseId?: string; amount?: number } : null;
+        const categoryId = pending?.categoryId || searchParams.get("categoryId") || searchParams.get("category") || "dui";
         const productId = pending?.productId || searchParams.get("productId") || "basic";
-        const product = getApplicationProduct("dui", productId);
+        const product = getApplicationProduct(categoryId, productId);
         const amount = typeof pending?.amount === "number" ? pending.amount : product?.price;
 
         const payload = await fetchJsonWithRetry(confirmUrl, {
@@ -276,7 +277,7 @@ function PortOnePaymentSuccessContent() {
             paymentId,
             uid: user.uid,
             courseId: pending?.courseId || searchParams.get("courseId") || duiPreventionCourseProduct.courseId,
-            categoryId: pending?.categoryId || "dui",
+            categoryId,
             productId,
             amount,
             legalDisclaimerAccepted: true,

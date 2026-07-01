@@ -6,7 +6,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { defaultCourse } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, duiCbtAdvancedModules } from "@/lib/course/catalog";
 import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -105,7 +105,9 @@ const disclaimer =
 
 // TODO: 실제 운영에서는 Cloudflare Stream signed URL 또는 서버 발급 토큰을 사용해 결제자와 관리자만 영상 재생 URL을 받을 수 있도록 구현해야 함.
 
-const localStorageKey = `course-room-progress:${defaultCourse.id}`;
+function getLocalStorageKey(courseId: string) {
+  return `course-room-progress:${courseId}`;
+}
 
 const lectureActivityEvent = "resetedu:lecture-activity";
 const completionThreshold = 95;
@@ -193,7 +195,7 @@ function truncateText(value: string, maxLength: number) {
 }
 
 
-async function resolveCloudflareStreamUrl(uid: string) {
+async function resolveCloudflareStreamUrl(uid: string, courseId: string) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
   if (!apiBaseUrl) {
     throw new Error("영상 토큰 발급 서버 URL이 설정되지 않았습니다.");
@@ -201,7 +203,7 @@ async function resolveCloudflareStreamUrl(uid: string) {
 
   const user = await requireAuthenticatedUser();
   const idToken = await user.getIdToken();
-  const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}&courseId=${encodeURIComponent(defaultCourse.id)}`, {
+  const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}&courseId=${encodeURIComponent(courseId)}`, {
     method: "GET",
     headers: { Authorization: "Bearer " + idToken },
   });
@@ -213,9 +215,9 @@ async function resolveCloudflareStreamUrl(uid: string) {
 
   return data.videoUrl;
 }
-function buildEmptyModuleProgress() {
+function buildEmptyModuleProgress(modules = defaultCourse.modules) {
   return Object.fromEntries(
-    defaultCourse.modules.map((module) => [
+    modules.map((module) => [
       module.id,
       {
         watchedSeconds: 0,
@@ -228,12 +230,12 @@ function buildEmptyModuleProgress() {
   ) as Record<string, ModuleProgressState>;
 }
 
-function readLocalSnapshot(): StoredPlaybackSnapshot | null {
+function readLocalSnapshot(courseId: string): StoredPlaybackSnapshot | null {
   if (typeof window === "undefined") {
     return null;
   }
 
-  const raw = window.localStorage.getItem(localStorageKey);
+  const raw = window.localStorage.getItem(getLocalStorageKey(courseId));
   if (!raw) {
     return null;
   }
@@ -252,7 +254,8 @@ function mergeModuleProgress(
 ) {
   const merged = { ...base };
 
-  for (const module of defaultCourse.modules) {
+  for (const moduleId of Object.keys(base)) {
+    const module = { id: moduleId };
     const fallback = base[module.id];
     const remoteItem = remote?.[module.id];
     const localItem = local?.[module.id];
@@ -319,16 +322,22 @@ function getModuleState(item: ModuleProgressState | undefined, active: boolean) 
 
 export default function CourseRoomPage() {
   const router = useRouter();
+  const [requestedCourseId] = useState(() => {
+    if (typeof window === "undefined") return defaultCourse.id;
+    return new URLSearchParams(window.location.search).get("courseId") === DUI_CBT_ADVANCED_COURSE_ID ? DUI_CBT_ADVANCED_COURSE_ID : defaultCourse.id;
+  });
+  const courseModules = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? duiCbtAdvancedModules : duiBasicModules;
+  const courseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동개선 교육" : defaultCourse.title;
   const [fullName, setFullName] = useState("");
   const [uid, setUid] = useState("");
   const [caseType, setCaseType] = useState<CaseType>("dui");
-  const [selectedModuleId, setSelectedModuleId] = useState(defaultCourse.modules[0]?.id ?? "");
+  const [selectedModuleId, setSelectedModuleId] = useState("");
   const [moduleProgress, setModuleProgress] = useState<Record<string, ModuleProgressState>>(buildEmptyModuleProgress);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [legalGateChecked, setLegalGateChecked] = useState(false);
   const [reviewAccepted, setReviewAccepted] = useState(false);
   const [purchaseNoticeAccepted, setPurchaseNoticeAccepted] = useState(false);
-  const [statusMessage, setStatusMessage] = useState("5강 수강 세션과 저장 상태를 준비하는 중입니다.");
+  const [statusMessage, setStatusMessage] = useState("수강 세션과 저장 상태를 준비하는 중입니다.");
   const [error, setError] = useState("");
   const [result, setResult] = useState<SaveCourseProgressResponse | null>(null);
   const [lastSavedLabel, setLastSavedLabel] = useState("저장 대기 중");
@@ -362,8 +371,8 @@ export default function CourseRoomPage() {
   });
 
   const selectedModule = useMemo(
-    () => defaultCourse.modules.find((module) => module.id === selectedModuleId) ?? defaultCourse.modules[0],
-    [selectedModuleId]
+    () => courseModules.find((module) => module.id === selectedModuleId) ?? courseModules[0],
+    [courseModules, selectedModuleId]
   );
 
   const fullNameRef = useRef(fullName);
@@ -408,15 +417,15 @@ export default function CourseRoomPage() {
   }, [moduleProgress]);
 
   const aggregate = useMemo(() => {
-    const totalDurationSeconds = defaultCourse.modules.reduce(
+    const totalDurationSeconds = courseModules.reduce(
       (sum, module) => sum + (moduleProgress[module.id]?.durationSeconds ?? 0),
       0
     );
-    const watchedSeconds = defaultCourse.modules.reduce(
+    const watchedSeconds = courseModules.reduce(
       (sum, module) => sum + (moduleProgress[module.id]?.watchedSeconds ?? 0),
       0
     );
-    const completedModuleCount = defaultCourse.modules.filter((module) => moduleProgress[module.id]?.isCompleted).length;
+    const completedModuleCount = courseModules.filter((module) => moduleProgress[module.id]?.isCompleted).length;
     const completionRate = totalDurationSeconds > 0 ? Math.floor((watchedSeconds / totalDurationSeconds) * 100) : 0;
     const remainingSeconds = Math.max(totalDurationSeconds - watchedSeconds, 0);
 
@@ -424,17 +433,17 @@ export default function CourseRoomPage() {
       totalDurationSeconds,
       watchedSeconds,
       completedModuleCount,
-      totalModuleCount: defaultCourse.modules.length,
+      totalModuleCount: courseModules.length,
       completionRate,
       remainingSeconds,
-      isCompleted: completedModuleCount === defaultCourse.modules.length,
+      isCompleted: completedModuleCount === courseModules.length,
     };
   }, [moduleProgress]);
 
-  const selectedModuleIndex = useMemo(() => defaultCourse.modules.findIndex((module) => module.id === selectedModuleId), [selectedModuleId]);
-  const previousModule = selectedModuleIndex > 0 ? defaultCourse.modules[selectedModuleIndex - 1] : null;
-  const nextModule = selectedModuleIndex >= 0 && selectedModuleIndex < defaultCourse.modules.length - 1 ? defaultCourse.modules[selectedModuleIndex + 1] : null;
-  const selectedProgress = moduleProgress[selectedModuleId] ?? buildEmptyModuleProgress()[selectedModuleId];
+  const selectedModuleIndex = useMemo(() => courseModules.findIndex((module) => module.id === selectedModuleId), [selectedModuleId]);
+  const previousModule = selectedModuleIndex > 0 ? courseModules[selectedModuleIndex - 1] : null;
+  const nextModule = selectedModuleIndex >= 0 && selectedModuleIndex < courseModules.length - 1 ? courseModules[selectedModuleIndex + 1] : null;
+  const selectedProgress = moduleProgress[selectedModuleId] ?? buildEmptyModuleProgress(courseModules)[selectedModule?.id ?? courseModules[0]?.id ?? ""] ?? { watchedSeconds: 0, durationSeconds: 1, completionRate: 0, lastPlaybackPositionSeconds: 0, isCompleted: false };
   const selectedProgressRef = useRef(selectedProgress);
 
   useEffect(() => {
@@ -469,9 +478,9 @@ export default function CourseRoomPage() {
         const adminBypass = isSuperAdmin(user);
         setAdminPreview(adminBypass);
         const enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
-        const enrollment = enrollments.find((item) => item.courseId === defaultCourse.id && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === defaultCourse.id);
+        const enrollment = enrollments.find((item) => item.courseId === requestedCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === requestedCourseId);
         const allowed = adminBypass || isEnrollmentActive(enrollment);
-        const documentFormsAllowed = enrollments.some((item) => item.courseId === defaultCourse.id && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
+        const documentFormsAllowed = enrollments.some((item) => item.courseId === requestedCourseId && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
         setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
 
         if (!allowed) {
@@ -482,19 +491,19 @@ export default function CourseRoomPage() {
           setAccessBlockedMessage(message);
           setPlayerError(message);
           setAccessChecking(false);
-          router.replace("/courses/apply/?category=dui&notice=" + encodeURIComponent(message));
+          router.replace((requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "/courses/apply/?category=cbt&productId=dui-cbt-advanced&notice=" : "/courses/apply/?category=dui&notice=") + encodeURIComponent(message));
           return;
         } else {
           setAccessBlockedMessage("");
         }
         setAccessChecking(false);
-        const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + defaultCourse.id));
+        const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + requestedCourseId));
         const remote = progressSnapshot.exists() ? (progressSnapshot.data() as ProgressRecord) : null;
-        const local = readLocalSnapshot();
-        const mergedProgress = mergeModuleProgress(buildEmptyModuleProgress(), remote?.moduleProgress, local?.moduleProgress);
+        const local = readLocalSnapshot(requestedCourseId);
+        const mergedProgress = mergeModuleProgress(buildEmptyModuleProgress(courseModules), remote?.moduleProgress, local?.moduleProgress);
         const initialModuleId = remote?.moduleProgress?.[selectedModuleId]?.lastPlaybackPositionSeconds
           ? selectedModuleId
-          : local?.selectedModuleId ?? defaultCourse.modules[0]?.id ?? "";
+          : (local?.selectedModuleId && courseModules.some((module) => module.id === local.selectedModuleId) ? local.selectedModuleId : courseModules[0]?.id ?? "");
 
         setModuleProgress(mergedProgress);
         setSelectedModuleId(initialModuleId);
@@ -515,7 +524,7 @@ export default function CourseRoomPage() {
           if (message === "AUTH_LOGIN_REQUIRED") {
             router.replace("/login?next=/course-room");
             setError("로그인한 회원만 강의실에 접근할 수 있습니다.");
-            setStatusMessage("로그인이 필요합니다.");
+            setStatusMessage("undefined");
             return;
           }
 
@@ -531,7 +540,7 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, requestedCourseId, courseModules]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -539,7 +548,7 @@ export default function CourseRoomPage() {
     }
 
     window.localStorage.setItem(
-      localStorageKey,
+      getLocalStorageKey(requestedCourseId),
       JSON.stringify({
         caseType,
         selectedModuleId,
@@ -551,7 +560,7 @@ export default function CourseRoomPage() {
         savedAt: new Date().toLocaleString("ko-KR"),
       } satisfies StoredPlaybackSnapshot)
     );
-  }, [caseType, selectedModuleId, legalAccepted, reviewAccepted, purchaseNoticeAccepted, moduleProgress]);
+  }, [requestedCourseId, caseType, selectedModuleId, legalAccepted, reviewAccepted, purchaseNoticeAccepted, moduleProgress]);
 
   useEffect(() => {
     return () => {
@@ -583,7 +592,7 @@ export default function CourseRoomPage() {
 
     const currentTime = getActivePlaybackSeconds();
     const duration = Math.max(item.durationSeconds, selectedProgressRef.current.durationSeconds, 1);
-    return moduleProgressToLessonProgress(userId, defaultCourse.id, lessonId, {
+    return moduleProgressToLessonProgress(userId, requestedCourseId, lessonId, {
       ...item,
       durationSeconds: duration,
       lastPlaybackPositionSeconds: Math.min(duration, currentTime),
@@ -724,7 +733,7 @@ export default function CourseRoomPage() {
             return;
           }
 
-          const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid);
+          const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, requestedCourseId);
 
           if (cancelled) {
             return;
@@ -743,7 +752,7 @@ export default function CourseRoomPage() {
         } else {
           const { functions } = getFirebaseServices();
           const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
-          const response = await callable({ courseId: defaultCourse.id, moduleId: selectedModule.id });
+          const response = await callable({ courseId: requestedCourseId, moduleId: selectedModule.id });
 
           if (cancelled) {
             return;
@@ -831,7 +840,7 @@ export default function CourseRoomPage() {
     };
 
     const handleStreamPlay = () => {
-      trackCourseStart(defaultCourse.id, selectedModule?.id);
+      trackCourseStart(requestedCourseId, selectedModule?.id);
       dispatchLectureActivity(true);
     };
 
@@ -900,14 +909,14 @@ export default function CourseRoomPage() {
       const refresh = async () => {
         try {
           if (selectedModule.cloudflareStreamUid) {
-            const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid);
+            const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, requestedCourseId);
             setVideoProvider("cloudflare-stream");
             setVideoUrl(streamUrl);
             setVideoExpiresAt(Date.now() + 1000 * 60 * 55);
           } else {
             const { functions } = getFirebaseServices();
             const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
-            const response = await callable({ courseId: defaultCourse.id, moduleId: selectedModule.id });
+            const response = await callable({ courseId: requestedCourseId, moduleId: selectedModule.id });
             setVideoProvider(response.data.provider ?? "storage");
             setVideoUrl(response.data.videoUrl);
             setVideoExpiresAt(response.data.expiresAt);
@@ -944,16 +953,16 @@ export default function CourseRoomPage() {
 
     const activeModuleId = selectedModuleIdRef.current;
     const activeProgress = moduleProgressRef.current[activeModuleId];
-    const totalDurationSeconds = defaultCourse.modules.reduce(
+    const totalDurationSeconds = courseModules.reduce(
       (sum, module) => sum + (moduleProgressRef.current[module.id]?.durationSeconds ?? 0),
       0
     );
-    const totalWatchedSeconds = defaultCourse.modules.reduce(
+    const totalWatchedSeconds = courseModules.reduce(
       (sum, module) => sum + (moduleProgressRef.current[module.id]?.watchedSeconds ?? 0),
       0
     );
     const completionRate = totalDurationSeconds > 0 ? Math.floor((totalWatchedSeconds / totalDurationSeconds) * 100) : 0;
-    const isCompleted = defaultCourse.modules.every((module) => moduleProgressRef.current[module.id]?.isCompleted);
+    const isCompleted = courseModules.every((module) => moduleProgressRef.current[module.id]?.isCompleted);
 
     if (
       mode === "auto" &&
@@ -995,8 +1004,8 @@ export default function CourseRoomPage() {
       >(functions, "saveCourseProgress");
 
       const response = await callable({
-        courseId: defaultCourse.id,
-        courseTitle: defaultCourse.title,
+        courseId: requestedCourseId,
+        courseTitle: courseTitle,
         caseType: caseTypeRef.current,
         watchedSeconds: totalWatchedSeconds,
         durationSeconds: totalDurationSeconds,
@@ -1017,7 +1026,7 @@ export default function CourseRoomPage() {
       void syncCurrentLessonBackup();
 
       if (response.data.isCompleted) {
-        trackCourseComplete(defaultCourse.id);
+        trackCourseComplete(requestedCourseId);
       }
 
       if (response.data.issuedCertificates.length) {
@@ -1111,7 +1120,7 @@ export default function CourseRoomPage() {
   };
 
   const handlePlay = () => {
-    trackCourseStart(defaultCourse.id, selectedModule?.id);
+    trackCourseStart(requestedCourseId, selectedModule?.id);
     dispatchLectureActivity(true);
   };
 
@@ -1145,8 +1154,8 @@ export default function CourseRoomPage() {
       return;
     }
 
-    const moduleIndex = defaultCourse.modules.findIndex((module) => module.id === moduleId);
-    const previousModule = moduleIndex > 0 ? defaultCourse.modules[moduleIndex - 1] : null;
+    const moduleIndex = courseModules.findIndex((module) => module.id === moduleId);
+    const previousModule = moduleIndex > 0 ? courseModules[moduleIndex - 1] : null;
     if (previousModule && !moduleProgress[previousModule.id]?.isCompleted) {
       setStatusMessage("잠금 강의입니다. 바로 이전 강의를 완료하면 순차적으로 열립니다.");
       return;
@@ -1185,11 +1194,11 @@ export default function CourseRoomPage() {
     try {
       const { db } = getFirebaseServices();
       await setDoc(
-        doc(db, "courseProgress", `${uidRef.current}_${defaultCourse.id}`),
+        doc(db, "courseProgress", `${uidRef.current}_${requestedCourseId}`),
         {
           uid: uidRef.current,
-          courseId: defaultCourse.id,
-          courseTitle: defaultCourse.title,
+          courseId: requestedCourseId,
+          courseTitle: courseTitle,
           caseType: caseTypeRef.current,
           legalDisclaimerAccepted: true,
           legalNoticeAcceptedAt: serverTimestamp(),
@@ -1287,7 +1296,7 @@ export default function CourseRoomPage() {
                 {adminPreview ? <span className="rounded-full border border-slate-300/30 bg-slate-950 px-3 py-1 text-[11px] text-white">관리자 접근</span> : null}
               </div>
               <h1 className="mt-4 max-w-4xl break-keep text-2xl font-black tracking-[-0.03em] text-white sm:text-4xl sm:tracking-[-0.05em] lg:text-[2.9rem]">
-                {defaultCourse.title}
+                {courseTitle}
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
                 {defaultCourse.subtitle}. 결제 확인, 강의별 재생 이력, 전체 진도율, 발급 안내를 하나의 학습 화면에서 관리합니다.
@@ -1425,12 +1434,12 @@ export default function CourseRoomPage() {
             </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-              {defaultCourse.modules.map((module, index) => {
+              {courseModules.map((module, index) => {
                 const progress = moduleProgress[module.id];
                 const active = module.id === selectedModuleId;
                 const rate = progress?.completionRate ?? 0;
                 const completed = Boolean(progress?.isCompleted);
-                const locked = index > 0 && !moduleProgress[defaultCourse.modules[index - 1].id]?.isCompleted;
+                const locked = index > 0 && !moduleProgress[courseModules[index - 1].id]?.isCompleted;
 
                 return (
                   <button
@@ -1678,7 +1687,7 @@ export default function CourseRoomPage() {
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <p className="text-xs uppercase tracking-[0.18em] text-amber-200">주문 과정</p>
-                      <p className="mt-2 font-semibold text-slate-100">{defaultCourse.title}</p>
+                      <p className="mt-2 font-semibold text-slate-100">{courseTitle}</p>
                     </div>
                     <span className="rounded-full border border-amber-300 bg-amber-300 px-3 py-1 text-xs font-black text-slate-950">
                       {defaultCourse.priceLabel}
@@ -1687,7 +1696,7 @@ export default function CourseRoomPage() {
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">제공 내용</p>
-                      <p className="mt-1.5 text-slate-100">온라인 강의 {defaultCourse.modules.length}강, 학습확인 자료 안내</p>
+                      <p className="mt-1.5 text-slate-100">온라인 강의 {courseModules.length}강, 학습확인 자료 안내</p>
                     </div>
                     <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">수강 유효기간</p>
