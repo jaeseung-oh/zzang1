@@ -433,7 +433,6 @@ function CertificatePageContent() {
           }
           .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 7mm 9mm !important; border-width: 2px !important; overflow: hidden !important; }
           .certificate-title { margin-top: 8mm !important; font-size: 31px !important; }
-          .certificate-detail-heading { margin-top: 5mm !important; }
           .certificate-no { margin-top: 0 !important; font-size: 11px !important; }
           .certificate-person { margin-top: 7mm !important; padding: 4mm !important; }
           .certificate-identity-value { font-size: 17px !important; }
@@ -513,8 +512,6 @@ function CertificatePageContent() {
 
                 {isDetailDocument ? (
                   <div className="certificate-detail mt-8 text-left text-sm leading-6 text-slate-900">
-                    <p className="certificate-detail-heading rounded-xl border-2 border-[#d9c08a] bg-[#fffaf0] px-5 py-4 text-center text-xl font-black tracking-[-0.02em] text-slate-950 shadow-[0_10px_28px_rgba(138,106,45,0.08)]">교육이수 상세내역서</p>
-
                     <section className="certificate-detail-section mt-4">
                       <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">1</span>교육 이수자 정보</h3>
                       <div className="overflow-hidden rounded-lg border border-[#d9c08a] bg-white">
