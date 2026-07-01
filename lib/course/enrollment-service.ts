@@ -62,10 +62,14 @@ export function resolveCourseId(courseIdOrCategory?: string | null) {
 }
 
 export function getCourseAvailability(courseIdOrCategory?: string | null) {
-  const categoryId = courseIdOrCategory === defaultCourse.id ? "dui" : courseIdOrCategory || "dui";
+  const resolvedCourseId = resolveCourseId(courseIdOrCategory);
+  if (resolvedCourseId === DUI_CBT_ADVANCED_COURSE_ID) {
+    return { exists: true, available: true, comingSoon: false, title: "인지행동기반 재발방지교육 심화과정" };
+  }
+  const categoryId = resolvedCourseId === defaultCourse.id ? "dui" : courseIdOrCategory || "dui";
   const category = getApplicationCategory(categoryId);
   if (!category) {
-    return { exists: courseIdOrCategory === defaultCourse.id, available: courseIdOrCategory === defaultCourse.id, comingSoon: false, title: defaultCourse.title };
+    return { exists: resolvedCourseId === defaultCourse.id, available: resolvedCourseId === defaultCourse.id, comingSoon: false, title: defaultCourse.title };
   }
   return { exists: true, available: category.status === "available", comingSoon: category.status !== "available", title: category.title };
 }

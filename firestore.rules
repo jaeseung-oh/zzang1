@@ -191,7 +191,7 @@ service cloud.firestore {
     match /certificates/{certificateId} {
       allow read: if isAdmin() || (isSignedIn()
         && resource.data.uid == request.auth.uid
-        && resource.data.documentType == "completion");
+        && resource.data.documentType in ["completion", "cbt-completion"]);
       allow update: if isAdminMemoOnlyUpdate();
       allow create, delete: if false;
     }

@@ -643,17 +643,26 @@ function isExplicitlyBlockedEnrollmentRecord(enrollment) {
         || ['cancelled', 'canceled', 'refunded'].includes(accessStatus);
 }
 
+function resolveApplicationProductIdFromRecord(source = {}, fallbackProductId = 'basic') {
+    const sourceAmount = Number(source.amount || source.totalAmount || 0);
+    if (source.productId === 'dui-cbt-advanced' || source.courseId === CBT_COURSE_PRODUCT.courseId || sourceAmount >= APPLICATION_PRODUCTS['dui-cbt-advanced'].amount) {
+        return 'dui-cbt-advanced';
+    }
+    if (source.productId === 'dui-documents' || sourceAmount >= APPLICATION_PRODUCTS['dui-documents'].amount) {
+        return 'dui-documents';
+    }
+    return source.productId || fallbackProductId;
+}
+
 async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canonicalPath) {
     const nowIso = new Date().toISOString();
-    const sourceAmount = Number(source.amount);
-    const sourceProductId = source.productId === 'dui-documents' || sourceAmount >= 89000
-        ? 'dui-documents' : (source.productId || 'basic');
+    const sourceProductId = resolveApplicationProductIdFromRecord(source);
     const repaired = {
         enrollmentId: uid + '_' + courseId,
         userId: uid,
         uid,
         courseId,
-        courseTitle: source.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: source.courseTitle || APPLICATION_PRODUCTS[sourceProductId]?.courseTitle || getCourseProduct(courseId)?.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
         categoryId: source.categoryId || 'dui',
         productId: sourceProductId,
         productTitle: source.productTitle || APPLICATION_PRODUCTS[sourceProductId]?.title || APPLICATION_PRODUCTS.basic.title,
@@ -666,7 +675,7 @@ async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canon
         accessStatus: 'active',
         progress: Number(source.progress) || 0,
         completedLessons: Number(source.completedLessons) || 0,
-        totalLessons: Number(source.totalLessons) || DUI_COURSE_PRODUCT.totalLessons,
+        totalLessons: Number(source.totalLessons) || APPLICATION_PRODUCTS[sourceProductId]?.totalLessons || getCourseProduct(courseId)?.totalLessons || DUI_COURSE_PRODUCT.totalLessons,
         certificateIssued: Boolean(source.certificateIssued),
         certificateIssuedAt: source.certificateIssuedAt || null,
         certificateId: source.certificateId || null,
@@ -745,7 +754,7 @@ async function getWorkerEnrollmentRecord(env, uid, courseId) {
             const purchasedAt = row.purchasedAt || row.approvedAt || row.orderedAt || row.createdAt || null;
             const purchasedTime = purchasedAt ? new Date(purchasedAt).getTime() : NaN;
             const expiresAt = row.expiresAt || (Number.isFinite(purchasedTime)
-                ? new Date(purchasedTime + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString()
+                ? new Date(purchasedTime + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString()
                 : null);
             return {
                 ...row,
@@ -792,16 +801,15 @@ async function enrichWorkerEnrollmentEntitlement(env, uid, courseId, enrollment)
         if (!entitlement) return enrollment;
 
         const amount = Number(entitlement.amount ?? enrollment.amount);
-        const productTitle = String(entitlement.productTitle || enrollment.productTitle || '');
-        const premium = entitlement.productId === 'dui-documents'
-            || enrollment.productId === 'dui-documents'
-            || amount >= 89000
-            || productTitle.replace(/\s/g, '').includes('서식포함');
+        const resolvedProductId = resolveApplicationProductIdFromRecord({ ...enrollment, ...entitlement, amount }, enrollment.productId || 'basic');
+        const product = APPLICATION_PRODUCTS[resolvedProductId] || APPLICATION_PRODUCTS.basic;
         return {
             ...enrollment,
-            categoryId: entitlement.categoryId || enrollment.categoryId || 'dui',
-            productId: premium ? 'dui-documents' : (entitlement.productId || enrollment.productId || 'basic'),
-            productTitle: premium ? APPLICATION_PRODUCTS['dui-documents'].title : (entitlement.productTitle || enrollment.productTitle),
+            categoryId: entitlement.categoryId || enrollment.categoryId || product.categoryId || 'dui',
+            productId: resolvedProductId,
+            productTitle: entitlement.productTitle || enrollment.productTitle || product.title,
+            courseTitle: enrollment.courseTitle || product.courseTitle,
+            totalLessons: Number(enrollment.totalLessons) || product.totalLessons,
             amount: Number.isFinite(amount) && amount > 0 ? amount : enrollment.amount
         };
     } catch (error) {
@@ -826,7 +834,7 @@ function buildEnrollmentApiRecord(enrollment, progress) {
         userId: enrollment.userId || enrollment.uid,
         uid: enrollment.uid || enrollment.userId,
         courseId: enrollment.courseId,
-        courseTitle: enrollment.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: enrollment.courseTitle || product.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
         categoryId: enrollment.categoryId || product.categoryId,
         productId: enrollment.productId || product.productId,
         productTitle: enrollment.productTitle || product.title,
@@ -840,7 +848,7 @@ function buildEnrollmentApiRecord(enrollment, progress) {
         expiresAt: enrollment.expiresAt || null,
         progress: Math.max(0, Math.min(100, Number.isFinite(progressRate) ? progressRate : 0)),
         completedLessons: Number.isFinite(completedLessons) ? completedLessons : 0,
-        totalLessons: Number.isFinite(totalLessons) ? totalLessons : DUI_COURSE_PRODUCT.totalLessons,
+        totalLessons: Number.isFinite(totalLessons) ? totalLessons : product.totalLessons,
         certificateIssued: Boolean(enrollment.certificateIssued),
         certificateId: enrollment.certificateId || null,
         certificateNo: enrollment.certificateNo || null,
@@ -849,14 +857,17 @@ function buildEnrollmentApiRecord(enrollment, progress) {
 
 async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
     const uid = firebaseUser.uid;
-    const currentCourseEnrollment = await getWorkerEnrollmentRecord(env, uid, DUI_COURSE_PRODUCT.courseId);
+    const [currentCourseEnrollment, advancedCourseEnrollment] = await Promise.all([
+        getWorkerEnrollmentRecord(env, uid, DUI_COURSE_PRODUCT.courseId),
+        getWorkerEnrollmentRecord(env, uid, CBT_COURSE_PRODUCT.courseId)
+    ]);
     const [byUserId, byUid] = await Promise.all([
         firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]),
         firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }])
     ]);
 
     const byCourse = new Map();
-    [currentCourseEnrollment, ...byUserId, ...byUid]
+    [currentCourseEnrollment, advancedCourseEnrollment, ...byUserId, ...byUid]
         .filter((enrollment) => enrollment?.courseId && isFirestoreEnrollmentActiveRecord(enrollment))
         .forEach((enrollment) => {
             const existing = byCourse.get(enrollment.courseId);
@@ -1219,8 +1230,8 @@ const CBT_COURSE_PRODUCT = {
     price: 290000,
     currency: 'KRW',
     durationDays: 90,
-    totalLessons: 5,
-    pricePerLesson: 58000,
+    totalLessons: 2,
+    pricePerLesson: 145000,
     description: '인지행동기반 재발방지 교육 심화과정',
     certificateAvailable: true
 };
@@ -1973,6 +1984,50 @@ async function getPortOnePayment(env, paymentId) {
     return data;
 }
 
+async function ensureIncludedBasicEnrollment(env, uid, context) {
+    const enrollmentId = uid + '_' + DUI_COURSE_PRODUCT.courseId;
+    const enrollmentPath = firestoreDocumentPath(env, 'enrollments', enrollmentId);
+    const existingEnrollment = await firestoreGet(env, enrollmentPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingEnrollment) {
+        const existing = fromFirestoreFields(existingEnrollment.fields || {});
+        if (isFirestoreEnrollmentActiveRecord(existing)) return existing;
+    }
+
+    const nowIso = new Date().toISOString();
+    const purchasedAt = context.purchasedAt || nowIso;
+    const expiresAt = context.expiresAt || new Date(new Date(purchasedAt).getTime() + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const orderId = (context.orderId || context.paymentId || 'included') + '_basic_included';
+    const record = {
+        enrollmentId,
+        userId: uid,
+        uid,
+        courseId: DUI_COURSE_PRODUCT.courseId,
+        categoryId: 'dui',
+        productId: 'dui-documents',
+        productTitle: APPLICATION_PRODUCTS['dui-documents'].title,
+        amount: APPLICATION_PRODUCTS['dui-documents'].amount,
+        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        paymentId: context.paymentId || context.orderId || orderId,
+        orderId,
+        purchasedAt,
+        expiresAt,
+        paymentStatus: 'paid',
+        accessStatus: 'active',
+        progress: 0,
+        completedLessons: 0,
+        totalLessons: DUI_COURSE_PRODUCT.totalLessons,
+        certificateIssued: false,
+        certificateIssuedAt: null,
+        includedWithProductId: 'dui-cbt-advanced',
+        includedWithOrderId: context.orderId || null,
+        recoveredFrom: context.source || 'dui-cbt-advanced_included_access',
+        createdAt: nowIso,
+        updatedAt: nowIso
+    };
+    await firestorePatch(env, enrollmentPath, record);
+    return { ...record, id: enrollmentId, documentPath: enrollmentPath, recordSource: 'included_access' };
+}
+
 async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders) {
     const paymentId = String(body?.paymentId || '').trim();
     const pendingOrder = await getPendingPaymentRecord(env, paymentId);
@@ -1981,6 +2036,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
     const productId = String(body?.productId || pendingOrder?.productId || 'basic').trim();
     const categoryId = String(body?.categoryId || pendingOrder?.categoryId || 'dui').trim();
     const amount = typeof body?.amount === 'number' ? body.amount : (typeof pendingOrder?.amount === 'number' ? pendingOrder.amount : undefined);
+    const product = getApplicationProductForPayment(productId);
     if (!paymentId || !uid || !courseId || !productId) {
         return json({ message: 'paymentId, uid, courseId, productId가 모두 필요합니다.', code: 'MISSING_FIELDS' }, 400, corsHeaders);
     }
@@ -1991,7 +2047,6 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         return json({ message: '지원하지 않는 교육 상품입니다.', code: 'INVALID_PRODUCT' }, 400, corsHeaders);
     }
 
-    const product = getApplicationProductForPayment(productId);
     if (!product) {
         return json({ message: '결제 상품 정보가 올바르지 않습니다.', code: 'INVALID_PRODUCT' }, 400, corsHeaders);
     }
@@ -2074,7 +2129,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
 
     const approvedAt = getPortOnePaidAt(approved);
     const purchasedAt = new Date(approvedAt);
-    const expiresAt = new Date(purchasedAt.getTime() + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(purchasedAt.getTime() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();
     const receiptUrl = getPortOneReceiptUrl(approved);
     const method = getPortOnePaymentMethod(approved);
@@ -2126,6 +2181,9 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         await firestorePatch(env, orderDocPath, paymentRecord);
         if (body.source === 'portone_webhook') await logWebhookStep(env, 'payment_record_saved', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
         await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
+        if (productId === 'dui-cbt-advanced') {
+            await ensureIncludedBasicEnrollment(env, uid, { paymentId, orderId, purchasedAt: purchasedAt.toISOString(), expiresAt, method, receiptUrl, categoryId, source: body.source || 'portone_confirm' });
+        }
         if (body.source === 'portone_webhook') await logWebhookStep(env, 'enrollment_created', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
         await firestorePatch(env, paymentKeyPath, { paymentKey: paymentId, paymentId, orderId, userId: uid, courseId, createdAt: nowIso });
@@ -2485,7 +2543,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     }
 
     const nowIso = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(Date.now() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     const safeUid = uid.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) || 'user';
     const orderId = 'manual_' + Date.now().toString(36) + '_' + safeUid;
 
@@ -2499,8 +2557,8 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         categoryId,
         productId,
         productTitle: product.title,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        orderName: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
+        orderName: product.courseTitle,
         amount: amount ?? product.amount,
         method: 'admin_manual',
         status: 'paid',
@@ -2521,7 +2579,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         categoryId,
         productId,
         productTitle: product.title,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
         paymentId: orderId,
         orderId,
         purchasedAt: nowIso,
@@ -2530,7 +2588,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         accessStatus: 'active',
         progress: 0,
         completedLessons: 0,
-        totalLessons: DUI_COURSE_PRODUCT.totalLessons,
+        totalLessons: product.totalLessons,
         certificateIssued: false,
         certificateIssuedAt: null,
         adminGranted: true,
@@ -2543,7 +2601,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         uid,
         userId: uid,
         courseId,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
         categoryId,
         productId,
         productTitle: product.title,
@@ -2560,7 +2618,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         expiresAt,
         accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays,
         accessValidMonths: 3,
-        totalLessons: DUI_COURSE_PRODUCT.totalLessons,
+        totalLessons: product.totalLessons,
         completedLessons: 0,
         certificateIssued: false,
         adminGranted: true,

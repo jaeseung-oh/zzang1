@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiCbtAdvancedModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, duiCbtAdvancedModules } from "@/lib/course/catalog";
 import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -137,14 +137,14 @@ function CertificatePageContent() {
   const requestedCourseId = searchParams.get("courseId") === DUI_CBT_ADVANCED_COURSE_ID ? DUI_CBT_ADVANCED_COURSE_ID : defaultCourse.id;
   const requestedDocumentType = searchParams.get("documentType") || "";
   const requestedCourseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육 심화과정" : defaultCourse.title;
-  const requestedTotalLessons = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? duiCbtAdvancedModules.length : defaultCourse.modules.length;
+  const requestedTotalLessons = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? duiCbtAdvancedModules.length : duiBasicModules.length;
   const expectedCertificateId = uid ? `${uid}_${requestedCourseId}` : "";
   const profileBirthDate = profile?.certificateIdentity?.dateOfBirth || profile?.dateOfBirth || profile?.birthDate || "";
   const profileName = profile?.certificateIdentity?.realName || profile?.realName || profile?.fullName || "";
   const needsBirthDate = Boolean(uid && profile && !profileBirthDate && !certificate);
 
   const buildAdminPreviewCertificate = (userId: string, email: string, documentType: "attendance" | "completion"): CertificateRecord => {
-    const completedLessons = documentType === "completion" ? defaultCourse.modules.length : 1;
+    const completedLessons = documentType === "completion" ? duiBasicModules.length : 1;
     return {
       certificateId: `admin_preview_${documentType}`,
       certificateNo: documentType === "completion" ? "PREVIEW-COMPLETION" : "PREVIEW-ATTENDANCE",
@@ -156,7 +156,7 @@ function CertificatePageContent() {
       email,
       courseId: defaultCourse.id,
       courseTitle: defaultCourse.title,
-      totalLessons: defaultCourse.modules.length,
+      totalLessons: duiBasicModules.length,
       completedLessons,
       completedAt: new Date(),
       issuedAt: new Date(),
@@ -228,7 +228,7 @@ function CertificatePageContent() {
         const existing = await loadCertificate(user.uid, allowAdmin);
         if (existing) {
           setCertificate(existing);
-          setNotice("음주운전 예방교육 서류가 발급되었습니다.");
+          setNotice("요청한 교육 이수 서류가 발급되었습니다.");
         } else {
           setNotice("관리자 미리보기입니다.");
         }
@@ -271,7 +271,7 @@ function CertificatePageContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ courseId: requestedCourseId }),
+        body: JSON.stringify({ courseId: requestedCourseId, documentType: requestedDocumentType || undefined }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {
@@ -346,12 +346,16 @@ function CertificatePageContent() {
   const documentHeading = isDetailDocument ? "이 수 상 세 내 역 서" : isCbtCertificate ? "이 수 증" : isCompletionCertificate ? "수 료 증" : "수 강 확 인 증";
   const documentEnglishTitle = isDetailDocument ? "TRAINING COMPLETION DETAILS" : isCompletionCertificate ? "CERTIFICATE OF COMPLETION" : "CERTIFICATE OF ATTENDANCE";
   const documentBody = isDetailDocument
-    ? "위 사람은 본 기관에서 운영하는 인지행동기반 재발방지교육 심화과정을 수강하였으며, 아래와 같이 교육 이수 상세 내역을 확인합니다."
+    ? "위 사람은 본 기관에서 운영하는 음주운전 예방교육과 인지행동기반 재발방지교육으로 구성된 재범방지 교육과정을 성실히 이수하였기에 아래와 같이 상세 교육 내역을 확인합니다."
     : isCbtCertificate
-      ? "위 사람은 본 기관에서 운영하는 「인지행동기반 재발방지교육」 심화과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
+      ? "위 사람은 본 기관에서 운영하는 「인지행동기반 재발방지교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
       : isCompletionCertificate
         ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
         : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
+
+  const displayedTotalLessons = isDetailDocument ? 5 : requestedTotalLessons;
+  const displayedCourseTitle = isDetailDocument ? "음주운전 예방교육 및 인지행동기반 재발방지교육 통합과정" : requestedCourseTitle;
+  const detailEducationContent = "음주운전의 실제 위험과 사고 흐름 이해, 알코올이 판단력과 운전능력에 미치는 영향, 사고 사례와 법적·사회적 책임 구조, 자동사고와 고위험 상황 점검, 대처기술과 개인별 재발방지 계획 수립";
 
   const openPrintDialog = (mode: "print" | "pdf") => {
     if (!certificate) return;
@@ -493,11 +497,11 @@ function CertificatePageContent() {
 
                 <div className="certificate-table mt-10 overflow-hidden rounded-xl border border-[#d9c08a] text-left text-base">
                   {[
-                    ["교육과정명", requestedCourseTitle],
+                    ["교육과정명", displayedCourseTitle],
                     ["교육방식", "온라인 교육"],
-                    ["교육구성", `총 ${certificate.totalLessons || requestedTotalLessons}강`],
+                    ["교육구성", isDetailDocument ? "음주운전 예방교육 및 인지행동기반 재발방지교육" : "온라인 예방교육 수강"],
                     ["교육시간", "온라인 동영상 교육 과정"],
-                    [isDetailDocument ? "이수 강의" : isCompletionCertificate ? "수료조건" : "수강상태", isDetailDocument ? (isCbtCertificate ? "4강 자동사고와 고위험 상황 점검 / 5강 대처기술과 재발방지 계획" : "교육과정 상세 내역") : isCompletionCertificate ? "전체 강의 수강 완료" : `${certificate.completedLessons || 0}/${certificate.totalLessons || requestedTotalLessons}강 수강`],
+                    [isDetailDocument ? "상세 교육내용" : isCompletionCertificate ? "수료조건" : "수강상태", isDetailDocument ? detailEducationContent : isCompletionCertificate ? "전체 교육 수강 완료" : "온라인 예방교육 수강 중"],
                     [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate.completedAt || issuedAt)],
                   ].map(([label, value]) => (
                     <div key={label} className="certificate-table-row grid grid-cols-[150px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">

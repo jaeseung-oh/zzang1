@@ -425,8 +425,8 @@ export default function CheckoutContent() {
                 <dd className="mt-1 text-sm font-bold text-slate-950">{selectedProduct.courseId ? selectedProduct.title : defaultCourse.title}</dd>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                <dt className="text-xs font-semibold text-slate-500">강의 수</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-950">총 {selectedTotalLessons}강</dd>
+                <dt className="text-xs font-semibold text-slate-500">교육 구성</dt>
+                <dd className="mt-1 text-sm font-bold text-slate-950">온라인 예방교육</dd>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">수강기간</dt>
@@ -441,7 +441,7 @@ export default function CheckoutContent() {
             <div className="mt-4 rounded-2xl border border-[#d3b271]/45 bg-[#fffaf0] p-4 sm:p-5">
               <p className="text-sm font-bold text-[#10213f]">결제 회원 제공 자료</p>
               <p className="mt-1 text-sm leading-6 text-slate-700">
-                {selectedProduct.id === "dui-cbt-advanced" ? "결제 완료 후 음주운전 예방교육 1~3강과 인지행동기반 재발방지 교육을 모두 수강하고 수료증, 3종 서식, CBT 이수증, 상세 내역서를 출력할 수 있습니다." : selectedProduct.id === "dui-documents" ? "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시, 재발방지 관련 3종 서식을 열람하고 인쇄하거나 PDF로 저장할 수 있습니다." : "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다."}
+                {selectedProduct.id === "dui-cbt-advanced" ? "결제 완료 후 음주운전 예방교육과 인지행동기반 재발방지 교육을 모두 수강하고 수료증, 3종 서식, CBT 이수증, 상세 내역서를 출력할 수 있습니다." : selectedProduct.id === "dui-documents" ? "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시, 재발방지 관련 3종 서식을 열람하고 인쇄하거나 PDF로 저장할 수 있습니다." : "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다."}
               </p>
             </div>
           </article>

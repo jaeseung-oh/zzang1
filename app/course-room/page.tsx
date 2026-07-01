@@ -6,7 +6,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, duiCbtAdvancedModules } from "@/lib/course/catalog";
 import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -327,7 +327,7 @@ export default function CourseRoomPage() {
     return new URLSearchParams(window.location.search).get("courseId") === DUI_CBT_ADVANCED_COURSE_ID ? DUI_CBT_ADVANCED_COURSE_ID : defaultCourse.id;
   });
   const isCbtAdvancedCourse = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
-  const courseModules = isCbtAdvancedCourse ? defaultCourse.modules : duiBasicModules;
+  const courseModules = isCbtAdvancedCourse ? duiCbtAdvancedModules : duiBasicModules;
   const courseTitle = isCbtAdvancedCourse ? "인지행동기반 재발방지교육 심화과정" : defaultCourse.title;
   const [fullName, setFullName] = useState("");
   const [uid, setUid] = useState("");
@@ -516,7 +516,7 @@ export default function CourseRoomPage() {
         setStatusMessage(
           remote?.moduleProgress || local?.moduleProgress
             ? "이전 학습 기록을 불러왔습니다. 원하는 강의를 선택해 이어서 수강할 수 있습니다."
-            : `실명이 확인되었습니다. ${courseModules.length}강 강의실에서 강의별 진도와 전체 누적 수강률을 저장할 수 있습니다.`
+            : "실명이 확인되었습니다. 온라인 교육실에서 진도와 전체 누적 수강률을 저장할 수 있습니다."
         );
       } catch (sessionError) {
         console.error(sessionError);
@@ -1429,7 +1429,7 @@ export default function CourseRoomPage() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200">강의 바로가기</p>
-                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">1강부터 5강까지 한눈에 보기</h2>
+                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">{isCbtAdvancedCourse ? "인지행동기반 심화 교육 보기" : "온라인 예방교육 보기"}</h2>
               </div>
               <span className="rounded-full border border-[#d7deea] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-slate-200">현재 {selectedModule?.title.split(".")[0] ?? "선택 대기"}</span>
             </div>
@@ -1697,7 +1697,7 @@ export default function CourseRoomPage() {
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">제공 내용</p>
-                      <p className="mt-1.5 text-slate-100">온라인 강의 {courseModules.length}강, 학습확인 자료 안내</p>
+                      <p className="mt-1.5 text-slate-100">온라인 예방교육 수강, 학습확인 자료 안내</p>
                     </div>
                     <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">수강 유효기간</p>

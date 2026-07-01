@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
@@ -231,8 +231,8 @@ export default function DashboardPage() {
     const remainingSeconds = durationSeconds > 0 ? Math.max(progress?.remainingSeconds ?? durationSeconds - watchedSeconds, 0) : 0;
     const completionRate = progress?.completionRate ?? (durationSeconds > 0 ? Math.floor((watchedSeconds / durationSeconds) * 100) : 0);
     const completedModuleCount = progress?.completedModuleCount ?? Object.values(progress?.moduleProgress ?? {}).filter((item) => item.isCompleted).length;
-    const totalModuleCount = progress?.totalModuleCount ?? defaultCourse.modules.length;
-    const moduleEntries = defaultCourse.modules.map((module, index) => ({
+    const totalModuleCount = progress?.totalModuleCount ?? duiBasicModules.length;
+    const moduleEntries = duiBasicModules.map((module, index) => ({
       module,
       index,
       item: progress?.moduleProgress?.[module.id],
@@ -323,7 +323,7 @@ export default function DashboardPage() {
                 {enrollments.map((enrollment) => {
                   const active = isEnrollmentActive(enrollment);
                   const progressRate = enrollment.courseId === defaultCourse.id ? Math.max(enrollment.progress ?? 0, progressSummary.completionRate) : enrollment.progress ?? 0;
-                  const completed = progressRate >= 100 || progressSummary.isCompleted;
+                  const completed = enrollment.courseId === defaultCourse.id ? (progressRate >= 100 || progressSummary.isCompleted) : progressRate >= 100;
                   const certificateReady = active;
                   return (
                     <article key={enrollment.courseId + (enrollment.paymentId || enrollment.orderId || "")} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
@@ -440,7 +440,7 @@ export default function DashboardPage() {
               <div className="rounded-[1.75rem] border border-white/10 bg-[#111f33] p-6">
                 <p className="text-sm font-semibold text-[#f0cb85]">강의별 수강 현황</p>
                 <div className="mt-4 space-y-3">
-                  {defaultCourse.modules.map((module, index) => {
+                  {duiBasicModules.map((module, index) => {
                     const item = progressSummary.moduleProgress[module.id];
                     return (
                       <article key={module.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">

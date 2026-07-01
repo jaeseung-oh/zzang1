@@ -35,7 +35,7 @@ export const basicApplicationProduct: ApplicationProduct = {
   badge: "강의 + 수료증",
   description: "온라인 예방교육을 수강하고 수강 즉시 수료증을 발급·출력할 수 있는 기본 구성입니다.",
   includes: [
-    "온라인 강의 1~3강 수강",
+    "온라인 예방교육 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
     "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
@@ -50,7 +50,7 @@ export const duiDocumentsApplicationProduct: ApplicationProduct = {
   badge: "교육과 실천자료 포함",
   description: "예방교육과 수료증에 더해 재발방지계획서, 실천계획서, 서약서를 직접 작성하고 출력할 수 있는 구성입니다.",
   includes: [
-    "온라인 강의 1~3강 수강",
+    "온라인 예방교육 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
     "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
@@ -68,7 +68,7 @@ export const duiCbtAdvancedApplicationProduct: ApplicationProduct = {
   badge: "자료 + CBT 심화",
   description: "109,000원 과정의 모든 제공 내용에 인지행동기반 재발방지 교육 수강과 CBT 이수 서류 발급을 더한 심화 구성입니다.",
   includes: [
-    "온라인 강의 1~3강 수강",
+    "온라인 예방교육 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
     "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
@@ -85,7 +85,7 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
   {
     id: "dui",
     title: "음주운전 예방교육",
-    description: "음주운전 위험성과 재발 예방을 온라인 강의로 차분히 점검합니다.",
+    description: "음주운전 위험성과 재발 예방을 온라인 예방교육으로 차분히 점검합니다.",
     summary: "기본 수강권과 3종 서식 포함 수강권 중 선택 가능",
     icon: "car",
     status: "available",
