@@ -348,30 +348,33 @@ function CertificatePageContent() {
   const documentBody = isDetailDocument
     ? "위 사람은 본 기관에서 운영하는 음주운전 예방교육과 인지행동기반 재발방지교육으로 구성된 재범방지 교육과정을 성실히 이수하였기에 아래와 같이 상세 교육 내역을 확인합니다."
     : isCbtCertificate
-      ? "위 사람은 본 기관에서 운영하는 「인지행동기반 재발방지교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
+      ? "위 사람은 리셋에듀센터에서 운영하는 「인지행동 기반 재범방지교육 심화과정」에 참여하여, 자신의 위법행동과 관련된 사고방식 및 행동양식을 점검하고 위험상황에 대한 대처방법과 재범방지 실천계획을 학습하는 온라인 교육과정을 성실히 이수하였기에 이 증서를 수여합니다."
       : isCompletionCertificate
         ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
         : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
 
-  const displayedCourseTitle = isDetailDocument ? "재범방지 통합 교육과정" : requestedCourseTitle;
-  const certificateRows = isDetailDocument
-    ? [
-        ["교육과정명", displayedCourseTitle],
-        ["교육방식", "온라인 예방교육 및 인지행동기반 개선 교육"],
-        ["수료내용", "음주운전 예방 교육과 인지행동기반 재발방지 교육을 성실히 이수함"],
-        ["음주운전 예방 교육", "음주운전의 위험성, 알코올이 판단력과 운전능력에 미치는 영향, 사고 사례와 법적·사회적 책임을 학습함"],
-        ["인지행동개선 교육", "자동사고와 자기합리화 패턴을 점검하고 고위험 상황 대처기술, 대체 행동계획, 재발방지 실천계획을 수립함"],
-        ["이수 확인", "본 교육과정의 주요 내용을 숙지하고 재범방지를 위한 자기점검 및 실천계획 작성 과정을 완료함"],
-        ["발급일자", formatKoreanDate(certificate?.completedAt || issuedAt)],
-      ]
-    : [
-        ["교육과정명", displayedCourseTitle],
-        ["교육방식", "온라인 교육"],
-        ["교육구성", "온라인 예방교육 수강"],
-        ["교육시간", "온라인 동영상 교육 과정"],
-        [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육 수강 완료" : "온라인 예방교육 수강 중"],
-        [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate?.completedAt || issuedAt)],
-      ];
+  const displayedCourseTitle = isDetailDocument ? "인지행동 기반 음주운전 재범방지교육 심화과정" : requestedCourseTitle;
+  const certificateRows = [
+    ["교육과정명", displayedCourseTitle],
+    ["교육방식", "온라인 교육"],
+    ["교육구성", "온라인 예방교육 수강"],
+    ["교육시간", "온라인 동영상 교육 과정"],
+    [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육 수강 완료" : "온라인 예방교육 수강 중"],
+    [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate?.completedAt || issuedAt)],
+  ];
+  const detailEducationItems = [
+    "음주운전 발생 원인과 개인적 위험요인 점검",
+    "음주 후 운전을 정당화하는 인지 왜곡과 잘못된 판단방식 이해",
+    "음주가 판단력, 반응속도 및 운전능력에 미치는 영향 학습",
+    "음주운전의 형사적·행정적·사회적 위험 인식",
+    "회식, 지인 모임, 숙취 상태 등 고위험 상황 분석",
+    "음주 후 운전 충동과 위험상황에 대한 대처방법 학습",
+    "대리운전, 택시, 대중교통 및 차량 미사용 원칙 수립",
+    "가족 협조, 차량 열쇠 관리 및 귀가수단 사전 확보 방법 학습",
+    "책임 있는 의사결정과 생활관리 방법 점검",
+    "음주운전 재범방지를 위한 구체적인 행동계획 수립",
+  ];
+  const detailCompletedAt = formatKoreanDate(certificate?.completedAt || issuedAt);
 
   const openPrintDialog = (mode: "print" | "pdf") => {
     if (!certificate) return;
@@ -436,7 +439,15 @@ function CertificatePageContent() {
           .certificate-table { margin-top: 6mm !important; font-size: 11.5px !important; }
           .certificate-table-row { grid-template-columns: 34mm minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 1.9mm 2.5mm !important; line-height: 1.45 !important; }
-          .certificate-sign { padding-top: 5mm !important; }
+          .certificate-detail { margin-top: 5mm !important; font-size: 10.4px !important; line-height: 1.38 !important; }
+          .certificate-detail-hero { padding: 2.5mm 3mm !important; margin-top: 5mm !important; }
+          .certificate-detail-section { margin-top: 2.2mm !important; }
+          .certificate-detail-title { font-size: 11.5px !important; margin-bottom: 1mm !important; }
+          .certificate-detail-grid { grid-template-columns: 28mm minmax(0, 1fr) !important; }
+          .certificate-detail-cell { padding: 1.15mm 2mm !important; }
+          .certificate-detail-list { gap: 0.45mm !important; padding: 2mm 3mm !important; }
+          .certificate-detail-confirm { margin-top: 1.8mm !important; padding: 1.8mm 2.5mm !important; }
+          .certificate-sign { padding-top: 4mm !important; }
           .certificate-issuer { margin-top: 5mm !important; font-size: 23px !important; }
           .certificate-seal, .seal-stamp { width: 26mm !important; height: 26mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
@@ -497,29 +508,89 @@ function CertificatePageContent() {
                 <p className="mt-4 text-sm font-semibold tracking-[0.26em] text-[#8a6a2d]">{documentEnglishTitle}</p>
                 <h2 className="certificate-title mt-8 text-5xl font-bold tracking-[0.22em] text-[#111827]">{documentHeading}</h2>
 
-                <div className="certificate-person mx-auto mt-12 w-full max-w-[560px] overflow-hidden rounded-xl border border-[#d9c08a] bg-white text-left shadow-[0_10px_28px_rgba(138,106,45,0.08)]">
-                  <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
-                    <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">성명</div>
-                    <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{certificate.userName || profileName}</div>
-                  </div>
-                  <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)]">
-                    <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">생년월일</div>
-                    <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{formatBirthDate(certificate.birthDate)}</div>
-                  </div>
-                </div>
-
-                <p className="certificate-body mx-auto mt-12 max-w-[620px] text-xl leading-[2.1] text-slate-800">
-                  {documentBody}
-                </p>
-
-                <div className="certificate-table mt-10 overflow-hidden rounded-xl border border-[#d9c08a] text-left text-base">
-                  {certificateRows.map(([label, value]) => (
-                    <div key={label} className="certificate-table-row grid grid-cols-[150px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
-                      <div className="certificate-table-cell bg-[#fbf4e4] px-4 py-3 font-bold text-[#5f4514]">{label}</div>
-                      <div className="certificate-table-cell px-4 py-3 font-semibold text-slate-900">{value}</div>
+                {isDetailDocument ? (
+                  <div className="certificate-detail mt-8 text-left text-sm leading-6 text-slate-900">
+                    <div className="certificate-detail-hero rounded-xl border-2 border-[#d9c08a] bg-[linear-gradient(135deg,#fffaf0_0%,#ffffff_65%,#f8f1df_100%)] px-5 py-4 text-center shadow-[0_10px_28px_rgba(138,106,45,0.08)]">
+                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a6a2d]">Reset Edu Center Official Record</p>
+                      <p className="mt-2 text-xl font-black tracking-[-0.02em] text-slate-950">재범방지교육 상세내역서</p>
+                      <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">본 문서는 온라인 교육과정의 이수 사실과 주요 학습 내용을 확인하기 위하여 발급됩니다.</p>
                     </div>
-                  ))}
-                </div>
+
+                    <section className="certificate-detail-section mt-4">
+                      <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">1</span>교육 이수자 정보</h3>
+                      <div className="overflow-hidden rounded-lg border border-[#d9c08a] bg-white">
+                        {[["성명", certificate.userName || profileName], ["생년월일", formatBirthDate(certificate.birthDate)]].map(([label, value]) => (
+                          <div key={label} className="certificate-detail-grid grid grid-cols-[120px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
+                            <div className="certificate-detail-cell bg-[#fbf4e4] px-3 py-2 font-bold text-[#5f4514]">{label}</div>
+                            <div className="certificate-detail-cell px-3 py-2 font-semibold text-slate-950">{value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="certificate-detail-section mt-4">
+                      <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">2</span>교육과정 정보</h3>
+                      <div className="overflow-hidden rounded-lg border border-[#d9c08a] bg-white">
+                        {[
+                          ["교육과정명", "인지행동 기반 음주운전 재범방지교육 심화과정"],
+                          ["운영기관", "리셋에듀센터"],
+                          ["교육방식", "온라인 동영상 교육 및 자기점검 학습"],
+                          ["수료조건", "전체 교육과정 수강 완료"],
+                          ["수료일자", detailCompletedAt],
+                        ].map(([label, value]) => (
+                          <div key={label} className="certificate-detail-grid grid grid-cols-[120px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
+                            <div className="certificate-detail-cell bg-[#fbf4e4] px-3 py-2 font-bold text-[#5f4514]">{label}</div>
+                            <div className="certificate-detail-cell px-3 py-2 font-semibold text-slate-950">{value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    <section className="certificate-detail-section mt-4">
+                      <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">3</span>주요 교육내용</h3>
+                      <ul className="certificate-detail-list grid gap-1.5 rounded-lg border border-[#d9c08a] bg-white px-4 py-3 font-semibold text-slate-900">
+                        {detailEducationItems.map((item) => <li key={item} className="flex gap-2"><span className="font-black text-[#8a6a2d]">·</span><span>{item}</span></li>)}
+                      </ul>
+                    </section>
+
+                    <section className="certificate-detail-section mt-4">
+                      <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">4</span>교육 이수 확인</h3>
+                      <div className="certificate-detail-confirm rounded-lg border-2 border-[#d9c08a] bg-[#fffaf0] px-4 py-3 font-semibold text-slate-900">
+                        <div className="grid gap-1.5">
+                          <p className="flex gap-2"><span className="font-black text-[#8a6a2d]">확인</span><span>온라인 동영상 교육 수료</span></p>
+                          <p className="flex gap-2"><span className="font-black text-[#8a6a2d]">확인</span><span>전체 교육과정 및 필수 학습활동 이수 완료</span></p>
+                        </div>
+                        <p className="mt-3 border-t border-[#d9c08a] pt-3 font-bold leading-6">본 상세내역서는 위 교육과정의 이수 사실과 주요 교육내용을 확인하기 위하여 발급합니다.</p>
+                      </div>
+                    </section>
+                  </div>
+                ) : (
+                  <>
+                    <div className="certificate-person mx-auto mt-12 w-full max-w-[560px] overflow-hidden rounded-xl border border-[#d9c08a] bg-white text-left shadow-[0_10px_28px_rgba(138,106,45,0.08)]">
+                      <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
+                        <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">성명</div>
+                        <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{certificate.userName || profileName}</div>
+                      </div>
+                      <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)]">
+                        <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">생년월일</div>
+                        <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{formatBirthDate(certificate.birthDate)}</div>
+                      </div>
+                    </div>
+
+                    <p className="certificate-body mx-auto mt-12 max-w-[620px] text-xl leading-[2.1] text-slate-800">
+                      {documentBody}
+                    </p>
+
+                    <div className="certificate-table mt-10 overflow-hidden rounded-xl border border-[#d9c08a] text-left text-base">
+                      {certificateRows.map(([label, value]) => (
+                        <div key={label} className="certificate-table-row grid grid-cols-[150px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
+                          <div className="certificate-table-cell bg-[#fbf4e4] px-4 py-3 font-bold text-[#5f4514]">{label}</div>
+                          <div className="certificate-table-cell px-4 py-3 font-semibold text-slate-900">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )}
 
                 <div className="certificate-sign mt-auto pt-12">
                   <p className="text-lg font-semibold text-slate-900">{formatKoreanDate(issuedAt)}</p>

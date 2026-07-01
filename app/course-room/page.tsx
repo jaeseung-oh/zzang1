@@ -1181,7 +1181,7 @@ export default function CourseRoomPage() {
   const legalGateOpen = !legalAccepted;
   const certificateStatus = result?.issuedCertificates.length
     ? "수료증 발급 완료"
-    : "수강권 확인 후 즉시 발급 가능";
+    : "발급 가능";
 
   const handleLegalGateAccept = async () => {
     setLegalAccepted(true);
