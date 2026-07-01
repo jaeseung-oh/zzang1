@@ -280,7 +280,7 @@ function CertificatePageContent() {
       const lookupUid = currentUid || user.uid;
       const issued = await loadCertificate(lookupUid);
       setCertificate(issued);
-      setNotice("음주운전 예방교육 서류가 발급되었습니다.");
+      setNotice("요청한 교육 이수 서류가 발급되었습니다.");
     } catch (issueError) {
       console.error(issueError);
       const message = issueError instanceof Error ? issueError.message : "";
@@ -353,9 +353,25 @@ function CertificatePageContent() {
         ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정을 온라인 교육 시스템을 통해 성실히 이수하였기에 이 증서를 수여합니다."
         : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
 
-  const displayedTotalLessons = isDetailDocument ? 5 : requestedTotalLessons;
-  const displayedCourseTitle = isDetailDocument ? "음주운전 예방교육 및 인지행동기반 재발방지교육 통합과정" : requestedCourseTitle;
-  const detailEducationContent = "음주운전의 실제 위험과 사고 흐름 이해, 알코올이 판단력과 운전능력에 미치는 영향, 사고 사례와 법적·사회적 책임 구조, 자동사고와 고위험 상황 점검, 대처기술과 개인별 재발방지 계획 수립";
+  const displayedCourseTitle = isDetailDocument ? "재범방지 통합 교육과정" : requestedCourseTitle;
+  const certificateRows = isDetailDocument
+    ? [
+        ["교육과정명", displayedCourseTitle],
+        ["교육방식", "온라인 예방교육 및 인지행동기반 개선 교육"],
+        ["수료내용", "음주운전 예방 교육과 인지행동기반 재발방지 교육을 성실히 이수함"],
+        ["음주운전 예방 교육", "음주운전의 위험성, 알코올이 판단력과 운전능력에 미치는 영향, 사고 사례와 법적·사회적 책임을 학습함"],
+        ["인지행동개선 교육", "자동사고와 자기합리화 패턴을 점검하고 고위험 상황 대처기술, 대체 행동계획, 재발방지 실천계획을 수립함"],
+        ["이수 확인", "본 교육과정의 주요 내용을 숙지하고 재범방지를 위한 자기점검 및 실천계획 작성 과정을 완료함"],
+        ["발급일자", formatKoreanDate(certificate?.completedAt || issuedAt)],
+      ]
+    : [
+        ["교육과정명", displayedCourseTitle],
+        ["교육방식", "온라인 교육"],
+        ["교육구성", "온라인 예방교육 수강"],
+        ["교육시간", "온라인 동영상 교육 과정"],
+        [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육 수강 완료" : "온라인 예방교육 수강 중"],
+        [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate?.completedAt || issuedAt)],
+      ];
 
   const openPrintDialog = (mode: "print" | "pdf") => {
     if (!certificate) return;
@@ -389,8 +405,9 @@ function CertificatePageContent() {
         @media print {
           html, body { width: 210mm !important; height: 297mm !important; margin: 0 !important; background: #fff !important; overflow: hidden !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          body > div.fixed, footer, .no-print { display: none !important; }
-          main { width: 210mm !important; height: 297mm !important; min-height: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
+          body > header, body > footer, header, footer, nav, .no-print { display: none !important; }
+          body > div { width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+          main { position: fixed !important; inset: 0 auto auto 0 !important; width: 210mm !important; height: 297mm !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
           .certificate-wrap { width: 210mm !important; height: 297mm !important; max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
           .certificate-paper {
             width: 210mm !important;
@@ -410,16 +427,16 @@ function CertificatePageContent() {
             overflow: hidden !important;
           }
           .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 7mm 9mm !important; border-width: 2px !important; overflow: hidden !important; }
-          .certificate-title { margin-top: 12mm !important; font-size: 33px !important; }
-          .certificate-no { margin-top: 0 !important; font-size: 12px !important; }
-          .certificate-person { margin-top: 8mm !important; padding: 4.5mm !important; }
-          .certificate-identity-value { font-size: 18px !important; }
+          .certificate-title { margin-top: 10mm !important; font-size: 31px !important; }
+          .certificate-no { margin-top: 0 !important; font-size: 11px !important; }
+          .certificate-person { margin-top: 7mm !important; padding: 4mm !important; }
+          .certificate-identity-value { font-size: 17px !important; }
           .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
-          .certificate-body { margin-top: 8mm !important; font-size: 15.5px !important; line-height: 1.68 !important; }
-          .certificate-table { margin-top: 7mm !important; font-size: 12.5px !important; }
-          .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
-          .certificate-table-cell { padding: 2.2mm 3mm !important; }
-          .certificate-sign { padding-top: 6mm !important; }
+          .certificate-body { margin-top: 7mm !important; font-size: 14.5px !important; line-height: 1.62 !important; }
+          .certificate-table { margin-top: 6mm !important; font-size: 11.5px !important; }
+          .certificate-table-row { grid-template-columns: 34mm minmax(0, 1fr) !important; }
+          .certificate-table-cell { padding: 1.9mm 2.5mm !important; line-height: 1.45 !important; }
+          .certificate-sign { padding-top: 5mm !important; }
           .certificate-issuer { margin-top: 5mm !important; font-size: 23px !important; }
           .certificate-seal, .seal-stamp { width: 26mm !important; height: 26mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
         }
@@ -496,14 +513,7 @@ function CertificatePageContent() {
                 </p>
 
                 <div className="certificate-table mt-10 overflow-hidden rounded-xl border border-[#d9c08a] text-left text-base">
-                  {[
-                    ["교육과정명", displayedCourseTitle],
-                    ["교육방식", "온라인 교육"],
-                    ["교육구성", isDetailDocument ? "음주운전 예방교육 및 인지행동기반 재발방지교육" : "온라인 예방교육 수강"],
-                    ["교육시간", "온라인 동영상 교육 과정"],
-                    [isDetailDocument ? "상세 교육내용" : isCompletionCertificate ? "수료조건" : "수강상태", isDetailDocument ? detailEducationContent : isCompletionCertificate ? "전체 교육 수강 완료" : "온라인 예방교육 수강 중"],
-                    [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate.completedAt || issuedAt)],
-                  ].map(([label, value]) => (
+                  {certificateRows.map(([label, value]) => (
                     <div key={label} className="certificate-table-row grid grid-cols-[150px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
                       <div className="certificate-table-cell bg-[#fbf4e4] px-4 py-3 font-bold text-[#5f4514]">{label}</div>
                       <div className="certificate-table-cell px-4 py-3 font-semibold text-slate-900">{value}</div>
