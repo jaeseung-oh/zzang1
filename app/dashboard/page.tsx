@@ -271,6 +271,9 @@ export default function DashboardPage() {
             <p className="mt-4 max-w-3xl text-sm leading-8 text-slate-600">
               강의별 진도, 누적 수강 시간, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
             </p>
+            <p className="mt-3 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold leading-7 text-amber-950">
+              심화과정(290,000원) 수강권을 이용하시는 분은 수강목록이 모두 표시될 때까지 잠시만 기다려주시기 바랍니다.
+            </p>
           </div>
           <div className="w-full lg:w-auto">
             <Link href="/login" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", fontWeight: 900, boxShadow: "0 14px 28px rgba(16, 33, 63, 0.24)" }} className={buttonClass("primary", "md", "w-full rounded-2xl px-6 font-black !text-white hover:!text-white")}>
