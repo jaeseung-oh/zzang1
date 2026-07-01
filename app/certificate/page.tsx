@@ -348,7 +348,7 @@ function CertificatePageContent() {
   const documentBody = isDetailDocument
     ? "위 사람은 본 기관에서 운영하는 음주운전 예방교육과 인지행동기반 재발방지교육으로 구성된 재범방지 교육과정을 성실히 이수하였기에 아래와 같이 상세 교육 내역을 확인합니다."
     : isCbtCertificate
-      ? "위 사람은 리셋에듀센터에서 운영하는 「인지행동 기반 재범방지교육 심화과정」에 참여하여, 자신의 위법행동과 관련된 사고방식 및 행동양식을 점검하고 위험상황에 대한 대처방법과 재범방지 실천계획을 학습하는 온라인 교육과정을 성실히 이수하였기에 이 증서를 수여합니다."
+      ? "위 사람은 리셋에듀센터의 「인지행동 기반 재범방지교육 심화과정」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
         ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다."
         : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
@@ -514,13 +514,9 @@ function CertificatePageContent() {
                   <div className="certificate-detail mt-8 text-left text-sm leading-6 text-slate-900">
                     <section className="certificate-detail-section mt-4">
                       <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">1</span>교육 이수자 정보</h3>
-                      <div className="overflow-hidden rounded-lg border border-[#d9c08a] bg-white">
-                        {[["성명", certificate.userName || profileName], ["생년월일", formatBirthDate(certificate.birthDate)]].map(([label, value]) => (
-                          <div key={label} className="certificate-detail-grid grid grid-cols-[120px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
-                            <div className="certificate-detail-cell bg-[#fbf4e4] px-3 py-2 font-bold text-[#5f4514]">{label}</div>
-                            <div className="certificate-detail-cell px-3 py-2 font-semibold text-slate-950">{value}</div>
-                          </div>
-                        ))}
+                      <div className="space-y-1.5 px-1 text-[15px] leading-7 text-slate-950">
+                        <p><span className="font-bold text-[#5f4514]">성명:</span> <span className="font-semibold">{certificate.userName || profileName}</span></p>
+                        <p><span className="font-bold text-[#5f4514]">생년월일:</span> <span className="font-semibold">{formatBirthDate(certificate.birthDate)}</span></p>
                       </div>
                     </section>
 
@@ -560,18 +556,12 @@ function CertificatePageContent() {
                   </div>
                 ) : (
                   <>
-                    <div className="certificate-person mx-auto mt-12 w-full max-w-[560px] overflow-hidden rounded-xl border border-[#d9c08a] bg-white text-left shadow-[0_10px_28px_rgba(138,106,45,0.08)]">
-                      <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)] border-b border-[#eadfcb] last:border-b-0">
-                        <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">성명</div>
-                        <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{certificate.userName || profileName}</div>
-                      </div>
-                      <div className="certificate-identity-row grid grid-cols-[132px_minmax(0,1fr)]">
-                        <div className="bg-[#fbf4e4] px-5 py-4 text-base font-bold text-[#5f4514]">생년월일</div>
-                        <div className="certificate-identity-value px-5 py-4 text-base font-bold tracking-[0.04em] text-slate-950">{formatBirthDate(certificate.birthDate)}</div>
-                      </div>
+                    <div className="certificate-person mx-auto mt-12 w-full max-w-[620px] space-y-2 text-left text-lg leading-8 text-slate-950">
+                      <p><span className="font-bold text-[#5f4514]">성명:</span> <span className="font-semibold">{certificate.userName || profileName}</span></p>
+                      <p><span className="font-bold text-[#5f4514]">생년월일:</span> <span className="font-semibold">{formatBirthDate(certificate.birthDate)}</span></p>
                     </div>
 
-                    <p className="certificate-body mx-auto mt-12 max-w-[620px] text-xl leading-[2.1] text-slate-800">
+                    <p className="certificate-body mx-auto mt-12 max-w-[620px] break-keep text-left text-xl leading-[2.1] text-slate-800">
                       {documentBody}
                     </p>
 
