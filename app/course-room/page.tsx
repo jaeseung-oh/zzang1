@@ -6,7 +6,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, duiCbtAdvancedModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules } from "@/lib/course/catalog";
 import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -326,8 +326,9 @@ export default function CourseRoomPage() {
     if (typeof window === "undefined") return defaultCourse.id;
     return new URLSearchParams(window.location.search).get("courseId") === DUI_CBT_ADVANCED_COURSE_ID ? DUI_CBT_ADVANCED_COURSE_ID : defaultCourse.id;
   });
-  const courseModules = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? duiCbtAdvancedModules : duiBasicModules;
-  const courseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동개선 교육" : defaultCourse.title;
+  const isCbtAdvancedCourse = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
+  const courseModules = isCbtAdvancedCourse ? defaultCourse.modules : duiBasicModules;
+  const courseTitle = isCbtAdvancedCourse ? "인지행동기반 재발방지교육 심화과정" : defaultCourse.title;
   const [fullName, setFullName] = useState("");
   const [uid, setUid] = useState("");
   const [caseType, setCaseType] = useState<CaseType>("dui");
@@ -515,7 +516,7 @@ export default function CourseRoomPage() {
         setStatusMessage(
           remote?.moduleProgress || local?.moduleProgress
             ? "이전 학습 기록을 불러왔습니다. 원하는 강의를 선택해 이어서 수강할 수 있습니다."
-            : "실명이 확인되었습니다. 5강 강의실에서 강의별 진도와 전체 누적 수강률을 저장할 수 있습니다."
+            : `실명이 확인되었습니다. ${courseModules.length}강 강의실에서 강의별 진도와 전체 누적 수강률을 저장할 수 있습니다.`
         );
       } catch (sessionError) {
         console.error(sessionError);
@@ -1030,7 +1031,7 @@ export default function CourseRoomPage() {
       }
 
       if (response.data.issuedCertificates.length) {
-        setStatusMessage("음주운전 예방교육 수강을 완료했습니다. 수료증 등 교육 이수 자료를 즉시 출력할 수 있습니다.");
+        setStatusMessage(courseTitle + " 수강을 완료했습니다. 수료증 등 교육 이수 자료를 즉시 출력할 수 있습니다.");
       } else if (response.data.isCompleted && !response.data.paymentVerified) {
         setStatusMessage("수강 정보가 확인되면 수료 문서 발급이 자동으로 이어집니다.");
       } else if (response.data.isCompleted && !response.data.certificateEligible) {
@@ -1643,13 +1644,13 @@ export default function CourseRoomPage() {
                         {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                       </button>
                         <Link
-                          href="/certificate"
+                          href={isCbtAdvancedCourse ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" : "/certificate"}
                           className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold !text-black hover:!text-black focus:ring-offset-[#111827]")}
                         >
                           수료증 발급
                         </Link>
                         <Link
-                          href="/certificate?print=1"
+                          href={isCbtAdvancedCourse ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion&print=1" : "/certificate?print=1"}
                           className={buttonClass("warning", "md", "rounded-full px-5 font-black !text-black hover:!text-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
                         >
                           바로 인쇄
@@ -1820,6 +1821,24 @@ export default function CourseRoomPage() {
             <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Completion Assets</p>
               <h3 className="mt-2 text-xl font-semibold text-white">수강 즉시 출력 자료</h3>
+              {isCbtAdvancedCourse ? (
+                <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-amber-300 bg-amber-50 p-4 shadow-[0_18px_44px_rgba(245,158,11,0.18)]">
+                  <p className="text-sm font-black text-amber-950">인지행동기반 재발방지교육 이수 서류</p>
+                  <p className="text-sm leading-6 text-amber-900">심화과정 수강권은 음주운전 예방교육 수료증, CBT 이수증, 재범방지 교육 이수 상세 내역서를 출력할 수 있습니다.</p>
+                  <Link href="/certificate?courseId=dui-prevention-basic&documentType=completion" className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
+                    <span>음주운전 예방교육 수료증</span>
+                    <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
+                  </Link>
+                  <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg">
+                    <span>인지행동기반 재발방지교육 이수증</span>
+                    <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-black !text-white">인쇄 · PDF 저장</span>
+                  </Link>
+                  <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-detail" className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
+                    <span>재범방지 교육 이수 상세 내역서</span>
+                    <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
+                  </Link>
+                </div>
+              ) : null}
               <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-sky-300 bg-sky-50 p-4 shadow-[0_18px_44px_rgba(14,165,233,0.20)]">
                 <p className="text-sm font-black text-sky-950">재발방지 관련 3종 서식</p>
                 <p className="text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "서식을 열어 인쇄하거나 PDF로 저장할 수 있습니다." : "서식 포함 수강권을 선택하면 이용할 수 있습니다."}</p>

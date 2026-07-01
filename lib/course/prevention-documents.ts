@@ -17,6 +17,7 @@ export type PreventionDocumentIdentity = {
 };
 
 export const DOCUMENTS_PRODUCT_ID = "dui-documents";
+export const ADVANCED_PRODUCT_ID = "dui-cbt-advanced";
 
 export const preventionDocuments: PreventionDocumentDefinition[] = [
   { id: "prevention-plan", title: "재발방지계획서", description: "음주운전 재발 원인을 점검하고 구체적인 재발방지 계획을 정리하는 서식입니다." },
@@ -27,6 +28,7 @@ export const preventionDocuments: PreventionDocumentDefinition[] = [
 export function hasPreventionDocumentsAccess(productId?: string | null, amount?: number | null, productTitle?: string | null) {
   const normalizedTitle = String(productTitle || "").replace(/\s/g, "");
   return productId === DOCUMENTS_PRODUCT_ID
+    || productId === ADVANCED_PRODUCT_ID
     || Number(amount) >= 89000
     || normalizedTitle.includes("서식포함");
 }

@@ -6,7 +6,7 @@ export const duiPreventionCourseProduct = {
   price: APPLICATION_PRICES.BASIC,
   currency: "KRW",
   durationDays: 90,
-  totalLessons: 5,
+  totalLessons: 3,
   description: "음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정",
   certificateAvailable: true,
 } as const;

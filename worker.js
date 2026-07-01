@@ -1219,8 +1219,8 @@ const CBT_COURSE_PRODUCT = {
     price: 290000,
     currency: 'KRW',
     durationDays: 90,
-    totalLessons: 2,
-    pricePerLesson: 145000,
+    totalLessons: 5,
+    pricePerLesson: 58000,
     description: '인지행동기반 재발방지 교육 심화과정',
     certificateAvailable: true
 };
@@ -1311,7 +1311,13 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const user = await firestoreGetData(env, 'users', uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
     if (!user) return json({ message: '회원 정보를 확인할 수 없습니다.', code: 'USER_NOT_FOUND' }, 400, corsHeaders);
 
-    const enrollment = await getWorkerEnrollmentRecord(env, uid, courseId);
+    let enrollment = await getWorkerEnrollmentRecord(env, uid, courseId);
+    if (!isFirestoreEnrollmentActiveRecord(enrollment) && courseId === DUI_COURSE_PRODUCT.courseId) {
+        const advancedEnrollment = await getWorkerEnrollmentRecord(env, uid, CBT_COURSE_PRODUCT.courseId).catch(() => null);
+        if (isFirestoreEnrollmentActiveRecord(advancedEnrollment)) {
+            enrollment = advancedEnrollment;
+        }
+    }
     if (!isFirestoreEnrollmentActiveRecord(enrollment)) {
         return json({ message: '정상 결제된 교육과정이 확인되지 않습니다.', code: 'ENROLLMENT_NOT_ACTIVE' }, 400, corsHeaders);
     }
@@ -1345,8 +1351,8 @@ async function handleCertificateIssue(request, env, corsHeaders) {
         certificateId, certificateNo, issueNumber: certificateNo,
         userId: uid, uid, userName, birthDate, dateOfBirth: birthDate,
         email: user.email || firebaseUser.email || '', phoneNumber: user.phoneNumber || '',
-        courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        totalLessons: DUI_COURSE_PRODUCT.totalLessons, completedLessons,
+        courseId, courseTitle: product.courseTitle,
+        totalLessons: product.totalLessons, completedLessons,
         progress: progressRate, completedAt,
         purchasedAt: enrollment.purchasedAt || purchase.purchasedAt || purchase.approvedAt || null,
         expiresAt: enrollment.expiresAt || purchase.expiresAt || null,

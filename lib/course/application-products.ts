@@ -65,12 +65,17 @@ export const duiCbtAdvancedApplicationProduct: ApplicationProduct = {
   courseId: "dui-cbt-advanced",
   title: "인지행동기반 재발방지교육 심화과정",
   price: APPLICATION_PRICES.DUI_CBT_ADVANCED,
-  badge: "CBT 심화 4·5강",
-  description: "인지행동기반 재발방지 교육 4·5강을 수강하고 CBT 이수증과 재범방지 교육 이수 상세 내역서를 발급받는 심화 구성입니다.",
+  badge: "자료 + CBT 심화",
+  description: "109,000원 과정의 모든 제공 내용에 인지행동기반 재발방지 교육 수강과 CBT 이수 서류 발급을 더한 심화 구성입니다.",
   includes: [
-    "인지행동기반 재발방지 교육 4·5강 수강",
-    "CBT 기반 위험사고·자동반응 점검",
-    "재음주운전 고위험 상황별 대처전략 정리",
+    "온라인 강의 1~3강 수강",
+    "진도율 확인",
+    "수강 즉시 수료증 출력",
+    "반성문 작성 가이드 및 예시 열람·인쇄·PDF 저장",
+    "재발방지계획서 출력 및 PDF 저장",
+    "음주예방실천계획서 출력 및 PDF 저장",
+    "음주운전 재발방지 서약서 출력 및 PDF 저장",
+    "인지행동기반 재발방지 교육 수강",
     "인지행동기반 재발방지교육 이수증 출력",
     "재범방지 교육 이수 상세 내역서 출력",
   ],
@@ -134,7 +139,7 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
 ];
 
 export const applicationNoticeText =
-  "음주운전 예방교육 결제 완료 회원에게 반성문 작성 가이드와 예시 열람·인쇄·PDF 저장 기능을 제공합니다. 109,000원 서식 포함 수강권은 여기에 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서까지 함께 제공합니다. 290,000원 심화과정은 인지행동기반 재발방지 교육 4·5강과 이수 서류를 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
+  "음주운전 예방교육 결제 완료 회원에게 반성문 작성 가이드와 예시 열람·인쇄·PDF 저장 기능을 제공합니다. 109,000원 서식 포함 수강권은 여기에 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서까지 함께 제공합니다. 290,000원 심화과정은 109,000원 과정의 모든 제공 내용에 인지행동기반 재발방지 교육 수강, 인지행동기반 재발방지교육 이수증, 재범방지 교육 이수 상세 내역서 발급을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
 
 export function formatApplicationKrw(value: number) {
   return value.toLocaleString("ko-KR") + "원";
