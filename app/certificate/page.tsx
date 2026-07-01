@@ -342,9 +342,9 @@ function CertificatePageContent() {
   const isCbtCertificate = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
   const isDetailDocument = effectiveDocumentType === "cbt-detail";
   const isCompletionCertificate = certificate?.documentType !== "attendance";
-  const documentTitle = isDetailDocument ? "재범방지 교육 이수 상세 내역서" : isCbtCertificate ? "인지행동기반 재발방지교육 이수증" : isCompletionCertificate ? "수료증" : "수강확인증";
-  const documentHeading = isDetailDocument ? "이 수 상 세 내 역 서" : isCbtCertificate ? "이 수 증" : isCompletionCertificate ? "수 료 증" : "수 강 확 인 증";
-  const documentEnglishTitle = isDetailDocument ? "TRAINING COMPLETION DETAILS" : isCompletionCertificate ? "CERTIFICATE OF COMPLETION" : "CERTIFICATE OF ATTENDANCE";
+  const documentTitle = isDetailDocument ? "교육이수 상세내역서" : isCbtCertificate ? "인지행동기반 재발방지교육 이수증" : isCompletionCertificate ? "수료증" : "수강확인증";
+  const documentHeading = isDetailDocument ? "교육이수 상세내역서" : isCbtCertificate ? "이 수 증" : isCompletionCertificate ? "수 료 증" : "수 강 확 인 증";
+  const documentEnglishTitle = isDetailDocument ? "" : isCompletionCertificate ? "CERTIFICATE OF COMPLETION" : "CERTIFICATE OF ATTENDANCE";
   const documentBody = isDetailDocument
     ? "위 사람은 본 기관에서 운영하는 음주운전 예방교육과 인지행동기반 재발방지교육으로 구성된 재범방지 교육과정을 성실히 이수하였기에 아래와 같이 상세 교육 내역을 확인합니다."
     : isCbtCertificate
@@ -356,23 +356,23 @@ function CertificatePageContent() {
   const displayedCourseTitle = isDetailDocument ? "인지행동 기반 음주운전 재범방지교육 심화과정" : requestedCourseTitle;
   const certificateRows = [
     ["교육과정명", displayedCourseTitle],
-    ["교육방식", "온라인 교육"],
-    ["교육구성", "온라인 예방교육 수강"],
-    ["교육시간", "온라인 동영상 교육 과정"],
-    [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육 수강 완료" : "온라인 예방교육 수강 중"],
+    [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육과정 수강 완료" : "교육과정 수강 중"],
     [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate?.completedAt || issuedAt)],
   ];
   const detailEducationItems = [
-    "음주운전 발생 원인과 개인적 위험요인 점검",
-    "음주 후 운전을 정당화하는 인지 왜곡과 잘못된 판단방식 이해",
-    "음주가 판단력, 반응속도 및 운전능력에 미치는 영향 학습",
-    "음주운전의 형사적·행정적·사회적 위험 인식",
-    "회식, 지인 모임, 숙취 상태 등 고위험 상황 분석",
-    "음주 후 운전 충동과 위험상황에 대한 대처방법 학습",
-    "대리운전, 택시, 대중교통 및 차량 미사용 원칙 수립",
+    "인지행동이론의 기본 원리와 사고·감정·행동의 상호관계 이해",
+    "음주운전으로 이어지는 개인의 사고방식과 행동과정 점검",
+    "음주 후 운전을 정당화하거나 위험성을 축소하는 인지 왜곡 이해",
+    "자동적 사고와 충동적 판단을 인식하고 대안적 사고로 전환하는 방법 학습",
+    "음주운전 발생 원인과 개인적·환경적 위험요인 분석",
+    "회식, 지인 모임, 숙취 상태 등 재범 가능성이 높은 상황 점검",
+    "감정과 충동을 조절하고 위험상황에서 행동을 멈추는 대처방법 학습",
+    "음주가 판단력, 반응속도 및 운전능력에 미치는 영향 이해",
+    "음주운전의 형사적·행정적·사회적 결과와 타인에게 미치는 피해 인식",
+    "대리운전, 택시, 대중교통 이용 및 차량 미사용 원칙 수립",
     "가족 협조, 차량 열쇠 관리 및 귀가수단 사전 확보 방법 학습",
-    "책임 있는 의사결정과 생활관리 방법 점검",
-    "음주운전 재범방지를 위한 구체적인 행동계획 수립",
+    "재범방지를 위한 대안행동과 구체적인 실천계획 수립",
+    "책임 있는 의사결정과 지속적인 자기점검 방법 학습",
   ];
   const detailCompletedAt = formatKoreanDate(certificate?.completedAt || issuedAt);
 
@@ -408,14 +408,16 @@ function CertificatePageContent() {
         @media print {
           html, body { width: 210mm !important; height: 297mm !important; margin: 0 !important; background: #fff !important; overflow: hidden !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          body > header, body > footer, header, footer, nav, .no-print { display: none !important; }
-          body > div { width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
-          main { position: fixed !important; inset: 0 auto auto 0 !important; width: 210mm !important; height: 297mm !important; min-height: 0 !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
+          body * { visibility: hidden !important; }
+          .certificate-print-root, .certificate-print-root * { visibility: visible !important; }
+          body > header, body > footer, header, footer, nav, aside, button, .no-print, .no-print * { display: none !important; visibility: hidden !important; }
+          body > div, body > div > div { width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+          main { position: fixed !important; inset: 0 auto auto 0 !important; width: 210mm !important; height: 297mm !important; min-height: 0 !important; max-height: 297mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
           .certificate-wrap { width: 210mm !important; height: 297mm !important; max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
           .certificate-paper {
             width: 210mm !important;
             max-width: 210mm !important;
-            min-height: 297mm !important;
+            min-height: 0 !important;
             height: 297mm !important;
             margin: 0 !important;
             padding: 8mm !important;
@@ -430,7 +432,8 @@ function CertificatePageContent() {
             overflow: hidden !important;
           }
           .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 7mm 9mm !important; border-width: 2px !important; overflow: hidden !important; }
-          .certificate-title { margin-top: 10mm !important; font-size: 31px !important; }
+          .certificate-title { margin-top: 8mm !important; font-size: 31px !important; }
+          .certificate-detail-heading { margin-top: 5mm !important; }
           .certificate-no { margin-top: 0 !important; font-size: 11px !important; }
           .certificate-person { margin-top: 7mm !important; padding: 4mm !important; }
           .certificate-identity-value { font-size: 17px !important; }
@@ -502,19 +505,15 @@ function CertificatePageContent() {
 
         {certificate ? (
           <>
-            <section className="certificate-paper mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0">
+            <section className="certificate-print-root certificate-paper mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0">
               <div className="certificate-inner flex h-full min-h-[257mm] flex-col border-[3px] border-[#d9c08a] px-8 py-10 text-center">
                 <p className="certificate-no self-start text-left text-sm font-semibold text-slate-600">발급번호: {certificateNo}</p>
-                <p className="mt-4 text-sm font-semibold tracking-[0.26em] text-[#8a6a2d]">{documentEnglishTitle}</p>
+                {documentEnglishTitle ? <p className="mt-4 text-sm font-semibold tracking-[0.26em] text-[#8a6a2d]">{documentEnglishTitle}</p> : null}
                 <h2 className="certificate-title mt-8 text-5xl font-bold tracking-[0.22em] text-[#111827]">{documentHeading}</h2>
 
                 {isDetailDocument ? (
                   <div className="certificate-detail mt-8 text-left text-sm leading-6 text-slate-900">
-                    <div className="certificate-detail-hero rounded-xl border-2 border-[#d9c08a] bg-[linear-gradient(135deg,#fffaf0_0%,#ffffff_65%,#f8f1df_100%)] px-5 py-4 text-center shadow-[0_10px_28px_rgba(138,106,45,0.08)]">
-                      <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#8a6a2d]">Reset Edu Center Official Record</p>
-                      <p className="mt-2 text-xl font-black tracking-[-0.02em] text-slate-950">재범방지교육 상세내역서</p>
-                      <p className="mt-2 text-xs font-semibold leading-5 text-slate-600">본 문서는 온라인 교육과정의 이수 사실과 주요 학습 내용을 확인하기 위하여 발급됩니다.</p>
-                    </div>
+                    <p className="certificate-detail-heading rounded-xl border-2 border-[#d9c08a] bg-[#fffaf0] px-5 py-4 text-center text-xl font-black tracking-[-0.02em] text-slate-950 shadow-[0_10px_28px_rgba(138,106,45,0.08)]">교육이수 상세내역서</p>
 
                     <section className="certificate-detail-section mt-4">
                       <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">1</span>교육 이수자 정보</h3>
@@ -533,8 +532,6 @@ function CertificatePageContent() {
                       <div className="overflow-hidden rounded-lg border border-[#d9c08a] bg-white">
                         {[
                           ["교육과정명", "인지행동 기반 음주운전 재범방지교육 심화과정"],
-                          ["운영기관", "리셋에듀센터"],
-                          ["교육방식", "온라인 동영상 교육 및 자기점검 학습"],
                           ["수료조건", "전체 교육과정 수강 완료"],
                           ["수료일자", detailCompletedAt],
                         ].map(([label, value]) => (
@@ -557,10 +554,10 @@ function CertificatePageContent() {
                       <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">4</span>교육 이수 확인</h3>
                       <div className="certificate-detail-confirm rounded-lg border-2 border-[#d9c08a] bg-[#fffaf0] px-4 py-3 font-semibold text-slate-900">
                         <div className="grid gap-1.5">
-                          <p className="flex gap-2"><span className="font-black text-[#8a6a2d]">확인</span><span>온라인 동영상 교육 수료</span></p>
-                          <p className="flex gap-2"><span className="font-black text-[#8a6a2d]">확인</span><span>전체 교육과정 및 필수 학습활동 이수 완료</span></p>
+                          <p className="flex gap-2"><span className="font-black text-[#8a6a2d]">확인</span><span>온라인 동영상 강의 100% 수료</span></p>
+                          <p className="flex gap-2"><span className="font-black text-[#8a6a2d]">확인</span><span>전체 교육과정 이수 완료</span></p>
                         </div>
-                        <p className="mt-3 border-t border-[#d9c08a] pt-3 font-bold leading-6">본 상세내역서는 위 교육과정의 이수 사실과 주요 교육내용을 확인하기 위하여 발급합니다.</p>
+
                       </div>
                     </section>
                   </div>

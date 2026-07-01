@@ -92,7 +92,7 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
             <h1 className="mt-4 break-keep text-4xl font-black leading-tight tracking-[-0.04em] sm:text-5xl lg:text-6xl">{course.headline}</h1>
             <p className="mt-6 max-w-3xl break-keep text-base leading-8 text-slate-200 sm:text-lg">{course.summary}</p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/courses/apply?category=dui" data-ga-event="click_enroll" data-ga-item-id={duiPreventionCourseProduct.courseId} data-ga-item-name={duiPreventionCourseProduct.courseTitle} data-ga-location="course_detail" style={{ backgroundColor: "#facc15", color: "#111827", border: "2px solid #fde047", boxShadow: "0 18px 36px rgba(250,204,21,0.28)" }} className={buttonClass("darkPrimary", "lg", "whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-[#06101b]")}>
+              <Link href="/courses/apply?category=dui" data-ga-event="click_enroll" data-ga-item-id={duiPreventionCourseProduct.courseId} data-ga-item-name={duiPreventionCourseProduct.courseTitle} data-ga-location="course_detail" style={{ backgroundColor: "#facc15", color: "#111827", border: "2px solid #fde047", boxShadow: "0 18px 36px rgba(250,204,21,0.28)" }} className={buttonClass("darkPrimary", "lg", "whitespace-nowrap rounded-full px-7 font-black !text-black hover:!text-black focus:ring-offset-[#06101b]")}>
                 음주운전 교육 수강 신청
               </Link>
               <Link href="/courses/apply?category=dui&productId=dui-documents" data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name={duiPreventionCourseProduct.courseTitle} data-ga-location="course_detail" className={buttonClass("darkSecondary", "lg", "whitespace-nowrap rounded-full px-7 font-bold focus:ring-offset-[#06101b]")}>
@@ -120,7 +120,7 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
             <p className="text-sm font-bold text-slate-600">실판매 금액</p>
             <p className="mt-2 text-4xl font-black text-[#0f2f5f]">{formatKrw(duiPreventionCourseProduct.price)}</p>
             <p className="mt-3 text-xs font-semibold leading-6 text-slate-500">기본과정 59,000원과 교육·자료 포함 과정 109,000원 중 필요한 준비 범위에 따라 선택할 수 있습니다.</p>
-            <Link href="/courses/apply?category=dui" data-ga-event="click_enroll" data-ga-item-id={duiPreventionCourseProduct.courseId} data-ga-item-name={duiPreventionCourseProduct.courseTitle} data-ga-location="course_detail" className={buttonClass("primary", "lg", "mt-5 w-full rounded-[1rem] font-black")}>
+            <Link href="/courses/apply?category=dui" data-ga-event="click_enroll" data-ga-item-id={duiPreventionCourseProduct.courseId} data-ga-item-name={duiPreventionCourseProduct.courseTitle} data-ga-location="course_detail" className={buttonClass("primary", "lg", "mt-5 w-full rounded-[1rem] font-black !text-black hover:!text-black")}>
               음주운전 교육 수강 신청
             </Link>
           </aside>

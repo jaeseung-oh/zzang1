@@ -248,7 +248,6 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
   const [phoneNumber, setPhoneNumber] = useState("");
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
-  const [sensitiveInfoAccepted, setSensitiveInfoAccepted] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [message, setMessage] = useState("회원 계정 화면을 준비하는 중입니다.");
   const [error, setError] = useState("");
@@ -265,7 +264,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirm, setNewPasswordConfirm] = useState("");
   const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
-  const isSignupConsentComplete = termsAccepted && privacyAccepted && sensitiveInfoAccepted;
+  const isSignupConsentComplete = termsAccepted && privacyAccepted;
 
   const helperStats = useMemo(() => {
     if (!authUser) {
@@ -407,7 +406,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
           throw new Error("생년월일을 YYYY-MM-DD 형식으로 정확히 입력해 주세요.");
         }
         if (!isSignupConsentComplete) {
-          throw new Error("필수 약관과 민감정보 수집·이용 동의에 모두 체크해 주세요.");
+          throw new Error("필수 약관과 개인정보 수집·이용 동의에 모두 체크해 주세요.");
         }
 
         const { auth } = getFirebaseServices();
@@ -425,7 +424,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
           phoneNumber: phoneNumber.trim() || null,
           termsAccepted: true,
           privacyAccepted: true,
-          sensitiveInfoAccepted: true,
+          sensitiveInfoAccepted: false,
         });
         let verificationSent = true;
         try {
@@ -447,7 +446,6 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
         setPasswordConfirm("");
         setTermsAccepted(false);
         setPrivacyAccepted(false);
-        setSensitiveInfoAccepted(false);
         setMessage(
           verificationSent
             ? "회원가입이 완료되었고 인증 메일을 발송했습니다. 인증을 완료하면 바로 수강을 시작할 수 있습니다."
@@ -623,7 +621,6 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
         setPasswordConfirm("");
         setTermsAccepted(false);
         setPrivacyAccepted(false);
-        setSensitiveInfoAccepted(false);
         setPhoneNumber("");
         setCurrentPassword("");
         setNewPassword("");
@@ -929,10 +926,6 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                       <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
                         <input type="checkbox" checked={privacyAccepted} onChange={(event) => setPrivacyAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
                         <span>[필수] <Link href="/privacy-policy" target="_blank" rel="noopener noreferrer" className="font-semibold text-slate-900 underline underline-offset-4">개인정보 수집 및 이용 동의</Link></span>
-                      </label>
-                      <label className="flex items-start gap-3 text-sm leading-7 text-slate-600">
-                        <input type="checkbox" checked={sensitiveInfoAccepted} onChange={(event) => setSensitiveInfoAccepted(event.target.checked)} className="mt-1 h-4 w-4 accent-[#1f4b8f]" />
-                        <span>[필수] 민감정보 수집 및 이용 동의 (수강 내역을 통한 범죄/수사 이력 유추 가능성 표기)</span>
                       </label>
                     </div>
                   </div>
