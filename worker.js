@@ -122,6 +122,10 @@ async function handleRequest(request, env) {
             return handleAdminEnrollmentGrant(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/admin/certificates/issue' && request.method === 'POST') {
+            return handleAdminCertificateIssue(request, env, corsHeaders);
+        }
+
         return json({ error: 'not_found' }, 404, corsHeaders);
     } catch (error) {
         console.error(error);
@@ -2680,6 +2684,84 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         expiresAt,
         accessStatus: 'active'
     }, 200, corsHeaders);
+}
+
+async function handleAdminCertificateIssue(request, env, corsHeaders) {
+    let admin;
+    try {
+        admin = await requireFirebaseAdmin(request, env);
+    } catch (error) {
+        return json({ message: error.message || '관리자 권한이 없습니다.', code: 'ADMIN_FORBIDDEN' }, error.status || 403, corsHeaders);
+    }
+
+    const body = await request.json().catch(() => null);
+    const uid = String(body?.uid || '').trim();
+    const courseId = String(body?.courseId || DUI_COURSE_PRODUCT.courseId).trim();
+    const product = getCourseProduct(courseId);
+    if (!uid || !product) {
+        return json({ message: '사용자 ID 또는 교육과정 정보가 올바르지 않습니다.', code: 'INVALID_REQUEST' }, 400, corsHeaders);
+    }
+
+    const certificateId = uid + '_' + courseId;
+    const existing = await firestoreGetData(env, 'certificates', certificateId).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existing?.certificateNo || existing?.issueNumber) {
+        await updateCertificateFlags(env, uid, courseId, existing.certificateNo || existing.issueNumber, certificateId, existing.issuedAt || existing.createdAt, true).catch((error) => console.error(error));
+        return json({ ok: true, certificateId, certificateNo: existing.certificateNo || existing.issueNumber, alreadyIssued: true, message: '이미 저장된 수료증이 있습니다.' }, 200, corsHeaders);
+    }
+
+    const user = await firestoreGetData(env, 'users', uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (!user) return json({ message: '회원 정보를 확인할 수 없습니다.', code: 'USER_NOT_FOUND' }, 400, corsHeaders);
+
+    const enrollment = await getWorkerEnrollmentRecord(env, uid, courseId).catch(() => null);
+    if (!isFirestoreEnrollmentActiveRecord(enrollment)) {
+        return json({ message: '활성 수강권이 없습니다. 먼저 관리자 페이지에서 수강권을 직접 부여해 주세요.', code: 'ENROLLMENT_NOT_ACTIVE' }, 400, corsHeaders);
+    }
+
+    const locked = user.certificateIdentity || {};
+    const userName = String(body?.userName || locked.realName || user.realName || user.fullName || user.name || '').trim();
+    const birthDate = String(body?.birthDate || locked.dateOfBirth || user.dateOfBirth || user.birthDate || '').trim();
+    if (!userName) return json({ message: '성명을 입력해 주세요.', code: 'MISSING_NAME' }, 400, corsHeaders);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(birthDate)) {
+        return json({ message: '생년월일은 YYYY-MM-DD 형식으로 입력해 주세요.', code: 'MISSING_BIRTH_DATE' }, 400, corsHeaders);
+    }
+
+    const issuedAt = new Date().toISOString();
+    const progressId = uid + '_' + courseId;
+    const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    const certificateNo = await makeCertificateNo(certificateId, issuedAt);
+    const completedAt = body?.completedAt || progress?.completedAt || issuedAt;
+    const issuerName = env.CERTIFICATE_ISSUER_NAME || '리셋에듀센터';
+    const documentType = courseId === CBT_COURSE_PRODUCT.courseId ? 'cbt-completion' : 'completion';
+    const certificateRecord = {
+        certificateId, certificateNo, issueNumber: certificateNo,
+        userId: uid, uid, userName, birthDate, dateOfBirth: birthDate,
+        email: user.email || '', phoneNumber: user.phoneNumber || '',
+        courseId, courseTitle: product.courseTitle,
+        totalLessons: product.totalLessons, completedLessons: product.totalLessons,
+        progress: 100, completedAt,
+        purchasedAt: enrollment.purchasedAt || null,
+        expiresAt: enrollment.expiresAt || null,
+        issuedAt, certificateIssuedAt: issuedAt,
+        issuerName,
+        issuerBusinessNumber: env.CERTIFICATE_ISSUER_BUSINESS_NUMBER || '',
+        issuerContact: env.CERTIFICATE_ISSUER_CONTACT || '',
+        issuerEmail: env.CERTIFICATE_ISSUER_EMAIL || '',
+        status: 'issued', documentType,
+        issuedByAdmin: true,
+        issuedBy: admin.email || admin.uid,
+        adminIssueReason: String(body?.note || '관리자 직접 수료증 발급').trim(),
+        createdAt: issuedAt, updatedAt: issuedAt
+    };
+
+    await firestorePatch(env, firestoreDocumentPath(env, 'certificates', certificateId), certificateRecord);
+    await updateCertificateFlags(env, uid, courseId, certificateNo, certificateId, issuedAt, true);
+    await savePaymentLog(env, certificateId, {
+        type: 'admin_certificate_issued', certificateId, certificateNo, uid, userId: uid,
+        courseId, documentType, issuedBy: admin.email || admin.uid,
+        created_at: issuedAt, createdAt: issuedAt
+    }).catch((logError) => console.error(logError));
+
+    return json({ ok: true, certificateId, certificateNo, alreadyIssued: false, documentType, message: '수료증이 발급 및 저장되었습니다.' }, 200, corsHeaders);
 }
 
 async function handleAdminPayments(request, env, corsHeaders) {
