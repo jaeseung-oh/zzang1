@@ -360,7 +360,7 @@ export default function CheckoutContent() {
             <h1 className="text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">수강권 결제</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">결제 정보를 확인한 후 결제를 진행해 주세요.</p>
           </div>
-          <Link href={selectedProduct.courseId ? "/courses/apply?category=cbt" : "/courses/dui-prevention"} className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
+          <Link href={selectedProduct.id === "dui-cbt-advanced" ? "/courses/apply?category=dui&productId=dui-cbt-advanced" : "/courses/dui-prevention"} className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
             상품 상세보기
           </Link>
         </div>

@@ -491,7 +491,7 @@ export default function CourseRoomPage() {
           setAccessBlockedMessage(message);
           setPlayerError(message);
           setAccessChecking(false);
-          router.replace((requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "/courses/apply/?category=cbt&productId=dui-cbt-advanced&notice=" : "/courses/apply/?category=dui&notice=") + encodeURIComponent(message));
+          router.replace((requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "/courses/apply/?category=dui&productId=dui-cbt-advanced&notice=" : "/courses/apply/?category=dui&notice=") + encodeURIComponent(message));
           return;
         } else {
           setAccessBlockedMessage("");

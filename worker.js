@@ -1249,7 +1249,7 @@ const APPLICATION_PRODUCTS = {
         totalLessons: DUI_COURSE_PRODUCT.totalLessons
     },
     'dui-cbt-advanced': {
-        categoryId: 'cbt',
+        categoryId: 'dui',
         productId: 'dui-cbt-advanced',
         title: '인지행동기반 재발방지교육 심화과정',
         amount: 290000,
