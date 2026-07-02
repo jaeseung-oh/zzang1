@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct, formatApplicationKrw, type ApplicationProduct } from "@/lib/course/application-products";
-import DocumentPreviewGallery, { type DocumentPreviewItem } from "@/app/components/document-preview-gallery";
+import type { DocumentPreviewItem } from "@/app/components/document-preview-gallery";
 
 export const metadata: Metadata = {
   title: "양형자료 준비를 돕는 온라인 예방교육 | Reset Edu Center",
@@ -46,42 +46,42 @@ const materials = [
 const homeDocumentSamples: DocumentPreviewItem[] = [
   {
     id: "home-basic-certificate",
-    title: "기본 수료증 캡쳐본",
+    title: "교육수료증",
     products: ["기본과정", "자료포함과정", "심화과정"],
     statusLabel: "샘플",
-    description: "온라인 예방교육 이수 후 발급되는 기본 수료증 예시입니다.",
+    description: "",
     imageSrc: "/images/document-samples/basic-certificate-sample.jpg",
   },
   {
     id: "home-advanced-certificate",
-    title: "심화이수증 캡쳐본",
+    title: "인지행동기반 재발방지교육 수료증",
     products: ["심화과정"],
     statusLabel: "샘플",
-    description: "인지행동기반 재발방지교육을 이수했음을 확인하는 심화 이수증 예시입니다.",
+    description: "",
     imageSrc: "/images/document-samples/cognitive-prevention-certificate-sample.jpg",
   },
   {
     id: "home-dui-prevention-sample-1",
-    title: "음주재발방지 샘플 1",
+    title: "음주재발방지 실천계획서",
     products: ["자료포함과정", "심화과정"],
     statusLabel: "샘플",
-    description: "재발방지 자료에 포함되는 음주운전 재발방지 서식 예시입니다.",
+    description: "",
     imageSrc: "/images/document-samples/sobriety-pledge-sample.jpg",
   },
   {
     id: "home-dui-prevention-sample-2",
-    title: "음주재발방지 샘플 2",
+    title: "음주운전 재발방지 서약서",
     products: ["자료포함과정", "심화과정"],
     statusLabel: "샘플",
-    description: "위험상황과 대처계획을 정리하는 음주 재발방지 자료 예시입니다.",
+    description: "",
     imageSrc: "/images/document-samples/risk-response-plan-sample.jpg",
   },
   {
     id: "home-prevention-plan-sample",
-    title: "재발방지샘플",
+    title: "재발방지계획서",
     products: ["자료포함과정", "심화과정"],
     statusLabel: "샘플",
-    description: "사건 이후 생활 변화와 실천계획을 정리하는 재발방지계획서 예시입니다.",
+    description: "",
     imageSrc: "/images/document-samples/prevention-plan-sample.jpg",
   },
 ];
@@ -120,7 +120,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[url('/images/prevention-education-hero.png')] bg-cover bg-center opacity-85" />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.88)_0%,rgba(15,23,42,0.72)_42%,rgba(15,23,42,0.34)_100%)]" />
         <div className="absolute inset-x-0 bottom-0 h-28 bg-[linear-gradient(0deg,rgba(2,6,23,0.72),rgba(2,6,23,0))]" />
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_420px] lg:px-8 lg:py-24">
+        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,1fr)_520px] lg:px-8 lg:py-24">
           <div className="min-w-0">
             <p className="inline-flex rounded-full border border-white/30 bg-white/10 px-4 py-2 text-xs font-bold text-slate-100">양형자료 준비 · 온라인 예방교육 · 수강 즉시 수료증</p>
             <h1 className="mt-6 max-w-4xl text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">음주운전 사건 이후 필요한 양형자료, 지금 수강하고 바로 준비하세요</h1>
@@ -133,30 +133,29 @@ export default function HomePage() {
               <p className="text-sm font-black text-[#06101b]">실제 출력자료 샘플</p>
               <Link href={applyHref} className="text-xs font-black text-[#173968] underline underline-offset-4">수강권 구매</Link>
             </div>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+            <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
               {homeCertificateSamples.map((sample) => (
                 <a key={sample.id} href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name={sample.title} data-ga-location="home_certificate_sample" className="group overflow-hidden rounded-2xl border-2 border-[#173968] bg-white text-left shadow-[0_16px_42px_rgba(23,57,104,0.18)] transition hover:-translate-y-0.5 hover:shadow-xl">
-                  <div className="relative h-56 overflow-hidden bg-white sm:h-64 lg:h-52 xl:h-60">
-                    <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-cover object-top transition group-hover:scale-[1.03]" />
+                  <div className="relative h-80 overflow-hidden bg-white sm:h-[420px] lg:h-80 xl:h-[380px]">
+                    <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-2 transition group-hover:scale-[1.02]" />
                     <span className="absolute left-3 top-3 rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white shadow-sm">샘플</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3 p-4">
-                    <h3 className="break-keep text-base font-black leading-snug text-slate-950">{sample.title}</h3>
-                    <span className="shrink-0 rounded-full bg-[#facc15] px-3 py-1 text-xs font-black text-slate-950">구매하기</span>
+                  <div className="p-4">
+                    <h3 className="break-keep text-center text-lg font-black leading-snug text-slate-950">{sample.title}</h3>
                   </div>
                 </a>
               ))}
             </div>
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-black text-slate-700">재발방지 자료 샘플</p>
-              <div className="mt-3 grid grid-cols-3 gap-2">
+              <div className="mt-3 grid grid-cols-3 gap-3">
                 {homePreventionSamples.map((sample) => (
                   <a key={sample.id} href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name={sample.title} data-ga-location="home_prevention_sample" className="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-[#173968] hover:shadow-md">
-                    <div className="relative h-24 overflow-hidden sm:h-28 lg:h-24 xl:h-28">
-                      <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-cover object-top transition group-hover:scale-[1.04]" />
+                    <div className="relative h-36 overflow-hidden bg-white sm:h-44 lg:h-36 xl:h-44">
+                      <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-1.5 transition group-hover:scale-[1.02]" />
                       <span className="absolute left-1.5 top-1.5 rounded-full bg-[#173968] px-2 py-0.5 text-[10px] font-black text-white shadow-sm">샘플</span>
                     </div>
-                    <p className="break-keep px-2 py-2 text-[11px] font-black leading-snug text-slate-800">{sample.title}</p>
+                    <p className="break-keep px-2 py-2 text-center text-xs font-black leading-snug text-slate-800">{sample.title}</p>
                   </a>
                 ))}
               </div>
@@ -179,10 +178,36 @@ export default function HomePage() {
       <section id="sample-documents" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-            <SectionTitle eyebrow="Sample Documents" title="사이트에 들어오자마자 출력자료 샘플을 확인할 수 있습니다" body="수료증, 이수증, 재발방지 서식을 예시 문서로 먼저 확인하세요. 개인정보는 모두 마스킹되어 있으며, 현재 바로 신청 가능한 과정은 음주운전 예방교육입니다." />
+            <SectionTitle eyebrow="Sample Documents" title="사이트에 들어오자마자 출력자료 샘플을 확인할 수 있습니다" />
             <Link href="/courses/dui-prevention" className={buttonClass("secondary", "md", "rounded-full px-6 font-black")}>음주운전 과정 상세보기</Link>
           </div>
-          <div className="mt-8"><DocumentPreviewGallery documents={homeDocumentSamples} columnsClassName="sm:grid-cols-2 xl:grid-cols-5" showPreviewButton={false} /></div>
+          <div className="mt-8 grid gap-5 lg:grid-cols-[1.35fr_0.85fr]">
+            <div className="grid gap-5 sm:grid-cols-2">
+              {homeCertificateSamples.map((sample) => (
+                <article key={sample.id} className="overflow-hidden rounded-[1.25rem] border-2 border-[#173968] bg-white shadow-[0_18px_50px_rgba(23,57,104,0.14)]">
+                  <div className="relative h-[420px] bg-white sm:h-[520px] lg:h-[560px]">
+                    <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-3" />
+                    <span className="absolute left-4 top-4 rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white shadow-sm">샘플</span>
+                  </div>
+                  <h3 className="break-keep border-t border-slate-200 px-4 py-4 text-center text-lg font-black text-slate-950">{sample.title}</h3>
+                </article>
+              ))}
+            </div>
+            <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
+              <h3 className="text-base font-black text-slate-950">재발방지 제공자료</h3>
+              <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                {homePreventionSamples.map((sample) => (
+                  <article key={sample.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+                    <div className="relative h-44 bg-white sm:h-52 lg:h-44 xl:h-52">
+                      <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-2" />
+                      <span className="absolute left-2 top-2 rounded-full bg-[#173968] px-2.5 py-1 text-[10px] font-black text-white shadow-sm">샘플</span>
+                    </div>
+                    <h4 className="break-keep border-t border-slate-200 px-3 py-2 text-center text-xs font-black leading-snug text-slate-900">{sample.title}</h4>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

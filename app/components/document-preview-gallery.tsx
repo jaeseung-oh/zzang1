@@ -25,19 +25,23 @@ export default function DocumentPreviewGallery({ documents, columnsClassName = "
       <div className={`grid gap-4 ${columnsClassName}`}>
         {documents.map((document) => (
           <article key={document.id} className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.08)]">
-            <div className="relative h-52 overflow-hidden bg-slate-100">
-              <img src={document.imageSrc} alt={`${document.title} 예시 문서 일부`} className="h-full w-full object-cover object-top" />
+            <div className={showPreviewButton ? "relative h-52 overflow-hidden bg-slate-100" : "relative h-80 overflow-hidden bg-white sm:h-[420px] xl:h-96"}>
+              <img src={document.imageSrc} alt={`${document.title} 예시 문서 일부`} className={showPreviewButton ? "h-full w-full object-cover object-top" : "h-full w-full object-contain object-center p-2"} />
               <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-white/0" />
               {document.statusLabel ? <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-[#173968] shadow-sm">{document.statusLabel}</span> : null}
             </div>
             <div className="p-5">
-              <h3 className="break-keep text-lg font-black text-[#06101b]">{document.title}</h3>
-              <div className="mt-3 flex flex-wrap gap-1.5">
-                {document.products.map((product) => (
-                  <span key={product} className="rounded-full bg-[#eef4fb] px-3 py-1 text-xs font-black text-[#173968]">{product}</span>
-                ))}
-              </div>
-              <p className="mt-3 min-h-[72px] break-keep text-sm leading-6 text-slate-700">{document.description}</p>
+              <h3 className={showPreviewButton ? "break-keep text-lg font-black text-[#06101b]" : "break-keep text-center text-lg font-black text-[#06101b]"}>{document.title}</h3>
+              {showPreviewButton ? (
+                <>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {document.products.map((product) => (
+                      <span key={product} className="rounded-full bg-[#eef4fb] px-3 py-1 text-xs font-black text-[#173968]">{product}</span>
+                    ))}
+                  </div>
+                  <p className="mt-3 min-h-[72px] break-keep text-sm leading-6 text-slate-700">{document.description}</p>
+                </>
+              ) : null}
               {showPreviewButton ? (
                 <button type="button" onClick={() => setSelected(document)} className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#173968] bg-[#173968] px-4 text-sm font-black text-white transition hover:bg-[#10213f]">
                   미리보기
