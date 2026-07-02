@@ -60,45 +60,12 @@ const homeDocumentSamples: DocumentPreviewItem[] = [
     description: "재발 원인, 음주 전후 위험상황, 이동수단 확보 계획을 본인 상황에 맞게 작성하는 서식 예시입니다.",
     imageSrc: "/images/document-samples/prevention-plan-sample.svg",
   },
-  {
-    id: "home-violence-certificate",
-    title: "폭력 예방교육 이수증",
-    products: ["폭력", "준비중"],
-    statusLabel: "준비중 샘플",
-    description: "갈등 상황, 감정 조절, 책임 인식 교육을 이수했음을 확인하는 문서 형태의 샘플입니다.",
-    imageSrc: "/images/document-samples/violence-certificate-sample.svg",
-  },
-  {
-    id: "home-fraud-certificate",
-    title: "사기 예방교육 이수증",
-    products: ["사기", "준비중"],
-    statusLabel: "준비중 샘플",
-    description: "거래 책임과 피해 회복 노력을 정리하는 예방교육 이수 문서 형태의 샘플입니다.",
-    imageSrc: "/images/document-samples/fraud-certificate-sample.svg",
-  },
-  {
-    id: "home-drug-certificate",
-    title: "마약 예방교육 이수증",
-    products: ["마약", "준비중"],
-    statusLabel: "준비중 샘플",
-    description: "약물 위험성, 생활 환경 관리, 회복 계획 교육을 이수했음을 보여주는 샘플입니다.",
-    imageSrc: "/images/document-samples/drug-certificate-sample.svg",
-  },
-  {
-    id: "home-gambling-certificate",
-    title: "도박 예방교육 이수증",
-    products: ["도박", "준비중"],
-    statusLabel: "준비중 샘플",
-    description: "도박 위험성, 충동 관리, 금전 관리 계획을 다루는 예방교육 이수 문서 샘플입니다.",
-    imageSrc: "/images/document-samples/gambling-certificate-sample.svg",
-  },
 ];
 
 const categories = [
   ["음주운전 예방교육", "수강 가능", "음주운전의 위험성, 법적 책임, 피해자 관점, 음주 문제 점검, 재발방지 실천계획 수립을 중심으로 구성된 온라인 교육입니다.", true],
 ] as const;
 
-const upcomingCourses = ["도박", "마약", "사기", "성범죄"] as const;
 
 const targetUsers = [
   "양형자료 준비를 어디서 시작해야 할지 막막한 분",
@@ -160,9 +127,8 @@ export default function HomePage() {
 
       <section className="bg-white px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Start Here" title="양형자료 준비는 교육 수료증과 재발방지 자료부터 시작하세요" body="음주운전 사건 이후 반성과 개선 노력을 말로만 설명하기보다, 교육 이수 기록과 재발방지 실천계획으로 정리하세요. Reset Edu Center는 수강, 수료증 발급, 자료 작성과 출력까지 바로 이어지는 구조로 제공합니다." />
-          <div className="mt-10 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="mt-10 grid gap-4">
             {categories.map(([title, status, body]) => <article key={title} className="rounded-xl border-2 border-[#173968] bg-[#173968] p-6 text-white shadow-[0_18px_42px_rgba(23,57,104,0.18)]"><div className="flex items-center justify-between gap-3"><Icon name="car" className="h-8 w-8 text-[#f7d9a0]" /><span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#173968]">{status}</span></div><h3 className="mt-5 text-2xl font-black leading-snug text-white">{title}</h3><p className="mt-3 text-base leading-8 text-slate-100">{body}</p><div className="mt-6 flex flex-wrap gap-3"><Link href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name="음주운전 예방교육" data-ga-location="home" style={{ backgroundColor: "#ffffff", color: "#111827", borderColor: "#ffffff" }} className={buttonClass("secondary", "md", "rounded-xl font-black !text-black hover:!text-black")}>지금 수강 신청하기</Link><Link href="#materials" style={{ backgroundColor: "#ffffff", color: "#111827", borderColor: "#ffffff" }} className={buttonClass("secondary", "md", "rounded-xl font-bold !text-black hover:!text-black")}>제공 자료 확인하기</Link></div></article>)}
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-5"><p className="text-sm font-black text-slate-700">추가 과정 준비 중</p><p className="mt-3 text-sm leading-7 text-slate-600">{upcomingCourses.join(" · ")} 관련 예방교육은 추후 안내 예정입니다. 현재는 음주운전 예방교육 수강과 양형자료 준비에 집중합니다.</p></div>
           </div>
         </div>
       </section>
@@ -176,7 +142,6 @@ export default function HomePage() {
             <Link href="/courses/dui-prevention" className={buttonClass("secondary", "md", "rounded-full px-6 font-black")}>음주운전 과정 상세보기</Link>
           </div>
           <div className="mt-8"><DocumentPreviewGallery documents={homeDocumentSamples} columnsClassName="sm:grid-cols-2 xl:grid-cols-3" /></div>
-          <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-950">폭력, 사기, 마약, 도박 과정 샘플은 향후 과정 확장을 위한 예시입니다. 실제 신청 가능 여부와 제공 문서는 과정 오픈 시점의 안내를 기준으로 확인해주세요.</p>
         </div>
       </section>
 
