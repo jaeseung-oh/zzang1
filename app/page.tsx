@@ -192,7 +192,7 @@ export default function HomePage() {
             <p className="text-sm font-black text-slate-950">수강권 선택, 결제, 출력자료 이용 문의</p>
             <p className="mt-1 text-sm leading-6 text-slate-600">상담 가능 시간 안에 연락주시면 확인 후 안내드립니다.</p>
           </div>
-          <a href="tel:010-7617-8619" className="inline-flex w-full items-center justify-center rounded-lg border border-[#173968] bg-[#173968] px-5 py-3 text-center text-sm font-black leading-6 text-white shadow-sm transition hover:bg-[#102a4d] sm:w-auto">
+          <a href="tel:010-7617-8619" className="inline-flex w-full items-center justify-center rounded-lg border border-[#173968] bg-[#173968] px-5 py-3 text-center text-base font-black leading-6 !text-white shadow-sm transition hover:bg-[#102a4d] hover:!text-white sm:w-auto sm:text-lg">
             고객센터 010-7617-8619 / 09:00~19:00까지 연락 가능
           </a>
         </div>
