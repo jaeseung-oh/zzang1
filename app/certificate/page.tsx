@@ -431,27 +431,33 @@ function CertificatePageContent() {
             break-inside: avoid !important;
             overflow: hidden !important;
           }
-          .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 7mm 9mm !important; border-width: 2px !important; overflow: hidden !important; }
-          .certificate-title { margin-top: 8mm !important; font-size: 31px !important; }
-          .certificate-no { margin-top: 0 !important; font-size: 11px !important; }
-          .certificate-person { margin-top: 7mm !important; padding: 4mm !important; }
-          .certificate-identity-value { font-size: 17px !important; }
+          .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 8mm 10mm !important; border-width: 2px !important; overflow: hidden !important; }
+          .certificate-title { margin-top: 10mm !important; font-size: 39px !important; line-height: 1.18 !important; }
+          .certificate-no { margin-top: 0 !important; font-size: 12px !important; }
+          .certificate-person { margin-top: 11mm !important; padding: 5mm !important; font-size: 19px !important; line-height: 1.7 !important; }
+          .certificate-identity-value { font-size: 19px !important; }
           .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
-          .certificate-body { margin-top: 7mm !important; font-size: 14.5px !important; line-height: 1.62 !important; }
-          .certificate-table { margin-top: 6mm !important; font-size: 11.5px !important; }
-          .certificate-table-row { grid-template-columns: 34mm minmax(0, 1fr) !important; }
-          .certificate-table-cell { padding: 1.9mm 2.5mm !important; line-height: 1.45 !important; }
-          .certificate-detail { margin-top: 5mm !important; font-size: 10.4px !important; line-height: 1.38 !important; }
-          .certificate-detail-hero { padding: 2.5mm 3mm !important; margin-top: 5mm !important; }
-          .certificate-detail-section { margin-top: 2.2mm !important; }
-          .certificate-detail-title { font-size: 11.5px !important; margin-bottom: 1mm !important; }
-          .certificate-detail-grid { grid-template-columns: 28mm minmax(0, 1fr) !important; }
-          .certificate-detail-cell { padding: 1.15mm 2mm !important; }
-          .certificate-detail-list { gap: 0.45mm !important; padding: 2mm 3mm !important; }
-          .certificate-detail-confirm { margin-top: 1.8mm !important; padding: 1.8mm 2.5mm !important; }
-          .certificate-sign { padding-top: 4mm !important; }
-          .certificate-issuer { margin-top: 5mm !important; font-size: 23px !important; }
-          .certificate-seal, .seal-stamp { width: 26mm !important; height: 26mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .certificate-body { margin-top: 11mm !important; font-size: 17.5px !important; line-height: 1.75 !important; }
+          .certificate-table { margin-top: 10mm !important; font-size: 14px !important; }
+          .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
+          .certificate-table-cell { padding: 2.6mm 3.2mm !important; line-height: 1.5 !important; }
+          .certificate-detail-document .certificate-inner { padding: 7mm 9mm !important; }
+          .certificate-detail-document .certificate-title { margin-top: 4mm !important; font-size: 33px !important; line-height: 1.18 !important; }
+          .certificate-detail { margin-top: 5mm !important; font-size: 12.2px !important; line-height: 1.48 !important; }
+          .certificate-detail-hero { padding: 3mm 3.5mm !important; margin-top: 5mm !important; }
+          .certificate-detail-section { margin-top: 3.2mm !important; }
+          .certificate-detail-title { font-size: 13.2px !important; margin-bottom: 1.4mm !important; line-height: 1.35 !important; }
+          .certificate-detail-title span { width: 6mm !important; height: 6mm !important; font-size: 10px !important; }
+          .certificate-detail-grid { grid-template-columns: 31mm minmax(0, 1fr) !important; }
+          .certificate-detail-cell { padding: 1.8mm 2.4mm !important; line-height: 1.45 !important; }
+          .certificate-detail-list { gap: 0.85mm !important; padding: 3mm 3.5mm !important; }
+          .certificate-detail-confirm { margin-top: 2.8mm !important; padding: 2.8mm 3.2mm !important; }
+          .certificate-sign { padding-top: 8mm !important; }
+          .certificate-detail-document .certificate-sign { padding-top: 5mm !important; }
+          .certificate-issuer { margin-top: 6mm !important; font-size: 27px !important; }
+          .certificate-detail-document .certificate-issuer { margin-top: 4mm !important; font-size: 25px !important; }
+          .certificate-seal, .seal-stamp { width: 30mm !important; height: 30mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .certificate-detail-document .certificate-seal, .certificate-detail-document .seal-stamp { width: 27mm !important; height: 27mm !important; }
         }
       `}</style>
 
@@ -504,7 +510,7 @@ function CertificatePageContent() {
 
         {certificate ? (
           <>
-            <section className="certificate-print-root certificate-paper mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0">
+            <section className={`certificate-print-root certificate-paper ${isDetailDocument ? "certificate-detail-document" : "certificate-completion-document"} mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0`}>
               <div className="certificate-inner flex h-full min-h-[257mm] flex-col border-[3px] border-[#d9c08a] px-8 py-10 text-center">
                 <p className="certificate-no self-start text-left text-sm font-semibold text-slate-600">발급번호: {certificateNo}</p>
                 {documentEnglishTitle ? <p className="mt-4 text-sm font-semibold tracking-[0.26em] text-[#8a6a2d]">{documentEnglishTitle}</p> : null}
