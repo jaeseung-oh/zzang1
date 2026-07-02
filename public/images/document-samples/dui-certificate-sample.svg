@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="620" viewBox="0 0 900 620" role="img" aria-label="음주운전 예방교육 수료증 예시 문서">
+  <rect width="900" height="620" fill="#f8fafc"/>
+  <rect x="42" y="34" width="816" height="552" rx="22" fill="#ffffff" stroke="#d9c08a" stroke-width="4"/>
+  <circle cx="450" cy="330" r="136" fill="none" stroke="#173968" stroke-width="18" opacity="0.055"/>
+  <text x="450" y="315" text-anchor="middle" font-size="38" font-weight="900" fill="#173968" opacity="0.065">RESET EDU</text>
+  <text x="450" y="360" text-anchor="middle" font-size="31" font-weight="900" fill="#173968" opacity="0.065">CENTER</text>
+  <text x="450" y="96" text-anchor="middle" font-size="18" font-weight="800" letter-spacing="8" fill="#8a6a2d">RESET EDU CENTER</text>
+  <text x="450" y="154" text-anchor="middle" font-size="42" font-weight="900" fill="#0f172a">음주운전 예방교육 수료증</text>
+  <rect x="64" y="190" width="772" height="2" fill="#e2e8f0"/>
+  <text x="64" y="250" font-size="24" font-weight="700" fill="#334155">성명  ○○○</text>
+  <text x="64" y="296" font-size="24" font-weight="700" fill="#334155">생년월일  ○○○○년 ○○월 ○○일</text>
+  <text x="64" y="342" font-size="24" font-weight="700" fill="#334155">교육구분  음주운전 예방교육</text>
+  <text x="64" y="388" font-size="24" font-weight="700" fill="#334155">발급일  ○○○○년 ○○월 ○○일</text>
+  <rect x="612" y="424" width="160" height="160" rx="80" fill="none" stroke="#991b1b" stroke-width="12" opacity="0.13"/>
+  <text x="692" y="496" text-anchor="middle" font-size="20" font-weight="900" fill="#991b1b" opacity="0.18">리셋에듀센터</text>
+  <text x="692" y="532" text-anchor="middle" font-size="16" font-weight="900" fill="#991b1b" opacity="0.18">직인 예시</text>
+  <g transform="rotate(-24 450 310)"><text x="450" y="324" text-anchor="middle" font-size="86" font-weight="900" fill="#0f172a" opacity="0.08">SAMPLE</text></g>
+  <text x="64" y="552" font-size="18" font-weight="700" fill="#64748b">수강 가능 · 개인정보는 마스킹된 예시입니다.</text>
+  <rect x="42" y="520" width="816" height="66" fill="#ffffff" opacity="0.76"/>
+  <text x="450" y="560" text-anchor="middle" font-size="22" font-weight="900" fill="#334155" opacity="0.55">예시 문서 · 음주운전</text>
+</svg>

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct, formatApplicationKrw, type ApplicationProduct } from "@/lib/course/application-products";
+import DocumentPreviewGallery, { type DocumentPreviewItem } from "@/app/components/document-preview-gallery";
 
 export const metadata: Metadata = {
   title: "양형자료 준비를 돕는 온라인 예방교육 | Reset Edu Center",
@@ -40,6 +41,57 @@ const materials = [
   ["재발방지계획서", "생활 변화 계획을 직접 작성할 수 있습니다."],
   ["음주예방실천계획서", "음주 관리와 실천 방향을 구체화합니다."],
   ["서약서", "재발방지 의지를 문서로 남길 수 있습니다."],
+];
+
+const homeDocumentSamples: DocumentPreviewItem[] = [
+  {
+    id: "home-dui-certificate",
+    title: "음주운전 예방교육 수료증",
+    products: ["음주운전", "수강 가능"],
+    statusLabel: "수강 가능",
+    description: "현재 운영 중인 음주운전 예방교육 수강자가 교육 이수 후 확인할 수 있는 기본 수료증 예시입니다.",
+    imageSrc: "/images/document-samples/dui-certificate-sample.svg",
+  },
+  {
+    id: "home-dui-plan",
+    title: "음주운전 재발방지계획서",
+    products: ["음주운전", "자료포함과정"],
+    statusLabel: "자료 예시",
+    description: "재발 원인, 음주 전후 위험상황, 이동수단 확보 계획을 본인 상황에 맞게 작성하는 서식 예시입니다.",
+    imageSrc: "/images/document-samples/prevention-plan-sample.svg",
+  },
+  {
+    id: "home-violence-certificate",
+    title: "폭력 예방교육 이수증",
+    products: ["폭력", "준비중"],
+    statusLabel: "준비중 샘플",
+    description: "갈등 상황, 감정 조절, 책임 인식 교육을 이수했음을 확인하는 문서 형태의 샘플입니다.",
+    imageSrc: "/images/document-samples/violence-certificate-sample.svg",
+  },
+  {
+    id: "home-fraud-certificate",
+    title: "사기 예방교육 이수증",
+    products: ["사기", "준비중"],
+    statusLabel: "준비중 샘플",
+    description: "거래 책임과 피해 회복 노력을 정리하는 예방교육 이수 문서 형태의 샘플입니다.",
+    imageSrc: "/images/document-samples/fraud-certificate-sample.svg",
+  },
+  {
+    id: "home-drug-certificate",
+    title: "마약 예방교육 이수증",
+    products: ["마약", "준비중"],
+    statusLabel: "준비중 샘플",
+    description: "약물 위험성, 생활 환경 관리, 회복 계획 교육을 이수했음을 보여주는 샘플입니다.",
+    imageSrc: "/images/document-samples/drug-certificate-sample.svg",
+  },
+  {
+    id: "home-gambling-certificate",
+    title: "도박 예방교육 이수증",
+    products: ["도박", "준비중"],
+    statusLabel: "준비중 샘플",
+    description: "도박 위험성, 충동 관리, 금전 관리 계획을 다루는 예방교육 이수 문서 샘플입니다.",
+    imageSrc: "/images/document-samples/gambling-certificate-sample.svg",
+  },
 ];
 
 const categories = [
@@ -102,11 +154,31 @@ export default function HomePage() {
 
       <section id="materials" className="px-4 py-20 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Materials" title="수강 후 바로 확인하고 출력할 수 있는 자료" body="교육 수강과 함께 필요한 양형자료를 한곳에서 확인하고 PDF 저장 및 출력까지 진행할 수 있습니다." /><div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">{materials.map(([title, body]) => <article key={title} className="min-w-0 rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="file" className="h-7 w-7 text-indigo-700" /><h3 className="mt-4 text-base font-black leading-snug text-slate-950">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-700">{body}</p></article>)}</div></div></section>
 
+      <section className="bg-white px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <SectionTitle eyebrow="Sample Documents" title="사이트에 들어오자마자 출력자료 샘플을 확인할 수 있습니다" body="수료증, 이수증, 재발방지 서식을 예시 문서로 먼저 확인하세요. 개인정보는 모두 마스킹되어 있으며, 현재 바로 신청 가능한 과정은 음주운전 예방교육입니다." />
+            <Link href="/courses/dui-prevention" className={buttonClass("secondary", "md", "rounded-full px-6 font-black")}>음주운전 과정 상세보기</Link>
+          </div>
+          <div className="mt-8"><DocumentPreviewGallery documents={homeDocumentSamples} columnsClassName="sm:grid-cols-2 xl:grid-cols-3" /></div>
+          <p className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-950">폭력, 사기, 마약, 도박 과정 샘플은 향후 과정 확장을 위한 예시입니다. 실제 신청 가능 여부와 제공 문서는 과정 오픈 시점의 안내를 기준으로 확인해주세요.</p>
+        </div>
+      </section>
+
       <section className="bg-white px-4 py-20 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr]"><SectionTitle eyebrow="Why It Matters" title="반성과 재발방지 노력을 구체적인 자료로 정리하세요" body="교육 이수 자료, 재발방지계획서, 실천계획서, 서약서를 함께 준비하면 사건 이후 어떤 노력을 하고 있는지 더 분명하게 보여줄 수 있습니다. 반성문 외에 추가 자료를 준비하려는 분에게 필요한 흐름을 제공합니다." /><div className="grid gap-3 sm:grid-cols-2">{targetUsers.map((item) => <div key={item} className="flex min-w-0 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm font-bold leading-relaxed text-slate-800"><Icon name="check" className="h-5 w-5 shrink-0 text-indigo-700" /><span className="min-w-0">{item}</span></div>)}</div></div></section>
 
       <section className="bg-white px-4 py-20 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Pricing" title="필요한 준비 범위에 맞춰 수강권을 선택하세요" body="59,000원 기본 수강권, 109,000원 서식 포함 수강권, 290,000원 인지행동기반 재발방지교육 심화과정을 같은 화면에서 비교할 수 있습니다." /><div className="mt-8 grid gap-5 lg:grid-cols-3">{homePricingProducts.map(({ product, href, label }) => <article key={product.id} className={product.id === "dui-documents" ? "rounded-[1.5rem] border-2 border-[#173968] bg-[#173968] p-6 text-white shadow-[0_18px_42px_rgba(23,57,104,0.18)]" : "rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6"}>{product.id === "dui-documents" ? <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#173968]">양형자료 준비 추천</span> : product.id === "dui-cbt-advanced" ? <span className="rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white">심화과정</span> : null}<h3 className={(product.id === "dui-documents" ? "mt-4 text-xl font-black text-white" : product.id === "dui-cbt-advanced" ? "mt-4 text-xl font-black text-slate-950" : "text-xl font-black text-slate-950")}>{product.title}</h3><p className={product.id === "dui-documents" ? "mt-3 text-3xl font-black text-white" : "mt-3 text-3xl font-black text-slate-950"}>{formatApplicationKrw(product.price)}</p><p className={product.id === "dui-documents" ? "mt-3 text-sm leading-7 text-slate-100" : "mt-3 text-sm leading-7 text-slate-700"}>{product.description}</p><ul className={product.id === "dui-documents" ? "mt-5 space-y-2 text-sm font-semibold leading-6 text-slate-100" : "mt-5 space-y-2 text-sm font-semibold leading-6 text-slate-800"}>{product.includes.map((item) => <li key={item} className="flex min-w-0 gap-2"><Icon name="check" className={product.id === "dui-documents" ? "h-5 w-5 shrink-0 text-[#f7d9a0]" : "h-5 w-5 shrink-0 text-indigo-700"} /><span className="min-w-0">{item}</span></li>)}</ul><Link href={href} data-ga-event="click_enroll" data-ga-item-id={product.id} data-ga-item-name="음주운전 예방교육" data-ga-location="home" style={product.id === "dui-documents" ? { backgroundColor: "#ffffff", color: "#111827", borderColor: "#ffffff" } : undefined} className={buttonClass(product.id === "dui-documents" ? "secondary" : "primary", "md", product.id === "dui-documents" ? "mt-6 w-full rounded-xl font-black !text-black hover:!text-black" : "mt-6 w-full rounded-xl font-black !text-white hover:!text-white")}>{label}</Link></article>)}</div><p className="mt-5 text-sm leading-7 text-slate-600">제출처에서 요구하는 자료는 사건과 절차에 따라 다를 수 있습니다. 별도 안내가 있다면 해당 안내를 먼저 확인하세요.</p></div></section>
 
       <section id="process" className="bg-slate-900 px-4 py-20 text-white sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="keep-korean max-w-3xl min-w-0"><p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Process</p><h2 className="mt-3 text-2xl font-black leading-tight text-white sm:text-4xl">결제부터 수강, 수료증 발급, 자료 출력까지 한 번에 진행하세요</h2><p className="mt-4 text-base leading-relaxed text-slate-200">PC 또는 모바일로 바로 수강하고, 교육 이수 후 필요한 자료를 확인해 저장하거나 출력할 수 있습니다.</p></div><div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">{steps.map(([title, body], index) => <article key={title} className="min-w-0 rounded-[1.25rem] border border-white/15 bg-white/10 p-5"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-950">{index + 1}</div><h3 className="mt-4 text-lg font-black text-white">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-200">{body}</p></article>)}</div><div className="mt-8"><Link href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name="음주운전 예방교육" data-ga-location="home" className={buttonClass("primary", "lg", "whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-slate-900")}>지금 수강하고 자료 준비하기</Link></div></div></section>
+
+      <section className="bg-white px-4 py-14 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl rounded-[1.5rem] border-2 border-[#173968] bg-[#173968] p-6 text-center text-white shadow-[0_20px_60px_rgba(23,57,104,0.18)] sm:p-8">
+          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#f6deb0]">Customer Center</p>
+          <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">고객센터</h2>
+          <a href="tel:010-7617-8619" className="mt-4 inline-flex break-all text-4xl font-black tracking-wide text-white hover:text-[#f6deb0] sm:text-5xl">010-7617-8619</a>
+          <p className="mt-4 text-sm font-semibold leading-7 text-slate-100">수강권 선택, 결제, 출력자료 이용 관련 문의가 필요할 때 연락해주세요.</p>
+        </div>
+      </section>
 
       <section className="px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white p-5 text-xs leading-relaxed text-slate-700 sm:text-sm"><p>리셋 에듀센터는 민간 온라인 교육 플랫폼입니다. 본 사이트에서 제공하는 수료증, 교육 이수 확인 자료, 재발방지계획서, 음주예방실천계획서, 서약서 등은 수강자가 양형자료 준비 과정에서 참고할 수 있는 자가 작성용 자료입니다.</p><p className="mt-2">본 센터는 개별 사건에 대한 법률상담, 법률문서 작성대행, 감형 또는 처벌 감경 보장 서비스를 제공하지 않습니다. 자료의 제출 가능 여부, 반영 여부, 법적 평가는 제출처 또는 관련 전문가의 판단에 따라 달라질 수 있습니다.</p></div></section>
     </main></>

@@ -12,6 +12,7 @@ import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { trackEvent } from "@/lib/analytics/ga";
 import { buildDocumentIdentity, getPreventionDocument, hasPreventionDocumentsAccess, preventionDocuments, type PreventionDocumentIdentity } from "@/lib/course/prevention-documents";
+import { sealStampPath } from "@/app/components/SealStamp";
 
 const blank = "____________";
 
@@ -126,7 +127,7 @@ function PreventionDocumentsContent() {
   };
 
   return <main className="min-h-screen bg-[#eef3f8] px-4 py-8 text-slate-950 print:bg-white print:p-0">
-    <style>{`@page { size: A4; margin: 14mm; } @media print { html, body { width: 210mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; } body * { visibility: hidden !important; } .document-print-area, .document-print-area * { visibility: visible !important; } .document-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; background: #fff !important; } .document-paper { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: 0 !important; outline: 0 !important; --tw-ring-shadow: 0 0 #0000 !important; } .no-print { display: none !important; } .document-paper section { break-inside: avoid; page-break-inside: avoid; } .document-paper h1 { margin-top: 0 !important; } }`}</style>
+    <style>{`@page { size: A4; margin: 14mm; } .document-watermark { opacity: 0.055; } @media print { html, body { width: 210mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; } body * { visibility: hidden !important; } .document-print-area, .document-print-area * { visibility: visible !important; } .document-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; background: #fff !important; } .document-paper { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: 0 !important; outline: 0 !important; --tw-ring-shadow: 0 0 #0000 !important; } .document-watermark { opacity: 0.06 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .no-print { display: none !important; } .document-paper section { break-inside: avoid; page-break-inside: avoid; } .document-paper h1 { margin-top: 0 !important; } }`}</style>
     <div className="mx-auto max-w-5xl">
       <div className="no-print mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div><p className="text-sm font-semibold text-[#274690]">참고서식</p><h1 className="mt-1 text-3xl font-bold">{selected.title}</h1><p className="mt-2 text-sm text-slate-600">{selected.description}</p></div>
@@ -141,7 +142,7 @@ function PreventionDocumentsContent() {
       <div className="no-print mb-5 flex flex-wrap gap-2">{preventionDocuments.map((doc) => <Link key={doc.id} href={`/prevention-documents?type=${doc.id}`} className={doc.id === selected.id ? buttonClass("primary", "sm", "rounded-full") : buttonClass("secondary", "sm", "rounded-full")}>{doc.title}</Link>)}</div>
       {loading ? <p className="no-print rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">서식 이용 권한을 확인하는 중입니다...</p> : null}
       {error && !loading ? <p className="no-print rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</p> : null}
-      {hasAccess ? <article className="document-print-area document-paper mx-auto max-w-[210mm] bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-200"><DocumentBody type={selected.id} identity={identity} /></article> : null}
+      {hasAccess ? <article className="document-print-area document-paper relative mx-auto max-w-[210mm] overflow-hidden bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-200"><img src={sealStampPath} alt="" aria-hidden="true" className="document-watermark pointer-events-none absolute left-1/2 top-[44%] z-0 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 select-none object-contain" /><div className="relative z-10"><DocumentBody type={selected.id} identity={identity} /></div></article> : null}
     </div>
   </main>;
 }
