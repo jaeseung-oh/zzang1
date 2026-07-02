@@ -12,7 +12,7 @@ import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { trackEvent } from "@/lib/analytics/ga";
 import { buildDocumentIdentity, getPreventionDocument, hasPreventionDocumentsAccess, preventionDocuments, type PreventionDocumentIdentity } from "@/lib/course/prevention-documents";
-import { sealStampPath } from "@/app/components/SealStamp";
+import { centerLogoPath } from "@/app/components/SealStamp";
 
 const blank = "____________";
 
@@ -142,7 +142,7 @@ function PreventionDocumentsContent() {
       <div className="no-print mb-5 flex flex-wrap gap-2">{preventionDocuments.map((doc) => <Link key={doc.id} href={`/prevention-documents?type=${doc.id}`} className={doc.id === selected.id ? buttonClass("primary", "sm", "rounded-full") : buttonClass("secondary", "sm", "rounded-full")}>{doc.title}</Link>)}</div>
       {loading ? <p className="no-print rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">서식 이용 권한을 확인하는 중입니다...</p> : null}
       {error && !loading ? <p className="no-print rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</p> : null}
-      {hasAccess ? <article className="document-print-area document-paper relative mx-auto max-w-[210mm] overflow-hidden bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-200"><img src={sealStampPath} alt="" aria-hidden="true" className="document-watermark pointer-events-none absolute left-1/2 top-[44%] z-0 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 select-none object-contain" /><div className="relative z-10"><DocumentBody type={selected.id} identity={identity} /></div></article> : null}
+      {hasAccess ? <article className="document-print-area document-paper relative mx-auto max-w-[210mm] overflow-hidden bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-200"><img src={centerLogoPath} alt="" aria-hidden="true" className="document-watermark pointer-events-none absolute left-1/2 top-[44%] z-0 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 select-none object-contain" /><div className="relative z-10"><DocumentBody type={selected.id} identity={identity} /></div></article> : null}
     </div>
   </main>;
 }

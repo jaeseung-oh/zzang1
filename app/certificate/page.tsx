@@ -8,7 +8,7 @@ import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, duiCbtAdvan
 import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
-import SealStamp, { sealStampPath } from "@/app/components/SealStamp";
+import SealStamp, { centerLogoPath } from "@/app/components/SealStamp";
 import { hasCourseAccess } from "@/lib/course/enrollment-service";
 import { trackEvent } from "@/lib/analytics/ga";
 import { buttonClass } from "@/app/components/ui/button-styles";
@@ -513,7 +513,7 @@ function CertificatePageContent() {
           <>
             <section className={`certificate-print-root certificate-paper ${isDetailDocument ? "certificate-detail-document" : "certificate-completion-document"} mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0`}>
               <div className="certificate-inner relative flex h-full min-h-[257mm] flex-col overflow-hidden border-[3px] border-[#d9c08a] px-8 py-10 text-center">
-                <img src={sealStampPath} alt="" aria-hidden="true" className="certificate-watermark pointer-events-none absolute left-1/2 top-1/2 z-0 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.055]" />
+                <img src={centerLogoPath} alt="" aria-hidden="true" className="certificate-watermark pointer-events-none absolute left-1/2 top-1/2 z-0 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.055]" />
                 <div className="relative z-10 flex h-full min-h-0 flex-col">
                 <p className="certificate-no self-start text-left text-sm font-semibold text-slate-600">발급번호: {certificateNo}</p>
                 {documentEnglishTitle ? <p className="mt-4 text-sm font-semibold tracking-[0.26em] text-[#8a6a2d]">{documentEnglishTitle}</p> : null}
