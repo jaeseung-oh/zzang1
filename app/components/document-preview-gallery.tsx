@@ -14,9 +14,10 @@ export type DocumentPreviewItem = {
 type DocumentPreviewGalleryProps = {
   documents: DocumentPreviewItem[];
   columnsClassName?: string;
+  showPreviewButton?: boolean;
 };
 
-export default function DocumentPreviewGallery({ documents, columnsClassName = "md:grid-cols-2 xl:grid-cols-3" }: DocumentPreviewGalleryProps) {
+export default function DocumentPreviewGallery({ documents, columnsClassName = "md:grid-cols-2 xl:grid-cols-3", showPreviewButton = true }: DocumentPreviewGalleryProps) {
   const [selected, setSelected] = useState<DocumentPreviewItem | null>(null);
 
   return (
@@ -37,15 +38,17 @@ export default function DocumentPreviewGallery({ documents, columnsClassName = "
                 ))}
               </div>
               <p className="mt-3 min-h-[72px] break-keep text-sm leading-6 text-slate-700">{document.description}</p>
-              <button type="button" onClick={() => setSelected(document)} className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#173968] bg-[#173968] px-4 text-sm font-black text-white transition hover:bg-[#10213f]">
-                미리보기
-              </button>
+              {showPreviewButton ? (
+                <button type="button" onClick={() => setSelected(document)} className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-full border-2 border-[#173968] bg-[#173968] px-4 text-sm font-black text-white transition hover:bg-[#10213f]">
+                  미리보기
+                </button>
+              ) : null}
             </div>
           </article>
         ))}
       </div>
 
-      {selected ? (
+      {showPreviewButton && selected ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4 py-6" role="dialog" aria-modal="true" aria-label={`${selected.title} 미리보기`}>
           <div className="max-h-full w-full max-w-3xl overflow-hidden rounded-[1.5rem] bg-white shadow-[0_28px_90px_rgba(0,0,0,0.36)]">
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 p-5">

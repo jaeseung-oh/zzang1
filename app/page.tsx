@@ -45,22 +45,49 @@ const materials = [
 
 const homeDocumentSamples: DocumentPreviewItem[] = [
   {
-    id: "home-dui-certificate",
-    title: "음주운전 예방교육 수료증",
-    products: ["음주운전", "수강 가능"],
-    statusLabel: "수강 가능",
-    description: "현재 운영 중인 음주운전 예방교육 수강자가 교육 이수 후 확인할 수 있는 기본 수료증 예시입니다.",
-    imageSrc: "/images/document-samples/dui-certificate-sample.svg",
+    id: "home-basic-certificate",
+    title: "기본 수료증 캡쳐본",
+    products: ["기본과정", "자료포함과정", "심화과정"],
+    statusLabel: "샘플",
+    description: "온라인 예방교육 이수 후 발급되는 기본 수료증 예시입니다.",
+    imageSrc: "/images/document-samples/basic-certificate-sample.jpg",
   },
   {
-    id: "home-dui-plan",
-    title: "음주운전 재발방지계획서",
-    products: ["음주운전", "자료포함과정"],
-    statusLabel: "자료 예시",
-    description: "재발 원인, 음주 전후 위험상황, 이동수단 확보 계획을 본인 상황에 맞게 작성하는 서식 예시입니다.",
-    imageSrc: "/images/document-samples/prevention-plan-sample.svg",
+    id: "home-advanced-certificate",
+    title: "심화이수증 캡쳐본",
+    products: ["심화과정"],
+    statusLabel: "샘플",
+    description: "인지행동기반 재발방지교육을 이수했음을 확인하는 심화 이수증 예시입니다.",
+    imageSrc: "/images/document-samples/cognitive-prevention-certificate-sample.jpg",
+  },
+  {
+    id: "home-dui-prevention-sample-1",
+    title: "음주재발방지 샘플 1",
+    products: ["자료포함과정", "심화과정"],
+    statusLabel: "샘플",
+    description: "재발방지 자료에 포함되는 음주운전 재발방지 서식 예시입니다.",
+    imageSrc: "/images/document-samples/sobriety-pledge-sample.jpg",
+  },
+  {
+    id: "home-dui-prevention-sample-2",
+    title: "음주재발방지 샘플 2",
+    products: ["자료포함과정", "심화과정"],
+    statusLabel: "샘플",
+    description: "위험상황과 대처계획을 정리하는 음주 재발방지 자료 예시입니다.",
+    imageSrc: "/images/document-samples/risk-response-plan-sample.jpg",
+  },
+  {
+    id: "home-prevention-plan-sample",
+    title: "재발방지샘플",
+    products: ["자료포함과정", "심화과정"],
+    statusLabel: "샘플",
+    description: "사건 이후 생활 변화와 실천계획을 정리하는 재발방지계획서 예시입니다.",
+    imageSrc: "/images/document-samples/prevention-plan-sample.jpg",
   },
 ];
+
+const homeCertificateSamples = homeDocumentSamples.slice(0, 2);
+const homePreventionSamples = homeDocumentSamples.slice(2);
 
 const categories = [
   ["음주운전 예방교육", "수강 가능", "음주운전의 위험성, 법적 책임, 피해자 관점, 음주 문제 점검, 재발방지 실천계획 수립을 중심으로 구성된 온라인 교육입니다.", true],
@@ -104,23 +131,37 @@ export default function HomePage() {
           <div className="rounded-[1.5rem] border border-white/20 bg-white p-4 text-slate-950 shadow-2xl sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-black text-[#06101b]">실제 출력자료 샘플</p>
-              <Link href="#sample-documents" className="text-xs font-black text-[#173968] underline underline-offset-4">전체 보기</Link>
+              <Link href={applyHref} className="text-xs font-black text-[#173968] underline underline-offset-4">수강권 구매</Link>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              {homeDocumentSamples.slice(0, 2).map((sample) => (
-                <a key={sample.id} href="#sample-documents" className="group grid grid-cols-[116px_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:-translate-y-0.5 hover:border-[#173968] hover:bg-white hover:shadow-lg">
-                  <div className="h-32 overflow-hidden rounded-xl border border-slate-200 bg-white">
-                    <img src={sample.imageSrc} alt={sample.title + ' 샘플'} className="h-full w-full object-cover object-top transition group-hover:scale-[1.03]" />
+              {homeCertificateSamples.map((sample) => (
+                <a key={sample.id} href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name={sample.title} data-ga-location="home_certificate_sample" className="group overflow-hidden rounded-2xl border-2 border-[#173968] bg-white text-left shadow-[0_16px_42px_rgba(23,57,104,0.18)] transition hover:-translate-y-0.5 hover:shadow-xl">
+                  <div className="relative h-56 overflow-hidden bg-white sm:h-64 lg:h-52 xl:h-60">
+                    <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-cover object-top transition group-hover:scale-[1.03]" />
+                    <span className="absolute left-3 top-3 rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white shadow-sm">샘플</span>
                   </div>
-                  <div className="min-w-0 self-center">
-                    <span className="rounded-full bg-[#173968] px-2.5 py-1 text-[11px] font-black text-white">{sample.statusLabel}</span>
-                    <h3 className="mt-3 break-keep text-base font-black leading-snug text-slate-950">{sample.title}</h3>
-                    <p className="mt-2 line-clamp-3 text-xs font-semibold leading-5 text-slate-600">개인정보는 마스킹된 실제 발급 양식 기반 예시입니다.</p>
+                  <div className="flex items-center justify-between gap-3 p-4">
+                    <h3 className="break-keep text-base font-black leading-snug text-slate-950">{sample.title}</h3>
+                    <span className="shrink-0 rounded-full bg-[#facc15] px-3 py-1 text-xs font-black text-slate-950">구매하기</span>
                   </div>
                 </a>
               ))}
             </div>
-            <p className="mt-4 rounded-xl bg-[#fff8e7] px-4 py-3 text-xs font-bold leading-5 text-[#5f4514]">수료증, 이수증, 재발방지계획서, 서약서까지 결제 전 샘플을 확인할 수 있습니다.</p>
+            <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-xs font-black text-slate-700">재발방지 자료 샘플</p>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {homePreventionSamples.map((sample) => (
+                  <a key={sample.id} href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name={sample.title} data-ga-location="home_prevention_sample" className="group overflow-hidden rounded-xl border border-slate-200 bg-white transition hover:border-[#173968] hover:shadow-md">
+                    <div className="relative h-24 overflow-hidden sm:h-28 lg:h-24 xl:h-28">
+                      <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-cover object-top transition group-hover:scale-[1.04]" />
+                      <span className="absolute left-1.5 top-1.5 rounded-full bg-[#173968] px-2 py-0.5 text-[10px] font-black text-white shadow-sm">샘플</span>
+                    </div>
+                    <p className="break-keep px-2 py-2 text-[11px] font-black leading-snug text-slate-800">{sample.title}</p>
+                  </a>
+                ))}
+              </div>
+            </div>
+            <Link href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name="음주운전 예방교육" data-ga-location="home_sample_panel" className={buttonClass("primary", "md", "mt-4 w-full rounded-xl font-black")}>샘플 보고 수강권 구매하기</Link>
           </div>
         </div>
       </section>
@@ -141,7 +182,7 @@ export default function HomePage() {
             <SectionTitle eyebrow="Sample Documents" title="사이트에 들어오자마자 출력자료 샘플을 확인할 수 있습니다" body="수료증, 이수증, 재발방지 서식을 예시 문서로 먼저 확인하세요. 개인정보는 모두 마스킹되어 있으며, 현재 바로 신청 가능한 과정은 음주운전 예방교육입니다." />
             <Link href="/courses/dui-prevention" className={buttonClass("secondary", "md", "rounded-full px-6 font-black")}>음주운전 과정 상세보기</Link>
           </div>
-          <div className="mt-8"><DocumentPreviewGallery documents={homeDocumentSamples} columnsClassName="sm:grid-cols-2 xl:grid-cols-3" /></div>
+          <div className="mt-8"><DocumentPreviewGallery documents={homeDocumentSamples} columnsClassName="sm:grid-cols-2 xl:grid-cols-5" showPreviewButton={false} /></div>
         </div>
       </section>
 
