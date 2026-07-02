@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import { sealStampPath } from "@/app/components/SealStamp";
 import { getVerifiedActiveUserEnrollments } from "@/lib/course/enrollment-service";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 
@@ -292,7 +293,9 @@ export default function ResourceDocumentPage({ kind }: { kind: ReflectionResourc
         <PrintActions />
       </div>
 
-      <article className="resource-document mx-auto max-w-5xl bg-white px-5 py-7 shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:px-10 sm:py-10 lg:px-14">
+      <article className="resource-document relative mx-auto max-w-5xl overflow-hidden bg-white px-5 py-7 shadow-[0_24px_70px_rgba(15,23,42,0.12)] sm:px-10 sm:py-10 lg:px-14">
+        <img src={sealStampPath} alt="" aria-hidden="true" className="resource-watermark pointer-events-none absolute left-1/2 top-[42%] z-0 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.05]" />
+        <div className="relative z-10">
         <header className="resource-section border-b-2 border-slate-900 pb-6">
           <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-700">Reset Edu Center · 결제 회원 전용 자료</p>
           <h1 className="mt-3 break-keep text-3xl font-black leading-tight text-slate-950 sm:text-4xl">{title}</h1>
@@ -309,6 +312,7 @@ export default function ResourceDocumentPage({ kind }: { kind: ReflectionResourc
           <p>Reset Edu Center 교육자료 · {title}</p>
           <p className="resource-page-number">인쇄 페이지 </p>
         </footer>
+        </div>
       </article>
 
       <div className="resource-screen-only mx-auto mt-4 flex max-w-5xl flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:p-5">
