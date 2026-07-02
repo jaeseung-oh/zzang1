@@ -134,11 +134,26 @@ export default function HomePage() {
             <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-200">음주운전 사건 이후 경찰·검찰·법원 제출 자료를 준비하고 있다면, 교육 이수와 재발방지 노력을 구체적인 자료로 정리하는 것이 먼저입니다. 지금 수강하고 필요한 자료를 바로 확인하세요.</p>
             <div className="mt-8 flex flex-wrap gap-3"><Link href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name="음주운전 예방교육" data-ga-location="home" className={buttonClass("primary", "lg", "whitespace-nowrap rounded-full px-7 font-black")}>지금 수강하고 자료 준비하기</Link><Link href="#materials" style={{ backgroundColor: "#ffffff", color: "#111827", borderColor: "#ffffff" }} className={buttonClass("secondary", "lg", "w-full rounded-full px-7 font-bold !text-black hover:!text-black sm:w-auto")}>제공 자료 확인하기</Link></div>
           </div>
-          <div className="rounded-[1.5rem] border border-white/20 bg-slate-950/55 p-5 shadow-2xl backdrop-blur-md">
-            <p className="text-sm font-black text-white">지금 준비할 수 있는 핵심 자료</p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
-              {materials.slice(0, 4).map(([title, body]) => <div key={title} className="flex min-w-0 gap-3 rounded-2xl bg-white p-4 text-slate-950"><span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white"><Icon name="file" /></span><span className="min-w-0"><span className="block text-base font-black leading-snug text-slate-950">{title}</span><span className="mt-1 block text-sm leading-relaxed text-slate-700">{body}</span></span></div>)}
+          <div className="rounded-[1.5rem] border border-white/20 bg-white p-4 text-slate-950 shadow-2xl sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-sm font-black text-[#06101b]">실제 출력자료 샘플</p>
+              <Link href="#sample-documents" className="text-xs font-black text-[#173968] underline underline-offset-4">전체 보기</Link>
             </div>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
+              {homeDocumentSamples.slice(0, 2).map((sample) => (
+                <a key={sample.id} href="#sample-documents" className="group grid grid-cols-[116px_minmax(0,1fr)] gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-left transition hover:-translate-y-0.5 hover:border-[#173968] hover:bg-white hover:shadow-lg">
+                  <div className="h-32 overflow-hidden rounded-xl border border-slate-200 bg-white">
+                    <img src={sample.imageSrc} alt={sample.title + ' 샘플'} className="h-full w-full object-cover object-top transition group-hover:scale-[1.03]" />
+                  </div>
+                  <div className="min-w-0 self-center">
+                    <span className="rounded-full bg-[#173968] px-2.5 py-1 text-[11px] font-black text-white">{sample.statusLabel}</span>
+                    <h3 className="mt-3 break-keep text-base font-black leading-snug text-slate-950">{sample.title}</h3>
+                    <p className="mt-2 line-clamp-3 text-xs font-semibold leading-5 text-slate-600">개인정보는 마스킹된 실제 발급 양식 기반 예시입니다.</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+            <p className="mt-4 rounded-xl bg-[#fff8e7] px-4 py-3 text-xs font-bold leading-5 text-[#5f4514]">수료증, 이수증, 재발방지계획서, 서약서까지 결제 전 샘플을 확인할 수 있습니다.</p>
           </div>
         </div>
       </section>
@@ -154,7 +169,7 @@ export default function HomePage() {
 
       <section id="materials" className="px-4 py-20 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Materials" title="수강 후 바로 확인하고 출력할 수 있는 자료" body="교육 수강과 함께 필요한 양형자료를 한곳에서 확인하고 PDF 저장 및 출력까지 진행할 수 있습니다." /><div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">{materials.map(([title, body]) => <article key={title} className="min-w-0 rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="file" className="h-7 w-7 text-indigo-700" /><h3 className="mt-4 text-base font-black leading-snug text-slate-950">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-700">{body}</p></article>)}</div></div></section>
 
-      <section className="bg-white px-4 py-20 sm:px-6 lg:px-8">
+      <section id="sample-documents" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <SectionTitle eyebrow="Sample Documents" title="사이트에 들어오자마자 출력자료 샘플을 확인할 수 있습니다" body="수료증, 이수증, 재발방지 서식을 예시 문서로 먼저 확인하세요. 개인정보는 모두 마스킹되어 있으며, 현재 바로 신청 가능한 과정은 음주운전 예방교육입니다." />
@@ -172,15 +187,16 @@ export default function HomePage() {
       <section id="process" className="bg-slate-900 px-4 py-20 text-white sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><div className="keep-korean max-w-3xl min-w-0"><p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-300">Process</p><h2 className="mt-3 text-2xl font-black leading-tight text-white sm:text-4xl">결제부터 수강, 수료증 발급, 자료 출력까지 한 번에 진행하세요</h2><p className="mt-4 text-base leading-relaxed text-slate-200">PC 또는 모바일로 바로 수강하고, 교육 이수 후 필요한 자료를 확인해 저장하거나 출력할 수 있습니다.</p></div><div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">{steps.map(([title, body], index) => <article key={title} className="min-w-0 rounded-[1.25rem] border border-white/15 bg-white/10 p-5"><div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-sm font-black text-slate-950">{index + 1}</div><h3 className="mt-4 text-lg font-black text-white">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-200">{body}</p></article>)}</div><div className="mt-8"><Link href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name="음주운전 예방교육" data-ga-location="home" className={buttonClass("primary", "lg", "whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-slate-900")}>지금 수강하고 자료 준비하기</Link></div></div></section>
 
       <section className="bg-white px-4 py-14 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-[1.5rem] border-2 border-[#173968] bg-[#173968] p-6 text-center text-white shadow-[0_20px_60px_rgba(23,57,104,0.18)] sm:p-8">
-          <p className="text-sm font-black uppercase tracking-[0.18em] text-[#f6deb0]">Customer Center</p>
-          <h2 className="mt-3 text-2xl font-black text-white sm:text-3xl">고객센터</h2>
-          <a href="tel:010-7617-8619" className="mt-4 inline-flex break-all text-4xl font-black tracking-wide text-white hover:text-[#f6deb0] sm:text-5xl">010-7617-8619</a>
-          <p className="mt-4 text-sm font-semibold leading-7 text-slate-100">수강권 선택, 결제, 출력자료 이용 관련 문의가 필요할 때 연락해주세요.</p>
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-5 sm:flex-row sm:items-center sm:p-6">
+          <div>
+            <p className="text-sm font-black text-slate-950">수강권 선택, 결제, 출력자료 이용 문의</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">상담 가능 시간 안에 연락주시면 확인 후 안내드립니다.</p>
+          </div>
+          <a href="tel:010-7617-8619" className="inline-flex w-full items-center justify-center rounded-lg border border-[#173968] bg-[#173968] px-5 py-3 text-center text-sm font-black leading-6 text-white shadow-sm transition hover:bg-[#102a4d] sm:w-auto">
+            고객센터 010-7617-8619 / 09:00~19:00까지 연락 가능
+          </a>
         </div>
       </section>
-
-      <section className="px-4 py-8 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl rounded-2xl border border-slate-200 bg-white p-5 text-xs leading-relaxed text-slate-700 sm:text-sm"><p>리셋 에듀센터는 민간 온라인 교육 플랫폼입니다. 본 사이트에서 제공하는 수료증, 교육 이수 확인 자료, 재발방지계획서, 음주예방실천계획서, 서약서 등은 수강자가 양형자료 준비 과정에서 참고할 수 있는 자가 작성용 자료입니다.</p><p className="mt-2">본 센터는 개별 사건에 대한 법률상담, 법률문서 작성대행, 감형 또는 처벌 감경 보장 서비스를 제공하지 않습니다. 자료의 제출 가능 여부, 반영 여부, 법적 평가는 제출처 또는 관련 전문가의 판단에 따라 달라질 수 있습니다.</p></div></section>
     </main></>
   );
 }
