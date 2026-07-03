@@ -127,7 +127,7 @@ export default function HomePage() {
           </div>
           <div className="rounded-[1.5rem] border border-white/20 bg-white p-4 text-slate-950 shadow-2xl sm:p-5">
             <div className="flex items-center justify-between gap-3">
-              <p className="text-sm font-black text-[#06101b]">실제 출력자료 샘플</p>
+              <p className="text-sm font-black text-[#06101b]">수료증 샘플</p>
             </div>
             <div className="mt-4">
               {homeCertificateSamples.slice(0, 1).map((sample) => (
