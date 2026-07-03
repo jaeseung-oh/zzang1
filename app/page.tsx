@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AuthAwareSampleLink from "@/app/components/auth-aware-sample-link";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct, formatApplicationKrw, type ApplicationProduct } from "@/lib/course/application-products";
 import type { DocumentPreviewItem } from "@/app/components/document-preview-gallery";
@@ -131,22 +132,20 @@ export default function HomePage() {
           <div className="rounded-[1.5rem] border border-white/20 bg-white p-4 text-slate-950 shadow-2xl sm:p-5">
             <div className="flex items-center justify-between gap-3">
               <p className="text-sm font-black text-[#06101b]">실제 출력자료 샘플</p>
-              <Link href={applyHref} className="text-xs font-black text-[#173968] underline underline-offset-4">수강권 구매</Link>
             </div>
             <div className="mt-4">
               {homeCertificateSamples.slice(0, 1).map((sample) => (
-                <a key={sample.id} href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name={sample.title} data-ga-location="home_certificate_sample" className="group block overflow-hidden rounded-2xl border-2 border-[#173968] bg-white text-left shadow-[0_16px_42px_rgba(23,57,104,0.18)] transition hover:-translate-y-0.5 hover:shadow-xl">
-                  <div className="relative h-80 overflow-hidden bg-white sm:h-[420px] lg:h-80 xl:h-[380px]">
+                <AuthAwareSampleLink key={sample.id} href={basicApplyHref} data-ga-event="click_enroll" data-ga-item-id="dui-basic" data-ga-item-name={sample.title} data-ga-location="home_certificate_sample" className="group block overflow-hidden rounded-2xl border-2 border-[#173968] bg-white text-left shadow-[0_16px_42px_rgba(23,57,104,0.18)] transition hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[#f7d9a0]">
+                  <div className="relative h-72 overflow-hidden bg-white sm:h-[420px] lg:h-80 xl:h-[380px]">
                     <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-2 transition group-hover:scale-[1.02]" />
                     <span className="absolute left-3 top-3 rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white shadow-sm">샘플</span>
                   </div>
-                  <div className="p-4">
+                  <div className="p-3 sm:p-4">
                     <h3 className="break-keep text-center text-lg font-black leading-snug text-slate-950">{sample.title}</h3>
                   </div>
-                </a>
+                </AuthAwareSampleLink>
               ))}
             </div>
-            <Link href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name="음주운전 예방교육" data-ga-location="home_sample_panel" className={buttonClass("primary", "md", "mt-4 w-full rounded-xl font-black")}>샘플 보고 수강권 구매하기</Link>
           </div>
         </div>
       </section>
@@ -166,16 +165,16 @@ export default function HomePage() {
           <div className="mt-8 grid gap-5 lg:grid-cols-2">
             <div className="grid gap-5 sm:grid-cols-2">
               {homeCertificateSamples.map((sample) => (
-                <article key={sample.id} className="overflow-hidden rounded-[1.25rem] border-2 border-[#173968] bg-white shadow-[0_18px_50px_rgba(23,57,104,0.14)]">
-                  <div className="relative h-[300px] bg-white sm:h-[360px] lg:h-[390px]">
+                <AuthAwareSampleLink key={sample.id} href={sample.id === "home-basic-certificate" ? basicApplyHref : "/courses/apply?category=dui&productId=dui-cbt-advanced"} data-ga-event="click_enroll" data-ga-item-id={sample.id === "home-basic-certificate" ? "dui-basic" : "dui-cbt-advanced"} data-ga-item-name={sample.title} data-ga-location="home_sample_certificate" className="group block overflow-hidden rounded-[1.25rem] border-2 border-[#173968] bg-white shadow-[0_18px_50px_rgba(23,57,104,0.14)] transition hover:-translate-y-0.5 hover:shadow-xl focus:outline-none focus:ring-4 focus:ring-[#f7d9a0]">
+                  <div className="relative h-[260px] bg-white sm:h-[340px] lg:h-[370px]">
                     <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-2" />
                     <span className="absolute left-4 top-4 rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white shadow-sm">샘플</span>
                   </div>
-                  <div className="border-t border-slate-200 p-4">
+                  <div className="border-t border-slate-200 p-3 sm:p-4">
                     <h3 className="break-keep text-center text-lg font-black text-slate-950">{sample.title}</h3>
-                    <Link href={sample.id === "home-basic-certificate" ? basicApplyHref : "/courses/apply?category=dui&productId=dui-cbt-advanced"} data-ga-event="click_enroll" data-ga-item-id={sample.id === "home-basic-certificate" ? "dui-basic" : "dui-cbt-advanced"} data-ga-item-name={sample.title} data-ga-location="home_sample_certificate" className={buttonClass("primary", "sm", "mt-3 w-full rounded-xl font-black !text-white hover:!text-white")}>{sample.id === "home-basic-certificate" ? "기본과정" : "심화과정"}</Link>
+                    <span className={buttonClass("primary", "sm", "mt-3 w-full rounded-xl font-black !text-white hover:!text-white")}>{sample.id === "home-basic-certificate" ? "기본과정" : "심화과정"}</span>
                   </div>
-                </article>
+                </AuthAwareSampleLink>
               ))}
             </div>
             <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
