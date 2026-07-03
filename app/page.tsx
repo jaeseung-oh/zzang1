@@ -163,24 +163,27 @@ export default function HomePage() {
 
       <section id="sample-documents" className="bg-white px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <div className="mt-8 grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
+          <div className="mt-8 grid gap-5 lg:grid-cols-2">
             <div className="grid gap-5 sm:grid-cols-2">
               {homeCertificateSamples.map((sample) => (
                 <article key={sample.id} className="overflow-hidden rounded-[1.25rem] border-2 border-[#173968] bg-white shadow-[0_18px_50px_rgba(23,57,104,0.14)]">
-                  <div className="relative h-[360px] bg-white sm:h-[430px] lg:h-[470px]">
+                  <div className="relative h-[300px] bg-white sm:h-[360px] lg:h-[390px]">
                     <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-2" />
                     <span className="absolute left-4 top-4 rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white shadow-sm">샘플</span>
                   </div>
-                  <h3 className="break-keep border-t border-slate-200 px-4 py-4 text-center text-lg font-black text-slate-950">{sample.title}</h3>
+                  <div className="border-t border-slate-200 p-4">
+                    <h3 className="break-keep text-center text-lg font-black text-slate-950">{sample.title}</h3>
+                    <Link href={sample.id === "home-basic-certificate" ? basicApplyHref : "/courses/apply?category=dui&productId=dui-cbt-advanced"} data-ga-event="click_enroll" data-ga-item-id={sample.id === "home-basic-certificate" ? "dui-basic" : "dui-cbt-advanced"} data-ga-item-name={sample.title} data-ga-location="home_sample_certificate" className={buttonClass("primary", "sm", "mt-3 w-full rounded-xl font-black !text-white hover:!text-white")}>{sample.id === "home-basic-certificate" ? "기본과정 결제 시 출력" : "심화과정 결제 시 출력"}</Link>
+                  </div>
                 </article>
               ))}
             </div>
             <div className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-4">
               <h3 className="text-base font-black text-slate-950">재발방지 제공자료</h3>
-              <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+              <div className="mt-4 grid grid-cols-3 gap-3">
                 {homePreventionSamples.map((sample) => (
                   <article key={sample.id} className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-                    <div className="relative h-40 bg-white sm:h-48 lg:h-40 xl:h-48">
+                    <div className="relative h-28 bg-white sm:h-32 lg:h-36">
                       <img src={sample.imageSrc} alt={sample.title + " 샘플"} className="h-full w-full object-contain object-center p-2" />
                       <span className="absolute left-2 top-2 rounded-full bg-[#173968] px-2.5 py-1 text-[10px] font-black text-white shadow-sm">샘플</span>
                     </div>
