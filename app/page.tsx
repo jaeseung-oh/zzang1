@@ -90,10 +90,6 @@ const homeDocumentSamples: DocumentPreviewItem[] = [
 const homeCertificateSamples = homeDocumentSamples.slice(0, 2);
 const homePreventionSamples = homeDocumentSamples.slice(2);
 
-const categories = [
-  ["음주운전 예방교육", "수강 가능", "음주운전의 위험성, 법적 책임, 피해자 관점, 음주 문제 점검, 재발방지 실천계획 수립을 중심으로 구성된 온라인 교육입니다.", true],
-] as const;
-
 
 const targetUsers = [
   "양형자료 준비를 어디서 시작해야 할지 막막한 분",
@@ -150,13 +146,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-white px-4 py-20 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Start Here" title="양형자료 준비는 교육 수료증과 재발방지 자료부터 시작하세요" body="음주운전 사건 이후 반성과 개선 노력을 말로만 설명하기보다, 교육 이수 기록과 재발방지 실천계획으로 정리하세요. Reset Edu Center는 수강, 수료증 발급, 자료 작성과 출력까지 바로 이어지는 구조로 제공합니다." />
-          <div className="mt-10 grid gap-4">
-            {categories.map(([title, status, body]) => <article key={title} className="rounded-xl border-2 border-[#173968] bg-[#173968] p-6 text-white shadow-[0_18px_42px_rgba(23,57,104,0.18)]"><div className="flex items-center justify-between gap-3"><Icon name="car" className="h-8 w-8 text-[#f7d9a0]" /><span className="rounded-full bg-white px-3 py-1 text-xs font-black text-[#173968]">{status}</span></div><h3 className="mt-5 text-2xl font-black leading-snug text-white">{title}</h3><p className="mt-3 text-base leading-8 text-slate-100">{body}</p><div className="mt-6 flex flex-wrap gap-3"><Link href={applyHref} data-ga-event="click_enroll" data-ga-item-id="dui-documents" data-ga-item-name="음주운전 예방교육" data-ga-location="home" style={{ backgroundColor: "#ffffff", color: "#111827", borderColor: "#ffffff" }} className={buttonClass("secondary", "md", "rounded-xl font-black !text-black hover:!text-black")}>지금 수강 신청하기</Link><Link href="#materials" style={{ backgroundColor: "#ffffff", color: "#111827", borderColor: "#ffffff" }} className={buttonClass("secondary", "md", "rounded-xl font-bold !text-black hover:!text-black")}>제공 자료 확인하기</Link></div></article>)}
-          </div>
-        </div>
-      </section>
 
       <section id="materials" className="px-4 py-20 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Materials" title="수강 후 바로 확인하고 출력할 수 있는 자료" body="교육 수강과 함께 필요한 양형자료를 한곳에서 확인하고 PDF 저장 및 출력까지 진행할 수 있습니다." /><div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">{materials.map(([title, body]) => <article key={title} className="min-w-0 rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="file" className="h-7 w-7 text-indigo-700" /><h3 className="mt-4 text-base font-black leading-snug text-slate-950">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-700">{body}</p></article>)}</div></div></section>
 
