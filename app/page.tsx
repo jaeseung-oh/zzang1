@@ -173,7 +173,7 @@ export default function HomePage() {
                   </div>
                   <div className="border-t border-slate-200 p-4">
                     <h3 className="break-keep text-center text-lg font-black text-slate-950">{sample.title}</h3>
-                    <Link href={sample.id === "home-basic-certificate" ? basicApplyHref : "/courses/apply?category=dui&productId=dui-cbt-advanced"} data-ga-event="click_enroll" data-ga-item-id={sample.id === "home-basic-certificate" ? "dui-basic" : "dui-cbt-advanced"} data-ga-item-name={sample.title} data-ga-location="home_sample_certificate" className={buttonClass("primary", "sm", "mt-3 w-full rounded-xl font-black !text-white hover:!text-white")}>{sample.id === "home-basic-certificate" ? "기본과정 결제 시 출력" : "심화과정 결제 시 출력"}</Link>
+                    <Link href={sample.id === "home-basic-certificate" ? basicApplyHref : "/courses/apply?category=dui&productId=dui-cbt-advanced"} data-ga-event="click_enroll" data-ga-item-id={sample.id === "home-basic-certificate" ? "dui-basic" : "dui-cbt-advanced"} data-ga-item-name={sample.title} data-ga-location="home_sample_certificate" className={buttonClass("primary", "sm", "mt-3 w-full rounded-xl font-black !text-white hover:!text-white")}>{sample.id === "home-basic-certificate" ? "기본과정" : "심화과정"}</Link>
                   </div>
                 </article>
               ))}
