@@ -186,7 +186,7 @@ export default function HomePage() {
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
                       <p className="text-xs font-black text-emerald-800">학습 진도율</p>
                       <p className="mt-2 text-4xl font-black text-emerald-900">100%</p>
-                      <p className="mt-1 text-sm font-bold text-emerald-800">교육 이수 완료</p>
+                      <p className="mt-1 text-sm font-bold text-emerald-800">교육 이수</p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-xs font-black text-slate-500">다음 단계</p>
