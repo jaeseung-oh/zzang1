@@ -144,7 +144,7 @@ export default function HomePage() {
     <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd).replace(/</g, "\u003c") }} /><main className="keep-korean min-h-screen bg-slate-50 text-slate-950">
       <section className="relative overflow-hidden bg-[#eef4f8]">
         <div className="absolute inset-x-0 top-0 h-24 bg-white" />
-        <div className="absolute inset-0 bg-[url('/images/resetedu-logo-mark.png')] bg-[length:260px_auto] bg-[position:88%_44%] bg-no-repeat opacity-[0.045] sm:bg-[length:380px_auto] lg:bg-[length:480px_auto]" />
+        <div className="absolute inset-0 bg-no-repeat opacity-[0.045] [background-position:88%_44%] [background-size:260px_auto] sm:[background-size:380px_auto] lg:[background-size:480px_auto]" style={{ backgroundImage: "url('/images/리셋에듀센터 로고만1.png')" }} />
         <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(480px,1.08fr)] lg:px-8 lg:py-20">
           <div className="flex min-w-0 flex-col justify-center">
             <p className="text-sm font-black leading-6 text-[#173968]">사건 이후의 반성과 재발방지 노력을 체계적인 양형자료로 준비하세요</p>
