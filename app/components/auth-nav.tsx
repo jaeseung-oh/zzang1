@@ -44,21 +44,21 @@ export default function AuthNav({ applyHref = "/courses/apply?category=dui" }: {
 
   if (!state.user) {
     return (
-      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none sm:flex-nowrap">
-        <Link href="/login" className={buttonClass("secondary", "sm", "whitespace-nowrap rounded-full px-4 font-bold")}>로그인</Link>
-        <Link href="/signup" className={buttonClass("primary", "sm", "whitespace-nowrap rounded-full px-4 font-bold !text-white hover:!text-white")}>회원가입</Link>
-        <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-4 font-black !text-black hover:!text-black")}>수강 신청하기</Link>
+      <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1.5 sm:flex-none sm:gap-2">
+        <Link href="/login" className={buttonClass("secondary", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-bold sm:px-4 sm:text-sm")}>로그인</Link>
+        <Link href="/signup" className={buttonClass("primary", "sm", "hidden whitespace-nowrap rounded-full px-4 font-bold !text-white hover:!text-white sm:inline-flex")}>회원가입</Link>
+        <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm")}>수강 신청하기</Link>
       </div>
     );
   }
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none sm:flex-nowrap">
-      <Link href="/dashboard" className={buttonClass("secondary", "sm", "whitespace-nowrap rounded-full px-4 font-bold")}>마이페이지</Link>
-      <button type="button" onClick={handleLogout} disabled={isLoggingOut} className={buttonClass("danger", "sm", "whitespace-nowrap rounded-full px-4 font-bold disabled:opacity-100")}>
+    <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1.5 sm:flex-none sm:gap-2">
+      <Link href="/dashboard" className={buttonClass("secondary", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-bold sm:px-4 sm:text-sm")}>마이페이지</Link>
+      <button type="button" onClick={handleLogout} disabled={isLoggingOut} className={buttonClass("danger", "sm", "hidden whitespace-nowrap rounded-full px-4 font-bold disabled:opacity-100 sm:inline-flex")}>
         {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
       </button>
-      <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-4 font-black !text-black hover:!text-black")}>수강 신청하기</Link>
+      <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm")}>수강 신청하기</Link>
     </div>
   );
 }

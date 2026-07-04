@@ -241,7 +241,10 @@ function PortOnePaymentSuccessContent() {
   const [result, setResult] = useState<ConfirmResponse | null>(null);
 
   useEffect(() => {
-    if ((code || message) && !paymentId) return;
+    if (code || message) {
+      setLoading(false);
+      return;
+    }
     if (!paymentId) {
       setError("결제번호가 전달되지 않았습니다. 결제내역 확인 후 수강권을 반영할 수 있습니다.");
       setLoading(false);
@@ -328,11 +331,11 @@ function PortOnePaymentSuccessContent() {
     return () => { cancelled = true; };
   }, [code, message, paymentId, router, searchParams]);
 
-  if ((code || message) && !paymentId) {
+  if (code || message) {
     return (
-      <main className="min-h-screen bg-[#f3f6f9] px-4 py-10 text-slate-950 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm lg:p-8">
-          <h1 className="text-3xl font-bold text-slate-950">결제가 완료되지 않았습니다</h1>
+      <main className="min-h-screen bg-[#f3f6f9] px-4 py-8 text-slate-950 sm:px-6 sm:py-10 lg:px-8">
+        <div className="mx-auto max-w-3xl rounded-2xl border border-slate-200 bg-white p-5 text-center shadow-sm sm:p-6 lg:p-8">
+          <h1 className="text-[1.9rem] font-bold leading-tight text-slate-950 sm:text-3xl">결제가 완료되지 않았습니다</h1>
           <p className="mt-4 text-sm leading-7 text-slate-600">
             결제가 취소되었거나 처리 중 문제가 발생했습니다. 내용을 확인한 뒤 다시 시도해 주세요.
           </p>

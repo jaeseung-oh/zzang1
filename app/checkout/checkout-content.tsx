@@ -355,36 +355,36 @@ export default function CheckoutContent() {
 
   return (
     <main className="keep-korean min-h-screen bg-[#f3f6f9] text-slate-950">
-      <section className="border-b border-slate-200 bg-white px-4 py-8 sm:px-6 lg:px-8">
+      <section className="border-b border-slate-200 bg-white px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold leading-tight text-slate-950 sm:text-4xl">수강권 결제</h1>
+            <h1 className="text-[1.9rem] font-bold leading-tight text-slate-950 sm:text-4xl">수강권 결제</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">결제 정보를 확인한 후 결제를 진행해 주세요.</p>
           </div>
-          <Link href={selectedProduct.id === "dui-cbt-advanced" ? "/courses/apply?category=dui&productId=dui-cbt-advanced" : "/courses/dui-prevention"} className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
+          <Link href={selectedProduct.id === "dui-cbt-advanced" ? "/courses/apply?category=dui&productId=dui-cbt-advanced" : "/courses/dui-prevention"} className={buttonClass("secondary", "md", "w-full rounded-full px-5 font-semibold sm:w-auto")}>
             상품 상세보기
           </Link>
         </div>
       </section>
 
-      <div className="mx-auto grid max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_400px] lg:px-8">
-        <section className="space-y-6">
+      <div className="mx-auto grid max-w-7xl gap-5 px-4 py-6 sm:gap-6 sm:px-6 sm:py-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:px-8">
+        <section className="space-y-5 sm:space-y-6">
           <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
             <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-500">주문 상품</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-950">{selectedCourseTitle} 수강권</h2>
+                <h2 className="mt-2 text-xl font-bold leading-snug text-slate-950 sm:text-2xl">{selectedCourseTitle} 수강권</h2>
                 <p className="mt-3 text-sm leading-7 text-slate-600">{selectedProduct.courseId ? selectedProduct.description : duiPreventionCourseProduct.description}</p>
                 <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{selectedProduct.title}</p>
               </div>
-              <div className="shrink-0 rounded-xl bg-slate-50 px-5 py-4 text-left sm:text-right">
+              <div className="w-full shrink-0 rounded-xl bg-slate-50 px-4 py-4 text-left sm:w-auto sm:px-5 sm:text-right">
                 <p className="text-xs font-semibold text-slate-500">금액</p>
                 <p className="mt-1 text-3xl font-bold text-[#10213f]">{formatKrw(selectedProduct.price)}</p>
               </div>
             </div>
 
             {selectedCategory ? (
-              <div className="mt-6">
+              <div className="mt-5 sm:mt-6">
                 <p className="text-sm font-semibold text-slate-500">수강권 선택</p>
                 <div className="mt-3 grid gap-3 lg:grid-cols-3">
                   {selectedCategory.products.map((product) => {
@@ -395,14 +395,14 @@ export default function CheckoutContent() {
                         type="button"
                         onClick={() => setSelectedProductId(product.id)}
                         disabled={isSubmitting}
-                        className={`min-h-[220px] rounded-2xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#10213f] focus:ring-offset-2 ${isSelected ? "border-[#10213f] bg-[#10213f] text-white shadow-[0_18px_42px_rgba(16,33,63,0.22)]" : "border-slate-200 bg-white text-slate-950 hover:border-[#10213f]/45 hover:bg-slate-50"}`}
+                        className={`min-h-[190px] rounded-2xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#10213f] focus:ring-offset-2 sm:min-h-[220px] ${isSelected ? "border-[#10213f] bg-[#10213f] text-white shadow-[0_18px_42px_rgba(16,33,63,0.22)]" : "border-slate-200 bg-white text-slate-950 hover:border-[#10213f]/45 hover:bg-slate-50"}`}
                         aria-pressed={isSelected}
                       >
                         <div className="flex min-h-12 items-start justify-between gap-3">
                           <h3 className={isSelected ? "text-base font-black leading-snug text-white" : "text-base font-black leading-snug text-slate-950"}>{product.title}</h3>
                           <span className={isSelected ? "rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#10213f]" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>{product.badge}</span>
                         </div>
-                        <p className={isSelected ? "mt-3 text-2xl font-black text-white" : "mt-3 text-2xl font-black text-[#10213f]"}>{formatApplicationKrw(product.price)}</p>
+                        <p className={isSelected ? "mt-3 text-xl font-black text-white sm:text-2xl" : "mt-3 text-xl font-black text-[#10213f] sm:text-2xl"}>{formatApplicationKrw(product.price)}</p>
                         <p className={isSelected ? "mt-3 text-sm leading-6 text-slate-100" : "mt-3 text-sm leading-6 text-slate-700"}>{product.description}</p>
                         <ul className="mt-4 space-y-2">
                           {product.includes.slice(0, product.id === "dui-cbt-advanced" ? 10 : 5).map((item) => (
@@ -493,7 +493,7 @@ export default function CheckoutContent() {
 
         <aside className="lg:sticky lg:top-6 lg:self-start">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
-            <h2 className="text-2xl font-bold text-slate-950">선택한 과정의 제공내용을 다시 확인하세요</h2>
+            <h2 className="text-xl font-bold leading-snug text-slate-950 sm:text-2xl">선택한 과정의 제공내용을 다시 확인하세요</h2>
 
             <div className="mt-5">
               <p className="text-sm font-semibold text-slate-500">결제수단</p>
@@ -537,9 +537,9 @@ export default function CheckoutContent() {
               </div>
             </dl>
 
-            <div className="mt-5 flex items-end justify-between gap-4">
+            <div className="mt-5 flex items-end justify-between gap-3">
               <span className="text-base font-bold text-slate-700">결제금액</span>
-              <strong className="text-3xl font-bold text-[#10213f]">{formatKrw(selectedProduct.price)}</strong>
+              <strong className="text-2xl font-bold text-[#10213f] sm:text-3xl">{formatKrw(selectedProduct.price)}</strong>
             </div>
 
             <div className="mt-6 space-y-3">
