@@ -184,9 +184,7 @@ export default function HomePage() {
                   </div>
                   <div className="grid content-between gap-3">
                     <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4">
-                      <p className="text-xs font-black text-emerald-800">학습 진도율</p>
-                      <p className="mt-2 text-4xl font-black text-emerald-900">100%</p>
-                      <p className="mt-1 text-sm font-bold text-emerald-800">교육 이수</p>
+                      <p className="text-lg font-black text-emerald-900">교육 이수</p>
                     </div>
                     <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                       <p className="text-xs font-black text-slate-500">다음 단계</p>
@@ -206,7 +204,7 @@ export default function HomePage() {
                   <div className="aspect-[9/12] rounded-md bg-[linear-gradient(145deg,#173968,#4f8f83)]" />
                 </div>
                 <div className="mt-3 h-2 rounded-full bg-slate-200"><div className="h-2 w-full rounded-full bg-emerald-500" /></div>
-                <p className="mt-2 text-xs font-black text-emerald-700">이수 완료</p>
+                <p className="mt-2 text-xs font-black text-emerald-700">교육 이수</p>
               </div>
             </div>
             <div className="absolute bottom-0 right-0 grid w-[62%] gap-3 sm:grid-cols-2">
