@@ -144,10 +144,11 @@ export default function HomePage() {
     <><script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd).replace(/</g, "\u003c") }} /><main className="keep-korean min-h-screen bg-slate-50 text-slate-950">
       <section className="relative overflow-hidden bg-[#eef4f8]">
         <div className="absolute inset-x-0 top-0 h-24 bg-white" />
+        <div className="absolute inset-0 bg-[url('/images/resetedu-document-watermark.png')] bg-[length:320px_auto] bg-[position:88%_42%] bg-no-repeat opacity-[0.055] sm:bg-[length:460px_auto] lg:bg-[length:560px_auto]" />
         <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-14 sm:px-6 lg:grid-cols-[minmax(0,0.92fr)_minmax(480px,1.08fr)] lg:px-8 lg:py-20">
           <div className="flex min-w-0 flex-col justify-center">
             <p className="text-sm font-black leading-6 text-[#173968]">사건 이후의 반성과 재발방지 노력을 체계적인 양형자료로 준비하세요</p>
-            <h1 className="mt-5 max-w-3xl text-3xl font-black leading-tight text-slate-950 sm:text-5xl lg:text-[56px]">온라인 예방교육부터<br />양형자료 준비까지 한 번에</h1>
+            <h1 className="mt-5 max-w-3xl text-3xl font-black leading-tight text-slate-950 sm:text-5xl lg:text-[56px]">온라인 예방교육부터<br /><span className="whitespace-nowrap">양형자료 준비까지 한 번에</span></h1>
             <p className="mt-6 max-w-2xl text-base leading-8 text-slate-700 sm:text-lg">음주운전 사건 이후 필요한 예방교육을 온라인으로 수강하고, 교육 이수증과 재발방지 실천자료를 통해 반성과 변화의 노력을 체계적으로 정리할 수 있습니다.</p>
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="#pricing" className={buttonClass("primary", "lg", "whitespace-nowrap rounded-full px-7 font-black")}>교육과정 확인하기</Link>
