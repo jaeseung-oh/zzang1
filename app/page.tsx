@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import DocumentPreviewGallery, { type DocumentPreviewItem } from "@/app/components/document-preview-gallery";
 import { formatApplicationKrw } from "@/lib/course/application-products";
 import { changeLearningAreas, commonFaqs, getApplyHref, getMainProductPair, getPlatformCourseProducts, platformCourseCategories, processSteps } from "@/lib/course/platform-courses";
 
@@ -30,6 +31,25 @@ const documentCards = [
   "도박중독 재발방지교육 수료증",
   "성범죄 재범방지교육 수료증",
   "인지행동 개선교육 이수증",
+];
+
+const homeCertificateSamples: DocumentPreviewItem[] = [
+  {
+    id: "home-basic-certificate",
+    title: "교육수료증",
+    products: ["기본과정", "자료포함과정", "심화과정"],
+    statusLabel: "샘플",
+    description: "기존 메인 화면에서 안내하던 기본 수료증 샘플입니다.",
+    imageSrc: "/images/document-samples/basic-certificate-sample.jpg",
+  },
+  {
+    id: "home-advanced-certificate",
+    title: "인지행동기반 재발방지교육 수료증",
+    products: ["심화과정"],
+    statusLabel: "샘플",
+    description: "기존 메인 화면에서 안내하던 인지행동 기반 재발방지교육 이수 문서 샘플입니다.",
+    imageSrc: "/images/document-samples/cognitive-prevention-certificate-sample.jpg",
+  },
 ];
 
 const finderOptions = [
@@ -112,7 +132,7 @@ export default function HomePage() {
 
       <section id="process" className="bg-white px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="과정 선택부터 교육자료 확인까지 간편하게" /><div className="mt-8 grid gap-4 md:grid-cols-4">{processSteps.map(([title, body], index) => <article key={title} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-5"><p className="text-sm font-black text-[#176b68]">0{index + 1}</p><h3 className="mt-2 text-lg font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-700">{body}</p></article>)}</div></div></section>
 
-      <section className="px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="과정에 맞는 교육 문서를 확인하세요" body="현재 메인 수료증 안내는 운영 비중이 가장 높은 음주운전 예방교육 수료증을 중심으로 보여주고, 다른 과정의 수료증은 과정별 상세페이지와 내 강의실에서 확인할 수 있도록 안내합니다." /><div className="mt-8 grid gap-5 lg:grid-cols-[1.15fr_0.85fr]"><article className="rounded-[1.25rem] border-2 border-[#173968] bg-white p-6 shadow-[0_22px_60px_rgba(23,57,104,0.16)]"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#176b68]">Main Certificate</p><h3 className="mt-2 text-2xl font-black leading-snug text-slate-950">음주운전 예방교육 수료증</h3></div><span className="w-fit rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white">대표 수료증</span></div><p className="mt-4 text-sm leading-7 text-slate-700">음주운전 예방교육 이수 사실을 기존 수료증 양식으로 확인하고 출력할 수 있습니다. 자료포함과정과 심화과정에서는 음주운전 재발방지계획서, 음주예방실천계획서, 음주운전 재발방지 서약서 등 음주운전 전용 자료도 함께 확인할 수 있습니다.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{["음주운전 예방교육 수료증", "재발방지계획서", "음주예방실천계획서", "음주운전 재발방지 서약서"].map((item) => <div key={item} className="flex gap-2 rounded-xl bg-slate-50 p-3 text-sm font-bold leading-6 text-slate-800"><Icon name="file" className="h-5 w-5 shrink-0 text-[#173968]" />{item}</div>)}</div><Link href="/courses/dui-prevention" className={buttonClass("primary", "md", "mt-6 rounded-full px-6 font-black")}>음주운전 수료증 안내 보기</Link></article><div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">{documentCards.map((item) => <article key={item} className="rounded-[1rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="file" className="h-7 w-7 text-[#173968]" /><h3 className="mt-4 text-base font-black leading-snug">{item}</h3><p className="mt-2 text-sm leading-6 text-slate-600">개인정보가 포함되지 않은 예시 양식으로 안내됩니다.</p></article>)}</div></div></div></section>
+      <section className="px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="과정에 맞는 교육 문서를 확인하세요" body="기존 메인 화면에서 보여주던 수료증과 이수증 샘플을 그대로 유지하면서, 음주운전 예방교육 수료증을 가장 먼저 안내합니다." /><div className="mt-8 grid gap-5 lg:grid-cols-[0.9fr_1.1fr]"><article className="rounded-[1.25rem] border-2 border-[#173968] bg-white p-6 shadow-[0_22px_60px_rgba(23,57,104,0.16)]"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-black uppercase tracking-[0.16em] text-[#176b68]">Main Certificate</p><h3 className="mt-2 text-2xl font-black leading-snug text-slate-950">음주운전 예방교육 수료증</h3></div><span className="w-fit rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white">대표 수료증</span></div><p className="mt-4 text-sm leading-7 text-slate-700">음주운전 예방교육 이수 사실을 기존 수료증 양식으로 확인하고 출력할 수 있습니다. 자료포함과정과 심화과정에서는 음주운전 재발방지계획서, 음주예방실천계획서, 음주운전 재발방지 서약서 등 음주운전 전용 자료도 함께 확인할 수 있습니다.</p><div className="mt-5 grid gap-3 sm:grid-cols-2">{["음주운전 예방교육 수료증", "재발방지계획서", "음주예방실천계획서", "음주운전 재발방지 서약서"].map((item) => <div key={item} className="flex gap-2 rounded-xl bg-slate-50 p-3 text-sm font-bold leading-6 text-slate-800"><Icon name="file" className="h-5 w-5 shrink-0 text-[#173968]" />{item}</div>)}</div><Link href="/courses/dui-prevention" className={buttonClass("primary", "md", "mt-6 rounded-full px-6 font-black")}>음주운전 수료증 안내 보기</Link></article><DocumentPreviewGallery documents={homeCertificateSamples} columnsClassName="sm:grid-cols-2" /></div><div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{documentCards.map((item) => <article key={item} className="rounded-[1rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="file" className="h-7 w-7 text-[#173968]" /><h3 className="mt-4 text-base font-black leading-snug">{item}</h3><p className="mt-2 text-sm leading-6 text-slate-600">과정별 상세페이지와 내 강의실에서 확인할 수 있습니다.</p></article>)}</div></div></section>
 
       <section className="bg-white px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.9fr_1.1fr]"><SectionTitle title="행동 변화를 위한 온라인 예방교육" body="본 센터는 사건 이후 자신의 행동을 돌아보고, 재발·재범 위험을 낮추기 위한 구체적인 방법을 학습할 수 있도록 온라인 예방교육을 제공합니다. 교육은 사건 유형별 위험 요인과 행동 패턴을 이해하고, 실제 생활에서 적용할 수 있는 대처 행동과 생활 관리 방법을 익히는 데 중점을 둡니다." /><div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 p-6 text-sm leading-7 text-amber-950">본 센터는 국가기관, 법원, 검찰, 경찰, 보호관찰기관 또는 법률사무소가 운영하거나 지정한 기관이 아닌 민간 온라인 교육기관입니다. 수료증과 이수증은 교육 참여와 재발·재범 방지 노력을 정리하기 위한 민간 교육자료이며, 제출 여부와 활용 가능성은 개별 사건과 제출기관의 판단에 따라 달라질 수 있습니다.</div></div></section>
 
