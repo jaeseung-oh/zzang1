@@ -27,7 +27,7 @@ const legalNotice = (
   <aside className="resource-section rounded-2xl border border-slate-200 bg-slate-50 p-5 text-sm leading-7 text-slate-700 sm:p-6">
     <h2 className="font-black text-slate-950">법률 및 이용 안내</h2>
     <p className="mt-3">본 자료는 이용자가 자신의 잘못과 재발방지 계획을 직접 정리할 수 있도록 돕는 일반적인 교육자료입니다.</p>
-    <p className="mt-2">본 자료는 개별 사건에 대한 법률상담, 형량 예측, 선처 또는 감형 보장, 반성문 작성 대행을 제공하지 않습니다.</p>
+    <p className="mt-2">본 자료는 개별 사건에 대한 법률상담, 형량 예측, 법적 결과에 대한 확정적 안내, 반성문 작성 대행을 제공하지 않습니다.</p>
     <p className="mt-2">예시문을 그대로 복사하지 말고 반드시 본인의 실제 경험과 사실에 맞게 작성해야 합니다. 구체적인 법률 판단이 필요한 경우 변호사 등 법률전문가와 상담하시기 바랍니다.</p>
   </aside>
 );
