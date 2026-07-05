@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { addDoc, collection, doc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useEffect, useMemo, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, duiBasicModules, duiCbtAdvancedModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, duiBasicModules, duiCbtAdvancedModules, managedCourseCatalog } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
 import { applicationCourseCategories } from "@/lib/course/application-products";
 import { calculateRefundAmount } from "@/lib/payment/refund";
@@ -672,8 +672,9 @@ function CoursesView() {
   const managedCourses = [
     { title: "음주운전 예방교육 기본 과정", product: getAdminCourseProduct(duiPreventionCourseProduct.courseId), courseId: duiPreventionCourseProduct.courseId, modules: duiBasicModules },
     { title: "인지행동기반 재발방지교육 심화과정", product: getAdminCourseProduct(DUI_CBT_ADVANCED_COURSE_ID), courseId: DUI_CBT_ADVANCED_COURSE_ID, modules: duiCbtAdvancedModules },
+    ...managedCourseCatalog.filter((course) => course.productId).map((course) => ({ title: course.title, product: { title: course.title, price: course.priceKrw, description: course.subtitle }, courseId: course.id, modules: course.modules })),
   ];
-  return <section><h2 className="mb-4 text-3xl font-semibold tracking-[-0.04em]">강의 관리</h2><div className="grid gap-5">{managedCourses.map(({ title, product, courseId, modules }) => <section key={courseId} className="rounded-[1.5rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)]"><DetailPanel title={title} rows={[["courseId", courseId], ["상품명", product?.title || title], ["결제금액", formatKrw(Number(product?.price || 0))], ["총 교육 영상", `${modules.length}개`], ["수강기간", `${duiPreventionCourseProduct.durationDays}일`], ["수료증 발급", "가능"], ["공개 여부", "공개"], ["설명", product?.description || "온라인 예방교육 수강"]]} /><div className="mt-5 grid gap-3">{modules.map((m, i) => <div key={m.id} className="rounded-[1.25rem] border border-[#d7deea] bg-[#f8fafc] p-4"><p className="font-bold">{i + 1}. {m.title}</p><p className="mt-2 text-sm text-slate-600">lessonId: {m.id} / videoId: {m.cloudflareStreamUid || m.secureVideoPath || "미설정"} / 재생시간: {m.minutes}분 / 공개 여부: 공개 / 완료 기준: 100% 시청</p></div>)}</div></section>)}</div></section>;
+  return <section><h2 className="mb-4 text-3xl font-semibold tracking-[-0.04em]">강의 관리</h2><div className="grid gap-5">{managedCourses.map(({ title, product, courseId, modules }) => <section key={courseId} className="rounded-[1.5rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)]"><DetailPanel title={title} rows={[["courseId", courseId], ["상품명", product?.title || title], ["결제금액", formatKrw(Number(product?.price || 0))], ["총 교육 영상", `${modules.length}개`], ["수강기간", `${duiPreventionCourseProduct.durationDays}일`], ["수료증 발급", "가능"], ["공개 여부", "공개"], ["설명", product?.description || "온라인 예방교육 수강"]]} /><div className="mt-5 grid gap-3">{modules.map((m, i) => <div key={m.id} className="rounded-[1.25rem] border border-[#d7deea] bg-[#f8fafc] p-4"><p className="font-bold">{i + 1}. {m.title}</p><p className="mt-2 text-sm text-slate-600">lessonId: {m.id} / videoId: {m.cloudflareStreamUid || m.secureVideoPath || "미설정"}{m.sourceFileName ? ` / 원본 파일: ${m.sourceFileName}` : ""} / 재생시간: {m.minutes}분 / 공개 여부: 공개 / 완료 기준: 100% 시청</p></div>)}</div></section>)}</div></section>;
 }
 
 function SettingsView() {

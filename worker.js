@@ -12,6 +12,15 @@ const COURSE_STREAM_UIDS = new Set([
     'afa89d104a50e779ee12112f1ec59655'
 ]);
 
+function getConfiguredCourseStreamUids(env) {
+    return new Set([
+        ...COURSE_STREAM_UIDS,
+        env.STREAM_UID_VIOLENCE_PREVENTION,
+        env.STREAM_UID_GAMBLING_RELAPSE_PREVENTION,
+        env.STREAM_UID_SEXUAL_OFFENSE_PREVENTION
+    ].filter(Boolean));
+}
+
 const PROVIDERS = {
     kakao: {
         id: 'kakao',
@@ -648,6 +657,9 @@ function isExplicitlyBlockedEnrollmentRecord(enrollment) {
 }
 
 function resolveApplicationProductIdFromRecord(source = {}, fallbackProductId = 'basic') {
+    if (source.productId && APPLICATION_PRODUCTS[source.productId]) return source.productId;
+    const byCourse = Object.values(APPLICATION_PRODUCTS).find((product) => product.courseId === source.courseId);
+    if (byCourse) return byCourse.productId;
     const sourceAmount = Number(source.amount || source.totalAmount || 0);
     if (source.productId === 'dui-cbt-advanced' || source.courseId === CBT_COURSE_PRODUCT.courseId || sourceAmount >= APPLICATION_PRODUCTS['dui-cbt-advanced'].amount) {
         return 'dui-cbt-advanced';
@@ -1009,7 +1021,7 @@ async function handleStreamToken(request, env, corsHeaders) {
     const uid = (url.searchParams.get('uid') || '').trim();
     const courseId = (url.searchParams.get('courseId') || DUI_COURSE_PRODUCT.courseId).trim();
 
-    if (!COURSE_STREAM_UIDS.has(uid)) {
+    if (!getConfiguredCourseStreamUids(env).has(uid)) {
         return json({ error: 'invalid_stream_uid', message: '지원하지 않는 강의 영상입니다.' }, 400, corsHeaders);
     }
     if (!getCourseProduct(courseId)) {
@@ -1231,17 +1243,32 @@ const DUI_COURSE_PRODUCT = {
 const CBT_COURSE_PRODUCT = {
     courseId: 'dui-cbt-advanced',
     courseTitle: '인지행동기반 재발방지교육 심화과정',
-    price: 290000,
+    price: 199000,
     currency: 'KRW',
     durationDays: 90,
     totalLessons: 2,
-    pricePerLesson: 145000,
+    pricePerLesson: 99500,
     description: '인지행동기반 재발방지 교육 심화과정',
     certificateAvailable: true
 };
 
+const NEW_PREVENTION_COURSE_PRODUCTS = {
+    'violence-basic': { courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', certificateTitle: '폭력범죄 재범방지교육', price: 59000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 59000, description: '폭력범죄 재범방지교육 기본과정', certificateAvailable: true },
+    'violence-advanced': { courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', certificateTitle: '폭력범죄 재범방지교육', price: 129000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 64500, description: '폭력범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'gambling-basic': { courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', certificateTitle: '도박중독 재발방지교육', price: 59000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 59000, description: '도박중독 재발방지교육 기본과정', certificateAvailable: true },
+    'gambling-advanced': { courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', certificateTitle: '도박중독 재발방지교육', price: 129000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 64500, description: '도박중독 재발방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'sexual-offense-basic': { courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', certificateTitle: '성범죄 재범방지교육', price: 59000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 59000, description: '성범죄 재범방지교육 기본과정', certificateAvailable: true },
+    'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 129000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 64500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
+};
+
+const COURSE_PRODUCTS_BY_ID = {
+    [DUI_COURSE_PRODUCT.courseId]: DUI_COURSE_PRODUCT,
+    [CBT_COURSE_PRODUCT.courseId]: CBT_COURSE_PRODUCT,
+    ...NEW_PREVENTION_COURSE_PRODUCTS
+};
+
 function getCourseProduct(courseId) {
-    return courseId === CBT_COURSE_PRODUCT.courseId ? CBT_COURSE_PRODUCT : courseId === DUI_COURSE_PRODUCT.courseId ? DUI_COURSE_PRODUCT : null;
+    return COURSE_PRODUCTS_BY_ID[courseId] || null;
 }
 
 const APPLICATION_PRODUCTS = {
@@ -1267,11 +1294,17 @@ const APPLICATION_PRODUCTS = {
         categoryId: 'dui',
         productId: 'dui-cbt-advanced',
         title: '인지행동기반 재발방지교육 심화과정',
-        amount: 290000,
+        amount: 199000,
         courseId: CBT_COURSE_PRODUCT.courseId,
         courseTitle: CBT_COURSE_PRODUCT.courseTitle,
         totalLessons: CBT_COURSE_PRODUCT.totalLessons
-    }
+    },
+    'violence-basic': { categoryId: 'violence-prevention', productId: 'violence-basic', title: '폭력범죄 재범방지교육 기본과정', amount: 59000, courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', totalLessons: 1 },
+    'violence-advanced': { categoryId: 'violence-prevention', productId: 'violence-advanced', title: '폭력범죄 재범방지교육 심화과정', amount: 129000, courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'gambling-basic': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-basic', title: '도박중독 재발방지교육 기본과정', amount: 59000, courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', totalLessons: 1 },
+    'gambling-advanced': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-advanced', title: '도박중독 재발방지교육 심화과정', amount: 129000, courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'sexual-offense-basic': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-basic', title: '성범죄 재범방지교육 기본과정', amount: 59000, courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', totalLessons: 1 },
+    'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 129000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
 };
 
 
@@ -1366,7 +1399,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
         certificateId, certificateNo, issueNumber: certificateNo,
         userId: uid, uid, userName, birthDate, dateOfBirth: birthDate,
         email: user.email || firebaseUser.email || '', phoneNumber: user.phoneNumber || '',
-        courseId, courseTitle: product.courseTitle,
+        courseId, courseTitle: product.certificateTitle || product.courseTitle,
         totalLessons: product.totalLessons, completedLessons,
         progress: progressRate, completedAt,
         purchasedAt: enrollment.purchasedAt || purchase.purchasedAt || purchase.approvedAt || null,
@@ -1486,8 +1519,8 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
 
     const paymentRecord = {
         paymentId, orderId, paymentKey, userId: uid, uid, courseId,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        orderName: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
+        orderName: product.courseTitle,
         amount: DUI_COURSE_PRODUCT.price,
         method: approved.method || null,
         status: 'paid', paymentStatus: 'paid', paymentProvider: 'toss-payments',
@@ -2032,6 +2065,46 @@ async function ensureIncludedBasicEnrollment(env, uid, context) {
     return { ...record, id: enrollmentId, documentPath: enrollmentPath, recordSource: 'included_access' };
 }
 
+async function ensureIncludedCbtEnrollment(env, uid, context = {}) {
+    const enrollmentId = uid + '_' + CBT_COURSE_PRODUCT.courseId;
+    const enrollmentPath = firestoreDocumentPath(env, 'enrollments', enrollmentId);
+    const existingEnrollment = await firestoreGet(env, enrollmentPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingEnrollment) {
+        const enrollment = fromFirestoreFields(existingEnrollment.fields || {});
+        if (isFirestoreEnrollmentActiveRecord(enrollment)) return { ...enrollment, id: enrollmentId, documentPath: enrollmentPath, recordSource: 'existing_included_cbt_access' };
+    }
+    const nowIso = new Date().toISOString();
+    const purchasedAt = context.purchasedAt || nowIso;
+    const expiresAt = context.expiresAt || new Date(new Date(purchasedAt).getTime() + CBT_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
+    const record = {
+        enrollmentId,
+        userId: uid,
+        uid,
+        courseId: CBT_COURSE_PRODUCT.courseId,
+        categoryId: 'cbt',
+        productId: context.sourceProductId || 'included-cbt',
+        productTitle: context.sourceProductTitle || '인지행동 개선교육 포함 권한',
+        amount: 0,
+        courseTitle: CBT_COURSE_PRODUCT.courseTitle,
+        paymentId: context.paymentId || null,
+        orderId: context.orderId || null,
+        purchasedAt,
+        expiresAt,
+        paymentStatus: 'paid',
+        accessStatus: 'active',
+        progress: 0,
+        completedLessons: 0,
+        totalLessons: CBT_COURSE_PRODUCT.totalLessons,
+        certificateIssued: false,
+        certificateIssuedAt: null,
+        includedFromProductId: context.sourceProductId || null,
+        createdAt: nowIso,
+        updatedAt: nowIso
+    };
+    await firestorePatch(env, enrollmentPath, record);
+    return { ...record, id: enrollmentId, documentPath: enrollmentPath, recordSource: 'included_cbt_access' };
+}
+
 async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders) {
     const paymentId = String(body?.paymentId || '').trim();
     const pendingOrder = await getPendingPaymentRecord(env, paymentId);
@@ -2187,6 +2260,9 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
         if (productId === 'dui-cbt-advanced') {
             await ensureIncludedBasicEnrollment(env, uid, { paymentId, orderId, purchasedAt: purchasedAt.toISOString(), expiresAt, method, receiptUrl, categoryId, source: body.source || 'portone_confirm' });
+        }
+        if (product.includesCbtCourse) {
+            await ensureIncludedCbtEnrollment(env, uid, { paymentId, orderId, purchasedAt: purchasedAt.toISOString(), expiresAt, method, receiptUrl, sourceProductId: productId, sourceProductTitle: product.title, source: body.source || 'portone_confirm' });
         }
         if (body.source === 'portone_webhook') await logWebhookStep(env, 'enrollment_created', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
@@ -2736,7 +2812,7 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
         certificateId, certificateNo, issueNumber: certificateNo,
         userId: uid, uid, userName, birthDate, dateOfBirth: birthDate,
         email: user.email || '', phoneNumber: user.phoneNumber || '',
-        courseId, courseTitle: product.courseTitle,
+        courseId, courseTitle: product.certificateTitle || product.courseTitle,
         totalLessons: product.totalLessons, completedLessons: product.totalLessons,
         progress: 100, completedAt,
         purchasedAt: enrollment.purchasedAt || null,

@@ -1,6 +1,6 @@
 import type { User } from "firebase/auth";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseDefinition } from "@/lib/course/catalog";
 import { getApplicationCategory } from "@/lib/course/application-products";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
@@ -54,7 +54,7 @@ export type EnrollmentRecord = {
 };
 
 export const OPERATING_COURSE_ID = defaultCourse.id;
-export const APPLICATION_TO_COURSE_ID: Record<string, string> = { dui: defaultCourse.id, cbt: DUI_CBT_ADVANCED_COURSE_ID };
+export const APPLICATION_TO_COURSE_ID: Record<string, string> = { dui: defaultCourse.id, cbt: DUI_CBT_ADVANCED_COURSE_ID, "violence-prevention": "violence-basic", "gambling-relapse-prevention": "gambling-basic", "sexual-offense-prevention": "sexual-offense-basic" };
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {
   if (!courseIdOrCategory || courseIdOrCategory === "dui") return defaultCourse.id;
@@ -65,6 +65,10 @@ export function getCourseAvailability(courseIdOrCategory?: string | null) {
   const resolvedCourseId = resolveCourseId(courseIdOrCategory);
   if (resolvedCourseId === DUI_CBT_ADVANCED_COURSE_ID) {
     return { exists: true, available: true, comingSoon: false, title: "인지행동기반 재발방지교육 심화과정" };
+  }
+  const course = getCourseDefinition(resolvedCourseId);
+  if (course) {
+    return { exists: true, available: true, comingSoon: false, title: course.title };
   }
   const categoryId = resolvedCourseId === defaultCourse.id ? "dui" : courseIdOrCategory || "dui";
   const category = getApplicationCategory(categoryId);

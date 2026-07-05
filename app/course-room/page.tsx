@@ -6,7 +6,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, duiCbtAdvancedModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -324,11 +324,13 @@ export default function CourseRoomPage() {
   const router = useRouter();
   const [requestedCourseId] = useState(() => {
     if (typeof window === "undefined") return defaultCourse.id;
-    return new URLSearchParams(window.location.search).get("courseId") === DUI_CBT_ADVANCED_COURSE_ID ? DUI_CBT_ADVANCED_COURSE_ID : defaultCourse.id;
+    const courseId = new URLSearchParams(window.location.search).get("courseId") || defaultCourse.id;
+    return getCourseDefinition(courseId) || courseId === DUI_CBT_ADVANCED_COURSE_ID ? courseId : defaultCourse.id;
   });
   const isCbtAdvancedCourse = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
-  const courseModules = isCbtAdvancedCourse ? duiCbtAdvancedModules : duiBasicModules;
-  const courseTitle = isCbtAdvancedCourse ? "인지행동기반 재발방지교육 심화과정" : defaultCourse.title;
+  const courseDefinition = getCourseDefinition(requestedCourseId);
+  const courseModules = getCourseModules(requestedCourseId);
+  const courseTitle = isCbtAdvancedCourse ? "인지행동 개선교육" : courseDefinition?.title || defaultCourse.title;
   const [fullName, setFullName] = useState("");
   const [uid, setUid] = useState("");
   const [caseType, setCaseType] = useState<CaseType>("dui");
@@ -492,7 +494,7 @@ export default function CourseRoomPage() {
           setAccessBlockedMessage(message);
           setPlayerError(message);
           setAccessChecking(false);
-          router.replace((requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "/courses/apply/?category=dui&productId=dui-cbt-advanced&notice=" : "/courses/apply/?category=dui&notice=") + encodeURIComponent(message));
+          router.replace(getCourseApplyHref(requestedCourseId) + (getCourseApplyHref(requestedCourseId).includes("?") ? "&notice=" : "?notice=") + encodeURIComponent(message));
           return;
         } else {
           setAccessBlockedMessage("");

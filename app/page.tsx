@@ -46,7 +46,7 @@ const homePricingCards = [
     product: duiCbtAdvancedApplicationProduct,
     href: "/courses/apply?category=dui&productId=dui-cbt-advanced",
     title: "심화과정",
-    price: "290,000원",
+    price: "199,000원",
     description: "사고와 행동의 변화까지 심화 학습하고, 교육 이수 내역을 보다 구체적으로 정리하는 종합과정입니다.",
     includes: ["자료포함과정 전체", "인지행동 기반 재범방지교육", "인지행동 기반 재범방지교육 이수증", "재범방지교육 상세내역서"],
     buttonLabel: "심화과정 수강하기",

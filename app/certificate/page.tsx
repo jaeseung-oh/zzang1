@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, duiCbtAdvancedModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseApplyHref, getCourseCertificateTitle, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -134,17 +134,18 @@ function CertificatePageContent() {
   const requestedCertificateId = searchParams.get("certificateId");
   const requestedAdminPreview = searchParams.get("adminPreview");
   const shouldAutoPrint = searchParams.get("print") === "1";
-  const requestedCourseId = searchParams.get("courseId") === DUI_CBT_ADVANCED_COURSE_ID ? DUI_CBT_ADVANCED_COURSE_ID : defaultCourse.id;
+  const rawRequestedCourseId = searchParams.get("courseId") || defaultCourse.id;
+  const requestedCourseId = getCourseDefinition(rawRequestedCourseId) || rawRequestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? rawRequestedCourseId : defaultCourse.id;
   const requestedDocumentType = searchParams.get("documentType") || "";
-  const requestedCourseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육 심화과정" : defaultCourse.title;
-  const requestedTotalLessons = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? duiCbtAdvancedModules.length : duiBasicModules.length;
+  const requestedCourseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동 개선교육" : getCourseCertificateTitle(requestedCourseId);
+  const requestedTotalLessons = getCourseModules(requestedCourseId).length;
   const expectedCertificateId = uid ? `${uid}_${requestedCourseId}` : "";
   const profileBirthDate = profile?.certificateIdentity?.dateOfBirth || profile?.dateOfBirth || profile?.birthDate || "";
   const profileName = profile?.certificateIdentity?.realName || profile?.realName || profile?.fullName || "";
   const needsBirthDate = Boolean(uid && profile && !profileBirthDate && !certificate);
 
   const buildAdminPreviewCertificate = (userId: string, email: string, documentType: "attendance" | "completion"): CertificateRecord => {
-    const completedLessons = documentType === "completion" ? duiBasicModules.length : 1;
+    const completedLessons = documentType === "completion" ? getCourseModules(defaultCourse.id).length : 1;
     return {
       certificateId: `admin_preview_${documentType}`,
       certificateNo: documentType === "completion" ? "PREVIEW-COMPLETION" : "PREVIEW-ATTENDANCE",
@@ -156,7 +157,7 @@ function CertificatePageContent() {
       email,
       courseId: defaultCourse.id,
       courseTitle: defaultCourse.title,
-      totalLessons: duiBasicModules.length,
+      totalLessons: getCourseModules(defaultCourse.id).length,
       completedLessons,
       completedAt: new Date(),
       issuedAt: new Date(),
@@ -213,7 +214,7 @@ function CertificatePageContent() {
         if (!canAccessCourse) {
           const message = "수강권 결제 후 이용할 수 있습니다.";
           setError(message);
-          router.replace("/courses/apply/?category=dui&notice=" + encodeURIComponent(message));
+          router.replace(getCourseApplyHref(requestedCourseId) + (getCourseApplyHref(requestedCourseId).includes("?") ? "&notice=" : "?notice=") + encodeURIComponent(message));
           return;
         }
       }
@@ -339,7 +340,7 @@ function CertificatePageContent() {
   const issuedAt = certificate?.issuedAt || certificate?.certificateIssuedAt || certificate?.completedAt || null;
   const issuerName = certificate?.issuerName || issuerFallback;
   const effectiveDocumentType = requestedDocumentType || certificate?.documentType || "completion";
-  const isCbtCertificate = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
+  const isCbtCertificate = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID || effectiveDocumentType === "cbt-completion";
   const isDetailDocument = effectiveDocumentType === "cbt-detail";
   const isCompletionCertificate = certificate?.documentType !== "attendance";
   const documentTitle = isDetailDocument ? "교육이수 상세내역서" : isCbtCertificate ? "인지행동기반 재발방지교육 이수증" : isCompletionCertificate ? "수료증" : "수강확인증";
@@ -348,12 +349,12 @@ function CertificatePageContent() {
   const documentBody = isDetailDocument
     ? "위 사람은 본 기관에서 운영하는 음주운전 예방교육과 인지행동기반 재발방지교육으로 구성된 재범방지 교육과정을 성실히 이수하였기에 아래와 같이 상세 교육 내역을 확인합니다."
     : isCbtCertificate
-      ? "위 사람은 리셋에듀센터의 「인지행동 기반 재범방지교육 심화과정」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
+      ? "위 사람은 리셋에듀센터의 「인지행동 개선교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
-        ? "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다."
-        : "위 사람은 본 기관에서 운영하는 「음주운전 예방교육」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.";
+        ? `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다.`
+        : `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
-  const displayedCourseTitle = isDetailDocument ? "인지행동 기반 음주운전 재범방지교육 심화과정" : requestedCourseTitle;
+  const displayedCourseTitle = isDetailDocument ? "인지행동 개선교육" : requestedCourseTitle;
   const certificateRows = [
     ["교육과정명", displayedCourseTitle],
     [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육과정 수강 완료" : "교육과정 수강 중"],
@@ -533,7 +534,7 @@ function CertificatePageContent() {
                       <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">2</span>교육과정 정보</h3>
                       <div className="overflow-hidden rounded-lg border border-[#d9c08a] bg-white">
                         {[
-                          ["교육과정명", "인지행동 기반 음주운전 재범방지교육 심화과정"],
+                          ["교육과정명", "인지행동 개선교육"],
                           ["수료조건", "전체 교육과정 수강 완료"],
                           ["수료일자", detailCompletedAt],
                         ].map(([label, value]) => (

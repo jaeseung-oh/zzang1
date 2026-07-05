@@ -1,7 +1,9 @@
 export const APPLICATION_PRICES = {
   BASIC: 59000,
   DUI_WITH_DOCUMENTS: 109000,
-  DUI_CBT_ADVANCED: 290000,
+  DUI_CBT_ADVANCED: 199000,
+  PREVENTION_BASIC: 59000,
+  PREVENTION_ADVANCED: 129000,
 } as const;
 
 export type ApplicationProduct = {
@@ -81,6 +83,68 @@ export const duiCbtAdvancedApplicationProduct: ApplicationProduct = {
   ],
 };
 
+
+const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
+  ["violence-basic", {
+    id: "violence-basic",
+    courseId: "violence-basic",
+    title: "기본과정",
+    price: APPLICATION_PRICES.PREVENTION_BASIC,
+    badge: "강의 + 수료증",
+    description: "폭력범죄 재범방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
+    includes: ["폭력범죄 재범방지교육 1강", "폭력범죄 재범방지교육 수료증", "온라인 인쇄 및 PDF 저장"],
+  }],
+  ["violence-advanced", {
+    id: "violence-advanced",
+    courseId: "violence-advanced",
+    title: "심화과정",
+    price: APPLICATION_PRICES.PREVENTION_ADVANCED,
+    badge: "통합 과정",
+    description: "재범·재발 방지교육과 인지행동 개선교육을 함께 수강하는 통합 과정입니다.",
+    includes: ["폭력범죄 재범방지교육 1강", "인지행동 개선교육", "폭력범죄 재범방지교육 수료증", "인지행동 개선교육 이수증", "온라인 인쇄 및 PDF 저장"],
+  }],
+  ["gambling-basic", {
+    id: "gambling-basic",
+    courseId: "gambling-basic",
+    title: "기본과정",
+    price: APPLICATION_PRICES.PREVENTION_BASIC,
+    badge: "강의 + 수료증",
+    description: "도박중독 재발방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
+    includes: ["도박중독 재발방지교육 1강", "도박중독 재발방지교육 수료증", "온라인 인쇄 및 PDF 저장"],
+  }],
+  ["gambling-advanced", {
+    id: "gambling-advanced",
+    courseId: "gambling-advanced",
+    title: "심화과정",
+    price: APPLICATION_PRICES.PREVENTION_ADVANCED,
+    badge: "통합 과정",
+    description: "재범·재발 방지교육과 인지행동 개선교육을 함께 수강하는 통합 과정입니다.",
+    includes: ["도박중독 재발방지교육 1강", "인지행동 개선교육", "도박중독 재발방지교육 수료증", "인지행동 개선교육 이수증", "온라인 인쇄 및 PDF 저장"],
+  }],
+  ["sexual-offense-basic", {
+    id: "sexual-offense-basic",
+    courseId: "sexual-offense-basic",
+    title: "기본과정",
+    price: APPLICATION_PRICES.PREVENTION_BASIC,
+    badge: "강의 + 수료증",
+    description: "성범죄 재범방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
+    includes: ["성범죄 재범방지교육 1강", "성범죄 재범방지교육 수료증", "온라인 인쇄 및 PDF 저장"],
+  }],
+  ["sexual-offense-advanced", {
+    id: "sexual-offense-advanced",
+    courseId: "sexual-offense-advanced",
+    title: "심화과정",
+    price: APPLICATION_PRICES.PREVENTION_ADVANCED,
+    badge: "통합 과정",
+    description: "재범·재발 방지교육과 인지행동 개선교육을 함께 수강하는 통합 과정입니다.",
+    includes: ["성범죄 재범방지교육 1강", "인지행동 개선교육", "성범죄 재범방지교육 수료증", "인지행동 개선교육 이수증", "온라인 인쇄 및 PDF 저장"],
+  }],
+]);
+
+function getNewPreventionProducts(basicId: string, advancedId: string) {
+  return [newPreventionApplicationProducts.get(basicId), newPreventionApplicationProducts.get(advancedId)].filter(Boolean) as ApplicationProduct[];
+}
+
 export const applicationCourseCategories: ApplicationCourseCategory[] = [
   {
     id: "dui",
@@ -93,6 +157,36 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
     defaultProductId: "basic",
   },
   {
+    id: "violence-prevention",
+    title: "폭력범죄 재범방지교육",
+    description: "폭력범죄 사건 이후 책임 인식과 재범방지 계획을 온라인 교육으로 정리합니다.",
+    summary: "기본과정 59,000원, 심화과정 129,000원",
+    icon: "alert",
+    status: "available",
+    products: getNewPreventionProducts("violence-basic", "violence-advanced"),
+    defaultProductId: "violence-basic",
+  },
+  {
+    id: "gambling-relapse-prevention",
+    title: "도박중독 재발방지교육",
+    description: "도박중독 재발 위험요인과 생활 관리 계획을 온라인 교육으로 정리합니다.",
+    summary: "기본과정 59,000원, 심화과정 129,000원",
+    icon: "dice",
+    status: "available",
+    products: getNewPreventionProducts("gambling-basic", "gambling-advanced"),
+    defaultProductId: "gambling-basic",
+  },
+  {
+    id: "sexual-offense-prevention",
+    title: "성범죄 재범방지교육",
+    description: "성범죄 재범방지와 관계 윤리, 책임 인식을 온라인 교육으로 점검합니다.",
+    summary: "기본과정 59,000원, 심화과정 129,000원",
+    icon: "shieldCheck",
+    status: "available",
+    products: getNewPreventionProducts("sexual-offense-basic", "sexual-offense-advanced"),
+    defaultProductId: "sexual-offense-basic",
+  },
+  {
     id: "fraud",
     title: "사기 예방교육",
     description: "사기 사건 이후 책임 인식과 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
@@ -100,17 +194,6 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
     icon: "fileSearch",
     status: "comingSoon",
     comingSoonText: "사기 사건 이후 책임 인식과 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
-    products: [basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct],
-    defaultProductId: "basic",
-  },
-  {
-    id: "gambling",
-    title: "도박 예방교육",
-    description: "도박 문제와 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
-    summary: "3개 가격 상품 구성, 준비중",
-    icon: "dice",
-    status: "comingSoon",
-    comingSoonText: "도박 문제와 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
     products: [basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct],
     defaultProductId: "basic",
   },
@@ -125,21 +208,10 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
     products: [basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct],
     defaultProductId: "basic",
   },
-  {
-    id: "sex-crime",
-    title: "성범죄 예방교육",
-    description: "성범죄 예방과 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
-    summary: "3개 가격 상품 구성, 준비중",
-    icon: "shieldCheck",
-    status: "comingSoon",
-    comingSoonText: "성범죄 예방과 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
-    products: [basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct],
-    defaultProductId: "basic",
-  },
 ];
 
 export const applicationNoticeText =
-  "음주운전 예방교육 결제 완료 회원에게 반성문 작성 가이드와 예시 열람·인쇄·PDF 저장 기능을 제공합니다. 109,000원 서식 포함 수강권은 여기에 재발방지계획서·음주예방실천계획서·음주운전 재발방지 서약서까지 함께 제공합니다. 290,000원 심화과정은 109,000원 과정의 모든 제공 내용에 인지행동기반 재발방지 교육 수강, 인지행동기반 재발방지교육 이수증, 재범방지 교육 이수 상세 내역서 발급을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
+  "신규 재범·재발 방지교육 기본과정은 해당 교육 1강과 수료증을 제공합니다. 심화과정은 해당 교육 1강에 기존 인지행동 개선교육과 기존 이수증 발급 권한을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
 
 export function formatApplicationKrw(value: number) {
   return value.toLocaleString("ko-KR") + "원";

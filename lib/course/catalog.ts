@@ -9,11 +9,17 @@ export type CourseModule = {
   actionChecklist: string[];
   secureVideoPath?: string;
   cloudflareStreamUid?: string;
+  sourceCourseId?: string;
+  sourceFileName?: string;
 };
 
 export type CourseDefinition = {
   id: string;
+  categoryId?: string;
+  productId?: string;
+  level?: "basic" | "advanced";
   title: string;
+  certificateTitle?: string;
   subtitle: string;
   durationMinutes: number;
   priceKrw: number;
@@ -23,6 +29,7 @@ export type CourseDefinition = {
   accessValidMonths: number;
   accessValidLabel: string;
   modules: CourseModule[];
+  documents?: Array<{ type: "course-certificate" | "cbt-completion"; title: string; courseId?: string }>;
 };
 
 export const courseCatalog: CourseDefinition[] = [
@@ -137,3 +144,144 @@ export const defaultCourse = courseCatalog[0];
 export const DUI_CBT_ADVANCED_COURSE_ID = "dui-cbt-advanced";
 export const duiBasicModules = defaultCourse.modules.slice(0, 3);
 export const duiCbtAdvancedModules = defaultCourse.modules.slice(3, 5);
+
+
+export const CBT_COMPLETION_MODULE: CourseModule = {
+  ...duiCbtAdvancedModules[0],
+  title: "인지행동 개선교육",
+  sourceCourseId: DUI_CBT_ADVANCED_COURSE_ID,
+};
+
+const preventionStreamUids = {
+  violence: process.env.NEXT_PUBLIC_STREAM_UID_VIOLENCE_PREVENTION || "",
+  gambling: process.env.NEXT_PUBLIC_STREAM_UID_GAMBLING_RELAPSE_PREVENTION || "",
+  sexualOffense: process.env.NEXT_PUBLIC_STREAM_UID_SEXUAL_OFFENSE_PREVENTION || "",
+};
+
+type PreventionCategorySeed = {
+  categoryId: string;
+  productPrefix: string;
+  baseLessonId: string;
+  title: string;
+  caseType: string;
+  streamUid: string;
+  sourceFileName: string;
+};
+
+export const preventionCategorySeeds: PreventionCategorySeed[] = [
+  {
+    categoryId: "violence-prevention",
+    productPrefix: "violence",
+    baseLessonId: "violence-prevention-lesson-1",
+    title: "폭력범죄 재범방지교육",
+    caseType: "폭력범죄",
+    streamUid: preventionStreamUids.violence,
+    sourceFileName: "폭력방지교육_vrew_내보내기.mp4",
+  },
+  {
+    categoryId: "gambling-relapse-prevention",
+    productPrefix: "gambling",
+    baseLessonId: "gambling-relapse-prevention-lesson-1",
+    title: "도박중독 재발방지교육",
+    caseType: "도박중독",
+    streamUid: preventionStreamUids.gambling,
+    sourceFileName: "도박중독재범방지_vrew_내보내기.mp4",
+  },
+  {
+    categoryId: "sexual-offense-prevention",
+    productPrefix: "sexual-offense",
+    baseLessonId: "sexual-offense-prevention-lesson-1",
+    title: "성범죄 재범방지교육",
+    caseType: "성범죄",
+    streamUid: preventionStreamUids.sexualOffense,
+    sourceFileName: "성폭력재벙예방교육_vrew_내보내기.mp4",
+  },
+];
+
+function buildPreventionModule(seed: PreventionCategorySeed): CourseModule {
+  return {
+    id: seed.baseLessonId,
+    title: seed.title,
+    minutes: 30,
+    summary: seed.title + " 1강입니다. 사건 이후 위험요인을 점검하고 재범·재발 방지를 위한 실천 기준을 정리합니다.",
+    highlights: [
+      seed.caseType + " 관련 위험상황과 반복 패턴 점검",
+      "책임 인식과 피해 예방 관점 정리",
+      "재범·재발 방지를 위한 구체적 실천 계획 수립",
+    ],
+    actionChecklist: [
+      "반복 위험상황을 3가지로 정리하기",
+      "위험 신호가 보일 때 사용할 중단 행동 정하기",
+      "재범·재발 방지를 위한 생활 기준 한 문장 작성하기",
+    ],
+    cloudflareStreamUid: seed.streamUid,
+    sourceFileName: seed.sourceFileName,
+  };
+}
+
+export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategorySeeds.flatMap((seed) => {
+  const baseModule = buildPreventionModule(seed);
+  const common = {
+    categoryId: seed.categoryId,
+    certificateTitle: seed.title,
+    subtitle: seed.title + " 온라인 교육과 수료증 발급 과정입니다.",
+    accessValidMonths: 3,
+    accessValidLabel: "결제일로부터 90일",
+    caseTypes: [seed.caseType],
+  };
+  return [
+    {
+      ...common,
+      id: seed.productPrefix + "-basic",
+      productId: seed.productPrefix + "-basic",
+      level: "basic" as const,
+      title: seed.title + " 기본과정",
+      durationMinutes: baseModule.minutes,
+      priceKrw: 59000,
+      priceLabel: formatKrw(59000),
+      outputs: [seed.title + " 수료증"],
+      modules: [baseModule],
+      documents: [{ type: "course-certificate" as const, title: seed.title + " 수료증" }],
+    },
+    {
+      ...common,
+      id: seed.productPrefix + "-advanced",
+      productId: seed.productPrefix + "-advanced",
+      level: "advanced" as const,
+      title: seed.title + " 심화과정",
+      durationMinutes: baseModule.minutes + CBT_COMPLETION_MODULE.minutes,
+      priceKrw: 129000,
+      priceLabel: formatKrw(129000),
+      outputs: [seed.title + " 수료증", "인지행동 개선교육 이수증"],
+      modules: [baseModule, CBT_COMPLETION_MODULE],
+      documents: [
+        { type: "course-certificate" as const, title: seed.title + " 수료증" },
+        { type: "cbt-completion" as const, title: "인지행동 개선교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID },
+      ],
+    },
+  ];
+});
+
+export const allCourseCatalog = [...courseCatalog, ...newPreventionCourseCatalog];
+export const managedCourseCatalog = allCourseCatalog;
+
+export function getCourseDefinition(courseId?: string | null) {
+  return allCourseCatalog.find((course) => course.id === courseId) || null;
+}
+
+export function getCourseModules(courseId?: string | null) {
+  if (courseId === DUI_CBT_ADVANCED_COURSE_ID) return duiCbtAdvancedModules;
+  return getCourseDefinition(courseId)?.modules || duiBasicModules;
+}
+
+export function getCourseCertificateTitle(courseId?: string | null) {
+  const course = getCourseDefinition(courseId);
+  return course?.certificateTitle || course?.title || defaultCourse.title;
+}
+
+export function getCourseApplyHref(courseId?: string | null) {
+  const course = getCourseDefinition(courseId);
+  if (course?.categoryId && course.productId) return `/courses/apply/?category=${course.categoryId}&productId=${course.productId}`;
+  if (courseId === DUI_CBT_ADVANCED_COURSE_ID) return "/courses/apply/?category=dui&productId=dui-cbt-advanced";
+  return "/courses/apply/?category=dui";
+}

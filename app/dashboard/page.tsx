@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
@@ -272,7 +272,7 @@ export default function DashboardPage() {
               강의별 진도, 누적 수강 시간, 남은 시간, 발급 문서를 한 곳에서 확인합니다.
             </p>
             <p className="mt-3 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold leading-7 text-amber-950">
-              심화과정(290,000원) 수강권을 이용하시는 분은 수강목록이 모두 표시될 때까지 잠시만 기다려주시기 바랍니다.
+              심화과정(199,000원) 수강권을 이용하시는 분은 수강목록이 모두 표시될 때까지 잠시만 기다려주시기 바랍니다.
             </p>
           </div>
           <div className="w-full lg:w-auto">
@@ -337,6 +337,27 @@ export default function DashboardPage() {
                         </div>
                         <span className={active ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600"}>{getEnrollmentStatusLabel(enrollment)}</span>
                       </div>
+                      {(() => {
+                        const course = getCourseDefinition(enrollment.courseId);
+                        const modules = getCourseModules(enrollment.courseId);
+                        const documents = course?.documents || (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? [{ type: "cbt-completion", title: "인지행동 개선교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID }] : [{ type: "course-certificate", title: "수료증", courseId: enrollment.courseId }]);
+                        return (
+                          <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
+                            <p className="text-xs font-bold text-slate-600">수강 가능한 강의</p>
+                            <ol className="mt-2 space-y-1 text-xs font-semibold text-slate-800">
+                              {modules.map((module, index) => <li key={module.id}>{index + 1}. {module.title.replace(/^\d+강\.\s*/, "")}</li>)}
+                            </ol>
+                            <p className="mt-3 text-xs font-bold text-slate-600">제공 문서</p>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              {documents.map((document) => (
+                                <Link key={document.type + document.title} href={document.type === "cbt-completion" ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" : "/certificate?courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800">
+                                  {document.title}
+                                </Link>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })()}
                       <dl className="mt-4 grid gap-2 text-xs sm:grid-cols-2">
                         <div><dt className="font-semibold text-slate-500">결제금액</dt><dd className="mt-1 text-slate-900">{formatKrw(enrollment.amount)}</dd></div>
                         <div><dt className="font-semibold text-slate-500">진행률</dt><dd className="mt-1 text-slate-900">{Math.floor(progressRate)}%</dd></div>
@@ -344,8 +365,8 @@ export default function DashboardPage() {
                         <div><dt className="font-semibold text-slate-500">수강 만료</dt><dd className="mt-1 text-slate-900">{formatDateOnly(enrollment.expiresAt)}</dd></div>
                       </dl>
                       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-                        {active ? <Link href={enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? "/course-room?courseId=dui-cbt-advanced" : "/course-room"} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-6 py-4 text-base font-black !text-white shadow-[0_18px_38px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href="/courses/apply/?category=dui" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
-                        {certificateReady ? <Link href={enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" : "/certificate"} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
+                        {active ? <Link href={"/course-room?courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-6 py-4 text-base font-black !text-white shadow-[0_18px_38px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href={getCourseApplyHref(enrollment.courseId)} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
+                        {certificateReady ? <Link href={"/certificate?courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
                         {certificateReady && enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-detail" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 sm:w-auto">상세 내역서 출력</Link> : null}
                       </div>
                     </article>

@@ -4,7 +4,7 @@ import * as PortOne from "@portone/browser-sdk/v2";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { defaultCourse } from "@/lib/course/catalog";
+import { defaultCourse, getCourseDefinition } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
 import { basicApplicationProduct, formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
 import { getCertificateIdentity, getUserProfile } from "@/lib/firebase/user-profile";
@@ -99,9 +99,10 @@ export default function CheckoutContent() {
   const selectedCategory = getApplicationCategory(selectedCategoryId) || getApplicationCategory("dui");
   const selectedProduct = getApplicationProduct(selectedCategoryId, selectedProductId) || defaultCheckoutProduct;
   const selectedCourseId = selectedProduct.courseId || duiPreventionCourseProduct.courseId;
-  const selectedCourseTitle = selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle;
-  const selectedTotalLessons = selectedProduct.courseId ? 5 : 3;
-  const selectedResourceLabel = selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 3종 서식 · CBT 이수증 · 상세 내역서" : selectedProduct.id === "dui-documents" ? "수료증 · 반성문 가이드/예시 · 3종 서식" : "수료증 · 반성문 가이드/예시";
+  const selectedCourseDefinition = getCourseDefinition(selectedCourseId);
+  const selectedCourseTitle = selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
+  const selectedTotalLessons = selectedCourseDefinition?.modules.length || (selectedProduct.courseId ? 5 : 3);
+  const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 3종 서식 · 인지행동 개선교육 이수증 · 상세 내역서" : selectedProduct.id === "dui-documents" ? "수료증 · 반성문 가이드/예시 · 3종 서식" : "수료증 · 반성문 가이드/예시");
   const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
   const selectedPaymentProvider = selectedPaymentMethod === "kakaopay" ? "portone-kakaopay-v2" : "portone-kcp-v2";
   const hasPaymentConfig = Boolean(paymentConfig.storeId && selectedChannelKey);
@@ -361,7 +362,7 @@ export default function CheckoutContent() {
             <h1 className="text-[1.9rem] font-bold leading-tight text-slate-950 sm:text-4xl">수강권 결제</h1>
             <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">결제 정보를 확인한 후 결제를 진행해 주세요.</p>
           </div>
-          <Link href={selectedProduct.id === "dui-cbt-advanced" ? "/courses/apply?category=dui&productId=dui-cbt-advanced" : "/courses/dui-prevention"} className={buttonClass("secondary", "md", "w-full rounded-full px-5 font-semibold sm:w-auto")}>
+          <Link href={selectedCourseDefinition?.categoryId ? `/courses/apply?category=${selectedCourseDefinition.categoryId}&productId=${selectedProduct.id}` : selectedProduct.id === "dui-cbt-advanced" ? "/courses/apply?category=dui&productId=dui-cbt-advanced" : "/courses/dui-prevention"} className={buttonClass("secondary", "md", "w-full rounded-full px-5 font-semibold sm:w-auto")}>
             상품 상세보기
           </Link>
         </div>
@@ -374,7 +375,7 @@ export default function CheckoutContent() {
               <div className="min-w-0">
                 <p className="text-sm font-semibold text-slate-500">주문 상품</p>
                 <h2 className="mt-2 text-xl font-bold leading-snug text-slate-950 sm:text-2xl">{selectedCourseTitle} 수강권</h2>
-                <p className="mt-3 text-sm leading-7 text-slate-600">{selectedProduct.courseId ? selectedProduct.description : duiPreventionCourseProduct.description}</p>
+                <p className="mt-3 text-sm leading-7 text-slate-600">{selectedCourseDefinition?.subtitle || (selectedProduct.courseId ? selectedProduct.description : duiPreventionCourseProduct.description)}</p>
                 <p className="mt-3 inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">{selectedProduct.title}</p>
               </div>
               <div className="w-full shrink-0 rounded-xl bg-slate-50 px-4 py-4 text-left sm:w-auto sm:px-5 sm:text-right">
@@ -422,11 +423,11 @@ export default function CheckoutContent() {
             <dl className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">교육 과정</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-950">{selectedProduct.courseId ? selectedProduct.title : defaultCourse.title}</dd>
+                <dd className="mt-1 text-sm font-bold text-slate-950">{selectedCourseTitle}</dd>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">교육 구성</dt>
-                <dd className="mt-1 text-sm font-bold text-slate-950">온라인 예방교육</dd>
+                <dd className="mt-1 text-sm font-bold text-slate-950">온라인 교육 {selectedTotalLessons}강</dd>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
                 <dt className="text-xs font-semibold text-slate-500">수강기간</dt>
@@ -441,7 +442,7 @@ export default function CheckoutContent() {
             <div className="mt-4 rounded-2xl border border-[#d3b271]/45 bg-[#fffaf0] p-4 sm:p-5">
               <p className="text-sm font-bold text-[#10213f]">결제 회원 제공 자료</p>
               <p className="mt-1 text-sm leading-6 text-slate-700">
-                {selectedProduct.id === "dui-cbt-advanced" ? "결제 완료 후 음주운전 예방교육과 인지행동기반 재발방지 교육을 모두 수강하고 수료증, 3종 서식, CBT 이수증, 상세 내역서를 출력할 수 있습니다." : selectedProduct.id === "dui-documents" ? "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시, 재발방지 관련 3종 서식을 열람하고 인쇄하거나 PDF로 저장할 수 있습니다." : "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다."}
+                {selectedCourseDefinition ? `${selectedCourseTitle} 결제 완료 후 ${selectedResourceLabel}을 이용할 수 있습니다.` : selectedProduct.id === "dui-cbt-advanced" ? "결제 완료 후 음주운전 예방교육과 인지행동 개선교육을 모두 수강하고 수료증, 3종 서식, 이수증, 상세 내역서를 출력할 수 있습니다." : selectedProduct.id === "dui-documents" ? "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시, 재발방지 관련 3종 서식을 열람하고 인쇄하거나 PDF로 저장할 수 있습니다." : "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다."}
               </p>
             </div>
           </article>
