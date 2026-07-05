@@ -22,8 +22,18 @@ function Icon({ name, className = "h-6 w-6" }: { name: string; className?: strin
 }
 
 const tabs = [
-  ["음주운전 예방교육", "수강 가능", true],
+  ["음주운전 재범방지", "수강 가능", true],
+  ["폭력범죄 재범방지", "수강 가능", true],
+  ["도박중독 재발방지", "수강 가능", true],
+  ["성범죄 재범방지", "수강 가능", true],
 ] as const;
+
+const categoryCards = [
+  { title: "음주운전 재범방지", body: "음주운전 예방교육과 재발방지 자료를 함께 준비합니다.", href: "/courses/dui-prevention", applyHref: "/courses/apply?category=dui" },
+  { title: "폭력범죄 재범방지", body: "폭력범죄 재범방지교육 기본과정과 심화과정을 제공합니다.", href: "/courses/violence-prevention", applyHref: "/courses/apply?category=violence-prevention" },
+  { title: "도박중독 재발방지", body: "도박중독 재발방지교육 기본과정과 심화과정을 제공합니다.", href: "/courses/gambling-relapse-prevention", applyHref: "/courses/apply?category=gambling-relapse-prevention" },
+  { title: "성범죄 재범방지", body: "성범죄 재범방지교육 기본과정과 심화과정을 제공합니다.", href: "/courses/sexual-offense-prevention", applyHref: "/courses/apply?category=sexual-offense-prevention" },
+];
 
 const infoCards = [
   ["수강 방식", "온라인"],
@@ -70,7 +80,7 @@ export default function CoursesPage() {
   return (
     <main className="keep-korean min-h-screen bg-slate-50 text-slate-950">
       <section className="bg-[linear-gradient(135deg,#07111f_0%,#10213f_58%,#173968_100%)] px-4 py-14 text-white sm:px-6 lg:px-8 lg:py-20">
-        <div className="mx-auto max-w-7xl"><p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Curriculum</p><h1 className="mt-4 text-3xl font-black leading-tight text-white sm:text-5xl">강의 구성</h1><p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-100 sm:text-lg">현재 운영 중인 음주운전 예방교육 과정을 확인할 수 있습니다.</p><p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">리셋 에듀센터는 사건 이후 필요한 교육 이수 기록과 재발방지 계획 정리를 돕기 위해 온라인 예방교육을 제공합니다. 현재는 음주운전 예방교육 과정을 운영 중입니다.</p><div className="mt-8 flex flex-wrap gap-3"><Link href={applyHref} style={{ backgroundColor: "#facc15", color: "#111827", borderColor: "#fde047", boxShadow: "0 18px 36px rgba(250,204,21,0.32)" }} className={buttonClass("warning", "lg", "whitespace-nowrap rounded-full px-7 font-black !text-black hover:!text-black focus:ring-offset-[#10213f]")}>음주운전 교육 수강 신청</Link><Link href="/" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "56px", padding: "0 28px", borderRadius: "9999px", backgroundColor: "#facc15", color: "#111827", border: "2px solid #fde047", fontWeight: 900, boxShadow: "0 16px 32px rgba(250, 204, 21, 0.28)" }} className={buttonClass("darkSecondary", "lg", "whitespace-nowrap rounded-full px-7 focus:ring-offset-[#10213f]")}>홈으로 이동</Link></div></div>
+        <div className="mx-auto max-w-7xl"><p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Curriculum</p><h1 className="mt-4 text-3xl font-black leading-tight text-white sm:text-5xl">강의 구성</h1><p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-100 sm:text-lg">운영 중인 재범·재발 방지교육 카테고리와 과정을 확인할 수 있습니다.</p><p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">리셋 에듀센터는 사건 이후 필요한 교육 이수 기록과 재발방지 계획 정리를 돕기 위해 온라인 교육과 수료증 발급을 제공합니다.</p><div className="mt-8 flex flex-wrap gap-3"><Link href={applyHref} style={{ backgroundColor: "#facc15", color: "#111827", borderColor: "#fde047", boxShadow: "0 18px 36px rgba(250,204,21,0.32)" }} className={buttonClass("warning", "lg", "whitespace-nowrap rounded-full px-7 font-black !text-black hover:!text-black focus:ring-offset-[#10213f]")}>교육 카테고리 선택하기</Link><Link href="/" style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", minHeight: "56px", padding: "0 28px", borderRadius: "9999px", backgroundColor: "#facc15", color: "#111827", border: "2px solid #fde047", fontWeight: 900, boxShadow: "0 16px 32px rgba(250, 204, 21, 0.28)" }} className={buttonClass("darkSecondary", "lg", "whitespace-nowrap rounded-full px-7 focus:ring-offset-[#10213f]")}>홈으로 이동</Link></div></div>
       </section>
 
       <section className="border-b border-slate-200 bg-white px-4 py-5 sm:px-6 lg:px-8"><div className="mx-auto flex max-w-7xl gap-3 overflow-x-auto pb-1">{tabs.map(([title, status, active]) => <div key={title} className={active ? "min-w-[210px] rounded-2xl border-2 border-[#173968] bg-[#173968] p-4 text-white shadow-[0_14px_30px_rgba(23,57,104,0.16)]" : "min-w-[210px] rounded-2xl border border-slate-200 bg-slate-100 p-4 text-slate-700 opacity-90"}><div className="flex items-center justify-between gap-3"><p className="text-sm font-black leading-snug">{title}</p><span className={active ? "rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#173968]" : "rounded-full bg-gray-300 px-2.5 py-1 text-xs font-black text-gray-700"}>{status}</span></div></div>)}</div></section>

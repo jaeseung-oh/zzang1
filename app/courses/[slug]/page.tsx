@@ -4,7 +4,7 @@ import { buttonClass } from "@/app/components/ui/button-styles";
 import { notFound } from "next/navigation";
 import { getIntroCourse, introCourses } from "@/lib/course/intro-courses";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
-import { basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct, type ApplicationProduct } from "@/lib/course/application-products";
+import { basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct, formatApplicationKrw, getApplicationCategory, type ApplicationProduct } from "@/lib/course/application-products";
 import DocumentPreviewGallery, { type DocumentPreviewItem } from "@/app/components/document-preview-gallery";
 import CourseViewEvent from "@/app/components/analytics/course-view-event";
 
@@ -111,6 +111,99 @@ const documentPreviewItems: DocumentPreviewItem[] = [
   },
 ];
 
+const preventionSlugToCategoryId: Record<string, string> = {
+  "violence-prevention": "violence-prevention",
+  "gambling-relapse-prevention": "gambling-relapse-prevention",
+  "sexual-offense-prevention": "sexual-offense-prevention",
+};
+
+function getPreventionCategoryBySlug(slug: string) {
+  return getApplicationCategory(preventionSlugToCategoryId[slug]);
+}
+
+function PreventionCoursePage({ course }: { course: NonNullable<ReturnType<typeof getIntroCourse>> }) {
+  const category = getPreventionCategoryBySlug(course.slug);
+  if (!category) return null;
+  const [basicProduct, advancedProduct] = category.products;
+  const comparisonRows = [
+    [category.title + " 1강", true, true],
+    [category.title + " 수료증", true, true],
+    ["인지행동 개선교육", false, true],
+    ["인지행동 개선교육 이수증", false, true],
+    ["온라인 인쇄 및 PDF 저장", true, true],
+  ] as const;
+
+  return (
+    <main className="keep-korean min-h-screen bg-[#eef3f8] text-slate-950">
+      <section className="relative overflow-hidden bg-[#06101b] text-white">
+        <div className="absolute inset-0">
+          <img src={course.image} alt="" className="h-full w-full object-cover opacity-40" />
+          <div className="absolute inset-0 bg-[linear-gradient(115deg,rgba(6,16,27,0.94),rgba(6,16,27,0.58))]" />
+        </div>
+        <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-24 sm:px-6 lg:px-8 lg:pb-20 lg:pt-28">
+          <Link href="/courses" className={buttonClass("darkSecondary", "sm", "rounded-full px-4 focus:ring-offset-[#06101b]")}>강의 구성으로 이동</Link>
+          <div className="mt-10 max-w-4xl">
+            <p className="text-sm font-bold uppercase tracking-[0.24em] text-[#f6deb0]">Reset Edu Center</p>
+            <h1 className="mt-4 break-keep text-4xl font-black leading-tight tracking-[-0.04em] sm:text-5xl lg:text-6xl">{category.title}</h1>
+            <p className="mt-6 max-w-3xl break-keep text-base leading-8 text-slate-200 sm:text-lg">{course.summary}</p>
+            <div className="mt-8 flex flex-wrap gap-3">
+              {basicProduct ? <Link href={"/courses/apply?category=" + category.id + "&productId=" + basicProduct.id} className={buttonClass("darkPrimary", "lg", "whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-[#06101b]")}>기본과정 신청하기</Link> : null}
+              {advancedProduct ? <Link href={"/courses/apply?category=" + category.id + "&productId=" + advancedProduct.id} className={buttonClass("darkSecondary", "lg", "whitespace-nowrap rounded-full px-7 font-bold focus:ring-offset-[#06101b]")}>심화과정 신청하기</Link> : null}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-5 lg:grid-cols-2">
+            {category.products.map((product) => (
+              <article key={product.id} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-[0_18px_45px_rgba(15,23,42,0.07)]">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-sm font-black uppercase tracking-[0.16em] text-[#173968]">{product.title}</p>
+                    <h2 className="mt-2 text-2xl font-black text-slate-950">{category.title} {product.title}</h2>
+                  </div>
+                  <strong className="text-3xl font-black text-slate-950">{formatApplicationKrw(product.price)}</strong>
+                </div>
+                {product.id.endsWith("advanced") ? <p className="mt-4 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm font-bold leading-7 text-indigo-950">재범·재발 방지교육과 인지행동 개선교육을 함께 수강하는 통합 과정입니다.</p> : null}
+                <p className="mt-4 text-sm leading-7 text-slate-700">{product.description}</p>
+                <ul className="mt-5 space-y-3">
+                  {product.includes.map((item) => <li key={item} className="flex gap-2 text-sm font-semibold leading-7 text-slate-800"><IncludedIcon included /> <span>{item}</span></li>)}
+                </ul>
+                <Link href={"/courses/apply?category=" + category.id + "&productId=" + product.id} className={buttonClass(product.id.endsWith("advanced") ? "primary" : "warning", "lg", "mt-6 w-full rounded-2xl px-6 font-black")}>{product.title} 신청하기</Link>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-white px-4 py-12 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="max-w-3xl">
+            <p className="text-sm font-black uppercase tracking-[0.18em] text-indigo-700">Comparison</p>
+            <h2 className="mt-2 text-3xl font-black text-slate-950">기본과정과 심화과정 비교</h2>
+            <p className="mt-4 text-sm leading-7 text-slate-700">기본과정은 해당 교육 1강만 제공하고, 심화과정은 기존 인지행동 개선교육과 기존 이수증 발급 권한을 함께 제공합니다.</p>
+          </div>
+          <div className="mt-8 overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white">
+            <div className="grid grid-cols-[minmax(0,1fr)_120px_120px] bg-slate-950 text-sm font-black text-white sm:grid-cols-[minmax(0,1fr)_180px_180px]">
+              <div className="p-4">제공 항목</div>
+              <div className="p-4 text-center">기본과정</div>
+              <div className="p-4 text-center">심화과정</div>
+            </div>
+            {comparisonRows.map(([label, basic, advanced]) => (
+              <div key={label} className="grid grid-cols-[minmax(0,1fr)_120px_120px] border-t border-slate-200 text-sm sm:grid-cols-[minmax(0,1fr)_180px_180px]">
+                <div className="p-4 font-bold text-slate-900">{label}</div>
+                <div className="flex items-center justify-center p-4"><IncludedIcon included={basic} /></div>
+                <div className="flex items-center justify-center p-4"><IncludedIcon included={advanced} /></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
 function IncludedIcon({ included }: { included: boolean }) {
   if (!included) {
     return <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 text-base font-black text-slate-400">-</span>;
@@ -135,7 +228,7 @@ export async function generateMetadata({ params }: CourseIntroPageProps): Promis
     title: course.slug === "dui-prevention" ? "음주운전 예방교육·재발방지 수료증 과정 | Reset Edu Center" : `${course.title} | Reset Edu Center`,
     description: course.slug === "dui-prevention" ? "음주운전 사건 이후 행동원인과 위험상황을 점검하고 재발방지 실천계획을 세우는 온라인 예방교육 과정입니다." : course.summary,
     alternates: { canonical: `/courses/${course.slug}/` },
-    robots: course.slug === "dui-prevention" ? { index: true, follow: true } : { index: false, follow: true },
+    robots: course.slug === "dui-prevention" || preventionSlugToCategoryId[course.slug] ? { index: true, follow: true } : { index: false, follow: true },
   };
 }
 
@@ -145,6 +238,12 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
 
   if (!course) {
     notFound();
+  }
+
+  const preventionCategory = getPreventionCategoryBySlug(course.slug);
+
+  if (preventionCategory) {
+    return <PreventionCoursePage course={course} />;
   }
 
   if (course.slug !== "dui-prevention") {

@@ -55,6 +55,12 @@ const homePricingCards = [
   },
 ];
 
+const homeCourseCategories = [
+  { title: "음주운전 재범방지", body: "음주운전 예방교육과 재발방지 자료를 온라인으로 준비합니다.", href: "/courses/dui-prevention", applyHref: "/courses/apply?category=dui" },
+  { title: "폭력범죄 재범방지", body: "폭력범죄 재범방지교육 기본과정과 심화과정을 제공합니다.", href: "/courses/violence-prevention", applyHref: "/courses/apply?category=violence-prevention" },
+  { title: "도박중독 재발방지", body: "도박중독 재발방지교육 기본과정과 심화과정을 제공합니다.", href: "/courses/gambling-relapse-prevention", applyHref: "/courses/apply?category=gambling-relapse-prevention" },
+  { title: "성범죄 재범방지", body: "성범죄 재범방지교육 기본과정과 심화과정을 제공합니다.", href: "/courses/sexual-offense-prevention", applyHref: "/courses/apply?category=sexual-offense-prevention" },
+];
 function Icon({ name, className = "h-6 w-6" }: { name: string; className?: string }) {
   const common = { className: className + " fill-none stroke-current", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, viewBox: "0 0 24 24", "aria-hidden": true };
   if (name === "car") return <svg {...common}><path d="M5 16l1.5-5A3 3 0 0 1 9.4 8h5.2a3 3 0 0 1 2.9 3L19 16" /><path d="M6.5 16h11" /><circle cx="8" cy="17" r="1.5" /><circle cx="16" cy="17" r="1.5" /></svg>;
@@ -267,6 +273,24 @@ export default function HomePage() {
 
       <section id="materials" className="px-4 py-20 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Materials" title="수강 후 바로 확인하고 출력할 수 있는 자료" body="교육 수강과 함께 필요한 양형자료를 한곳에서 확인하고 PDF 저장 및 출력까지 진행할 수 있습니다." /><div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-5">{materials.map(([title, body]) => <article key={title} className="min-w-0 rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="file" className="h-7 w-7 text-indigo-700" /><h3 className="mt-4 text-base font-black leading-snug text-slate-950">{title}</h3><p className="mt-2 text-sm leading-relaxed text-slate-700">{body}</p></article>)}</div></div></section>
 
+      <section className="bg-white px-4 py-14 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <SectionTitle eyebrow="Categories" title="교육 카테고리" body="필요한 교육 유형을 선택해 기본과정과 심화과정을 비교하고 바로 신청할 수 있습니다." />
+          <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {homeCourseCategories.map((category) => (
+              <article key={category.title} className="rounded-[1.25rem] border border-slate-200 bg-slate-50 p-5 shadow-sm">
+                <Icon name="shield" className="h-7 w-7 text-[#173968]" />
+                <h2 className="mt-4 text-xl font-black leading-snug text-slate-950">{category.title}</h2>
+                <p className="mt-3 min-h-[72px] text-sm font-semibold leading-6 text-slate-700">{category.body}</p>
+                <div className="mt-5 grid gap-2">
+                  <Link href={category.href} className={buttonClass("secondary", "sm", "w-full rounded-xl px-4 font-bold")}>과정 상세보기</Link>
+                  <Link href={category.applyHref} className={buttonClass("primary", "sm", "w-full rounded-xl px-4 font-black !text-white hover:!text-white")}>수강 신청하기</Link>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
       <section id="sample-documents" className="bg-white px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-7xl">
           <div className="mt-8 grid gap-5 lg:grid-cols-2">
