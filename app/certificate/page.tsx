@@ -9,7 +9,7 @@ import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import SealStamp, { centerLogoPath } from "@/app/components/SealStamp";
-import { hasCourseAccess } from "@/lib/course/enrollment-service";
+import { getVerifiedActiveUserEnrollments, hasCourseAccess, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { trackEvent } from "@/lib/analytics/ga";
 import { buttonClass } from "@/app/components/ui/button-styles";
 
@@ -28,6 +28,16 @@ type UserProfileRecord = {
     realName?: string;
     dateOfBirth?: string;
   };
+};
+
+type CertificateDocumentLink = {
+  key: string;
+  title: string;
+  description: string;
+  courseId: string;
+  documentType: string;
+  href: string;
+  printHref: string;
 };
 
 type CertificateRecord = {
@@ -100,6 +110,66 @@ function formatBirthDate(value?: string) {
   return `${matched[1]}년 ${matched[2]}월 ${matched[3]}일`;
 }
 
+function getCertificateHref(courseId: string, documentType = "completion", print = false) {
+  const params = new URLSearchParams({ courseId, documentType });
+  if (print) params.set("print", "1");
+  return "/certificate?" + params.toString();
+}
+
+function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
+  const documents = new Map<string, CertificateDocumentLink>();
+
+  const addDocument = (title: string, description: string, courseId: string, documentType = "completion") => {
+    const key = courseId + ":" + documentType;
+    if (documents.has(key)) return;
+    documents.set(key, {
+      key,
+      title,
+      description,
+      courseId,
+      documentType,
+      href: getCertificateHref(courseId, documentType),
+      printHref: getCertificateHref(courseId, documentType, true),
+    });
+  };
+
+  enrollments.forEach((enrollment) => {
+    if (!enrollment.courseId) return;
+    const course = getCourseDefinition(enrollment.courseId);
+
+    if (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID) {
+      addDocument(getCourseCertificateTitle(defaultCourse.id) + " 수료증", "심화과정에 포함된 기본 예방교육 수료증", defaultCourse.id);
+      addDocument("인지행동기반 재발방지교육 이수증", "심화과정 이수증", DUI_CBT_ADVANCED_COURSE_ID, "cbt-completion");
+      return;
+    }
+
+    if (course?.documents?.length) {
+      course.documents.forEach((document) => {
+        if (document.type === "cbt-completion") {
+          addDocument(document.title, course.title, document.courseId || DUI_CBT_ADVANCED_COURSE_ID, "cbt-completion");
+        } else {
+          addDocument(document.title, course.title, document.courseId || enrollment.courseId);
+        }
+      });
+      return;
+    }
+
+    addDocument(getCourseCertificateTitle(enrollment.courseId) + " 수료증", enrollment.courseTitle || course?.title || "결제 수강권", enrollment.courseId);
+  });
+
+  return Array.from(documents.values());
+}
+
+function hasCertificateDocumentAccess(enrollments: EnrollmentRecord[], courseId: string) {
+  return enrollments.some((enrollment) => {
+    if (enrollment.courseId === courseId) return true;
+    const course = getCourseDefinition(enrollment.courseId);
+    if (courseId === DUI_CBT_ADVANCED_COURSE_ID && course?.level === "advanced") return true;
+    if (courseId === defaultCourse.id && enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID) return true;
+    return false;
+  });
+}
+
 function isValidBirthDate(value: string) {
   const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!matched) return false;
@@ -125,6 +195,7 @@ function CertificatePageContent() {
   const [profile, setProfile] = useState<UserProfileRecord | null>(null);
   const [birthDateInput, setBirthDateInput] = useState("");
   const [certificate, setCertificate] = useState<CertificateRecord | null>(null);
+  const [certificateDocuments, setCertificateDocuments] = useState<CertificateDocumentLink[]>([]);
   const [loading, setLoading] = useState(true);
   const [issuing, setIssuing] = useState(false);
   const [error, setError] = useState("");
@@ -134,7 +205,9 @@ function CertificatePageContent() {
   const requestedCertificateId = searchParams.get("certificateId");
   const requestedAdminPreview = searchParams.get("adminPreview");
   const shouldAutoPrint = searchParams.get("print") === "1";
-  const rawRequestedCourseId = searchParams.get("courseId") || defaultCourse.id;
+  const requestedCourseParam = searchParams.get("courseId");
+  const hasExplicitDocumentRequest = Boolean(requestedCourseParam || requestedCertificateId || requestedAdminPreview);
+  const rawRequestedCourseId = requestedCourseParam || defaultCourse.id;
   const requestedCourseId = getCourseDefinition(rawRequestedCourseId) || rawRequestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? rawRequestedCourseId : defaultCourse.id;
   const requestedDocumentType = searchParams.get("documentType") || "";
   const requestedCourseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동 개선교육" : getCourseCertificateTitle(requestedCourseId);
@@ -210,13 +283,24 @@ function CertificatePageContent() {
       setBirthDateInput(userProfile?.dateOfBirth || userProfile?.birthDate || "");
 
       if (!allowAdmin) {
-        const canAccessCourse = await hasCourseAccess(user, requestedCourseId);
+        const activeEnrollments = await getVerifiedActiveUserEnrollments(user);
+        const documentLinks = getCertificateDocumentLinks(activeEnrollments);
+        setCertificateDocuments(documentLinks);
+
+        if (!hasExplicitDocumentRequest && documentLinks.length > 0) {
+          router.replace(documentLinks[0].href);
+          return;
+        }
+
+        const canAccessCourse = hasCertificateDocumentAccess(activeEnrollments, requestedCourseId) || await hasCourseAccess(user, requestedCourseId);
         if (!canAccessCourse) {
           const message = "수강권 결제 후 이용할 수 있습니다.";
           setError(message);
           router.replace(getCourseApplyHref(requestedCourseId) + (getCourseApplyHref(requestedCourseId).includes("?") ? "&notice=" : "?notice=") + encodeURIComponent(message));
           return;
         }
+      } else {
+        setCertificateDocuments([]);
       }
 
       if (allowAdmin && (requestedAdminPreview === "attendance" || requestedAdminPreview === "completion")) {
@@ -376,6 +460,8 @@ function CertificatePageContent() {
     "책임 있는 의사결정과 지속적인 자기점검 방법 학습",
   ];
   const detailCompletedAt = formatKoreanDate(certificate?.completedAt || issuedAt);
+  const selectedCertificateDocumentType = requestedDocumentType || (requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "cbt-completion" : "completion");
+  const selectedCertificateDocumentKey = requestedCourseId + ":" + selectedCertificateDocumentType;
 
   const openPrintDialog = (mode: "print" | "pdf") => {
     if (!certificate) return;
@@ -481,6 +567,42 @@ function CertificatePageContent() {
             </Link>
           </div>
         </div>
+
+        {certificateDocuments.length ? (
+          <section className="no-print mb-5 rounded-[1.5rem] border-4 border-[#10213f] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.14)]">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-black text-[#274690]">내 수료증 목록</p>
+                <h2 className="mt-1 text-2xl font-black tracking-[-0.03em] text-slate-950">결제한 수강권의 수료증을 한눈에 확인하세요</h2>
+              </div>
+              <span className="inline-flex w-fit items-center rounded-full bg-[#ffdd00] px-4 py-2 text-sm font-black text-[#111827]">총 {certificateDocuments.length}개</span>
+            </div>
+            <div className="mt-5 grid gap-3 md:grid-cols-2">
+              {certificateDocuments.map((document) => {
+                const selected = document.key === selectedCertificateDocumentKey;
+                return (
+                  <article key={document.key} className={selected ? "rounded-2xl border-4 border-[#ffdd00] bg-[#10213f] p-4 text-white shadow-[0_16px_34px_rgba(16,33,63,0.24)]" : "rounded-2xl border-2 border-slate-200 bg-slate-50 p-4 text-slate-950 shadow-sm"}>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className={selected ? "text-lg font-black text-white" : "text-lg font-black text-slate-950"}>{document.title}</p>
+                        <p className={selected ? "mt-1 text-sm font-semibold text-white/75" : "mt-1 text-sm font-semibold text-slate-600"}>{document.description}</p>
+                      </div>
+                      {selected ? <span className="w-fit shrink-0 rounded-full bg-[#ffdd00] px-3 py-1 text-xs font-black text-[#111827]">현재 표시 중</span> : null}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Link href={document.href} className={selected ? buttonClass("warning", "sm", "rounded-full px-4 font-black !text-black hover:!text-black") : buttonClass("primary", "sm", "rounded-full px-4 font-black !text-white hover:!text-white")}>
+                        보기
+                      </Link>
+                      <Link href={document.printHref} className={selected ? buttonClass("secondary", "sm", "rounded-full px-4 font-black") : buttonClass("warning", "sm", "rounded-full px-4 font-black !text-black hover:!text-black")}>
+                        바로 인쇄
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ) : null}
 
         {loading ? <p className="no-print rounded-[1.25rem] border border-[#d7deea] bg-white p-5 text-sm text-slate-600">서류 정보를 확인하는 중입니다...</p> : null}
 
