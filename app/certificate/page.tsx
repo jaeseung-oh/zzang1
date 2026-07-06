@@ -38,6 +38,7 @@ type CertificateDocumentLink = {
   documentType: string;
   href: string;
   printHref: string;
+  pdfHref: string;
 };
 
 type CertificateRecord = {
@@ -110,9 +111,10 @@ function formatBirthDate(value?: string) {
   return `${matched[1]}년 ${matched[2]}월 ${matched[3]}일`;
 }
 
-function getCertificateHref(courseId: string, documentType = "completion", print = false) {
+function getCertificateHref(courseId: string, documentType = "completion", mode?: "print" | "pdf") {
   const params = new URLSearchParams({ courseId, documentType });
-  if (print) params.set("print", "1");
+  if (mode === "print") params.set("print", "1");
+  if (mode === "pdf") params.set("pdf", "1");
   return "/certificate?" + params.toString();
 }
 
@@ -129,7 +131,8 @@ function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
       courseId,
       documentType,
       href: getCertificateHref(courseId, documentType),
-      printHref: getCertificateHref(courseId, documentType, true),
+      printHref: getCertificateHref(courseId, documentType, "print"),
+      pdfHref: getCertificateHref(courseId, documentType, "pdf"),
     });
   };
 
@@ -205,6 +208,8 @@ function CertificatePageContent() {
   const requestedCertificateId = searchParams.get("certificateId");
   const requestedAdminPreview = searchParams.get("adminPreview");
   const shouldAutoPrint = searchParams.get("print") === "1";
+  const shouldAutoPdf = searchParams.get("pdf") === "1";
+  const searchParamsKey = searchParams.toString();
   const requestedCourseParam = searchParams.get("courseId");
   const hasExplicitDocumentRequest = Boolean(requestedCourseParam || requestedCertificateId || requestedAdminPreview);
   const rawRequestedCourseId = requestedCourseParam || defaultCourse.id;
@@ -271,7 +276,10 @@ function CertificatePageContent() {
   const refresh = async () => {
     try {
       setLoading(true);
+      setCertificate(null);
       setError("");
+      setNotice("");
+      autoPrintStartedRef.current = false;
       const user = await requireAuthenticatedUser();
       const token = await user.getIdTokenResult();
       const allowAdmin = token.claims.admin === true || isAdminEmail(user.email);
@@ -375,20 +383,6 @@ function CertificatePageContent() {
     }
   };
 
-  useEffect(() => {
-    void refresh();
-  }, []);
-
-  useEffect(() => {
-    if (!shouldAutoPrint || loading || !certificate || autoPrintStartedRef.current) {
-      return;
-    }
-
-    autoPrintStartedRef.current = true;
-    const timer = window.setTimeout(() => window.print(), 450);
-    return () => window.clearTimeout(timer);
-  }, [certificate, loading, shouldAutoPrint]);
-
 
   const saveBirthDateAndIssue = async () => {
     if (!uid || !profile) return;
@@ -462,6 +456,31 @@ function CertificatePageContent() {
   const detailCompletedAt = formatKoreanDate(certificate?.completedAt || issuedAt);
   const selectedCertificateDocumentType = requestedDocumentType || (requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "cbt-completion" : "completion");
   const selectedCertificateDocumentKey = requestedCourseId + ":" + selectedCertificateDocumentType;
+  useEffect(() => {
+    void refresh();
+  }, [searchParamsKey]);
+
+  useEffect(() => {
+    if ((!shouldAutoPrint && !shouldAutoPdf) || loading || !certificate || autoPrintStartedRef.current) {
+      return;
+    }
+
+    autoPrintStartedRef.current = true;
+    const previousTitle = document.title;
+    const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
+    document.title = documentTitle + "_" + safeNo;
+    const timer = window.setTimeout(() => window.print(), shouldAutoPdf ? 120 : 450);
+    const titleTimer = window.setTimeout(() => {
+      document.title = previousTitle;
+    }, 1400);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearTimeout(titleTimer);
+      document.title = previousTitle;
+    };
+  }, [certificate, certificateNo, documentTitle, loading, shouldAutoPdf, shouldAutoPrint]);
+
+
 
   const openPrintDialog = (mode: "print" | "pdf") => {
     if (!certificate) return;
@@ -595,6 +614,9 @@ function CertificatePageContent() {
                       </Link>
                       <Link href={document.printHref} className={selected ? buttonClass("secondary", "sm", "rounded-full px-4 font-black") : buttonClass("warning", "sm", "rounded-full px-4 font-black !text-black hover:!text-black")}>
                         바로 인쇄
+                      </Link>
+                      <Link href={document.pdfHref} className={selected ? buttonClass("primary", "sm", "rounded-full px-4 font-black !text-white hover:!text-white") : buttonClass("secondary", "sm", "rounded-full px-4 font-black")}>
+                        PDF 저장
                       </Link>
                     </div>
                   </article>
