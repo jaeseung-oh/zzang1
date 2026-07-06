@@ -258,7 +258,13 @@ export default function DashboardPage() {
     };
   }, [progress]);
 
-  const activeEnrollmentRecord = enrollments.find((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment));
+  const advancedEnrollmentRecord = enrollments.find((enrollment) => {
+    if (!isEnrollmentActive(enrollment)) return false;
+    const course = getCourseDefinition(enrollment.courseId);
+    return enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID || course?.level === "advanced";
+  });
+  const hasAdvancedCertificateAccess = adminPreview || Boolean(advancedEnrollmentRecord);
+  const advancedBaseCertificateCourseId = advancedEnrollmentRecord?.courseId === DUI_CBT_ADVANCED_COURSE_ID ? defaultCourse.id : advancedEnrollmentRecord?.courseId || defaultCourse.id;
   const hasDocumentFormsAccess = adminPreview || enrollments.some((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
 
   return (
@@ -504,6 +510,20 @@ export default function DashboardPage() {
               </p>
 
               <div className="mt-6 space-y-4">
+                {hasAdvancedCertificateAccess ? (
+                  <div className="rounded-[1.5rem] border border-amber-300 bg-amber-50 p-5 text-sm leading-7 text-amber-950 shadow-[0_18px_44px_rgba(245,158,11,0.16)]">
+                    <p className="font-black">심화과정 이수 서류</p>
+                    <p className="mt-2">심화과정 수강권은 기본 수료증과 인지행동기반 재발방지교육 이수증을 함께 출력할 수 있습니다.</p>
+                    <div className="mt-4 flex flex-wrap gap-3">
+                      <Link href={`/certificate?courseId=${encodeURIComponent(advancedBaseCertificateCourseId)}&documentType=completion`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200">
+                        기본 수료증 출력
+                      </Link>
+                      <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                        심화 이수증 출력
+                      </Link>
+                    </div>
+                  </div>
+                ) : null}
                 {certificates.length ? (
                   certificates.map((certificate) => (
                     <div key={certificate.id} className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30">
