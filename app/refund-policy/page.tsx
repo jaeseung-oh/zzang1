@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "환불규정 | 리셋 에듀센터",
+  title: "환불규정 | ResetEdu 재발방지교육센터",
   description: "음주운전 예방교육 환불규정 안내",
   alternates: { canonical: "/refund-policy/" },
 };

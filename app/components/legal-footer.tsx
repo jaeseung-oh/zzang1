@@ -15,7 +15,7 @@ const quickLinks = [
 
 const noticeLines = [
   "본 센터는 국가기관, 법원, 검찰, 경찰, 보호관찰기관 또는 법률사무소가 운영하거나 지정한 기관이 아닌 민간 온라인 교육기관입니다.",
-  "본 센터가 제공하는 수료증, 이수증 및 교육자료는 교육 참여와 재발·재범 방지 노력을 정리하기 위한 민간 교육자료입니다.",
+  "본 센터가 제공하는 수료증, 이수증 및 교육자료는 교육 참여와 재발방지 노력을 정리하기 위한 민간 교육자료입니다.",
   "각 기관 제출 가능 여부, 법적 효력 또는 기타 결과를 보장하지 않습니다.",
 ];
 
@@ -25,11 +25,11 @@ export default function LegalFooter() {
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b56c]">Reset Edu Center</p>
-            <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-white">리셋에듀센터 운영 정보</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">사건 이후 교육 수료증 등 양형자료 준비를 돕는 민간 온라인 예방교육 플랫폼입니다.</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b56c]">ResetEdu Prevention Education Center</p>
+            <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-white">ResetEdu 재발방지교육센터 운영 정보</h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">사건 이후 온라인 예방교육, 재발방지 실천자료, 생활개선 기록 정리를 돕는 민간 교육 플랫폼입니다.</p>
             <div className="mt-5 grid gap-2 text-sm leading-7 text-slate-300 sm:grid-cols-2">
-              <p><span className="font-semibold text-white">사이트 브랜드명</span> 리셋에듀센터</p>
+              <p><span className="font-semibold text-white">사이트 브랜드명</span> ResetEdu 재발방지교육센터</p>
               <p><span className="font-semibold text-white">상호</span> 보듬심리상담센터</p>
               <p><span className="font-semibold text-white">대표자명</span> 홍경자</p>
               <p><span className="font-semibold text-white">사업자등록번호</span> 861-98-01454</p>
@@ -54,7 +54,7 @@ export default function LegalFooter() {
         </div>
 
         <div className="mt-8 border-t border-white/10 pt-5 text-sm text-slate-400">
-          © 2026 Reset Edu Center. All rights reserved.
+          © 2026 ResetEdu Prevention Education Center. All rights reserved.
         </div>
       </div>
     </footer>

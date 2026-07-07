@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AuthNav from "@/app/components/auth-nav";
-import { centerFullLogoPath } from "@/app/components/SealStamp";
 import { platformCourseCategories } from "@/lib/course/platform-courses";
 
 const primaryNavItems = [
@@ -46,8 +45,9 @@ export default function GlobalSiteHeader() {
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-col gap-2 px-3 py-2 sm:px-6 sm:py-3 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-between lg:px-8">
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <Link href="/" className="flex min-w-0 items-center text-left" aria-label="Reset Edu Center 홈" onClick={closeCourseMenu}>
-            <img src={centerFullLogoPath} alt="Reset Edu Center" className="h-9 w-auto max-w-[150px] object-contain sm:h-12 sm:max-w-[230px]" />
+          <Link href="/" className="flex min-w-0 flex-col text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeCourseMenu}>
+            <span className="text-base font-black leading-tight text-[#173968] sm:text-xl">ResetEdu 재발방지교육센터</span>
+            <span className="text-[11px] font-bold leading-tight text-slate-500 sm:text-xs">Prevention Education Center</span>
           </Link>
           <div className="shrink-0 lg:hidden">
             <AuthNav />
@@ -71,7 +71,7 @@ export default function GlobalSiteHeader() {
               교육과정
             </button>
             {courseMenuOpen ? (
-              <div className="mt-2 grid min-w-[260px] gap-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_45px_rgba(15,23,42,0.16)] lg:absolute lg:left-0 lg:top-full" role="menu">
+              <div className="grid min-w-[260px] gap-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_45px_rgba(15,23,42,0.16)] lg:absolute lg:left-0 lg:top-full" role="menu">
                 {courseLinks.map((item) => (
                   <Link
                     key={item.href + item.label}

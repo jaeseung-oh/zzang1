@@ -64,12 +64,12 @@ function ProductComparison({ course }: { course: CourseCategory }) {
 export async function generateMetadata({ params }: CourseIntroPageProps): Promise<Metadata> {
   const { slug } = await params;
   const course = getPlatformCourseBySlug(slug);
-  if (!course) return { title: "교육과정 | 리셋에듀센터" };
+  if (!course) return { title: "교육과정 | ResetEdu 재발방지교육센터" };
   return {
     title: course.seo.title,
     description: course.seo.description,
     alternates: { canonical: "/courses/" + course.slug + "/" },
-    openGraph: { title: course.seo.title, description: course.seo.description, url: "https://resetedu.kr/courses/" + course.slug + "/", siteName: "리셋에듀센터", locale: "ko_KR", type: "website" },
+    openGraph: { title: course.seo.title, description: course.seo.description, url: "https://resetedu.kr/courses/" + course.slug + "/", siteName: "ResetEdu 재발방지교육센터", locale: "ko_KR", type: "website" },
   };
 }
 
@@ -87,7 +87,7 @@ export default async function CourseIntroPage({ params }: CourseIntroPageProps) 
       <section className="px-4 py-14 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-2"><div className="rounded-[1.25rem] border border-slate-200 bg-white p-6 shadow-sm"><SectionTitle title="교육 대상" body={course.targetAudience} /></div><div className="rounded-[1.25rem] border border-slate-200 bg-white p-6 shadow-sm"><SectionTitle title="제공 문서" /><div className="mt-5 grid gap-3">{course.availableDocuments.map((item) => <div key={item} className="flex gap-2 rounded-xl bg-slate-50 p-3 text-sm font-bold leading-6 text-slate-800"><Icon className="h-5 w-5 shrink-0 text-[#173968]" />{item}</div>)}</div></div></div></section>
       <ProductComparison course={course} />
       <section className="px-4 py-14 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="수강 방법" body="수료 처리 기준과 진도율 판정은 기존 사이트의 정상 운영 로직을 그대로 사용합니다." /><div className="mt-8 grid gap-4 md:grid-cols-4">{processSteps.map(([title, body], index) => <article key={title} className="rounded-[1rem] border border-slate-200 bg-white p-5 shadow-sm"><p className="text-sm font-black text-[#176b68]">0{index + 1}</p><h3 className="mt-2 text-lg font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-700">{body}</p></article>)}</div></div></section>
-      <section className="bg-white px-4 py-14 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr]"><SectionTitle title="유의사항" body="본 과정은 사건 이후 교육 이수와 재발·재범 방지 노력을 정리하기 위한 민간 온라인 교육입니다." /><div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-950">본 센터는 국가기관, 법원, 검찰, 경찰, 보호관찰기관 또는 법률사무소가 운영하거나 지정한 기관이 아닙니다. 수료증과 이수증의 제출 가능 여부와 활용 가능성은 개별 사건과 제출기관의 판단에 따라 달라질 수 있습니다.</div></div></section>
+      <section className="bg-white px-4 py-14 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr]"><SectionTitle title="유의사항" body="본 과정은 사건 이후 교육 이수와 재발 방지 노력을 정리하기 위한 민간 온라인 교육입니다." /><div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 p-5 text-sm leading-7 text-amber-950">본 센터는 국가기관, 법원, 검찰, 경찰, 보호관찰기관 또는 법률사무소가 운영하거나 지정한 기관이 아닙니다. 수료증과 이수증의 제출 가능 여부와 활용 가능성은 개별 사건과 제출기관의 판단에 따라 달라질 수 있습니다.</div></div></section>
       <section className="px-4 py-14 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="자주 묻는 질문" /><div className="mt-8 grid gap-4 lg:grid-cols-2">{commonFaqs.map(([q, a]) => <details key={q} className="rounded-[1rem] border border-slate-200 bg-white p-5 shadow-sm"><summary className="cursor-pointer text-base font-black text-slate-950">{q}</summary><p className="mt-3 text-sm leading-7 text-slate-700">{a}</p></details>)}</div></div></section>
       <section className="px-4 pb-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl rounded-[1.5rem] bg-[#07111f] p-6 text-white shadow-[0_20px_60px_rgba(7,17,31,0.24)] sm:p-8"><h2 className="text-2xl font-black sm:text-3xl">{course.title} 과정을 확인하세요</h2><p className="mt-3 max-w-3xl text-sm leading-7 text-slate-200">기본과정과 심화과정 중 필요한 교육 범위에 맞게 신청할 수 있습니다.</p><div className="mt-6 flex flex-wrap gap-3">{basic ? <Link href={getApplyHref(course, basic.id)} className={buttonClass("darkPrimary", "lg", "rounded-full px-7 font-black focus:ring-offset-[#07111f]")}>기본과정 신청하기</Link> : null}{advanced ? <Link href={getApplyHref(course, advanced.id)} className={buttonClass("darkSecondary", "lg", "rounded-full px-7 font-black focus:ring-offset-[#07111f]")}>심화과정 신청하기</Link> : null}</div></div></section>
     </main>

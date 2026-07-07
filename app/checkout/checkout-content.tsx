@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { defaultCourse, getCourseDefinition } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
-import { basicApplicationProduct, formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
+import { duiDocumentsApplicationProduct, formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
 import { getCertificateIdentity, getUserProfile } from "@/lib/firebase/user-profile";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
@@ -15,17 +15,16 @@ import { buttonClass } from "@/app/components/ui/button-styles";
 import { trackBeginCheckout } from "@/lib/analytics/ga";
 
 const appOrigin = paymentConfig.siteUrl;
-const defaultCheckoutProduct = basicApplicationProduct;
+const defaultCheckoutProduct = duiDocumentsApplicationProduct;
 
 const CARD_APPROVAL_DELAY_MESSAGE =
-  "안녕하세요. 리셋에듀센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
+  "안녕하세요. ResetEdu 재발방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
 
 type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>;
 type CheckoutPaymentMethod = "card" | "kakaopay";
 
 const paymentMethodOptions: Array<{ id: CheckoutPaymentMethod; label: string; description: string }> = [
   { id: "card", label: "신용카드 결제", description: "NHN KCP 카드 결제" },
-  { id: "kakaopay", label: "카카오페이 결제", description: "카카오페이머니 또는 카드" },
 ];
 
 const paymentMethodLabels: Record<CheckoutPaymentMethod, string> = {
@@ -102,9 +101,11 @@ export default function CheckoutContent() {
   const selectedCourseDefinition = getCourseDefinition(selectedCourseId);
   const selectedCourseTitle = selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedTotalLessons = selectedCourseDefinition?.modules.length || (selectedProduct.courseId ? 5 : 3);
-  const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 3종 서식 · 인지행동 개선교육 이수증 · 상세 내역서" : selectedProduct.id === "dui-documents" ? "수료증 · 반성문 가이드/예시 · 3종 서식" : "수료증 · 반성문 가이드/예시");
+  const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 실천자료 · 양형자료 준비 참고자료" : selectedProduct.id === "dui-documents" ? "수료증 · 반성문 예시 · 재발방지계획서 · 생활개선계획" : "수료증 · 기본 실천자료");
   const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
   const selectedPaymentProvider = selectedPaymentMethod === "kakaopay" ? "portone-kakaopay-v2" : "portone-kcp-v2";
+  const selectedIsAdvanced = selectedProduct.id === "dui-cbt-advanced" || selectedProduct.id.endsWith("advanced");
+  const selectedPreviousPrice = selectedIsAdvanced ? "129,000원" : "69,000원";
   const hasPaymentConfig = Boolean(paymentConfig.storeId && selectedChannelKey);
   const hasActiveEnrollment = isEnrollmentActive(activeEnrollment);
   const canSubmit = hasPaymentConfig && isMember && profileReady && !hasActiveEnrollment && !enrollmentCheckFailed && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
@@ -309,8 +310,8 @@ export default function CheckoutContent() {
           : {
               bypass: {
                 kcp_v2: {
-                  site_name: "리셋 에듀센터",
-                  kcp_pay_title: "리셋 에듀센터 수강권 결제",
+                  site_name: "ResetEdu 재발방지교육센터",
+                  kcp_pay_title: "ResetEdu 예방교육 결제",
                   shop_user_id: verifiedUid,
                 },
               },
@@ -390,23 +391,26 @@ export default function CheckoutContent() {
                 <div className="mt-3 grid gap-3 lg:grid-cols-3">
                   {selectedCategory.products.map((product) => {
                     const isSelected = selectedProduct.id === product.id;
+                    const isAdvancedProduct = product.id === "dui-cbt-advanced" || product.id.endsWith("advanced");
+                    const previousPrice = isAdvancedProduct ? "129,000원" : "69,000원";
+                    const displayIncludes = isAdvancedProduct ? ["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"] : ["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지 체크리스트", "생활습관 점검자료", "기본 실천자료 제공"];
                     return (
                       <button
                         key={product.id}
                         type="button"
                         onClick={() => setSelectedProductId(product.id)}
                         disabled={isSubmitting}
-                        className={`min-h-[190px] rounded-2xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#10213f] focus:ring-offset-2 sm:min-h-[220px] ${isSelected ? "border-[#10213f] bg-[#10213f] text-white shadow-[0_18px_42px_rgba(16,33,63,0.22)]" : "border-slate-200 bg-white text-slate-950 hover:border-[#10213f]/45 hover:bg-slate-50"}`}
+                        className={`min-h-[190px] rounded-2xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#10213f] focus:ring-offset-2 sm:min-h-[220px] ${isSelected ? "border-[#10213f] bg-[#10213f] text-white shadow-[0_18px_42px_rgba(16,33,63,0.22)]" : isAdvancedProduct ? "border-[#173968]/50 bg-white text-slate-950 shadow-[0_16px_36px_rgba(23,57,104,0.10)] hover:border-[#10213f]" : "border-slate-200 bg-white text-slate-950 hover:border-[#10213f]/45 hover:bg-slate-50"}`}
                         aria-pressed={isSelected}
                       >
                         <div className="flex min-h-12 items-start justify-between gap-3">
                           <h3 className={isSelected ? "text-base font-black leading-snug text-white" : "text-base font-black leading-snug text-slate-950"}>{product.title}</h3>
-                          <span className={isSelected ? "rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#10213f]" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>{product.badge}</span>
+                          <span className={isSelected ? "rounded-full bg-white px-2.5 py-1 text-xs font-black text-[#10213f]" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-black text-slate-600"}>{isAdvancedProduct ? "가장 많이 선택하는 과정" : "부담 없이 시작하는 기본 과정"}</span>
                         </div>
-                        <p className={isSelected ? "mt-3 text-xl font-black text-white sm:text-2xl" : "mt-3 text-xl font-black text-[#10213f] sm:text-2xl"}>{formatApplicationKrw(product.price)}</p>
+                        <p className={isSelected ? "mt-3 text-xs font-bold text-slate-200 line-through" : "mt-3 text-xs font-bold text-slate-500 line-through"}>{previousPrice}</p><p className={isSelected ? "mt-1 text-xl font-black text-white sm:text-2xl" : "mt-1 text-xl font-black text-[#10213f] sm:text-2xl"}>{formatApplicationKrw(product.price)}</p>
                         <p className={isSelected ? "mt-3 text-sm leading-6 text-slate-100" : "mt-3 text-sm leading-6 text-slate-700"}>{product.description}</p>
                         <ul className="mt-4 space-y-2">
-                          {product.includes.slice(0, product.id === "dui-cbt-advanced" ? 10 : 5).map((item) => (
+                          {displayIncludes.map((item) => (
                             <li key={item} className={isSelected ? "flex gap-2 text-xs font-semibold leading-5 text-slate-100" : "flex gap-2 text-xs font-semibold leading-5 text-slate-700"}>
                               <span className={isSelected ? "text-[#f4d58d]" : "text-[#10213f]"}>✓</span>
                               <span>{item}</span>
@@ -526,7 +530,7 @@ export default function CheckoutContent() {
             <dl className="mt-5 space-y-4 border-b border-slate-200 pb-5">
               <div className="flex items-start justify-between gap-4">
                 <dt className="text-sm font-semibold text-slate-500">상품명</dt>
-                <dd className="text-right text-sm font-bold text-slate-950">{selectedCourseTitle} 수강권</dd>
+                <dd className="text-right text-sm font-bold text-slate-950">{selectedProduct.title}</dd>
               </div>
               <div className="flex items-start justify-between gap-4">
                 <dt className="text-sm font-semibold text-slate-500">결제수단</dt>
@@ -540,11 +544,12 @@ export default function CheckoutContent() {
 
             <div className="mt-5 flex items-end justify-between gap-3">
               <span className="text-base font-bold text-slate-700">결제금액</span>
-              <strong className="text-2xl font-bold text-[#10213f] sm:text-3xl">{formatKrw(selectedProduct.price)}</strong>
+              <div className="text-right"><p className="text-sm font-bold text-slate-500 line-through">{selectedPreviousPrice}</p><strong className="block text-2xl font-bold text-[#10213f] sm:text-3xl">{formatKrw(selectedProduct.price)}</strong></div>
             </div>
+            <div className="mt-4 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-700 sm:grid-cols-2">{["온라인 즉시 수강 가능", "PDF 저장 및 출력 지원", "모바일·PC 이용 가능", "실천자료 직접 작성 가능"].map((item) => <span key={item}>✓ {item}</span>)}</div>
 
             <div className="mt-6 space-y-3">
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-xs leading-6 text-amber-950">본 교육과 자료는 예방교육, 자기점검 및 재발방지 계획 수립을 지원하기 위한 콘텐츠입니다. 교육 수강이나 자료 제출만으로 개별 사건의 선처, 감형 또는 특정한 법률적 결과가 보장되지는 않습니다.</div>
+              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-xs leading-6 text-amber-950">본 교육과 자료는 예방교육, 자기점검 및 재발방지 계획 수립을 지원하기 위한 콘텐츠입니다. 교육 수강이나 자료 제출만으로 개별 사건의 특정한 법률적 결과가 보장되지는 않습니다.</div>
               <label className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium leading-6 text-slate-700">
                 <input type="checkbox" checked={orderNoticeChecked} onChange={(event) => setOrderNoticeChecked(event.target.checked)} className="mt-1 h-4 w-4 accent-[#10213f]" />
                 <span>상품명, 결제금액, 수강기간을 확인했습니다.</span>

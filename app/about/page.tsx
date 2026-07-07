@@ -4,8 +4,8 @@ import { buttonClass } from "@/app/components/ui/button-styles";
 import { platformCourseCategories } from "@/lib/course/platform-courses";
 
 export const metadata: Metadata = {
-  title: "센터소개 | 리셋에듀센터",
-  description: "리셋에듀센터는 사건 이후 교육 수료증 등 양형자료 준비와 재발·재범 방지 노력을 정리할 수 있도록 돕는 민간 온라인 교육기관입니다.",
+  title: "센터소개 | ResetEdu 재발방지교육센터",
+  description: "ResetEdu 재발방지교육센터는 사건 이후 교육 수료증 등 양형자료 준비와 재발 방지 노력을 정리할 수 있도록 돕는 민간 온라인 교육기관입니다.",
   alternates: { canonical: "/about/" },
 };
 
@@ -18,7 +18,7 @@ const values = [
 
 const notices = [
   "본 센터는 국가기관, 법원, 검찰, 경찰, 보호관찰기관 또는 법률사무소가 운영하거나 지정한 기관이 아닙니다.",
-  "수료증, 이수증 및 교육자료는 교육 참여와 재발·재범 방지 노력을 정리하기 위한 민간 교육자료입니다.",
+  "수료증, 이수증 및 교육자료는 교육 참여와 재발 방지 노력을 정리하기 위한 민간 교육자료입니다.",
   "제출 가능 여부와 활용 가능성은 개별 사건과 제출기관의 판단에 따라 달라질 수 있습니다.",
 ] as const;
 
@@ -37,7 +37,7 @@ export default function AboutPage() {
         <div className="mx-auto max-w-7xl">
           <p className="inline-flex rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs font-black text-[#9be0d5]">민간 온라인 예방교육기관</p>
           <h1 className="mt-6 max-w-4xl text-3xl font-black leading-tight text-white sm:text-5xl lg:text-6xl">사건 이후 교육 수료증 등 양형자료 준비를 체계적으로 돕습니다</h1>
-          <p className="mt-5 max-w-3xl text-base leading-8 text-slate-100 sm:text-lg">리셋에듀센터는 사건 이후 자신의 행동을 돌아보고, 재발·재범 위험을 낮추기 위한 구체적인 방법을 학습할 수 있도록 온라인 예방교육을 제공합니다.</p>
+          <p className="mt-5 max-w-3xl text-base leading-8 text-slate-100 sm:text-lg">ResetEdu 재발방지교육센터는 사건 이후 자신의 행동을 돌아보고, 재발 위험을 낮추기 위한 구체적인 방법을 학습할 수 있도록 온라인 예방교육을 제공합니다.</p>
           <div className="mt-8 flex flex-wrap gap-3"><Link href="/courses" className={buttonClass("darkPrimary", "lg", "rounded-full px-7 font-black focus:ring-offset-[#10213f]")}>교육과정 보기</Link><Link href="/certificate" className={buttonClass("darkSecondary", "lg", "rounded-full px-7 font-black focus:ring-offset-[#10213f]")}>수료증 안내</Link></div>
         </div>
       </section>

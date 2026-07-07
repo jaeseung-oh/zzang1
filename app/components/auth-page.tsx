@@ -729,7 +729,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
           <div className="relative z-10 mt-12 lg:mt-0">
             <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#d8b26b]">Online Course Access</p>
             <h1 className="mt-5 max-w-[560px] break-keep text-3xl font-semibold leading-[1.12] tracking-[-0.03em] text-white sm:text-5xl sm:tracking-[-0.04em] xl:text-[3.75rem]">
-              자기 점검과 교육 이수 과정을 차분히 시작할 수 있는 리셋 에듀센터
+              자기 점검과 교육 이수 과정을 차분히 시작할 수 있는 ResetEdu 재발방지교육센터
             </h1>
             <p className="mt-6 max-w-[560px] text-[15px] leading-8 text-slate-200 sm:text-base">
               회원가입, 수강 진행, 이수 확인 자료 안내까지 한 흐름으로 확인할 수 있는 민간 온라인 교육 서비스입니다. 이용 환경과 발급 기준은 각 화면에서 순차적으로 안내됩니다.

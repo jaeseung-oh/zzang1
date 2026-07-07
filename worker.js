@@ -1231,11 +1231,11 @@ function assertStreamEnv(env) {
 const DUI_COURSE_PRODUCT = {
     courseId: 'dui-prevention-basic',
     courseTitle: '음주운전 예방교육',
-    price: 59000,
+    price: 49000,
     currency: 'KRW',
     durationDays: 90,
     totalLessons: 3,
-    pricePerLesson: 19667,
+    pricePerLesson: 16333,
     description: '음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정',
     certificateAvailable: true
 };
@@ -1243,22 +1243,22 @@ const DUI_COURSE_PRODUCT = {
 const CBT_COURSE_PRODUCT = {
     courseId: 'dui-cbt-advanced',
     courseTitle: '인지행동기반 재발방지교육 심화과정',
-    price: 199000,
+    price: 99000,
     currency: 'KRW',
     durationDays: 90,
     totalLessons: 2,
-    pricePerLesson: 99500,
+    pricePerLesson: 49500,
     description: '인지행동기반 재발방지 교육 심화과정',
     certificateAvailable: true
 };
 
 const NEW_PREVENTION_COURSE_PRODUCTS = {
-    'violence-basic': { courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', certificateTitle: '폭력범죄 재범방지교육', price: 59000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 59000, description: '폭력범죄 재범방지교육 기본과정', certificateAvailable: true },
-    'violence-advanced': { courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', certificateTitle: '폭력범죄 재범방지교육', price: 129000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 64500, description: '폭력범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
-    'gambling-basic': { courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', certificateTitle: '도박중독 재발방지교육', price: 59000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 59000, description: '도박중독 재발방지교육 기본과정', certificateAvailable: true },
-    'gambling-advanced': { courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', certificateTitle: '도박중독 재발방지교육', price: 129000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 64500, description: '도박중독 재발방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
-    'sexual-offense-basic': { courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', certificateTitle: '성범죄 재범방지교육', price: 59000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 59000, description: '성범죄 재범방지교육 기본과정', certificateAvailable: true },
-    'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 129000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 64500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
+    'violence-basic': { courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', certificateTitle: '폭력범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '폭력범죄 재범방지교육 기본과정', certificateAvailable: true },
+    'violence-advanced': { courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', certificateTitle: '폭력범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '폭력범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'gambling-basic': { courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', certificateTitle: '도박중독 재발방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '도박중독 재발방지교육 기본과정', certificateAvailable: true },
+    'gambling-advanced': { courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', certificateTitle: '도박중독 재발방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '도박중독 재발방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'sexual-offense-basic': { courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', certificateTitle: '성범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '성범죄 재범방지교육 기본과정', certificateAvailable: true },
+    'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
 };
 
 const COURSE_PRODUCTS_BY_ID = {
@@ -1276,7 +1276,7 @@ const APPLICATION_PRODUCTS = {
         categoryId: 'dui',
         productId: 'basic',
         title: '기본형 수강권',
-        amount: 59000,
+        amount: 49000,
         courseId: DUI_COURSE_PRODUCT.courseId,
         courseTitle: DUI_COURSE_PRODUCT.courseTitle,
         totalLessons: DUI_COURSE_PRODUCT.totalLessons
@@ -1284,8 +1284,8 @@ const APPLICATION_PRODUCTS = {
     'dui-documents': {
         categoryId: 'dui',
         productId: 'dui-documents',
-        title: '서식 포함 수강권',
-        amount: 109000,
+        title: '기본과정',
+        amount: 49000,
         courseId: DUI_COURSE_PRODUCT.courseId,
         courseTitle: DUI_COURSE_PRODUCT.courseTitle,
         totalLessons: DUI_COURSE_PRODUCT.totalLessons
@@ -1293,18 +1293,18 @@ const APPLICATION_PRODUCTS = {
     'dui-cbt-advanced': {
         categoryId: 'dui',
         productId: 'dui-cbt-advanced',
-        title: '인지행동기반 재발방지교육 심화과정',
-        amount: 199000,
+        title: '심화과정',
+        amount: 99000,
         courseId: CBT_COURSE_PRODUCT.courseId,
         courseTitle: CBT_COURSE_PRODUCT.courseTitle,
         totalLessons: CBT_COURSE_PRODUCT.totalLessons
     },
-    'violence-basic': { categoryId: 'violence-prevention', productId: 'violence-basic', title: '폭력범죄 재범방지교육 기본과정', amount: 59000, courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', totalLessons: 1 },
-    'violence-advanced': { categoryId: 'violence-prevention', productId: 'violence-advanced', title: '폭력범죄 재범방지교육 심화과정', amount: 129000, courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
-    'gambling-basic': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-basic', title: '도박중독 재발방지교육 기본과정', amount: 59000, courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', totalLessons: 1 },
-    'gambling-advanced': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-advanced', title: '도박중독 재발방지교육 심화과정', amount: 129000, courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
-    'sexual-offense-basic': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-basic', title: '성범죄 재범방지교육 기본과정', amount: 59000, courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', totalLessons: 1 },
-    'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 129000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
+    'violence-basic': { categoryId: 'violence-prevention', productId: 'violence-basic', title: '폭력범죄 재범방지교육 기본과정', amount: 49000, courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', totalLessons: 1 },
+    'violence-advanced': { categoryId: 'violence-prevention', productId: 'violence-advanced', title: '폭력범죄 재범방지교육 심화과정', amount: 99000, courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'gambling-basic': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-basic', title: '도박중독 재발방지교육 기본과정', amount: 49000, courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', totalLessons: 1 },
+    'gambling-advanced': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-advanced', title: '도박중독 재발방지교육 심화과정', amount: 99000, courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'sexual-offense-basic': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-basic', title: '성범죄 재범방지교육 기본과정', amount: 49000, courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', totalLessons: 1 },
+    'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 99000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
 };
 
 
@@ -1394,7 +1394,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const issuedAt = new Date().toISOString();
     const completedAt = progress?.completedAt || issuedAt;
     const certificateNo = await makeCertificateNo(certificateId, issuedAt);
-    const issuerName = env.CERTIFICATE_ISSUER_NAME || '리셋에듀센터';
+    const issuerName = env.CERTIFICATE_ISSUER_NAME || 'ResetEdu 재발방지교육센터';
     const certificateRecord = {
         certificateId, certificateNo, issueNumber: certificateNo,
         userId: uid, uid, userName, birthDate, dateOfBirth: birthDate,
@@ -2806,7 +2806,7 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
     const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => error.status === 404 ? null : Promise.reject(error));
     const certificateNo = await makeCertificateNo(certificateId, issuedAt);
     const completedAt = body?.completedAt || progress?.completedAt || issuedAt;
-    const issuerName = env.CERTIFICATE_ISSUER_NAME || '리셋에듀센터';
+    const issuerName = env.CERTIFICATE_ISSUER_NAME || 'ResetEdu 재발방지교육센터';
     const documentType = courseId === CBT_COURSE_PRODUCT.courseId ? 'cbt-completion' : 'completion';
     const certificateRecord = {
         certificateId, certificateNo, issueNumber: certificateNo,

@@ -11,7 +11,7 @@ export type SealStampProps = {
   alt?: string;
 };
 
-export default function SealStamp({ size = 120, className = "", alt = "리셋에듀센터 직인" }: SealStampProps) {
+export default function SealStamp({ size = 120, className = "", alt = "ResetEdu 재발방지교육센터 직인" }: SealStampProps) {
   return (
     <img
       src={sealStampPath}

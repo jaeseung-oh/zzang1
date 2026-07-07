@@ -43,7 +43,7 @@ const menu: Array<{ view: AdminMenuView; label: string; href: string }> = [
 
 const emptyData: AdminDataset = { users: [], payments: [], enrollments: [], certificates: [], progress: [], refundPolicies: [] };
 const adminGrantProducts = applicationCourseCategories.find((category) => category.id === "dui")?.products || [];
-const getAdminGrantProductAmount = (productId: string) => String(adminGrantProducts.find((product) => product.id === productId)?.price || 59000);
+const getAdminGrantProductAmount = (productId: string) => String(adminGrantProducts.find((product) => product.id === productId)?.price || 49000);
 const renderAdminGrantProductOptions = () => adminGrantProducts.map((product) => <option key={product.id} value={product.id}>{product.title}</option>);
 
 function toDate(value: any) {
@@ -404,7 +404,7 @@ function DashboardView({ data, maps, refresh }: any) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">Document Preview</p>
           <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-slate-950">참고서식 미리보기</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-600">109,000원 서식 포함 수강권 구매자에게 제공되는 서식의 인쇄 및 PDF 저장 화면을 관리자 권한으로 확인합니다.</p>
+          <p className="mt-2 text-sm leading-7 text-slate-600">기본과정 구매자에게 제공되는 서식의 인쇄 및 PDF 저장 화면을 관리자 권한으로 확인합니다.</p>
         </div>
         <Link href="/course-room" className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold text-[#173968]">수강실 서식 영역 확인</Link>
       </div>
@@ -465,7 +465,7 @@ function PaymentResyncPanel({ onRefresh }: { onRefresh: () => void }) {
   const [paymentId, setPaymentId] = useState("");
   const [uid, setUid] = useState("");
   const [productId, setProductId] = useState("basic");
-  const [amount, setAmount] = useState("59000");
+  const [amount, setAmount] = useState("49000");
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -504,7 +504,7 @@ function PaymentResyncPanel({ onRefresh }: { onRefresh: () => void }) {
 function ManualEnrollmentGrantPanel({ onRefresh }: { onRefresh: () => void }) {
   const [uid, setUid] = useState("");
   const [productId, setProductId] = useState("basic");
-  const [amount, setAmount] = useState("59000");
+  const [amount, setAmount] = useState("49000");
   const [note, setNote] = useState("카드 승인 후 수강권 반영 지연으로 인한 관리자 수동 지급");
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -687,7 +687,7 @@ function SettingsView() {
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">직인 설정</h3>
-            <p className="mt-2 text-sm leading-7 text-slate-600">수료증에 표시되는 리셋에듀센터 직인입니다.</p>
+            <p className="mt-2 text-sm leading-7 text-slate-600">수료증에 표시되는 ResetEdu 재발방지교육센터 직인입니다.</p>
             <p className="mt-2 text-xs leading-6 text-slate-500">직인은 수료증 미리보기, 인쇄, PDF 저장 화면에 동일하게 표시됩니다.</p>
           </div>
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">

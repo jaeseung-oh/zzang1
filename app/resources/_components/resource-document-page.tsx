@@ -146,7 +146,7 @@ function GuideContent() {
           <li>사고가 없으니 괜찮다는 말</li>
           <li>짧은 거리였다는 말만 반복하는 것</li>
           <li>하지 않은 교육이나 상담을 했다고 쓰는 것</li>
-          <li>무조건 선처해 달라는 말만 반복하는 것</li>
+          <li>결과만 바라는 표현을 반복하는 것</li>
           <li>인터넷 반성문을 그대로 복사하는 것</li>
           <li>실제 사건과 다른 내용을 쓰는 것</li>
         </ul>
@@ -297,7 +297,7 @@ export default function ResourceDocumentPage({ kind }: { kind: ReflectionResourc
         <img src={centerLogoPath} alt="" aria-hidden="true" className="resource-watermark pointer-events-none absolute left-1/2 top-[42%] z-0 h-[380px] w-[380px] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.05]" />
         <div className="relative z-10">
         <header className="resource-section border-b-2 border-slate-900 pb-6">
-          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-700">Reset Edu Center · 결제 회원 전용 자료</p>
+          <p className="text-xs font-black uppercase tracking-[0.2em] text-indigo-700">ResetEdu Prevention Education Center · 결제 회원 전용 자료</p>
           <h1 className="mt-3 break-keep text-3xl font-black leading-tight text-slate-950 sm:text-4xl">{title}</h1>
           <p className="mt-4 text-sm leading-7 text-slate-600">본인의 실제 경험과 사실에 맞게 내용을 확인하고 직접 작성할 때 활용해 주세요.</p>
         </header>
@@ -309,7 +309,7 @@ export default function ResourceDocumentPage({ kind }: { kind: ReflectionResourc
         </div>
 
         <footer className="resource-print-source mt-10 border-t border-slate-300 pt-5 text-xs leading-6 text-slate-500">
-          <p>Reset Edu Center 교육자료 · {title}</p>
+          <p>ResetEdu Prevention Education Center 교육자료 · {title}</p>
           <p className="resource-page-number">인쇄 페이지 </p>
         </footer>
         </div>

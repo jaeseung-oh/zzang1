@@ -498,7 +498,7 @@ export default function DashboardPage() {
                   {preventionDocuments.map((document) => (
                     <Link key={document.id} href={`/prevention-documents?type=${document.id}`} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       <span>{document.title}</span>
-                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "109,000원 상품"}</span>
+                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">{hasDocumentFormsAccess ? "인쇄 · PDF 저장" : "기본과정"}</span>
                     </Link>
                   ))}
                 </div>

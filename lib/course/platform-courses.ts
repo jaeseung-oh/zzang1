@@ -1,5 +1,4 @@
 import {
-  basicApplicationProduct,
   duiCbtAdvancedApplicationProduct,
   duiDocumentsApplicationProduct,
   getApplicationCategory,
@@ -38,7 +37,7 @@ export const platformCourseCategories: CourseCategory[] = [
     shortTitle: "음주운전",
     navTitle: "음주운전 재범방지",
     summary: "음주운전의 위험성과 반복 원인을 이해하고, 음주 상황과 운전을 분리하기 위한 구체적인 생활 규칙을 학습하는 온라인 예방교육입니다.",
-    description: "음주운전 사건 이후 교육 수료증과 재발방지 자료 등 양형자료 준비에 활용할 수 있는 민간 온라인 교육 과정입니다.",
+    description: "음주운전 사건 이후 예방교육, 재발방지 실천자료, 생활개선 계획을 정리할 수 있는 민간 온라인 교육 과정입니다.",
     heroLabel: "음주운전 재범방지 교육",
     targetAudience: "음주운전 사건 이후 자신의 음주와 운전 습관을 점검하고, 재발 방지 행동을 구체적으로 정리하려는 사람",
     whyNeeded: [
@@ -58,7 +57,7 @@ export const platformCourseCategories: CourseCategory[] = [
       "음주 및 운전 습관 점검",
     ],
     tags: ["음주 관리", "운전 차단", "재발 방지 계획"],
-    basicProductId: "basic",
+    basicProductId: "dui-documents",
     advancedProductId: "dui-cbt-advanced",
     certificateTitle: "음주운전 예방교육 수료증",
     availableDocuments: [
@@ -71,7 +70,7 @@ export const platformCourseCategories: CourseCategory[] = [
     ],
     imageAlt: "온라인 강의와 재발방지 자료를 함께 확인하는 교육 화면",
     seo: {
-      title: "음주운전 예방교육 온라인 과정 | 리셋에듀센터",
+      title: "음주운전 예방교육 온라인 과정 | ResetEdu 재발방지교육센터",
       description: "음주운전의 위험성과 반복 원인을 이해하고 구체적인 재발 방지 행동을 학습하는 온라인 예방교육입니다.",
     },
   },
@@ -111,7 +110,7 @@ export const platformCourseCategories: CourseCategory[] = [
     availableDocuments: ["폭력범죄 재범방지교육 수료증", "인지행동 개선교육 이수증: 심화과정에 한함"],
     imageAlt: "갈등 상황에서 멈춤과 거리 두기를 상징하는 교육 화면",
     seo: {
-      title: "폭력범죄 재범방지교육 온라인 과정 | 리셋에듀센터",
+      title: "폭력범죄 재범방지교육 온라인 과정 | ResetEdu 재발방지교육센터",
       description: "분노와 충동, 폭력 위험 신호를 이해하고 갈등 상황에서 행동을 멈추는 방법을 배우는 온라인 교육입니다.",
     },
   },
@@ -153,7 +152,7 @@ export const platformCourseCategories: CourseCategory[] = [
     availableDocuments: ["도박중독 재발방지교육 수료증", "인지행동 개선교육 이수증: 심화과정에 한함"],
     imageAlt: "돈과 휴대폰 접근 관리를 상징하는 교육 화면",
     seo: {
-      title: "도박중독 재발방지교육 온라인 과정 | 리셋에듀센터",
+      title: "도박중독 재발방지교육 온라인 과정 | ResetEdu 재발방지교육센터",
       description: "손실 추격과 도박 충동의 원리를 이해하고 돈·휴대폰·시간을 관리하는 재발 방지 온라인 교육입니다.",
     },
   },
@@ -195,7 +194,7 @@ export const platformCourseCategories: CourseCategory[] = [
     availableDocuments: ["성범죄 재범방지교육 수료증", "인지행동 개선교육 이수증: 심화과정에 한함"],
     imageAlt: "존중과 경계를 상징하는 온라인 교육 화면",
     seo: {
-      title: "성범죄 재범방지교육 온라인 과정 | 리셋에듀센터",
+      title: "성범죄 재범방지교육 온라인 과정 | ResetEdu 재발방지교육센터",
       description: "동의와 경계, 성적 자기결정권을 이해하고 위험한 생각과 상황을 차단하는 온라인 교육입니다.",
     },
   },
@@ -204,8 +203,8 @@ export const platformCourseCategories: CourseCategory[] = [
 export const commonFaqs = [
   ["어떤 교육과정을 선택해야 하나요?", "사건 유형에 맞는 기본교육을 선택할 수 있으며, 인지행동 개선교육을 함께 수강하려면 심화과정을 선택할 수 있습니다."],
   ["교육은 온라인으로 진행되나요?", "PC와 모바일을 통해 온라인으로 수강할 수 있습니다."],
-  ["기본과정과 심화과정의 차이는 무엇인가요?", "기본과정은 사건 유형별 예방교육으로 구성되며, 심화과정은 기본교육에 인지행동 개선교육과 관련 이수증이 추가됩니다."],
-  ["수료증에 기본과정 또는 심화과정이 표시되나요?", "과정별 수료증에는 해당 교육명이 표시되며, 기본과정 또는 심화과정이라는 상품 구분은 표시하지 않습니다."],
+  ["기본과정과 심화과정의 차이는 무엇인가요?", "기본과정은 사건 유형별 예방교육으로 구성되며, 심화과정은 기본교육에 반성문 예시, 재발방지계획서, 실천서약서, 생활개선계획 등 실천자료가 추가됩니다."],
+  ["수료증에 기본과정 또는 심화과정이 표시되나요?", "과정별 수료증에는 교육 이수 내용이 표시되며, 실천자료는 직접 확인·작성·출력할 수 있습니다."],
   ["수료증이 반드시 인정되나요?", "본 센터의 수료증과 이수증은 민간 교육 이수 자료이며, 제출 가능 여부와 활용 결과는 개별 사건과 제출기관의 판단에 따라 달라질 수 있습니다."],
   ["교육을 수강하면 특정 결과가 보장되나요?", "교육 수강이나 자료 제출만으로 특정한 처분이나 결과가 보장되지는 않습니다."],
   ["법률상담도 받을 수 있나요?", "본 센터는 법률상담이나 법률사무를 제공하지 않습니다. 구체적인 법률문제는 변호사 등 법률 전문가에게 문의해야 합니다."],
@@ -236,7 +235,7 @@ export function getPlatformCourseProducts(course: CourseCategory): ApplicationPr
   }
 
   if (course.id === "dui") {
-    return [basicApplicationProduct, duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct];
+    return [duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct];
   }
 
   return [];
