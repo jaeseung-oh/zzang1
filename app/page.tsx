@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { buttonClass } from "@/app/components/ui/button-styles";
+import DocumentPreviewGallery, { type DocumentPreviewItem } from "@/app/components/document-preview-gallery";
 import { formatApplicationKrw } from "@/lib/course/application-products";
 import { getApplyHref, getMainProductPair, platformCourseCategories, processSteps } from "@/lib/course/platform-courses";
 
@@ -28,6 +29,24 @@ const organizationJsonLd = {
 
 const practiceKeywords = ["양형자료 준비", "재발방지", "생활개선", "예방교육", "실천기록", "자기점검", "교육 이수 및 실천자료 관리"];
 
+const homeCertificateSamples: DocumentPreviewItem[] = [
+  {
+    id: "home-basic-certificate",
+    title: "기본 수료증",
+    products: ["기본과정", "심화과정"],
+    statusLabel: "샘플",
+    description: "온라인 예방교육 이수 내용을 확인할 수 있는 기본 수료증 샘플입니다.",
+    imageSrc: "/images/%EA%B8%B0%EB%B3%B8%20%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%BA%A1%EC%B3%90%EB%B3%B8.jpg",
+  },
+  {
+    id: "home-advanced-certificate",
+    title: "심화 이수증",
+    products: ["심화과정"],
+    statusLabel: "샘플",
+    description: "심화과정에서 제공되는 인지행동기반 재발방지교육 이수증 샘플입니다.",
+    imageSrc: "/images/%EC%8B%AC%ED%99%94%EC%9D%B4%EC%88%98%EC%A6%9D%20%EC%BA%A1%EC%B3%90%EB%B3%B8.jpg",
+  },
+];
 
 
 function Icon({ name, className = "h-6 w-6" }: { name: string; className?: string }) {
@@ -117,6 +136,15 @@ export default function HomePage() {
           ["실천계획", "재발방지계획서와 생활개선계획을 실행 가능한 문장으로 정리합니다."],
           ["자료 관리", "수료증과 실천자료를 확인하고 PDF 저장 및 출력을 진행합니다."],
         ].map(([title, body]) => <article key={title} className="rounded-[1rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="shield" className="h-8 w-8 text-[#176b68]" /><h3 className="mt-4 text-lg font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-700">{body}</p></article>)}</div></div>
+      </section>
+
+      <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <SectionTitle title="발급 문서 샘플을 확인하세요" body="기본 수료증과 심화 이수증 샘플을 전체 문서 형태로 확인할 수 있습니다. 실제 발급 문서는 수강자 정보와 이수 기록에 맞춰 생성됩니다." />
+          <div className="mt-8">
+            <DocumentPreviewGallery documents={homeCertificateSamples} columnsClassName="sm:grid-cols-2" showPreviewButton={false} />
+          </div>
+        </div>
       </section>
 
       <section id="process" className="bg-white px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="예방교육 시작부터 실천자료 출력까지" /><div className="mt-8 grid gap-4 md:grid-cols-4">{processSteps.map(([title, body], index) => <article key={title} className="rounded-[1rem] border border-slate-200 bg-slate-50 p-5"><p className="text-sm font-black text-[#176b68]">0{index + 1}</p><h3 className="mt-2 text-lg font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-700">{body}</p></article>)}</div></div></section>

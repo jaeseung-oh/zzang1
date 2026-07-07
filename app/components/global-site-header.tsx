@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AuthNav from "@/app/components/auth-nav";
+import { centerLogoPath } from "@/app/components/SealStamp";
 import { platformCourseCategories } from "@/lib/course/platform-courses";
 
 const primaryNavItems = [
@@ -45,9 +46,12 @@ export default function GlobalSiteHeader() {
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl flex-col gap-2 px-3 py-2 sm:px-6 sm:py-3 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-between lg:px-8">
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <Link href="/" className="flex min-w-0 flex-col text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeCourseMenu}>
-            <span className="text-base font-black leading-tight text-[#173968] sm:text-xl">ResetEdu 재발방지교육센터</span>
-            <span className="text-[11px] font-bold leading-tight text-slate-500 sm:text-xs">Prevention Education Center</span>
+          <Link href="/" className="flex min-w-0 items-center gap-2 text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeCourseMenu}>
+            <img src={centerLogoPath} alt="ResetEdu 로고" className="h-9 w-9 shrink-0 object-contain sm:h-11 sm:w-11" />
+            <span className="flex min-w-0 flex-col">
+              <span className="text-base font-black leading-tight text-[#173968] sm:text-xl">ResetEdu 재발방지교육센터</span>
+              <span className="text-[11px] font-bold leading-tight text-slate-500 sm:text-xs">Prevention Education Center</span>
+            </span>
           </Link>
           <div className="shrink-0 lg:hidden">
             <AuthNav />
