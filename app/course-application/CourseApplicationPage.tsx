@@ -56,7 +56,7 @@ export default function CourseApplicationPage() {
   };
 
   return (
-    <main className="keep-korean min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#edf3f9_48%,#f8fafc_100%)] px-4 py-6 text-slate-950 sm:px-6 sm:py-8 lg:px-8">
+    <main className="keep-korean min-h-screen bg-[linear-gradient(180deg,#f8fafc_0%,#edf3f9_48%,#f8fafc_100%)] px-4 pb-28 pt-6 text-slate-950 sm:px-6 sm:py-8 lg:px-8">
       <div className="mx-auto max-w-7xl">
         <section className="overflow-hidden rounded-[1.25rem] border border-[#d7e1ef] bg-[linear-gradient(135deg,#0b1d36_0%,#173968_58%,#21568f_100%)] px-4 py-6 text-white shadow-[0_26px_70px_rgba(15,23,42,0.22)] sm:rounded-[1.75rem] sm:px-8 sm:py-8 lg:px-10">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Course Application</p>
@@ -83,6 +83,15 @@ export default function CourseApplicationPage() {
           </div>
 
           <aside className="lg:sticky lg:top-6 lg:self-start"><div className="rounded-[1.5rem] border border-[#cfdceb] bg-white p-5 shadow-[0_22px_55px_rgba(15,23,42,0.11)] sm:p-6"><p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-700">Summary</p><h2 className="mt-2 text-2xl font-black text-slate-950">신청 요약</h2><dl className="mt-5 space-y-4"><div><dt className="text-xs font-bold text-slate-600">선택한 교육명</dt><dd className="mt-1 text-base font-black text-slate-950">{selectedCategory.title}</dd></div><div><dt className="text-xs font-bold text-slate-600">선택한 상품명</dt><dd className="mt-1 text-base font-black text-slate-950">{selectedProduct?.title || "준비중"}</dd></div><div><dt className="text-xs font-bold text-slate-600">상품제공기간</dt><dd className="mt-1 text-base font-black text-slate-950">결제 완료 즉시 제공</dd></div></dl>{selectedProduct ? <div className="mt-5 rounded-[1rem] bg-[#f8fafc] p-4"><p className="text-sm font-black text-slate-950">제공 항목</p><ul className="mt-3 space-y-2">{selectedProduct.includes.map((item) => <li key={item} className="flex min-w-0 gap-2 text-sm leading-relaxed text-slate-800"><span className="mt-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[#173968]"><CheckIcon className="h-3.5 w-3.5" /></span><span>{item}</span></li>)}</ul></div> : <div className="mt-5 rounded-[1rem] bg-slate-100 p-4 text-sm leading-relaxed text-slate-700">준비중 과정은 상품과 가격을 표시하지 않습니다.</div>}<div className="mt-5 border-t border-[#e2e8f0] pt-5"><div className="flex items-end justify-between gap-4"><span className="text-sm font-bold text-slate-700">결제 예정 금액</span><strong className="text-3xl font-black text-slate-950">{selectedProduct ? formatApplicationKrw(selectedProduct.price) : "-"}</strong></div></div><p className="mt-5 rounded-[1rem] border border-[#dbe4ef] bg-[#f8fafc] p-4 text-xs leading-relaxed text-slate-700">{applicationNoticeText}</p><button type="button" disabled={!isAvailable || !selectedProduct} onClick={handleSubmit} className={buttonClass("warning", "lg", "mt-5 w-full gap-2 rounded-[1rem] font-extrabold disabled:opacity-100")}>{isAvailable ? "예방교육 시작하기" : "준비중"}</button></div></aside>
+        </div>
+      </div>
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-4 py-3 shadow-[0_-14px_36px_rgba(15,23,42,0.18)] backdrop-blur lg:hidden">
+        <div className="mx-auto flex max-w-7xl items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-bold text-slate-600">{selectedProduct?.title || selectedCategory.title}</p>
+            <p className="mt-0.5 text-lg font-black text-slate-950">{selectedProduct ? formatApplicationKrw(selectedProduct.price) : "준비중"}</p>
+          </div>
+          <button type="button" disabled={!isAvailable || !selectedProduct} onClick={handleSubmit} className={buttonClass("warning", "md", "min-w-[142px] rounded-full px-5 font-black disabled:opacity-100")}>{isAvailable ? "바로 결제" : "준비중"}</button>
         </div>
       </div>
     </main>

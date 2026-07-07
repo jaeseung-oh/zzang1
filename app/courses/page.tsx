@@ -38,7 +38,7 @@ function ProductCard({ course, product }: { course: CourseCategory; product: Ret
   const description = isAdvanced ? "양형자료 준비를 위한 실천자료까지 함께 정리할 수 있는 심화 과정" : "예방교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정";
   const displayIncludes = isAdvanced ? ["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"] : ["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지 체크리스트", "생활습관 점검자료", "기본 실천자료 제공"];
   return (
-    <article className={isAdvanced ? "flex min-h-full flex-col rounded-[1.25rem] border-2 border-[#173968] bg-white p-5 shadow-[0_18px_45px_rgba(23,57,104,0.12)]" : "flex min-h-full flex-col rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm"}>
+    <Link href={getApplyHref(course, product.id)} className={isAdvanced ? "group flex min-h-full flex-col rounded-[1.25rem] border-2 border-[#173968] bg-white p-5 shadow-[0_18px_45px_rgba(23,57,104,0.12)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_65px_rgba(23,57,104,0.22)] focus:outline-none focus:ring-4 focus:ring-[#173968]/20" : "group flex min-h-full flex-col rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#176b68] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)] focus:outline-none focus:ring-4 focus:ring-[#176b68]/20"} aria-label={course.title + " " + label + " 시작하기"}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[#176b68]">{label}</p>
@@ -55,11 +55,8 @@ function ProductCard({ course, product }: { course: CourseCategory; product: Ret
           {displayIncludes.map((item) => <li key={item} className="flex gap-2 text-sm font-semibold leading-7 text-slate-800"><Icon className="mt-1 h-4 w-4 shrink-0 text-[#176b68]" /><span>{item}</span></li>)}
         </ul>
       </div>
-      <div className="mt-6 grid gap-2 sm:grid-cols-2">
-        <Link href={"/courses/" + course.slug} className={buttonClass("secondary", "md", "rounded-xl font-black")}>자세히 보기</Link>
-        <Link href={getApplyHref(course, product.id)} className={buttonClass(isAdvanced ? "primary" : "warning", "md", isAdvanced ? "rounded-xl font-black" : "rounded-xl font-black !text-black hover:!text-black")}>시작하기</Link>
-      </div>
-    </article>
+      <span className={buttonClass(isAdvanced ? "primary" : "warning", "md", isAdvanced ? "mt-6 w-full rounded-xl font-black transition group-hover:bg-[#10213f]" : "mt-6 w-full rounded-xl font-black !text-black transition hover:!text-black group-hover:border-[#176b68]")}>카드 클릭 후 바로 신청하기</span>
+    </Link>
   );
 }
 
@@ -73,8 +70,8 @@ export default function CoursesPage() {
           <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-100 sm:text-lg">사건 이후 필요한 예방교육과 실천자료 준비 범위에 맞는 과정을 선택할 수 있습니다.</p>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">기본과정은 49,000원, 심화과정은 99,000원이며 교육 이수 내용과 실천자료를 직접 확인·작성·출력할 수 있습니다.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="#all" className={buttonClass("darkPrimary", "lg", "whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-[#10213f]")}>예방교육 시작하기</Link>
-            <Link href="/prevention-documents" className={buttonClass("darkSecondary", "lg", "whitespace-nowrap rounded-full px-7 font-bold focus:ring-offset-[#10213f]")}>실천자료 둘러보기</Link>
+            <Link href="#all" className={buttonClass("darkPrimary", "lg", "w-full whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-[#10213f] sm:w-auto")}>예방교육 시작하기</Link>
+            <Link href="/prevention-documents" className={buttonClass("darkSecondary", "lg", "w-full whitespace-nowrap rounded-full px-7 font-bold focus:ring-offset-[#10213f] sm:w-auto")}>실천자료 둘러보기</Link>
           </div>
         </div>
       </section>
