@@ -32,7 +32,7 @@ const practiceKeywords = ["양형자료 준비", "재발방지", "생활개선",
 const homeCertificateSamples: DocumentPreviewItem[] = [
   {
     id: "home-basic-certificate",
-    title: "기본 수료증",
+    title: "교육이수증",
     products: ["기본과정", "심화과정"],
     statusLabel: "샘플",
     description: "온라인 예방교육 이수 내용을 확인할 수 있는 기본 수료증 샘플입니다.",
@@ -40,7 +40,7 @@ const homeCertificateSamples: DocumentPreviewItem[] = [
   },
   {
     id: "home-advanced-certificate",
-    title: "심화 이수증",
+    title: "인지행동기반 재발방지교육 이수증(심화과정)",
     products: ["심화과정"],
     statusLabel: "샘플",
     description: "심화과정에서 제공되는 인지행동기반 재발방지교육 이수증 샘플입니다.",
@@ -103,17 +103,17 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl">
           <SectionTitle title="예방교육과 실천자료를 함께 준비해보세요" body="사건 이후 스스로를 돌아보고 재발방지를 위해 노력하는 과정을 체계적으로 정리할 수 있도록 구성하였습니다." />
           <div className="mt-8 grid items-center gap-5 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-            <article className="flex min-h-full flex-col rounded-[1.25rem] border border-slate-200 bg-slate-50 p-6 shadow-sm">
+            <Link href={getApplyHref(duiCourse, basic?.id)} className="group flex min-h-full flex-col rounded-[1.25rem] border border-slate-200 bg-slate-50 p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[#176b68] hover:shadow-[0_18px_50px_rgba(15,23,42,0.12)] focus:outline-none focus:ring-4 focus:ring-[#176b68]/20" aria-label="기본과정 시작하기">
               <p className="w-fit rounded-full border border-[#176b68]/20 bg-white px-3 py-1 text-xs font-black text-[#176b68]">부담 없이 시작하는 기본 과정</p>
               <h3 className="mt-4 text-2xl font-black">기본과정</h3>
               <p className="mt-4 text-sm font-bold text-slate-500 line-through">69,000원</p>
               <p className="mt-1 text-4xl font-black text-slate-950">{formatApplicationKrw(basic?.price || 49000)}</p>
               <p className="mt-4 text-sm leading-7 text-slate-700">예방교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정</p>
               <ul className="mt-6 flex-1 space-y-2">{["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지 체크리스트", "생활습관 점검자료", "기본 실천자료 제공"].map((item) => <li key={item} className="flex gap-2 text-sm font-bold leading-7 text-slate-800"><Icon name="check" className="mt-1 h-4 w-4 shrink-0 text-[#176b68]" />{item}</li>)}</ul>
-              <Link href={getApplyHref(duiCourse, basic?.id)} className={buttonClass("secondary", "md", "mt-6 rounded-full px-6 font-black")}>기본과정 시작하기</Link>
+              <span className={buttonClass("secondary", "md", "mt-6 rounded-full px-6 font-black transition group-hover:border-[#176b68] group-hover:bg-white")}>기본과정 시작하기</span>
               <p className="mt-4 text-xs font-bold leading-5 text-slate-500">자료 구성 개편에 따라 현재 가격이 적용되고 있습니다.</p>
-            </article>
-            <article className="relative flex min-h-full scale-[1.01] flex-col overflow-hidden rounded-[1.25rem] border-2 border-[#173968] bg-white p-6 shadow-[0_28px_80px_rgba(23,57,104,0.24)] lg:p-7">
+            </Link>
+            <Link href={getApplyHref(duiCourse, advanced?.id)} className="group relative flex min-h-full scale-[1.01] flex-col overflow-hidden rounded-[1.25rem] border-2 border-[#173968] bg-white p-6 shadow-[0_28px_80px_rgba(23,57,104,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_32px_88px_rgba(23,57,104,0.3)] focus:outline-none focus:ring-4 focus:ring-[#173968]/20 lg:p-7" aria-label="심화과정 시작하기">
               <div className="absolute inset-x-0 top-0 h-1.5 bg-[#173968]" />
               <p className="w-fit rounded-full bg-[#173968] px-3 py-1 text-xs font-black text-white">가장 많이 선택하는 과정</p>
               <h3 className="mt-4 text-2xl font-black">심화과정</h3>
@@ -121,9 +121,9 @@ export default function HomePage() {
               <p className="mt-1 text-5xl font-black text-slate-950">{formatApplicationKrw(advanced?.price || 99000)}</p>
               <p className="mt-4 text-sm leading-7 text-slate-700">양형자료 준비를 위한 실천자료까지 함께 정리할 수 있는 심화 과정</p>
               <ul className="mt-6 flex-1 space-y-2">{["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"].map((item) => <li key={item} className="flex gap-2 text-sm font-bold leading-7 text-slate-800"><Icon name="check" className="mt-1 h-4 w-4 shrink-0 text-[#173968]" />{item}</li>)}</ul>
-              <Link href={getApplyHref(duiCourse, advanced?.id)} className={buttonClass("primary", "md", "mt-6 rounded-full px-6 font-black")}>심화과정 시작하기</Link>
+              <span className={buttonClass("primary", "md", "mt-6 rounded-full px-6 font-black transition group-hover:bg-[#10213f]")}>심화과정 시작하기</span>
               <p className="mt-4 text-xs font-bold leading-5 text-slate-500">예방교육 이수와 함께 재발방지 실천자료를 체계적으로 정리할 수 있습니다.</p>
-            </article>
+            </Link>
           </div>
           <div className="mt-6 grid gap-3 rounded-[1rem] border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2 lg:grid-cols-4">{["온라인 즉시 수강 가능", "PDF 저장 및 출력 지원", "모바일·PC 이용 가능", "실천자료 직접 작성 가능"].map((item) => <div key={item} className="flex items-center gap-2 text-sm font-black text-slate-800"><Icon name="check" className="h-4 w-4 shrink-0 text-[#176b68]" />{item}</div>)}</div>
         </div>
@@ -140,7 +140,7 @@ export default function HomePage() {
 
       <section className="bg-white px-4 py-16 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-7xl">
-          <SectionTitle title="발급 문서 샘플을 확인하세요" body="기본 수료증과 심화 이수증 샘플을 전체 문서 형태로 확인할 수 있습니다. 실제 발급 문서는 수강자 정보와 이수 기록에 맞춰 생성됩니다." />
+          <SectionTitle title="발급 문서 샘플을 확인하세요" body="교육이수증과 인지행동기반 재발방지교육 이수증(심화과정) 샘플을 전체 문서 형태로 확인할 수 있습니다. 실제 발급 문서는 수강자 정보와 이수 기록에 맞춰 생성됩니다." />
           <div className="mt-8">
             <DocumentPreviewGallery documents={homeCertificateSamples} columnsClassName="sm:grid-cols-2" showPreviewButton={false} />
           </div>
