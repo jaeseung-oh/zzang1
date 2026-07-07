@@ -25,12 +25,12 @@ export default function DocumentPreviewGallery({ documents, columnsClassName = "
       <div className={`grid gap-4 ${columnsClassName}`}>
         {documents.map((document) => (
           <article key={document.id} className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-[0_16px_45px_rgba(15,23,42,0.08)]">
-            <div className={showPreviewButton ? "relative h-52 overflow-hidden bg-slate-100" : "relative h-80 overflow-hidden bg-white sm:h-[420px] xl:h-96"}>
-              <img src={document.imageSrc} alt={`${document.title} 예시 문서 일부`} className={showPreviewButton ? "h-full w-full object-cover object-top" : "h-full w-full object-contain object-center p-2"} />
-              <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-white/0" />
+            <div className={showPreviewButton ? "relative h-52 overflow-hidden bg-slate-100" : "relative aspect-[3/4] max-h-[760px] overflow-hidden bg-slate-100"}>
+              <img src={document.imageSrc} alt={`${document.title} 예시 문서 일부`} className={showPreviewButton ? "h-full w-full object-cover object-top" : "h-full w-full object-cover object-top"} />
+              {showPreviewButton ? <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-white/0" /> : null}
               {document.statusLabel ? <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-[#173968] shadow-sm">{document.statusLabel}</span> : null}
             </div>
-            <div className="p-5">
+            <div className={showPreviewButton ? "p-5" : "p-4"}>
               <h3 className={showPreviewButton ? "break-keep text-lg font-black text-[#06101b]" : "break-keep text-center text-lg font-black text-[#06101b]"}>{document.title}</h3>
               {showPreviewButton ? (
                 <>

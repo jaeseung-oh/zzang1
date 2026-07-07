@@ -36,7 +36,7 @@ const homeCertificateSamples: DocumentPreviewItem[] = [
     products: ["기본과정", "심화과정"],
     statusLabel: "샘플",
     description: "온라인 예방교육 이수 내용을 확인할 수 있는 기본 수료증 샘플입니다.",
-    imageSrc: "/images/%EA%B8%B0%EB%B3%B8%20%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%BA%A1%EC%B3%90%EB%B3%B8.jpg",
+    imageSrc: "/images/기본 수료증 캡쳐본.jpg",
   },
   {
     id: "home-advanced-certificate",
@@ -44,7 +44,7 @@ const homeCertificateSamples: DocumentPreviewItem[] = [
     products: ["심화과정"],
     statusLabel: "샘플",
     description: "심화과정에서 제공되는 인지행동기반 재발방지교육 이수증 샘플입니다.",
-    imageSrc: "/images/%EC%8B%AC%ED%99%94%EC%9D%B4%EC%88%98%EC%A6%9D%20%EC%BA%A1%EC%B3%90%EB%B3%B8.jpg",
+    imageSrc: "/images/심화이수증 캡쳐본.jpg",
   },
 ];
 
