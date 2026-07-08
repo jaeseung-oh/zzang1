@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, duiBasicModules, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, defaultCourse, duiBasicModules, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
@@ -108,6 +108,53 @@ function getEnrollmentStatusLabel(enrollment: EnrollmentRecord) {
   const expiresAt = toDate(enrollment.expiresAt);
   if (expiresAt && expiresAt.getTime() < Date.now()) return "만료";
   return "이용 불가";
+}
+
+function buildAdminPreviewEnrollments(): EnrollmentListItem[] {
+  const now = new Date();
+  const expiresAt = new Date(now);
+  expiresAt.setFullYear(expiresAt.getFullYear() + 10);
+
+  const courseEnrollments = allCourseCatalog.map((course) => ({
+    id: "admin-preview-" + course.id,
+    userId: "admin-preview",
+    courseId: course.id,
+    courseTitle: course.title,
+    productId: course.productId || (course.id === defaultCourse.id ? "dui-documents" : course.id),
+    productTitle: course.level === "advanced" ? "심화과정" : "기본과정",
+    paymentStatus: "paid",
+    enrollmentStatus: "active" as const,
+    accessStatus: "active" as const,
+    purchasedAt: now,
+    expiresAt,
+    certificateAvailable: true,
+    amount: course.priceKrw,
+    progress: 0,
+    completedLessons: 0,
+    totalLessons: course.modules.length,
+  }));
+
+  return [
+    ...courseEnrollments,
+    {
+      id: "admin-preview-" + DUI_CBT_ADVANCED_COURSE_ID,
+      userId: "admin-preview",
+      courseId: DUI_CBT_ADVANCED_COURSE_ID,
+      courseTitle: "음주운전 예방교육 심화과정",
+      productId: "dui-cbt-advanced",
+      productTitle: "심화과정",
+      paymentStatus: "paid",
+      enrollmentStatus: "active" as const,
+      accessStatus: "active" as const,
+      purchasedAt: now,
+      expiresAt,
+      certificateAvailable: true,
+      amount: 99000,
+      progress: 0,
+      completedLessons: 0,
+      totalLessons: 2,
+    },
+  ];
 }
 
 const documentLabels: Record<string, string> = {
@@ -258,14 +305,16 @@ export default function DashboardPage() {
     };
   }, [progress]);
 
-  const advancedEnrollmentRecord = enrollments.find((enrollment) => {
+  const displayEnrollments = adminPreview ? buildAdminPreviewEnrollments() : enrollments;
+
+  const advancedEnrollmentRecord = displayEnrollments.find((enrollment) => {
     if (!isEnrollmentActive(enrollment)) return false;
     const course = getCourseDefinition(enrollment.courseId);
     return enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID || course?.level === "advanced";
   });
   const hasAdvancedCertificateAccess = adminPreview || Boolean(advancedEnrollmentRecord);
   const advancedBaseCertificateCourseId = advancedEnrollmentRecord?.courseId === DUI_CBT_ADVANCED_COURSE_ID ? defaultCourse.id : advancedEnrollmentRecord?.courseId || defaultCourse.id;
-  const documentFormEnrollments = enrollments.filter((enrollment) => isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
+  const documentFormEnrollments = displayEnrollments.filter((enrollment) => isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
   const hasDocumentFormsAccess = adminPreview || documentFormEnrollments.length > 0;
   const primaryDocumentCourseId = documentFormEnrollments[0]?.courseId || defaultCourse.id;
   const primaryDocuments = getPreventionDocumentsForCourse(primaryDocumentCourseId);
@@ -332,15 +381,15 @@ export default function DashboardPage() {
                 <Link href="/courses/apply/?category=dui" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", boxShadow: "0 10px 24px rgba(16,33,63,0.24)" }} className={buttonClass("primary", "sm", "mt-4 rounded-full px-5 font-black")}>강의 구매하러 가기</Link>
               </div>
             ) : null}
-            {enrollments.length ? (
+            {displayEnrollments.length ? (
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                {enrollments.map((enrollment) => {
+                {displayEnrollments.map((enrollment) => {
                   const active = isEnrollmentActive(enrollment);
                   const progressRate = enrollment.courseId === defaultCourse.id ? Math.max(enrollment.progress ?? 0, progressSummary.completionRate) : enrollment.progress ?? 0;
                   const completed = enrollment.courseId === defaultCourse.id ? (progressRate >= 100 || progressSummary.isCompleted) : progressRate >= 100;
                   const certificateReady = active;
                   return (
-                    <article key={enrollment.courseId + (enrollment.paymentId || enrollment.orderId || "")} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
+                    <article key={(enrollment.id || enrollment.courseId) + (enrollment.paymentId || enrollment.orderId || "")} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="font-bold text-slate-950">{enrollment.courseTitle || defaultCourse.title}</p>
@@ -351,7 +400,7 @@ export default function DashboardPage() {
                       {(() => {
                         const course = getCourseDefinition(enrollment.courseId);
                         const modules = getCourseModules(enrollment.courseId);
-                        const documents = course?.documents || (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? [{ type: "cbt-completion", title: "인지행동 개선교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID }] : [{ type: "course-certificate", title: "수료증", courseId: enrollment.courseId }]);
+                        const documents = course?.documents || (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? [{ type: "cbt-completion", title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID }] : [{ type: "course-certificate", title: "수료증", courseId: enrollment.courseId }]);
                         return (
                           <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
                             <p className="text-xs font-bold text-slate-600">수강 가능한 강의</p>
@@ -503,12 +552,12 @@ export default function DashboardPage() {
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
               <div className="mb-6 rounded-2xl border-4 border-[#facc15] bg-white p-5 shadow-[0_22px_54px_rgba(250,204,21,0.26)]">
                 <p className="text-xl font-black text-slate-950">서류 인쇄하기</p>
-                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 예시서류를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요." : "수강권을 선택하면 과정별 예시서류 3종을 이용할 수 있습니다."}</p>
+                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 서식을 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요." : "수강권을 선택하면 과정별 서식 3종을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
                   {dashboardDocumentEntries.map(({ document, enrollment }) => (
                     <Link key={(enrollment.courseId || defaultCourse.id) + document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       <span><span className="block text-xs font-bold text-slate-700">{enrollment.courseTitle || defaultCourse.title}</span>{document.title}</span>
-                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">예시 · 인쇄</span>
+                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">서식 · 인쇄</span>
                     </Link>
                   ))}
                 </div>

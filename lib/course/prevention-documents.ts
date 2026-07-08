@@ -38,18 +38,18 @@ export const preventionDocumentApplyInfo: Record<PreventionDocumentCategory, { c
 };
 
 export const preventionDocuments: PreventionDocumentDefinition[] = [
-  { id: "prevention-plan", category: "dui", kind: "prevention-plan", title: "재발방지계획서", description: "음주운전 재발 원인을 점검하고 구체적인 재발방지 계획을 정리하는 서식입니다." },
-  { id: "drinking-action-plan", category: "dui", kind: "action-plan", title: "음주예방실천계획서", description: "음주 습관과 음주 후 이동 계획을 점검하고 실천 기준을 정리하는 서식입니다." },
-  { id: "pledge", category: "dui", kind: "pledge", title: "음주운전 재발방지 서약서", description: "음주 후 운전하지 않겠다는 구체적 서약사항을 정리하는 서식입니다." },
-  { id: "violence-prevention-plan", category: "violence", kind: "prevention-plan", title: "폭력범죄 재범방지계획서", description: "분노·충동·갈등 상황을 점검하고 폭력 행동을 차단하기 위한 계획서입니다." },
-  { id: "violence-action-plan", category: "violence", kind: "action-plan", title: "폭력예방 실천계획서", description: "갈등 발생 전후의 멈춤, 거리두기, 비폭력 대화 실천 기준을 정리하는 서식입니다." },
-  { id: "violence-pledge", category: "violence", kind: "pledge", title: "폭력범죄 재범방지 서약서", description: "신체적·언어적 폭력을 반복하지 않겠다는 구체적 서약사항을 정리하는 서식입니다." },
-  { id: "gambling-prevention-plan", category: "gambling", kind: "prevention-plan", title: "도박중독 재발방지계획서", description: "도박 충동, 금전 관리, 접근 차단, 회복 지원 계획을 정리하는 서식입니다." },
-  { id: "gambling-action-plan", category: "gambling", kind: "action-plan", title: "도박예방 실천계획서", description: "도박 접근 경로와 금전 사용을 관리하고 대체 행동을 세우는 실천 서식입니다." },
-  { id: "gambling-pledge", category: "gambling", kind: "pledge", title: "도박중독 재발방지 서약서", description: "도박 및 사행성 행위에 다시 접근하지 않기 위한 생활 서약서입니다." },
-  { id: "sexual-offense-prevention-plan", category: "sexual-offense", kind: "prevention-plan", title: "성범죄 재범방지계획서", description: "동의·경계·왜곡된 인식·위험 상황을 점검하고 재범방지 계획을 정리하는 서식입니다." },
-  { id: "sexual-offense-action-plan", category: "sexual-offense", kind: "action-plan", title: "성범죄예방 실천계획서", description: "관계 윤리, 디지털 경계, 위험 상황 회피와 도움 요청 기준을 정리하는 서식입니다." },
-  { id: "sexual-offense-pledge", category: "sexual-offense", kind: "pledge", title: "성범죄 재범방지 서약서", description: "타인의 성적 자기결정권과 경계를 존중하겠다는 구체적 서약서입니다." },
+  { id: "prevention-plan", category: "dui", kind: "prevention-plan", title: "재발방지계획서 서식", description: "음주운전 재발 원인을 점검하고 구체적인 재발방지 계획을 정리하는 서식입니다." },
+  { id: "drinking-action-plan", category: "dui", kind: "action-plan", title: "음주예방실천계획서 서식", description: "음주 습관과 음주 후 이동 계획을 점검하고 실천 기준을 정리하는 서식입니다." },
+  { id: "pledge", category: "dui", kind: "pledge", title: "음주운전 재발방지 서약서 서식", description: "음주 후 운전하지 않겠다는 구체적 서약사항을 정리하는 서식입니다." },
+  { id: "violence-prevention-plan", category: "violence", kind: "prevention-plan", title: "폭력범죄 재범방지계획서 서식", description: "분노·충동·갈등 상황을 점검하고 폭력 행동을 차단하기 위한 계획서입니다." },
+  { id: "violence-action-plan", category: "violence", kind: "action-plan", title: "폭력예방 실천계획서 서식", description: "갈등 발생 전후의 멈춤, 거리두기, 비폭력 대화 실천 기준을 정리하는 서식입니다." },
+  { id: "violence-pledge", category: "violence", kind: "pledge", title: "폭력범죄 재범방지 서약서 서식", description: "신체적·언어적 폭력을 반복하지 않겠다는 구체적 서약사항을 정리하는 서식입니다." },
+  { id: "gambling-prevention-plan", category: "gambling", kind: "prevention-plan", title: "도박중독 재발방지계획서 서식", description: "도박 충동, 금전 관리, 접근 차단, 회복 지원 계획을 정리하는 서식입니다." },
+  { id: "gambling-action-plan", category: "gambling", kind: "action-plan", title: "도박예방 실천계획서 서식", description: "도박 접근 경로와 금전 사용을 관리하고 대체 행동을 세우는 실천 서식입니다." },
+  { id: "gambling-pledge", category: "gambling", kind: "pledge", title: "도박중독 재발방지 서약서 서식", description: "도박 및 사행성 행위에 다시 접근하지 않기 위한 생활 서약서입니다." },
+  { id: "sexual-offense-prevention-plan", category: "sexual-offense", kind: "prevention-plan", title: "성범죄 재범방지계획서 서식", description: "동의·경계·왜곡된 인식·위험 상황을 점검하고 재범방지 계획을 정리하는 서식입니다." },
+  { id: "sexual-offense-action-plan", category: "sexual-offense", kind: "action-plan", title: "성범죄예방 실천계획서 서식", description: "관계 윤리, 디지털 경계, 위험 상황 회피와 도움 요청 기준을 정리하는 서식입니다." },
+  { id: "sexual-offense-pledge", category: "sexual-offense", kind: "pledge", title: "성범죄 재범방지 서약서 서식", description: "타인의 성적 자기결정권과 경계를 존중하겠다는 구체적 서약서입니다." },
 ];
 
 export function getPreventionDocumentCategoryFromCourseId(courseId?: string | null): PreventionDocumentCategory {

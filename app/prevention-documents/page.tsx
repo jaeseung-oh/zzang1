@@ -24,7 +24,7 @@ import {
 import { centerLogoPath } from "@/app/components/SealStamp";
 
 const blank = "____________";
-const exampleNotice = "본 서식은 예시자료입니다. 그대로 제출하기보다 반드시 본인의 실제 사건 경위, 생활환경, 반성 내용, 재발방지 실천계획에 맞게 자필로 수정·보완하여 작성해 주세요.";
+const exampleNotice = "본 서식은 참고용 작성 서식입니다. 그대로 제출하기보다 반드시 본인의 실제 사건 경위, 생활환경, 반성 내용, 재발방지 실천계획에 맞게 자필로 수정·보완하여 작성해 주세요.";
 const printStyles = "@page { size: A4; margin: 14mm; } .document-watermark { opacity: 0.055; } @media print { html, body { width: 210mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; } body * { visibility: hidden !important; } .document-print-area, .document-print-area * { visibility: visible !important; } .document-print-area { position: absolute !important; left: 0 !important; top: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; background: #fff !important; } .document-paper { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; box-shadow: none !important; border: 0 !important; outline: 0 !important; --tw-ring-shadow: 0 0 #0000 !important; } .document-watermark { opacity: 0.06 !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; } .no-print { display: none !important; } .document-paper section { break-inside: avoid; page-break-inside: avoid; } .document-paper h1 { margin-top: 0 !important; } }";
 
 type DocumentSection = { title: string; paragraphs?: string[]; items?: string[]; table?: string[] };

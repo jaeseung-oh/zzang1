@@ -43,7 +43,7 @@ export const courseCatalog: CourseDefinition[] = [
     accessValidMonths: 3,
     accessValidLabel: `결제일로부터 ${duiPreventionCourseProduct.durationDays}일`,
     caseTypes: ["음주운전"],
-    outputs: ["수료증", "금주 실천 서약서", "재발방지 계획서"],
+    outputs: ["음주운전 예방교육 수료증", "재발방지계획서 서식", "음주예방실천계획서 서식", "음주운전 재발방지 서약서 서식"],
     modules: [
       {
         id: "dui-lesson-1",
@@ -166,6 +166,7 @@ type PreventionCategorySeed = {
   caseType: string;
   streamUid: string;
   sourceFileName: string;
+  documentTitles: string[];
 };
 
 export const preventionCategorySeeds: PreventionCategorySeed[] = [
@@ -177,6 +178,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "폭력범죄",
     streamUid: preventionStreamUids.violence,
     sourceFileName: "폭력방지교육_vrew_내보내기.mp4",
+    documentTitles: ["폭력범죄 재범방지계획서 서식", "폭력예방 실천계획서 서식", "폭력범죄 재범방지 서약서 서식"],
   },
   {
     categoryId: "gambling-relapse-prevention",
@@ -186,6 +188,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "도박중독",
     streamUid: preventionStreamUids.gambling,
     sourceFileName: "도박중독재범방지_vrew_내보내기.mp4",
+    documentTitles: ["도박중독 재발방지계획서 서식", "도박예방 실천계획서 서식", "도박중독 재발방지 서약서 서식"],
   },
   {
     categoryId: "sexual-offense-prevention",
@@ -195,6 +198,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "성범죄",
     streamUid: preventionStreamUids.sexualOffense,
     sourceFileName: "성폭력재벙예방교육_vrew_내보내기.mp4",
+    documentTitles: ["성범죄 재범방지계획서 서식", "성범죄예방 실천계획서 서식", "성범죄 재범방지 서약서 서식"],
   },
 ];
 
@@ -239,7 +243,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       durationMinutes: baseModule.minutes,
       priceKrw: 49000,
       priceLabel: formatKrw(49000),
-      outputs: [seed.title + " 수료증"],
+      outputs: [seed.title + " 수료증", ...seed.documentTitles],
       modules: [baseModule],
       documents: [{ type: "course-certificate" as const, title: seed.title + " 수료증" }],
     },
@@ -252,11 +256,11 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       durationMinutes: baseModule.minutes + CBT_COMPLETION_MODULE.minutes,
       priceKrw: 99000,
       priceLabel: formatKrw(99000),
-      outputs: [seed.title + " 수료증", "인지행동 개선교육 이수증"],
+      outputs: [seed.title + " 수료증", ...seed.documentTitles, "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
       modules: [baseModule, CBT_COMPLETION_MODULE],
       documents: [
         { type: "course-certificate" as const, title: seed.title + " 수료증" },
-        { type: "cbt-completion" as const, title: "인지행동 개선교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID },
+        { type: "cbt-completion" as const, title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID },
       ],
     },
   ];

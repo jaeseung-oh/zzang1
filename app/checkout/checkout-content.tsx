@@ -102,7 +102,7 @@ export default function CheckoutContent() {
   const selectedCourseDefinition = getCourseDefinition(selectedCourseId);
   const selectedCourseTitle = selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedTotalLessons = selectedCourseDefinition?.modules.length || (selectedProduct.courseId ? 5 : 3);
-  const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 실천자료 · 양형자료 준비 참고자료" : selectedProduct.id === "dui-documents" ? "수료증 · 반성문 예시 · 재발방지계획서 · 생활개선계획" : "수료증 · 기본 실천자료");
+  const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : selectedProduct.id === "dui-documents" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : "수료증 · 기본 서식");
   const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
   const selectedPaymentProvider = selectedPaymentMethod === "kakaopay" ? "portone-kakaopay-v2" : "portone-kcp-v2";
   const selectedIsAdvanced = selectedProduct.id === "dui-cbt-advanced" || selectedProduct.id.endsWith("advanced");
@@ -395,7 +395,7 @@ export default function CheckoutContent() {
                     const isAdvancedProduct = product.id === "dui-cbt-advanced" || product.id.endsWith("advanced");
                     const previousPrice = isAdvancedProduct ? "129,000원" : "69,000원";
                     const courseDocumentTitles = getPreventionDocumentsForCourse(product.courseId || selectedCourseId).map((document) => document.title);
-                    const displayIncludes = isAdvancedProduct ? ["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"] : ["온라인 예방교육", "교육 수료증 PDF 발급", ...courseDocumentTitles, "인쇄 및 PDF 저장"];
+                    const displayIncludes = ["온라인 예방교육", "교육 수료증 PDF 발급", ...courseDocumentTitles, ...(isAdvancedProduct ? ["반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"] : []), "인쇄 및 PDF 저장"];
                     return (
                       <button
                         key={product.id}
@@ -448,7 +448,7 @@ export default function CheckoutContent() {
             <div className="mt-4 rounded-2xl border border-[#d3b271]/45 bg-[#fffaf0] p-4 sm:p-5">
               <p className="text-sm font-bold text-[#10213f]">결제 회원 제공 자료</p>
               <p className="mt-1 text-sm leading-6 text-slate-700">
-                {selectedCourseDefinition ? `${selectedCourseTitle} 결제 완료 후 ${selectedResourceLabel}을 이용할 수 있습니다.` : selectedProduct.id === "dui-cbt-advanced" ? "결제 완료 후 음주운전 예방교육과 인지행동 개선교육을 모두 수강하고 수료증, 3종 서식, 이수증, 상세 내역서를 출력할 수 있습니다." : selectedProduct.id === "dui-documents" ? "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시, 재발방지 관련 3종 서식을 열람하고 인쇄하거나 PDF로 저장할 수 있습니다." : "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다."}
+                {selectedCourseDefinition ? `${selectedCourseTitle} 결제 완료 후 ${selectedResourceLabel}을 이용할 수 있습니다.` : selectedProduct.id === "dui-cbt-advanced" ? "결제 완료 후 음주운전 예방교육과 인지행동 개선교육을 모두 수강하고 수료증, 3종 서식, 이수증, 상세 내역서를 출력할 수 있습니다." : selectedProduct.id === "dui-documents" ? "결제 완료 후 재발방지 관련 3종 서식과 반성문 작성 서식을 열람하고 인쇄하거나 PDF로 저장할 수 있습니다." : "결제 완료 후 반성문 작성 가이드와 음주운전 반성문 예시를 열람하고 인쇄하거나 PDF로 저장할 수 있습니다."}
               </p>
             </div>
           </article>

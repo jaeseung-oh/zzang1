@@ -86,13 +86,11 @@ export default function HomePage() {
 
           <div className="grid content-center gap-4">
             <div className="rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-[0_24px_70px_rgba(15,23,42,0.15)]">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-4"><div><p className="text-sm font-black text-slate-900">실천자료 관리</p><p className="mt-1 text-xs font-bold text-slate-500">ResetEdu Prevention Education Center</p></div><span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-black text-emerald-700">온라인 작성</span></div>
-              <div className="mt-5 grid gap-4 lg:grid-cols-[1.05fr_0.95fr]">
-                <div className="rounded-xl bg-slate-950 p-4 text-white"><div className="rounded-lg bg-[linear-gradient(135deg,#173968,#176b68)] p-4"><div className="flex items-center gap-3"><Icon name="file" className="h-9 w-9 text-white" /><div><p className="text-sm font-black">재발방지계획서</p><p className="mt-1 text-xs text-white/75">위험상황 · 대처행동 · 점검일지</p></div></div><div className="mt-5 space-y-2">{["생활습관 점검", "실천서약", "교육 이수 확인"].map((item) => <div key={item} className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold"><Icon name="check" className="h-4 w-4 text-emerald-300" />{item}</div>)}</div></div></div>
-                <div className="grid gap-3">
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><Icon name="list" className="h-7 w-7 text-[#176b68]" /><p className="mt-3 text-sm font-black text-slate-900">체크리스트</p><p className="mt-1 text-xs leading-5 text-slate-600">반복 위험요인과 생활개선 항목을 빠짐없이 점검합니다.</p></div>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><Icon name="chart" className="h-7 w-7 text-[#173968]" /><p className="mt-3 text-sm font-black text-slate-900">실천기록</p><p className="mt-1 text-xs leading-5 text-slate-600">교육 이수 내용과 실천자료를 PDF로 저장하고 출력합니다.</p></div>
-                </div>
+              <div className="flex items-center justify-between border-b border-slate-200 pb-4"><div><p className="text-sm font-black text-slate-900">빠른 양형자료 준비</p><p className="mt-1 text-xs font-bold text-slate-500">결제 후 바로 수강·출력 가능</p></div><span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-black text-amber-900">49,000원부터</span></div>
+              <div className="mt-5 rounded-xl bg-slate-950 p-4 text-white"><div className="rounded-lg bg-[linear-gradient(135deg,#173968,#176b68)] p-4"><div className="flex items-center gap-3"><Icon name="file" className="h-9 w-9 text-white" /><div><p className="text-sm font-black">교육 수료증 + 3종 서식</p><p className="mt-1 text-xs text-white/75">수강 완료 후 PDF 저장 및 인쇄</p></div></div><div className="mt-5 grid gap-2 sm:grid-cols-2">{["과정 선택", "온라인 결제", "강의 수강", "서류 출력"].map((item, index) => <div key={item} className="flex items-center gap-2 rounded-lg bg-white/10 px-3 py-2 text-xs font-bold"><span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white text-[10px] font-black text-[#173968]">{index + 1}</span>{item}</div>)}</div></div></div>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><Icon name="list" className="h-7 w-7 text-[#176b68]" /><p className="mt-3 text-sm font-black text-slate-900">기본과정</p><p className="mt-1 text-xs leading-5 text-slate-600">예방교육, 수료증, 재발방지계획서·실천계획서·서약서 서식 제공</p></div>
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4"><Icon name="chart" className="h-7 w-7 text-[#173968]" /><p className="mt-3 text-sm font-black text-slate-900">심화과정</p><p className="mt-1 text-xs leading-5 text-slate-600">기본 구성에 반성문 작성 서식, 이수증, 상세 내역서까지 제공</p></div>
               </div>
             </div>
           </div>
@@ -109,7 +107,7 @@ export default function HomePage() {
               <p className="mt-4 text-sm font-bold text-slate-500 line-through">69,000원</p>
               <p className="mt-1 text-4xl font-black text-slate-950">{formatApplicationKrw(basic?.price || 49000)}</p>
               <p className="mt-4 text-sm leading-7 text-slate-700">예방교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정</p>
-              <ul className="mt-6 flex-1 space-y-2">{["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지 체크리스트", "생활습관 점검자료", "기본 실천자료 제공"].map((item) => <li key={item} className="flex gap-2 text-sm font-bold leading-7 text-slate-800"><Icon name="check" className="mt-1 h-4 w-4 shrink-0 text-[#176b68]" />{item}</li>)}</ul>
+              <ul className="mt-6 flex-1 space-y-2">{["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지계획서 서식", "음주예방실천계획서 서식", "음주운전 재발방지 서약서 서식", "인쇄 및 PDF 저장"].map((item) => <li key={item} className="flex gap-2 text-sm font-bold leading-7 text-slate-800"><Icon name="check" className="mt-1 h-4 w-4 shrink-0 text-[#176b68]" />{item}</li>)}</ul>
               <span className={buttonClass("secondary", "md", "mt-6 rounded-full px-6 font-black transition group-hover:border-[#176b68] group-hover:bg-white")}>기본과정 시작하기</span>
               <p className="mt-4 text-xs font-bold leading-5 text-slate-500">자료 구성 개편에 따라 현재 가격이 적용되고 있습니다.</p>
             </Link>
@@ -120,7 +118,7 @@ export default function HomePage() {
               <p className="mt-4 text-sm font-bold text-slate-500 line-through">129,000원</p>
               <p className="mt-1 text-5xl font-black text-slate-950">{formatApplicationKrw(advanced?.price || 99000)}</p>
               <p className="mt-4 text-sm leading-7 text-slate-700">양형자료 준비를 위한 실천자료까지 함께 정리할 수 있는 심화 과정</p>
-              <ul className="mt-6 flex-1 space-y-2">{["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"].map((item) => <li key={item} className="flex gap-2 text-sm font-bold leading-7 text-slate-800"><Icon name="check" className="mt-1 h-4 w-4 shrink-0 text-[#173968]" />{item}</li>)}</ul>
+              <ul className="mt-6 flex-1 space-y-2">{["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지계획서 서식", "음주예방실천계획서 서식", "음주운전 재발방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"].map((item) => <li key={item} className="flex gap-2 text-sm font-bold leading-7 text-slate-800"><Icon name="check" className="mt-1 h-4 w-4 shrink-0 text-[#173968]" />{item}</li>)}</ul>
               <span className={buttonClass("primary", "md", "mt-6 rounded-full px-6 font-black transition group-hover:bg-[#10213f]")}>심화과정 시작하기</span>
               <p className="mt-4 text-xs font-bold leading-5 text-slate-500">예방교육 이수와 함께 재발방지 실천자료를 체계적으로 정리할 수 있습니다.</p>
             </Link>
@@ -133,7 +131,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Education" title="교육·기록·생활개선을 한 흐름으로 정리합니다" body="사건 이후 어떤 자료를 준비해야 할지 막막한 상황에서, 예방교육 수강부터 자기점검과 실천자료 정리까지 단계적으로 확인할 수 있습니다." /><div className="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-4">{[
           ["예방교육", "사건 유형별 위험요인과 책임 인식을 차분히 학습합니다."],
           ["자기점검", "반복될 수 있는 상황, 습관, 감정 반응을 직접 점검합니다."],
-          ["실천계획", "재발방지계획서와 생활개선계획을 실행 가능한 문장으로 정리합니다."],
+          ["실천계획", "재발방지계획서 서식과 실천계획서 서식을 실행 가능한 문장으로 정리합니다."],
           ["자료 관리", "수료증과 실천자료를 확인하고 PDF 저장 및 출력을 진행합니다."],
         ].map(([title, body]) => <article key={title} className="rounded-[1rem] border border-slate-200 bg-white p-5 shadow-sm"><Icon name="shield" className="h-8 w-8 text-[#176b68]" /><h3 className="mt-4 text-lg font-black">{title}</h3><p className="mt-3 text-sm leading-7 text-slate-700">{body}</p></article>)}</div></div>
       </section>

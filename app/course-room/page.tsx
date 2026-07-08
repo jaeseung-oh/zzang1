@@ -1844,8 +1844,8 @@ export default function CourseRoomPage() {
                 </div>
               ) : null}
               <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-sky-300 bg-sky-50 p-4 shadow-[0_18px_44px_rgba(14,165,233,0.20)]">
-                <p className="text-sm font-black text-sky-950">{preventionDocumentCategoryLabels[courseDocumentCategory]} 예시서류 3종</p>
-                <p className="text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 예시서류를 열어 본인 사건과 상황에 맞게 자필로 수정·작성한 뒤 인쇄하거나 PDF로 저장할 수 있습니다." : "해당 과정 수강권을 선택하면 이용할 수 있습니다."}</p>
+                <p className="text-sm font-black text-sky-950">{preventionDocumentCategoryLabels[courseDocumentCategory]} 서식 3종</p>
+                <p className="text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 서식을 열어 본인 사건과 상황에 맞게 자필로 수정·작성한 뒤 인쇄하거나 PDF로 저장할 수 있습니다." : "해당 과정 수강권을 선택하면 이용할 수 있습니다."}</p>
                 {coursePreventionDocuments.map((document) => (
                   <Link
                     key={document.id}
@@ -1853,7 +1853,7 @@ export default function CourseRoomPage() {
                     className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg"
                   >
                     <span>{document.title}</span>
-                    <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-black !text-white">{hasDocumentFormsAccess ? "예시 · 인쇄" : "수강권 선택"}</span>
+                    <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-black !text-white">{hasDocumentFormsAccess ? "서식 · 인쇄" : "수강권 선택"}</span>
                   </Link>
                 ))}
               </div>
