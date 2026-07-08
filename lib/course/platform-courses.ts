@@ -107,7 +107,7 @@ export const platformCourseCategories: CourseCategory[] = [
     basicProductId: "violence-basic",
     advancedProductId: "violence-advanced",
     certificateTitle: "폭력범죄 재범방지교육 수료증",
-    availableDocuments: ["폭력범죄 재범방지교육 수료증", "인지행동 개선교육 이수증: 심화과정에 한함"],
+    availableDocuments: ["폭력범죄 재범방지교육 수료증", "폭력범죄 재범방지계획서 예시", "폭력예방 실천계획서 예시", "폭력범죄 재범방지 서약서 예시", "인지행동 개선교육 이수증: 심화과정에 한함"],
     imageAlt: "갈등 상황에서 멈춤과 거리 두기를 상징하는 교육 화면",
     seo: {
       title: "폭력범죄 재범방지교육 온라인 과정 | ResetEdu 재발방지교육센터",
@@ -149,7 +149,7 @@ export const platformCourseCategories: CourseCategory[] = [
     basicProductId: "gambling-basic",
     advancedProductId: "gambling-advanced",
     certificateTitle: "도박중독 재발방지교육 수료증",
-    availableDocuments: ["도박중독 재발방지교육 수료증", "인지행동 개선교육 이수증: 심화과정에 한함"],
+    availableDocuments: ["도박중독 재발방지교육 수료증", "도박중독 재발방지계획서 예시", "도박예방 실천계획서 예시", "도박중독 재발방지 서약서 예시", "인지행동 개선교육 이수증: 심화과정에 한함"],
     imageAlt: "돈과 휴대폰 접근 관리를 상징하는 교육 화면",
     seo: {
       title: "도박중독 재발방지교육 온라인 과정 | ResetEdu 재발방지교육센터",
@@ -191,7 +191,7 @@ export const platformCourseCategories: CourseCategory[] = [
     basicProductId: "sexual-offense-basic",
     advancedProductId: "sexual-offense-advanced",
     certificateTitle: "성범죄 재범방지교육 수료증",
-    availableDocuments: ["성범죄 재범방지교육 수료증", "인지행동 개선교육 이수증: 심화과정에 한함"],
+    availableDocuments: ["성범죄 재범방지교육 수료증", "성범죄 재범방지계획서 예시", "성범죄예방 실천계획서 예시", "성범죄 재범방지 서약서 예시", "인지행동 개선교육 이수증: 심화과정에 한함"],
     imageAlt: "존중과 경계를 상징하는 온라인 교육 화면",
     seo: {
       title: "성범죄 재범방지교육 온라인 과정 | ResetEdu 재발방지교육센터",
