@@ -13,7 +13,7 @@ import { getVerifiedActiveUserEnrollments, hasCourseAccess, type EnrollmentRecor
 import { trackEvent } from "@/lib/analytics/ga";
 import { buttonClass } from "@/app/components/ui/button-styles";
 
-const issuerFallback = "ResetEdu 재발방지교육센터";
+const issuerFallback = "리셋에듀센터";
 
 type TimestampLike = { seconds: number } | string | Date | null;
 
@@ -416,7 +416,7 @@ function CertificatePageContent() {
 
   const certificateNo = certificate?.certificateNo || certificate?.issueNumber || "발급번호 확인 중";
   const issuedAt = certificate?.issuedAt || certificate?.certificateIssuedAt || certificate?.completedAt || null;
-  const issuerName = certificate?.issuerName || issuerFallback;
+  const issuerName = issuerFallback;
   const effectiveDocumentType = requestedDocumentType || certificate?.documentType || "completion";
   const isCbtCertificate = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID || effectiveDocumentType === "cbt-completion";
   const isDetailDocument = effectiveDocumentType === "cbt-detail";
@@ -427,7 +427,7 @@ function CertificatePageContent() {
   const documentBody = isDetailDocument
     ? "위 사람은 본 기관에서 운영하는 음주운전 예방교육과 인지행동기반 재발방지교육으로 구성된 재범방지 교육과정을 성실히 이수하였기에 아래와 같이 상세 교육 내역을 확인합니다."
     : isCbtCertificate
-      ? "위 사람은 ResetEdu 재발방지교육센터의 「인지행동 개선교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
+      ? "위 사람은 리셋에듀센터의 「인지행동 개선교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
         ? `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다.`
         : `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;

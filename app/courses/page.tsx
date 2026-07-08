@@ -112,11 +112,6 @@ export default function CoursesPage() {
         </div>
       </section>
 
-      <section className="px-4 pb-14 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-7xl rounded-2xl border border-amber-200 bg-amber-50 p-5 text-xs leading-6 text-amber-950 sm:text-sm">
-          ResetEdu 재발방지교육센터는 민간 온라인 교육기관입니다. 수료증, 이수증 및 교육자료는 교육 참여와 재발방지 노력을 정리하기 위한 양형자료 준비에 활용할 수 있으나, 제출 가능 여부와 활용 결과는 개별 사건과 제출기관의 판단에 따라 달라질 수 있습니다.
-        </div>
-      </section>
     </main>
   );
 }

@@ -1153,7 +1153,7 @@ export default function CourseRoomPage() {
     }
 
     if (!legalAccepted) {
-      setStatusMessage("수강 전 법적 고지와 민간 교육 서비스 동의를 먼저 확인해 주세요.");
+      setStatusMessage("수강 전 안내 사항을 먼저 확인해 주세요.");
       return;
     }
 
@@ -1188,7 +1188,7 @@ export default function CourseRoomPage() {
   const handleLegalGateAccept = async () => {
     setLegalAccepted(true);
     setLegalGateChecked(false);
-    setStatusMessage("법적 고지 동의가 확인되었습니다. 강의실 이용을 시작할 수 있습니다.");
+    setStatusMessage("수강 안내 확인이 완료되었습니다. 강의실 이용을 시작할 수 있습니다.");
 
     if (!uidRef.current) {
       return;
@@ -1258,14 +1258,14 @@ export default function CourseRoomPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#06080c]/86 px-4 backdrop-blur-xl">
           <div className="w-full max-w-2xl overflow-hidden rounded-[1.75rem] border border-white/14 bg-white/[0.08] shadow-[0_30px_120px_rgba(0,0,0,0.55)] ring-1 ring-indigo-300/12">
             <div className="border-b border-white/10 bg-[linear-gradient(135deg,rgba(79,70,229,0.28),rgba(147,51,234,0.22))] px-6 py-5 sm:px-8">
-              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-100/80">Legal Consent Required</p>
-              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">수강 전 법적 고지 확인</h2>
-              <p className="mt-3 text-sm leading-7 text-slate-200">이 과정은 민간 교육 서비스이며 법률 자문, 사건 결과 또는 특정 법적 효과를 보장하지 않습니다. 동의 후 강의실과 영상 재생 기능이 열립니다.</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-indigo-100/80">Course Notice</p>
+              <h2 className="mt-3 text-2xl font-semibold tracking-[-0.04em] text-white sm:text-3xl">수강 전 안내 확인</h2>
+              <p className="mt-3 text-sm leading-7 text-slate-200">수강 전 교육 진행 방식과 서류 이용 안내를 확인해 주세요. 확인 후 강의실과 영상 재생 기능이 열립니다.</p>
             </div>
             <div className="space-y-4 px-6 py-6 sm:px-8">
               <div className="rounded-2xl border border-white/12 bg-[#06080c]/55 p-5 text-sm leading-7 text-slate-200">
                 <p>{disclaimer}</p>
-                <p className="mt-3">이수 확인 자료는 수강 사실을 정리하는 참고 자료이며, 제출 여부와 사용 방식은 수강자가 직접 판단해야 합니다.</p>
+                <p className="mt-3">이수 확인 자료는 수강 사실과 학습 기록을 정리하는 자료입니다.</p>
               </div>
               <label className="flex items-start gap-3 rounded-2xl border border-indigo-300/18 bg-indigo-300/[0.07] px-4 py-4 text-sm leading-7 text-slate-100">
                 <input
@@ -1274,7 +1274,7 @@ export default function CourseRoomPage() {
                   onChange={(event) => setLegalGateChecked(event.target.checked)}
                   className="mt-1 h-4 w-4 accent-indigo-400"
                 />
-                <span>위 법적 고지와 민간 교육 서비스의 한계를 확인했고, 동의 후 수강을 시작합니다.</span>
+                <span>위 수강 안내를 확인했고, 동의 후 수강을 시작합니다.</span>
               </label>
               <button
                 type="button"

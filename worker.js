@@ -1394,7 +1394,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const issuedAt = new Date().toISOString();
     const completedAt = progress?.completedAt || issuedAt;
     const certificateNo = await makeCertificateNo(certificateId, issuedAt);
-    const issuerName = env.CERTIFICATE_ISSUER_NAME || 'ResetEdu 재발방지교육센터';
+    const issuerName = '리셋에듀센터';
     const certificateRecord = {
         certificateId, certificateNo, issueNumber: certificateNo,
         userId: uid, uid, userName, birthDate, dateOfBirth: birthDate,
@@ -2806,7 +2806,7 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
     const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => error.status === 404 ? null : Promise.reject(error));
     const certificateNo = await makeCertificateNo(certificateId, issuedAt);
     const completedAt = body?.completedAt || progress?.completedAt || issuedAt;
-    const issuerName = env.CERTIFICATE_ISSUER_NAME || 'ResetEdu 재발방지교육센터';
+    const issuerName = '리셋에듀센터';
     const documentType = courseId === CBT_COURSE_PRODUCT.courseId ? 'cbt-completion' : 'completion';
     const certificateRecord = {
         certificateId, certificateNo, issueNumber: certificateNo,

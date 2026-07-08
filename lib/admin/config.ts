@@ -22,7 +22,7 @@ export const adminSettings = {
   supportPhone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || "미설정",
   businessNumber: process.env.NEXT_PUBLIC_BUSINESS_NUMBER || "미설정",
   commerceRegistrationNumber: process.env.NEXT_PUBLIC_COMMERCE_REGISTRATION_NUMBER || "미설정",
-  certificateIssuerName: process.env.NEXT_PUBLIC_CERTIFICATE_ISSUER_NAME || "ResetEdu 재발방지교육센터",
+  certificateIssuerName: process.env.NEXT_PUBLIC_CERTIFICATE_ISSUER_NAME || "리셋에듀센터",
   paymentProviderName: process.env.NEXT_PUBLIC_PAYMENT_PROVIDER_NAME || "운영 결제사",
   paymentEnvironment: process.env.NEXT_PUBLIC_PAYMENT_ENV || "test",
 };

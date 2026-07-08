@@ -16,12 +16,6 @@ const values = [
   ["민간 온라인 교육", "국가기관이나 법률사무소가 아닌 민간 교육기관으로서 교육 콘텐츠와 수강 기록을 제공합니다."],
 ] as const;
 
-const notices = [
-  "본 센터는 국가기관, 법원, 검찰, 경찰, 보호관찰기관 또는 법률사무소가 운영하거나 지정한 기관이 아닙니다.",
-  "수료증, 이수증 및 교육자료는 교육 참여와 재발 방지 노력을 정리하기 위한 민간 교육자료입니다.",
-  "제출 가능 여부와 활용 가능성은 개별 사건과 제출기관의 판단에 따라 달라질 수 있습니다.",
-] as const;
-
 function Icon({ className = "h-6 w-6" }: { className?: string }) {
   return <svg viewBox="0 0 24 24" className={className + " fill-none stroke-current"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m5 12 4 4L19 6" /></svg>;
 }
@@ -46,7 +40,7 @@ export default function AboutPage() {
 
       <section className="bg-white px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle eyebrow="Courses" title="운영 교육과정" body="음주운전 수료증과 양형자료 준비를 중심으로 운영해 온 구조를 유지하면서, 폭력범죄·도박중독·성범죄 예방교육까지 확장했습니다." /><div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">{platformCourseCategories.map((course) => <Link key={course.slug} href={"/courses/" + course.slug} className="rounded-[1rem] border border-slate-200 bg-slate-50 p-5 transition hover:-translate-y-0.5 hover:border-[#176b68] hover:bg-white hover:shadow-[0_16px_36px_rgba(15,23,42,0.1)]"><h3 className="text-lg font-black text-slate-950">{course.title}</h3><p className="mt-3 text-sm leading-7 text-slate-700">{course.description}</p></Link>)}</div></div></section>
 
-      <section id="support" className="px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr]"><SectionTitle eyebrow="Notice" title="운영 안내와 법적 고지" body="본 센터는 교육 콘텐츠와 문서 출력 기능을 제공하며, 법률상담이나 법률사무를 제공하지 않습니다." /><div className="rounded-[1.25rem] border border-amber-200 bg-amber-50 p-6"><div className="space-y-3 text-sm leading-7 text-amber-950">{notices.map((line) => <p key={line}>{line}</p>)}</div><div className="mt-6 grid gap-2 text-sm leading-7 text-slate-800 sm:grid-cols-2"><p><span className="font-black">고객센터</span> 010-7617-8619</p><p><span className="font-black">상담 가능 시간</span> 평일 10:00-18:00</p><p><span className="font-black">상호</span> 보듬심리상담센터</p><p><span className="font-black">사업자등록번호</span> 861-98-01454</p></div></div></div></section>
+      <section id="support" className="px-4 py-16 sm:px-6 lg:px-8"><div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.8fr_1.2fr]"><SectionTitle eyebrow="Support" title="상담 및 운영 정보" body="교육과정 선택, 결제, 수강 및 서류 출력과 관련한 문의를 안내합니다." /><div className="rounded-[1.25rem] border border-slate-200 bg-white p-6 shadow-sm"><div className="grid gap-2 text-sm leading-7 text-slate-800 sm:grid-cols-2"><p><span className="font-black">고객센터</span> 010-7617-8619</p><p><span className="font-black">상담 가능 시간</span> 평일 10:00-18:00</p><p><span className="font-black">상호</span> 보듬심리상담센터</p><p><span className="font-black">사업자등록번호</span> 861-98-01454</p></div></div></div></section>
     </main>
   );
 }
