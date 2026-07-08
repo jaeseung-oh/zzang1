@@ -74,7 +74,7 @@ export default function HomePage() {
           <div className="flex min-w-0 flex-col justify-center">
             <p className="text-sm font-black text-[#176b68]">사건 이후의 반성과 재발방지 노력을 체계적으로 준비하세요</p>
             <h1 className="mt-5 max-w-3xl text-[2rem] font-black leading-tight text-slate-950 sm:text-5xl lg:text-[52px]">온라인 예방교육부터<br />양형자료 준비를 위한 실천자료까지 한 번에</h1>
-            <p className="mt-5 max-w-2xl text-[15px] leading-7 text-slate-700 sm:text-lg sm:leading-8">음주운전 사건 이후 필요한 예방교육을 온라인으로 수강하고, 재발방지 실천계획과 생활개선 자료를 체계적으로 정리할 수 있습니다. 교육 이수 내용과 실천자료를 직접 확인·작성·출력해보세요.</p>
+            <p className="mt-5 max-w-2xl text-[15px] leading-7 text-slate-700 sm:text-lg sm:leading-8">음주운전, 폭력, 도박중독, 성범죄 등 사건 유형에 맞는 재범방지교육을 온라인으로 수강하고, 수료증과 재발방지 서식을 한 번에 준비할 수 있습니다. 필요한 과정을 선택해 결제 후 바로 수강하고, 교육 이수 내용과 출력 서류를 빠르게 정리하세요.</p>
             <div className="mt-7 grid gap-3 sm:flex sm:flex-wrap">
               <Link href="/courses" className={buttonClass("primary", "lg", "w-full whitespace-nowrap rounded-full px-7 font-black sm:w-auto")}>예방교육 시작하기</Link>
               <Link href="/prevention-documents" className={buttonClass("secondary", "lg", "w-full rounded-full px-7 font-bold sm:w-auto")}>실천자료 둘러보기</Link>
