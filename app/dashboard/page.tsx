@@ -265,7 +265,12 @@ export default function DashboardPage() {
   });
   const hasAdvancedCertificateAccess = adminPreview || Boolean(advancedEnrollmentRecord);
   const advancedBaseCertificateCourseId = advancedEnrollmentRecord?.courseId === DUI_CBT_ADVANCED_COURSE_ID ? defaultCourse.id : advancedEnrollmentRecord?.courseId || defaultCourse.id;
-  const hasDocumentFormsAccess = adminPreview || enrollments.some((enrollment) => enrollment.courseId === defaultCourse.id && isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
+  const documentFormEnrollments = enrollments.filter((enrollment) => isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
+  const hasDocumentFormsAccess = adminPreview || documentFormEnrollments.length > 0;
+  const primaryDocumentCourseId = documentFormEnrollments[0]?.courseId || defaultCourse.id;
+  const primaryDocuments = getPreventionDocumentsForCourse(primaryDocumentCourseId);
+  const primaryDocumentHref = primaryDocuments[0] ? "/prevention-documents?type=" + encodeURIComponent(primaryDocuments[0].id) + "&courseId=" + encodeURIComponent(primaryDocumentCourseId) : "/prevention-documents";
+  const dashboardDocumentEntries = (documentFormEnrollments.length ? documentFormEnrollments : [{ courseId: defaultCourse.id, courseTitle: defaultCourse.title } as EnrollmentRecord]).flatMap((enrollment) => getPreventionDocumentsForCourse(enrollment.courseId).map((document) => ({ document, enrollment })));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(211,173,98,0.14),transparent_22%),linear-gradient(180deg,#09111d_0%,#0d1728_32%,#eef3f8_32%,#f4f7fb_100%)] px-4 py-10 sm:px-6 lg:px-8">
@@ -298,7 +303,7 @@ export default function DashboardPage() {
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-base font-black text-[#10213f]">01</span>
                 <span className="min-w-0"><span className="block text-xl font-black leading-tight !text-white">강의 목록 보기</span><span className="mt-1 block text-sm font-bold !text-white/80">수강실로 이동</span></span>
               </Link>
-              <Link href="/prevention-documents" className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+              <Link href={primaryDocumentHref} className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-base font-black text-[#ffdd00]">02</span>
                 <span className="min-w-0"><span className="block text-xl font-black leading-tight">서류 인쇄하기</span><span className="mt-1 block text-sm font-bold text-slate-800">재발방지 서식 열기</span></span>
               </Link>
@@ -360,6 +365,11 @@ export default function DashboardPage() {
                                   {document.title}
                                 </Link>
                               ))}
+                              {active && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle) ? getPreventionDocumentsForCourse(enrollment.courseId).map((document) => (
+                                <Link key={document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-950">
+                                  {document.title}
+                                </Link>
+                              )) : null}
                             </div>
                           </div>
                         );
@@ -495,9 +505,9 @@ export default function DashboardPage() {
                 <p className="text-xl font-black text-slate-950">서류 인쇄하기</p>
                 <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 예시서류를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요." : "수강권을 선택하면 과정별 예시서류 3종을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
-                  {getPreventionDocumentsForCourse(defaultCourse.id).map((document) => (
-                    <Link key={document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(defaultCourse.id)} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
-                      <span>{document.title}</span>
+                  {dashboardDocumentEntries.map(({ document, enrollment }) => (
+                    <Link key={(enrollment.courseId || defaultCourse.id) + document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
+                      <span><span className="block text-xs font-bold text-slate-700">{enrollment.courseTitle || defaultCourse.title}</span>{document.title}</span>
                       <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">예시 · 인쇄</span>
                     </Link>
                   ))}

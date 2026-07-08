@@ -39,9 +39,9 @@ export const basicApplicationProduct: ApplicationProduct = {
   includes: [
     "온라인 예방교육",
     "교육 수료증 PDF 발급",
-    "기본 실천자료 제공",
-    "재발방지 체크리스트",
-    "생활습관 점검자료",
+    "재발방지계획서 출력 및 PDF 저장",
+    "음주예방실천계획서 출력 및 PDF 저장",
+    "음주운전 재발방지 서약서 출력 및 PDF 저장",
   ],
 };
 
@@ -92,7 +92,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_BASIC,
     badge: "가장 부담 없이 시작",
     description: "폭력범죄 재범방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
-    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "기본 실천자료 제공", "재발방지 체크리스트", "생활습관 점검자료"],
+    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "폭력범죄 재범방지계획서 예시", "폭력예방 실천계획서 예시", "폭력범죄 재범방지 서약서 예시", "인쇄 및 PDF 저장"],
   }],
   ["violence-advanced", {
     id: "violence-advanced",
@@ -110,7 +110,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_BASIC,
     badge: "가장 부담 없이 시작",
     description: "도박중독 재발방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
-    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "기본 실천자료 제공", "재발방지 체크리스트", "생활습관 점검자료"],
+    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "도박중독 재발방지계획서 예시", "도박예방 실천계획서 예시", "도박중독 재발방지 서약서 예시", "인쇄 및 PDF 저장"],
   }],
   ["gambling-advanced", {
     id: "gambling-advanced",
@@ -128,7 +128,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_BASIC,
     badge: "가장 부담 없이 시작",
     description: "성범죄 재범방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
-    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "기본 실천자료 제공", "재발방지 체크리스트", "생활습관 점검자료"],
+    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "성범죄 재범방지계획서 예시", "성범죄예방 실천계획서 예시", "성범죄 재범방지 서약서 예시", "인쇄 및 PDF 저장"],
   }],
   ["sexual-offense-advanced", {
     id: "sexual-offense-advanced",

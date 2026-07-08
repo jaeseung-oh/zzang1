@@ -14,7 +14,7 @@ import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { adminSettings, getAdminEmails, isAdminEmail } from "@/lib/admin/config";
 import SealStamp, { sealStampPath } from "@/app/components/SealStamp";
-import { preventionDocuments } from "@/lib/course/prevention-documents";
+import { getPreventionDocumentsForCourse, preventionDocumentCategoryLabels, preventionDocuments } from "@/lib/course/prevention-documents";
 
 type AdminView = "dashboard" | "users" | "payments" | "enrollments" | "certificates" | "refunds" | "courses" | "settings";
 type AdminMenuView = AdminView | "lectures";
@@ -411,7 +411,8 @@ function DashboardView({ data, maps, refresh }: any) {
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {preventionDocuments.map((document) => (
           <Link key={document.id} href={`/prevention-documents?type=${document.id}`} className="rounded-[1.15rem] border border-[#d7deea] bg-[#f8fafc] p-4 transition hover:border-[#173968] hover:bg-[#eef4ff]">
-            <p className="text-base font-bold text-slate-950">{document.title}</p>
+            <p className="text-xs font-bold text-[#274690]">{preventionDocumentCategoryLabels[document.category]}</p>
+            <p className="mt-1 text-base font-bold text-slate-950">{document.title}</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{document.description}</p>
             <p className="mt-4 text-sm font-semibold text-[#173968]">서식 보기 · 인쇄/PDF 확인</p>
           </Link>
@@ -433,8 +434,9 @@ function UsersView(ctx: any) {
   return <section><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-users.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "userId", label: "사용자 ID" }, { key: "userName", label: "성명" }, { key: "email", label: "이메일" }, { key: "birthDateText", label: "생년월일" }, { key: "phoneNumber", label: "휴대전화" }, { key: "createdAt", label: "가입일", render: (r) => formatDate(r.createdAt) }, { key: "lastLoginAt", label: "최근 로그인", render: (r) => formatDate(r.lastLoginAt) }, { key: "enrollmentCount", label: "수강권" }, { key: "paid", label: "결제", render: (r) => r.paid ? "결제 있음" : "없음" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "admin", label: "관리자", render: (r) => r.admin ? "관리자" : "일반" }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <UserDetail selected={selected} ctx={ctx} /> : null}</section>;
 }
 
-function AdminDocumentLinks({ uid, certificateId }: { uid: string; certificateId?: string }) {
-  const documentLinks = preventionDocuments.map((document) => <Link key={document.id} href={`/prevention-documents?type=${document.id}&adminUserId=${encodeURIComponent(uid)}`} className="font-semibold text-[#173968] underline">{document.title}</Link>);
+function AdminDocumentLinks({ uid, certificateId, courseId }: { uid: string; certificateId?: string; courseId?: string }) {
+  const documents = courseId ? getPreventionDocumentsForCourse(courseId) : preventionDocuments;
+  const documentLinks = documents.map((document) => <Link key={document.id} href={`/prevention-documents?type=${document.id}&courseId=${encodeURIComponent(courseId || "")}&adminUserId=${encodeURIComponent(uid)}`} className="font-semibold text-[#173968] underline">{document.title}</Link>);
   return <div className="flex flex-wrap gap-x-3 gap-y-2">{certificateId ? <Link href={`/certificate?certificateId=${encodeURIComponent(certificateId)}`} className="font-semibold text-[#173968] underline">수료증</Link> : <span className="text-slate-500">수료증 발급 전</span>}{documentLinks}</div>;
 }
 
@@ -443,7 +445,7 @@ function UserDetail({ selected, ctx }: any) {
   const enrollments = ctx.data.enrollments.filter((e: AnyRecord) => (e.uid || e.userId) === selected.id);
   const certificates = ctx.data.certificates.filter((c: AnyRecord) => (c.uid || c.userId) === selected.id);
   const refund = enrollments[0] ? getRefundInfo({ enrollment: enrollments[0], payment: payments[0], progress: ctx.maps.progressByUserCourse.get(`${selected.id}_${enrollments[0].courseId}`), certificate: certificates[0] }) : null;
-  return <DetailPanel title="회원 상세" memoTarget="users" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("users", selected.id, ctx.memo)} rows={[["성명", selected.userName], ["이메일", selected.email || "미입력"], ["생년월일", selected.birthDateText], ["결제내역", `${payments.length}건`], ["수강권", `${enrollments.length}건`], ["수료증", certificates[0] ? <Link href={`/certificate?certificateId=${encodeURIComponent(certificates[0].id)}`} className="text-[#173968] underline">보기</Link> : "미발급"], ["출력 서류", <AdminDocumentLinks uid={selected.id} certificateId={certificates[0]?.id} />], ["예상 환불", refund ? `${formatKrw(refund.refundAmount)} / ${refund.reason}` : "계산 불가"]]} />;
+  return <DetailPanel title="회원 상세" memoTarget="users" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("users", selected.id, ctx.memo)} rows={[["성명", selected.userName], ["이메일", selected.email || "미입력"], ["생년월일", selected.birthDateText], ["결제내역", `${payments.length}건`], ["수강권", `${enrollments.length}건`], ["수료증", certificates[0] ? <Link href={`/certificate?certificateId=${encodeURIComponent(certificates[0].id)}`} className="text-[#173968] underline">보기</Link> : "미발급"], ["출력 서류", <div className="space-y-2">{enrollments.length ? enrollments.map((enrollment: AnyRecord) => <div key={enrollment.id || enrollment.courseId}><p className="text-xs font-bold text-slate-500">{enrollment.courseTitle || enrollment.courseId}</p><AdminDocumentLinks uid={selected.id} certificateId={certificates.find((certificate: AnyRecord) => certificate.courseId === enrollment.courseId)?.id || certificates[0]?.id} courseId={enrollment.courseId} /></div>) : <AdminDocumentLinks uid={selected.id} certificateId={certificates[0]?.id} />}</div>], ["예상 환불", refund ? `${formatKrw(refund.refundAmount)} / ${refund.reason}` : "계산 불가"]]} />;
 }
 
 function PaymentsView(ctx: any) {
@@ -555,7 +557,7 @@ function EnrollmentDetail({ selected, ctx }: any) {
   const certificate = ctx.maps.certificateByUserCourse.get(`${uid}_${selected.courseId}`);
   const courseModules = getAdminCourseModules(selected.courseId);
   const modules = courseModules.map((m, i) => `${i + 1}. ${m.title} ${progress?.moduleProgress?.[m.id]?.isCompleted ? "완료" : "미완료"}`).join(" / ");
-  return <DetailPanel title="수강권 상세" memoTarget="enrollments" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("enrollments", selected.id, ctx.memo)} rows={[["사용자", `${selected.userName} / ${selected.email}`], ["결제", selected.orderId || selected.paymentId || "결제정보 없음"], ["교육과정", selected.courseTitle || getAdminCourseProduct(selected.courseId)?.title || "-"], ["강의별 완료", modules], ["진행률", `${selected.progressRate}%`], ["수강기간", `${formatDateOnly(selected.purchasedAt || selected.createdAt)} - ${formatDateOnly(selected.expiresAt)}`], ["만료 여부", selected.expired ? "만료" : "유효"], ["수료증", selected.certificateIssued ? selected.certificateNo || "발급" : "미발급"], ["출력 서류", <AdminDocumentLinks uid={uid} certificateId={certificate?.id} />], ["환불", `${formatKrw(selected.refundAmount)} / ${selected.refundReason}`]]} />;
+  return <DetailPanel title="수강권 상세" memoTarget="enrollments" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("enrollments", selected.id, ctx.memo)} rows={[["사용자", `${selected.userName} / ${selected.email}`], ["결제", selected.orderId || selected.paymentId || "결제정보 없음"], ["교육과정", selected.courseTitle || getAdminCourseProduct(selected.courseId)?.title || "-"], ["강의별 완료", modules], ["진행률", `${selected.progressRate}%`], ["수강기간", `${formatDateOnly(selected.purchasedAt || selected.createdAt)} - ${formatDateOnly(selected.expiresAt)}`], ["만료 여부", selected.expired ? "만료" : "유효"], ["수료증", selected.certificateIssued ? selected.certificateNo || "발급" : "미발급"], ["출력 서류", <AdminDocumentLinks uid={uid} certificateId={certificate?.id} courseId={selected.courseId} />], ["환불", `${formatKrw(selected.refundAmount)} / ${selected.refundReason}`]]} />;
 }
 
 function ManualCertificateIssuePanel({ onRefresh }: { onRefresh: () => void }) {

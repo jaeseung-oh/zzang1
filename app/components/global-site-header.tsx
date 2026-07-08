@@ -18,7 +18,6 @@ const primaryNavItems = [
 const courseLinks = [
   { href: "/courses", label: "전체 교육과정" },
   ...platformCourseCategories.map((course) => ({ href: "/courses/" + course.slug, label: course.title })),
-  { href: "/courses?category=cbt", label: "인지행동 개선교육" },
 ];
 
 function isActive(pathname: string, href: string) {

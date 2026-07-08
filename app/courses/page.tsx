@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { formatApplicationKrw } from "@/lib/course/application-products";
 import { getApplyHref, getPlatformCourseProducts, platformCourseCategories, type CourseCategory } from "@/lib/course/platform-courses";
+import { getPreventionDocumentsForCourse } from "@/lib/course/prevention-documents";
 
 export const metadata: Metadata = {
   title: "교육과정 | ResetEdu 재발방지교육센터",
@@ -24,7 +25,6 @@ const filters = [
   ["폭력범죄", "#violence-prevention"],
   ["도박중독", "#gambling-relapse-prevention"],
   ["성범죄", "#sexual-offense-prevention"],
-  ["인지행동 개선", "#cbt"],
 ] as const;
 
 function Icon({ className = "h-5 w-5" }: { className?: string }) {
@@ -36,7 +36,8 @@ function ProductCard({ course, product }: { course: CourseCategory; product: Ret
   const label = product.id === course.basicProductId ? "기본과정" : isAdvanced ? "심화과정" : product.title;
   const previousPrice = isAdvanced ? "129,000원" : "69,000원";
   const description = isAdvanced ? "양형자료 준비를 위한 실천자료까지 함께 정리할 수 있는 심화 과정" : "예방교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정";
-  const displayIncludes = isAdvanced ? ["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"] : ["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지 체크리스트", "생활습관 점검자료", "기본 실천자료 제공"];
+  const courseDocumentTitles = getPreventionDocumentsForCourse(product.courseId || course.basicProductId).map((document) => document.title);
+  const displayIncludes = isAdvanced ? ["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"] : ["온라인 예방교육", "교육 수료증 PDF 발급", ...courseDocumentTitles, "인쇄 및 PDF 저장"];
   return (
     <Link href={getApplyHref(course, product.id)} className={isAdvanced ? "group flex min-h-full flex-col rounded-[1.25rem] border-2 border-[#173968] bg-white p-5 shadow-[0_18px_45px_rgba(23,57,104,0.12)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_65px_rgba(23,57,104,0.22)] focus:outline-none focus:ring-4 focus:ring-[#173968]/20" : "group flex min-h-full flex-col rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#176b68] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)] focus:outline-none focus:ring-4 focus:ring-[#176b68]/20"} aria-label={course.title + " " + label + " 시작하기"}>
       <div className="flex items-start justify-between gap-3">
@@ -103,12 +104,6 @@ export default function CoursesPage() {
               </section>
             );
           })}
-
-          <section id="cbt" className="scroll-mt-36 rounded-[1.25rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-xs font-black uppercase tracking-[0.16em] text-[#176b68]">Cognitive Behavior Education</p>
-            <h2 className="mt-2 text-2xl font-black text-slate-950">인지행동 개선교육</h2>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-700">인지행동 개선교육은 신규 심화과정과 기존 음주운전 심화과정에서 기존 강의와 기존 이수증 양식을 그대로 재사용합니다. 심화과정에서는 실천자료와 함께 추가 점검 교육으로 활용됩니다.</p>
-          </section>
         </div>
       </section>
 

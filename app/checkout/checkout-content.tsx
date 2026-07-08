@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { defaultCourse, getCourseDefinition } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
 import { duiDocumentsApplicationProduct, formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
+import { getPreventionDocumentsForCourse } from "@/lib/course/prevention-documents";
 import { getCertificateIdentity, getUserProfile } from "@/lib/firebase/user-profile";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { paymentConfig } from "@/lib/payment/config";
@@ -393,7 +394,8 @@ export default function CheckoutContent() {
                     const isSelected = selectedProduct.id === product.id;
                     const isAdvancedProduct = product.id === "dui-cbt-advanced" || product.id.endsWith("advanced");
                     const previousPrice = isAdvancedProduct ? "129,000원" : "69,000원";
-                    const displayIncludes = isAdvancedProduct ? ["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"] : ["온라인 예방교육", "교육 수료증 PDF 발급", "재발방지 체크리스트", "생활습관 점검자료", "기본 실천자료 제공"];
+                    const courseDocumentTitles = getPreventionDocumentsForCourse(product.courseId || selectedCourseId).map((document) => document.title);
+                    const displayIncludes = isAdvancedProduct ? ["온라인 예방교육", "교육 수료증 PDF 발급", "반성문 예시", "재발방지계획서", "실천서약서", "생활개선계획", "양형자료 준비 참고자료", "PDF 저장 및 출력"] : ["온라인 예방교육", "교육 수료증 PDF 발급", ...courseDocumentTitles, "인쇄 및 PDF 저장"];
                     return (
                       <button
                         key={product.id}
