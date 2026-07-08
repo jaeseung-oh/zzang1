@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseApplyHref, getCourseCertificateTitle, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, defaultCourse, getCourseApplyHref, getCourseCertificateTitle, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -111,11 +111,39 @@ function formatBirthDate(value?: string) {
   return `${matched[1]}년 ${matched[2]}월 ${matched[3]}일`;
 }
 
+function getCertificateRecordId(userId: string, courseId: string, documentType?: string | null) {
+  return documentType && documentType !== "completion" ? userId + "_" + courseId + "_" + documentType : userId + "_" + courseId;
+}
+
 function getCertificateHref(courseId: string, documentType = "completion", mode?: "print" | "pdf") {
   const params = new URLSearchParams({ courseId, documentType });
   if (mode === "print") params.set("print", "1");
   if (mode === "pdf") params.set("pdf", "1");
   return "/certificate?" + params.toString();
+}
+
+function buildAdminCertificatePreviewEnrollments(): EnrollmentRecord[] {
+  const now = new Date();
+  const expiresAt = new Date(now);
+  expiresAt.setFullYear(expiresAt.getFullYear() + 10);
+
+  return allCourseCatalog.map((course) => ({
+    userId: "admin-preview",
+    courseId: course.id,
+    courseTitle: course.title,
+    productId: course.productId || course.id,
+    productTitle: course.level === "advanced" ? "심화과정" : "기본과정",
+    paymentStatus: "paid",
+    enrollmentStatus: "active",
+    accessStatus: "active",
+    purchasedAt: now,
+    expiresAt,
+    certificateAvailable: true,
+    amount: course.priceKrw,
+    progress: 100,
+    completedLessons: course.modules.length,
+    totalLessons: course.modules.length,
+  }));
 }
 
 function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
@@ -143,13 +171,14 @@ function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
     if (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID) {
       addDocument(getCourseCertificateTitle(defaultCourse.id) + " 수료증", "심화과정에 포함된 기본 예방교육 수료증", defaultCourse.id);
       addDocument("인지행동기반 재발방지교육 이수증", "심화과정 이수증", DUI_CBT_ADVANCED_COURSE_ID, "cbt-completion");
+      addDocument("재범방지 교육 이수 상세 내역서", "음주운전 심화과정 교육이수 상세내역", DUI_CBT_ADVANCED_COURSE_ID, "cbt-detail");
       return;
     }
 
     if (course?.documents?.length) {
       course.documents.forEach((document) => {
-        if (document.type === "cbt-completion") {
-          addDocument(document.title, course.title, document.courseId || DUI_CBT_ADVANCED_COURSE_ID, "cbt-completion");
+        if (document.type === "cbt-completion" || document.type === "cbt-detail") {
+          addDocument(document.title, course.title, document.courseId || enrollment.courseId, document.type);
         } else {
           addDocument(document.title, course.title, document.courseId || enrollment.courseId);
         }
@@ -173,6 +202,75 @@ function hasCertificateDocumentAccess(enrollments: EnrollmentRecord[], courseId:
   });
 }
 
+function getDetailDocumentContext(courseId: string) {
+  const normalized = courseId || defaultCourse.id;
+
+  if (normalized.includes("violence")) {
+    return {
+      courseTitle: "폭력범죄 재범방지교육 심화과정",
+      body: "위 사람은 본 기관에서 운영하는 「폭력범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      items: [
+        "폭력의 범위와 영향: 신체적 폭력, 언어적 위협, 심리적 위협 및 피해자의 불안·공포·관계 손상 이해",
+        "폭력은 감정이 아니라 선택된 행동이라는 관점에서 자극, 해석, 몸 반응, 충동, 행동의 흐름 점검",
+        "위협 해석과 자존심 방어 사고를 구분하고 사실과 해석을 분리해 폭력적 반응을 늦추는 방법 학습",
+        "음주와 충동성이 폭력 위험을 높이는 신호를 확인하고 술자리·언쟁 상황에서 사전 이탈 규칙 수립",
+        "폭력의 악순환: 스트레스, 촉발 사건, 욕설·위협·신체접촉, 후회와 합리화의 반복 구조 분석",
+        "STOP 4단계와 호흡·거리두기·20분 후 대화 원칙을 활용한 폭력 직전 멈춤 기술 학습",
+        "말싸움 중단 대화법과 비폭력적 표현을 통해 갈등을 확대하지 않고 안전하게 종료하는 방법 학습",
+        "재발방지 계획: 위험상황, 초기 경고신호, 대체행동, 생활관리, 피해 회복 태도를 구체적으로 작성",
+      ],
+    };
+  }
+
+  if (normalized.includes("gambling")) {
+    return {
+      courseTitle: "도박중독 재발방지교육 심화과정",
+      body: "위 사람은 본 기관에서 운영하는 「도박중독 재발방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      items: [
+        "도박중독의 반복 구조: 보상 기대, 손실추격, 거짓말, 빚, 가족 갈등과 범죄 위험으로 이어지는 과정 이해",
+        "도박을 의지 부족만으로 보지 않고 보상회로, 손실 만회 심리, 왜곡된 기대가 함께 작동하는 원리 학습",
+        "대표적 생각 오류: 손실추격, 통제착각, 선택기억, 한 방 사고를 현실적인 판단 문장으로 바꾸는 연습",
+        "도박 전·중·후 감정 흐름과 월급날, 혼자 있는 밤, 온라인 광고, 오픈채팅 등 개인별 재발 트리거 점검",
+        "온라인 도박 접근성의 위험을 이해하고 앱·사이트·결제·광고·알림·위험 연락처 차단 계획 수립",
+        "회복의 네 가지 축: 접근 차단, 대체 행동, 관계 공개, 전문 도움을 통한 생활 구조 변경",
+        "STOP 방법과 10분 버티기, 회복 파트너 연락, 산책, 차단 확인 등 충동 지연 행동 학습",
+        "돈의 통로 차단, 휴대폰·관계 환경 정리, 피해 회복, 7일 재범방지 실행계획 작성",
+      ],
+    };
+  }
+
+  if (normalized.includes("sexual-offense")) {
+    return {
+      courseTitle: "성범죄 재범방지교육 심화과정",
+      body: "위 사람은 본 기관에서 운영하는 「성범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      items: [
+        "성범죄 재범방지의 핵심 가치인 존중, 동의, 경계를 중심으로 타인의 성적 자기결정권 이해",
+        "성폭력의 범위: 동의 없는 신체 접촉, 성적 발언, 반복 메시지, 촬영·저장·전송·유포 등 성적 침해 점검",
+        "동의의 조건: 침묵, 소극적 반응, 관계성, 이전 동의, 음주 상태가 명확한 동의를 의미하지 않음을 학습",
+        "피해자의 불안, 수치심, 공포, 수면 문제, 대인관계 어려움, 디지털 재유포 불안 등 장기 피해 이해",
+        "자기중심성, 권리의식, 인지왜곡, 충동성, 분노와 보복심리 등 성범죄 위험 사고 점검",
+        "음주, 단둘이 있는 공간, 위계관계, 반복 연락, 디지털 자료 보관 등 위험상황을 차단하는 환경 설계",
+        "STOP 4단계와 3분 대처법을 활용해 말·행동·연락·접근을 즉시 멈추고 안전한 사람에게 도움 요청",
+        "피해 회복과 2차 피해 방지: 접촉금지·거리두기 준수, 합의 압박 금지, 5문장 재발방지 선언 작성",
+      ],
+    };
+  }
+
+  return {
+    courseTitle: "음주운전 재범방지교육 심화과정",
+    body: "위 사람은 본 기관에서 운영하는 「음주운전 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+    items: [
+      "음주운전이 개인의 실수를 넘어 타인의 생명과 안전을 위협하는 중대한 위험 행동임을 이해",
+      "음주운전이 발생하는 전형적 상황, 사고 전개 구조, 자기합리화 표현과 책임 회피 언어 점검",
+      "알코올이 판단력, 반응속도, 시야, 거리감, 주의집중과 위험 판단에 미치는 영향 학습",
+      "사고 유무와 관계없이 발생할 수 있는 형사적·행정적·민사적 책임과 사회적 신뢰 손상 이해",
+      "음주 후 운전으로 이어지는 자동사고, 감정 반응, 고위험 상황을 인지행동 관점에서 분석",
+      "회식, 지인 모임, 숙취 상태, 익숙한 길, 가까운 거리 등 반복 위험상황별 대안 행동 수립",
+      "대리운전, 택시, 대중교통, 차량 미사용, 가족 협조와 차량 열쇠 관리 등 구체적 차단 전략 학습",
+      "재범방지를 위한 대안사고, 멈춤 문장, 도움 요청, 자기점검 루틴과 실천계획 작성",
+    ],
+  };
+}
 function isValidBirthDate(value: string) {
   const matched = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (!matched) return false;
@@ -215,27 +313,28 @@ function CertificatePageContent() {
   const rawRequestedCourseId = requestedCourseParam || defaultCourse.id;
   const requestedCourseId = getCourseDefinition(rawRequestedCourseId) || rawRequestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? rawRequestedCourseId : defaultCourse.id;
   const requestedDocumentType = searchParams.get("documentType") || "";
-  const requestedCourseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동 개선교육" : getCourseCertificateTitle(requestedCourseId);
+  const requestedCourseTitle = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육" : getCourseCertificateTitle(requestedCourseId);
   const requestedTotalLessons = getCourseModules(requestedCourseId).length;
-  const expectedCertificateId = uid ? `${uid}_${requestedCourseId}` : "";
+  const expectedCertificateId = uid ? getCertificateRecordId(uid, requestedCourseId, requestedDocumentType) : "";
   const profileBirthDate = profile?.certificateIdentity?.dateOfBirth || profile?.dateOfBirth || profile?.birthDate || "";
   const profileName = profile?.certificateIdentity?.realName || profile?.realName || profile?.fullName || "";
   const needsBirthDate = Boolean(uid && profile && !profileBirthDate && !certificate);
 
-  const buildAdminPreviewCertificate = (userId: string, email: string, documentType: "attendance" | "completion"): CertificateRecord => {
-    const completedLessons = documentType === "completion" ? getCourseModules(defaultCourse.id).length : 1;
+  const buildAdminPreviewCertificate = (userId: string, email: string, documentType: string = "completion", courseId = requestedCourseId): CertificateRecord => {
+    const completedLessons = documentType === "attendance" ? 1 : getCourseModules(courseId).length;
+    const courseTitle = documentType === "cbt-detail" ? getDetailDocumentContext(courseId).courseTitle : courseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육" : getCourseCertificateTitle(courseId);
     return {
-      certificateId: `admin_preview_${documentType}`,
-      certificateNo: documentType === "completion" ? "PREVIEW-COMPLETION" : "PREVIEW-ATTENDANCE",
-      issueNumber: documentType === "completion" ? "PREVIEW-COMPLETION" : "PREVIEW-ATTENDANCE",
+      certificateId: `admin_preview_${courseId}_${documentType}`,
+      certificateNo: "PREVIEW-" + documentType.toUpperCase(),
+      issueNumber: "PREVIEW-" + documentType.toUpperCase(),
       userId,
       uid: userId,
       userName: "관리자 미리보기",
       birthDate: "1990-01-01",
       email,
-      courseId: defaultCourse.id,
-      courseTitle: defaultCourse.title,
-      totalLessons: getCourseModules(defaultCourse.id).length,
+      courseId,
+      courseTitle,
+      totalLessons: getCourseModules(courseId).length,
       completedLessons,
       completedAt: new Date(),
       issuedAt: new Date(),
@@ -247,10 +346,10 @@ function CertificatePageContent() {
 
   const loadCertificate = async (userId: string, allowAdmin = false) => {
     const { db } = getFirebaseServices();
-    const certificateId = requestedCertificateId || `${userId}_${requestedCourseId}`;
+    const certificateId = requestedCertificateId || getCertificateRecordId(userId, requestedCourseId, requestedDocumentType);
     const path = `certificates/${certificateId}`;
 
-    if (requestedCertificateId && requestedCertificateId !== `${userId}_${requestedCourseId}` && !allowAdmin) {
+    if (requestedCertificateId && requestedCertificateId !== getCertificateRecordId(userId, requestedCourseId, requestedDocumentType) && !allowAdmin) {
       throw new Error("다른 사용자의 수료증은 조회할 수 없습니다.");
     }
 
@@ -308,16 +407,21 @@ function CertificatePageContent() {
           return;
         }
       } else {
-        setCertificateDocuments([]);
+        const documentLinks = getCertificateDocumentLinks(buildAdminCertificatePreviewEnrollments());
+        setCertificateDocuments(documentLinks);
+        if (!hasExplicitDocumentRequest && documentLinks.length > 0) {
+          router.replace(documentLinks[0].href);
+          return;
+        }
       }
 
       if (allowAdmin && (requestedAdminPreview === "attendance" || requestedAdminPreview === "completion")) {
-        setCertificate(buildAdminPreviewCertificate(user.uid, user.email || userProfile?.email || "", requestedAdminPreview));
+        setCertificate(buildAdminPreviewCertificate(user.uid, user.email || userProfile?.email || "", requestedAdminPreview, requestedCourseId));
         setNotice("관리자 미리보기입니다.");
         return;
       }
 
-      if (requestedCertificateId && requestedCertificateId !== `${user.uid}_${requestedCourseId}`) {
+      if (requestedCertificateId && requestedCertificateId !== getCertificateRecordId(user.uid, requestedCourseId, requestedDocumentType)) {
         const existing = await loadCertificate(user.uid, allowAdmin);
         if (existing) {
           setCertificate(existing);
@@ -325,6 +429,12 @@ function CertificatePageContent() {
         } else {
           setNotice("관리자 미리보기입니다.");
         }
+        return;
+      }
+
+      if (allowAdmin) {
+        setCertificate(buildAdminPreviewCertificate(user.uid, user.email || userProfile?.email || "", requestedDocumentType || "completion", requestedCourseId));
+        setNotice("관리자 미리보기입니다.");
         return;
       }
 
@@ -424,35 +534,22 @@ function CertificatePageContent() {
   const documentTitle = isDetailDocument ? "교육이수 상세내역서" : isCbtCertificate ? "인지행동기반 재발방지교육 이수증" : isCompletionCertificate ? "수료증" : "수강확인증";
   const documentHeading = isDetailDocument ? "교육이수 상세내역서" : isCbtCertificate ? "이 수 증" : isCompletionCertificate ? "수 료 증" : "수 강 확 인 증";
   const documentEnglishTitle = isDetailDocument ? "" : isCompletionCertificate ? "CERTIFICATE OF COMPLETION" : "CERTIFICATE OF ATTENDANCE";
+  const detailContext = getDetailDocumentContext(requestedCourseId);
   const documentBody = isDetailDocument
-    ? "위 사람은 본 기관에서 운영하는 음주운전 예방교육과 인지행동기반 재발방지교육으로 구성된 재범방지 교육과정을 성실히 이수하였기에 아래와 같이 상세 교육 내역을 확인합니다."
+    ? detailContext.body
     : isCbtCertificate
-      ? "위 사람은 리셋에듀센터의 「인지행동 개선교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
+      ? "위 사람은 리셋에듀센터의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
         ? `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다.`
         : `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
-  const displayedCourseTitle = isDetailDocument ? "인지행동 개선교육" : requestedCourseTitle;
+  const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : requestedCourseTitle;
   const certificateRows = [
     ["교육과정명", displayedCourseTitle],
     [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육과정 수강 완료" : "교육과정 수강 중"],
     [isCompletionCertificate ? "수료일자" : "발급일자", formatKoreanDate(certificate?.completedAt || issuedAt)],
   ];
-  const detailEducationItems = [
-    "인지행동이론의 기본 원리와 사고·감정·행동의 상호관계 이해",
-    "음주운전으로 이어지는 개인의 사고방식과 행동과정 점검",
-    "음주 후 운전을 정당화하거나 위험성을 축소하는 인지 왜곡 이해",
-    "자동적 사고와 충동적 판단을 인식하고 대안적 사고로 전환하는 방법 학습",
-    "음주운전 발생 원인과 개인적·환경적 위험요인 분석",
-    "회식, 지인 모임, 숙취 상태 등 재범 가능성이 높은 상황 점검",
-    "감정과 충동을 조절하고 위험상황에서 행동을 멈추는 대처방법 학습",
-    "음주가 판단력, 반응속도 및 운전능력에 미치는 영향 이해",
-    "음주운전의 형사적·행정적·사회적 결과와 타인에게 미치는 피해 인식",
-    "대리운전, 택시, 대중교통 이용 및 차량 미사용 원칙 수립",
-    "가족 협조, 차량 열쇠 관리 및 귀가수단 사전 확보 방법 학습",
-    "재범방지를 위한 대안행동과 구체적인 실천계획 수립",
-    "책임 있는 의사결정과 지속적인 자기점검 방법 학습",
-  ];
+  const detailEducationItems = detailContext.items;
   const detailCompletedAt = formatKoreanDate(certificate?.completedAt || issuedAt);
   const selectedCertificateDocumentType = requestedDocumentType || (requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "cbt-completion" : "completion");
   const selectedCertificateDocumentKey = requestedCourseId + ":" + selectedCertificateDocumentType;
@@ -678,7 +775,7 @@ function CertificatePageContent() {
                       <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">2</span>교육과정 정보</h3>
                       <div className="overflow-hidden rounded-lg border border-[#d9c08a] bg-white">
                         {[
-                          ["교육과정명", "인지행동 개선교육"],
+                          ["교육과정명", detailContext.courseTitle],
                           ["수료조건", "전체 교육과정 수강 완료"],
                           ["수료일자", detailCompletedAt],
                         ].map(([label, value]) => (

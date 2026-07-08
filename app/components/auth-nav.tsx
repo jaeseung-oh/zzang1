@@ -47,7 +47,7 @@ export default function AuthNav({ applyHref = "/courses/apply?category=dui" }: {
       <div className="flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1.5 sm:flex-none sm:gap-2">
         <Link href="/login" className={buttonClass("secondary", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-bold sm:px-4 sm:text-sm")}>로그인</Link>
         <Link href="/signup" className={buttonClass("primary", "sm", "hidden whitespace-nowrap rounded-full px-4 font-bold !text-white hover:!text-white sm:inline-flex")}>회원가입</Link>
-        <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm")}><span className="sm:hidden">신청</span><span className="hidden sm:inline">수강 신청하기</span></Link>
+        <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm")}><span className="sm:hidden">신청</span><span className="hidden sm:inline">교육 신청하기</span></Link>
       </div>
     );
   }
@@ -58,7 +58,7 @@ export default function AuthNav({ applyHref = "/courses/apply?category=dui" }: {
       <button type="button" onClick={handleLogout} disabled={isLoggingOut} className={buttonClass("danger", "sm", "hidden whitespace-nowrap rounded-full px-4 font-bold disabled:opacity-100 sm:inline-flex")}>
         {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
       </button>
-      <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm")}><span className="sm:hidden">신청</span><span className="hidden sm:inline">수강 신청하기</span></Link>
+      <Link href={applyHref} className={buttonClass("warning", "sm", "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm")}><span className="sm:hidden">신청</span><span className="hidden sm:inline">교육 신청하기</span></Link>
     </div>
   );
 }

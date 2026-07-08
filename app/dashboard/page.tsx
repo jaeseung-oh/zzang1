@@ -388,6 +388,7 @@ export default function DashboardPage() {
                   const progressRate = enrollment.courseId === defaultCourse.id ? Math.max(enrollment.progress ?? 0, progressSummary.completionRate) : enrollment.progress ?? 0;
                   const completed = enrollment.courseId === defaultCourse.id ? (progressRate >= 100 || progressSummary.isCompleted) : progressRate >= 100;
                   const certificateReady = active;
+                  const course = getCourseDefinition(enrollment.courseId);
                   return (
                     <article key={(enrollment.id || enrollment.courseId) + (enrollment.paymentId || enrollment.orderId || "")} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
                       <div className="flex items-start justify-between gap-3">
@@ -398,9 +399,8 @@ export default function DashboardPage() {
                         <span className={active ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600"}>{getEnrollmentStatusLabel(enrollment)}</span>
                       </div>
                       {(() => {
-                        const course = getCourseDefinition(enrollment.courseId);
                         const modules = getCourseModules(enrollment.courseId);
-                        const documents = course?.documents || (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? [{ type: "cbt-completion", title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID }] : [{ type: "course-certificate", title: "수료증", courseId: enrollment.courseId }]);
+                        const documents = course?.documents || (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? [{ type: "cbt-completion", title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID }, { type: "cbt-detail", title: "재범방지 교육 이수 상세 내역서", courseId: DUI_CBT_ADVANCED_COURSE_ID }] : [{ type: "course-certificate", title: "수료증", courseId: enrollment.courseId }]);
                         return (
                           <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
                             <p className="text-xs font-bold text-slate-600">수강 가능한 강의</p>
@@ -410,7 +410,7 @@ export default function DashboardPage() {
                             <p className="mt-3 text-xs font-bold text-slate-600">제공 문서</p>
                             <div className="mt-2 flex flex-wrap gap-2">
                               {documents.map((document) => (
-                                <Link key={document.type + document.title} href={document.type === "cbt-completion" ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" : "/certificate?courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800">
+                                <Link key={document.type + document.title} href={document.type === "cbt-completion" || document.type === "cbt-detail" ? "/certificate?courseId=" + encodeURIComponent(document.courseId || enrollment.courseId || defaultCourse.id) + "&documentType=" + encodeURIComponent(document.type) : "/certificate?courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800">
                                   {document.title}
                                 </Link>
                               ))}
@@ -432,7 +432,7 @@ export default function DashboardPage() {
                       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                         {active ? <Link href={"/course-room?courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-6 py-4 text-base font-black !text-white shadow-[0_18px_38px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href={getCourseApplyHref(enrollment.courseId)} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
                         {certificateReady ? <Link href={"/certificate?courseId=" + encodeURIComponent(enrollment.courseId || defaultCourse.id)} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
-                        {certificateReady && enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-detail" className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 sm:w-auto">상세 내역서 출력</Link> : null}
+                        {certificateReady && (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID || course?.level === "advanced") ? <Link href={"/certificate?courseId=" + encodeURIComponent(enrollment.courseId || DUI_CBT_ADVANCED_COURSE_ID) + "&documentType=cbt-detail"} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 sm:w-auto">교육이수 상세내역서 출력</Link> : null}
                       </div>
                     </article>
                   );
@@ -458,7 +458,7 @@ export default function DashboardPage() {
           <section className="mt-8 rounded-[1.5rem] border border-dashed border-slate-300 bg-slate-50 p-6 text-sm leading-7 text-slate-700">
             <p className="font-semibold text-slate-950">아직 수강 중인 교육이 없습니다.</p>
             <div className="mt-4 flex flex-wrap gap-3">
-              <Link href="/courses/apply/?category=dui" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", boxShadow: "0 10px 24px rgba(16,33,63,0.24)" }} className={buttonClass("primary", "sm", "rounded-full px-5 font-black")}>수강 신청하기</Link>
+              <Link href="/courses/apply/?category=dui" style={{ backgroundColor: "#10213f", color: "#ffffff", border: "2px solid #10213f", boxShadow: "0 10px 24px rgba(16,33,63,0.24)" }} className={buttonClass("primary", "sm", "rounded-full px-5 font-black")}>교육 신청하기</Link>
               <Link href="/courses/dui-prevention" className={buttonClass("primary", "sm", "rounded-full !text-white hover:!text-white")}>강의 구성 보기</Link>
             </div>
           </section>
@@ -572,7 +572,7 @@ export default function DashboardPage() {
                 {hasAdvancedCertificateAccess ? (
                   <div className="rounded-[1.5rem] border border-amber-300 bg-amber-50 p-5 text-sm leading-7 text-amber-950 shadow-[0_18px_44px_rgba(245,158,11,0.16)]">
                     <p className="font-black">심화과정 이수 서류</p>
-                    <p className="mt-2">심화과정 수강권은 기본 수료증과 인지행동기반 재발방지교육 이수증을 함께 출력할 수 있습니다.</p>
+                    <p className="mt-2">심화과정 수강권은 기본 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 함께 출력할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link href={`/certificate?courseId=${encodeURIComponent(advancedBaseCertificateCourseId)}&documentType=completion`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200">
                         기본 수료증 출력

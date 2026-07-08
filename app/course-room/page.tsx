@@ -328,6 +328,7 @@ export default function CourseRoomPage() {
     return getCourseDefinition(courseId) || courseId === DUI_CBT_ADVANCED_COURSE_ID ? courseId : defaultCourse.id;
   });
   const isCbtAdvancedCourse = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
+  const isAdvancedCourse = isCbtAdvancedCourse || getCourseDefinition(requestedCourseId)?.level === "advanced";
   const courseDefinition = getCourseDefinition(requestedCourseId);
   const courseModules = getCourseModules(requestedCourseId);
   const courseTitle = isCbtAdvancedCourse ? "인지행동 개선교육" : courseDefinition?.title || defaultCourse.title;
@@ -1433,7 +1434,7 @@ export default function CourseRoomPage() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200">강의 바로가기</p>
-                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">{isCbtAdvancedCourse ? "인지행동기반 심화 교육 보기" : "온라인 예방교육 보기"}</h2>
+                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">{isAdvancedCourse ? "인지행동기반 심화 교육 보기" : "온라인 예방교육 보기"}</h2>
               </div>
               <span className="rounded-full border border-[#d7deea] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-slate-200">현재 {selectedModule?.title.split(".")[0] ?? "선택 대기"}</span>
             </div>
@@ -1515,7 +1516,7 @@ export default function CourseRoomPage() {
                           <div>
                             <p className="font-semibold text-white">{accessBlockedMessage}</p>
                             <div className="mt-4 flex flex-wrap justify-center gap-2">
-                              <Link href="/courses/apply/?category=dui" className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">수강 신청하기</Link>
+                              <Link href="/courses/apply/?category=dui" className="rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700">교육 신청하기</Link>
                               <Link href="/courses/dui-prevention" className="rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50">강의 구성 보기</Link>
                             </div>
                           </div>
@@ -1648,13 +1649,13 @@ export default function CourseRoomPage() {
                         {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                       </button>
                         <Link
-                          href={isCbtAdvancedCourse ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" : "/certificate"}
+                          href={isAdvancedCourse ? "/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-completion" : "/certificate?courseId=" + encodeURIComponent(requestedCourseId)}
                           className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold !text-black hover:!text-black focus:ring-offset-[#111827]")}
                         >
                           수료증 발급
                         </Link>
                         <Link
-                          href={isCbtAdvancedCourse ? "/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion&print=1" : "/certificate?print=1"}
+                          href={isAdvancedCourse ? "/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-completion&print=1" : "/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&print=1"}
                           className={buttonClass("warning", "md", "rounded-full px-5 font-black !text-black hover:!text-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
                         >
                           바로 인쇄
@@ -1825,20 +1826,20 @@ export default function CourseRoomPage() {
             <section className="rounded-[2rem] border border-white/12 bg-white/[0.08] backdrop-blur-2xl p-5 shadow-[0_20px_55px_rgba(15,23,42,0.07)] sm:p-6">
               <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[#274690]">Completion Assets</p>
               <h3 className="mt-2 text-xl font-semibold text-white">수강 즉시 출력 자료</h3>
-              {isCbtAdvancedCourse ? (
+              {isAdvancedCourse ? (
                 <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-amber-300 bg-amber-50 p-4 shadow-[0_18px_44px_rgba(245,158,11,0.18)]">
                   <p className="text-sm font-black text-amber-950">인지행동기반 재발방지교육 이수 서류</p>
-                  <p className="text-sm leading-6 text-amber-900">심화과정 수강권은 음주운전 예방교육 수료증, CBT 이수증, 재범방지 교육 이수 상세 내역서를 출력할 수 있습니다.</p>
-                  <Link href="/certificate?courseId=dui-prevention-basic&documentType=completion" className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
-                    <span>음주운전 예방교육 수료증</span>
+                  <p className="text-sm leading-6 text-amber-900">심화과정 수강권은 과정 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 출력할 수 있습니다.</p>
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(isCbtAdvancedCourse ? "dui-prevention-basic" : requestedCourseId) + "&documentType=completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
+                    <span>{isCbtAdvancedCourse ? "음주운전 예방교육 수료증" : (courseDefinition?.certificateTitle || courseTitle) + " 수료증"}</span>
                     <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
                   </Link>
-                  <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion" className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg">
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg">
                     <span>인지행동기반 재발방지교육 이수증</span>
                     <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-black !text-white">인쇄 · PDF 저장</span>
                   </Link>
-                  <Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-detail" className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
-                    <span>재범방지 교육 이수 상세 내역서</span>
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-detail"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
+                    <span>교육이수 상세내역서</span>
                     <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
                   </Link>
                 </div>

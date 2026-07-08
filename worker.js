@@ -1343,15 +1343,16 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const firebaseUser = await verifyFirebaseIdToken(idToken, env);
     const body = await request.json().catch(() => ({}));
     const courseId = body.courseId || DUI_COURSE_PRODUCT.courseId;
+    const requestedDocumentType = String(body.documentType || "").trim();
     const product = getCourseProduct(courseId);
     if (!product) {
         return json({ message: '지원하지 않는 교육과정입니다.', code: 'INVALID_COURSE' }, 400, corsHeaders);
     }
 
     const uid = firebaseUser.uid;
-    const certificateId = `${uid}_${courseId}`;
+    const certificateId = requestedDocumentType && requestedDocumentType !== "completion" ? `${uid}_${courseId}_${requestedDocumentType}` : `${uid}_${courseId}`;
     const existing = await firestoreGetData(env, 'certificates', certificateId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    if ((existing?.certificateNo || existing?.issueNumber) && ['completion', 'cbt-completion'].includes(existing.documentType)) {
+    if ((existing?.certificateNo || existing?.issueNumber) && ['completion', 'cbt-completion', 'cbt-detail'].includes(existing.documentType)) {
         await updateCertificateFlags(env, uid, courseId, existing.certificateNo || existing.issueNumber, certificateId, existing.issuedAt || existing.createdAt, true).catch((error) => console.error(error));
         return json({ certificateId, certificateNo: existing.certificateNo || existing.issueNumber, alreadyIssued: true }, 200, corsHeaders);
     }
@@ -1409,7 +1410,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
         issuerBusinessNumber: env.CERTIFICATE_ISSUER_BUSINESS_NUMBER || '',
         issuerContact: env.CERTIFICATE_ISSUER_CONTACT || '',
         issuerEmail: env.CERTIFICATE_ISSUER_EMAIL || '',
-        status: 'issued', documentType: courseId === CBT_COURSE_PRODUCT.courseId ? 'cbt-completion' : (isCompleted ? 'completion' : 'attendance'),
+        status: 'issued', documentType: requestedDocumentType === 'cbt-detail' ? 'cbt-detail' : requestedDocumentType === 'cbt-completion' ? 'cbt-completion' : courseId === CBT_COURSE_PRODUCT.courseId ? 'cbt-completion' : (isCompleted ? 'completion' : 'attendance'),
         createdAt: issuedAt, updatedAt: issuedAt
     };
 

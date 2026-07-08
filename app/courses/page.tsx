@@ -56,7 +56,7 @@ function ProductCard({ course, product }: { course: CourseCategory; product: Ret
           {displayIncludes.map((item) => <li key={item} className="flex gap-2 text-sm font-semibold leading-7 text-slate-800"><Icon className="mt-1 h-4 w-4 shrink-0 text-[#176b68]" /><span>{item}</span></li>)}
         </ul>
       </div>
-      <span className={buttonClass(isAdvanced ? "primary" : "warning", "md", isAdvanced ? "mt-6 w-full rounded-xl font-black transition group-hover:bg-[#10213f]" : "mt-6 w-full rounded-xl font-black !text-black transition hover:!text-black group-hover:border-[#176b68]")}>카드 클릭 후 바로 신청하기</span>
+      <span className={buttonClass(isAdvanced ? "primary" : "warning", "md", isAdvanced ? "mt-6 w-full rounded-xl font-black transition group-hover:bg-[#10213f]" : "mt-6 w-full rounded-xl font-black !text-black transition hover:!text-black group-hover:border-[#176b68]")}>교육 신청하기</span>
     </Link>
   );
 }

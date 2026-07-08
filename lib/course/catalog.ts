@@ -29,7 +29,7 @@ export type CourseDefinition = {
   accessValidMonths: number;
   accessValidLabel: string;
   modules: CourseModule[];
-  documents?: Array<{ type: "course-certificate" | "cbt-completion"; title: string; courseId?: string }>;
+  documents?: Array<{ type: "course-certificate" | "cbt-completion" | "cbt-detail"; title: string; courseId?: string }>;
 };
 
 export const courseCatalog: CourseDefinition[] = [
@@ -260,7 +260,8 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       modules: [baseModule, CBT_COMPLETION_MODULE],
       documents: [
         { type: "course-certificate" as const, title: seed.title + " 수료증" },
-        { type: "cbt-completion" as const, title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID },
+        { type: "cbt-completion" as const, title: "인지행동기반 재발방지교육 이수증", courseId: seed.productPrefix + "-advanced" },
+        { type: "cbt-detail" as const, title: "재범방지 교육 이수 상세 내역서", courseId: seed.productPrefix + "-advanced" },
       ],
     },
   ];
