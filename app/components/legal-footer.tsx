@@ -31,7 +31,6 @@ export default function LegalFooter() {
               <p><span className="font-semibold text-white">상호</span> 보듬심리상담센터</p>
               <p><span className="font-semibold text-white">대표자명</span> 홍경자</p>
               <p><span className="font-semibold text-white">사업자등록번호</span> 861-98-01454</p>
-              <p><span className="font-semibold text-white">통신판매업 신고번호</span> 준비 또는 확인 중</p>
               <p><span className="font-semibold text-white">고객센터</span> 010-7617-8619</p>
               <p><span className="font-semibold text-white">상담 가능 시간</span> 평일 10:00-18:00</p>
               <p className="sm:col-span-2"><span className="font-semibold text-white">사업장 주소</span> 경기도 수원시 영통구 센트럴타운로 106, 145호</p>
