@@ -8,7 +8,7 @@ import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, defaultCourse, getCourseA
 import { isAdminEmail } from "@/lib/admin/config";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
-import SealStamp, { centerLogoPath } from "@/app/components/SealStamp";
+import SealStamp, { centerLogoPath, sealStampPath } from "@/app/components/SealStamp";
 import { getVerifiedActiveUserEnrollments, hasCourseAccess, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { trackEvent } from "@/lib/analytics/ga";
 import { buttonClass } from "@/app/components/ui/button-styles";
@@ -183,39 +183,32 @@ function inlineComputedStyles(source: Element, target: Element) {
   });
 }
 
-async function renderElementToJpeg(element: HTMLElement) {
-  const width = Math.ceil(element.offsetWidth || element.getBoundingClientRect().width);
-  const height = Math.ceil(element.offsetHeight || element.getBoundingClientRect().height);
-  const clone = element.cloneNode(true) as HTMLElement;
-  inlineComputedStyles(element, clone);
-  await inlineImages(clone);
-  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
-  const xhtml = new XMLSerializer().serializeToString(clone);
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${xhtml}</foreignObject></svg>`;
-  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
-  try {
+async function loadCanvasImage(src: string) {
+  return await new Promise<HTMLImageElement | null>((resolve) => {
     const image = new Image();
-    image.decoding = "sync";
-    const loaded = new Promise<void>((resolve, reject) => {
-      image.onload = () => resolve();
-      image.onerror = () => reject(new Error("수료증 이미지를 생성하지 못했습니다."));
-    });
-    image.src = url;
-    await loaded;
-    const scale = Math.min(2, Math.max(1.25, 1240 / width));
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(width * scale);
-    canvas.height = Math.round(height * scale);
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("PDF 생성을 위한 캔버스를 준비하지 못했습니다.");
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    context.drawImage(image, 0, 0, canvas.width, canvas.height);
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.94));
-    return { bytes: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height };
-  } finally {
-    URL.revokeObjectURL(url);
-  }
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve(image);
+    image.onerror = () => resolve(null);
+    image.src = new URL(src, window.location.href).toString();
+  });
+}
+
+function drawWrappedText(context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
+  const words = String(text || "").split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let line = "";
+  words.forEach((word) => {
+    const candidate = line ? line + " " + word : word;
+    if (context.measureText(candidate).width <= maxWidth) {
+      line = candidate;
+      return;
+    }
+    if (line) lines.push(line);
+    line = word;
+  });
+  if (line) lines.push(line);
+  lines.forEach((value, index) => context.fillText(value, x, y + index * lineHeight));
+  return y + Math.max(1, lines.length) * lineHeight;
 }
 
 function getCertificateRecordId(userId: string, courseId: string, documentType?: string | null) {
@@ -636,23 +629,25 @@ function CertificatePageContent() {
   const certificateNo = certificate?.certificateNo || certificate?.issueNumber || "발급번호 확인 중";
   const issuedAt = certificate?.issuedAt || certificate?.certificateIssuedAt || certificate?.completedAt || null;
   const issuerName = issuerFallback;
-  const effectiveDocumentType = requestedDocumentType || certificate?.documentType || "completion";
-  const isCbtCertificate = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID || effectiveDocumentType === "cbt-completion";
+  const effectiveCourseId = certificate?.courseId || requestedCourseId;
+  const effectiveCourseTitle = effectiveCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육" : getCourseCertificateTitle(effectiveCourseId);
+  const effectiveDocumentType = certificate?.documentType || requestedDocumentType || "completion";
+  const isCbtCertificate = effectiveCourseId === DUI_CBT_ADVANCED_COURSE_ID || effectiveDocumentType === "cbt-completion";
   const isDetailDocument = effectiveDocumentType === "cbt-detail";
-  const isCompletionCertificate = certificate?.documentType !== "attendance";
+  const isCompletionCertificate = effectiveDocumentType !== "attendance";
   const documentTitle = isDetailDocument ? "교육이수 상세내역서" : isCbtCertificate ? "인지행동기반 재발방지교육 이수증" : isCompletionCertificate ? "수료증" : "수강확인증";
   const documentHeading = isDetailDocument ? "교육이수 상세내역서" : isCbtCertificate ? "이 수 증" : isCompletionCertificate ? "수 료 증" : "수 강 확 인 증";
   const documentEnglishTitle = isDetailDocument ? "" : isCompletionCertificate ? "CERTIFICATE OF COMPLETION" : "CERTIFICATE OF ATTENDANCE";
-  const detailContext = getDetailDocumentContext(requestedCourseId);
+  const detailContext = getDetailDocumentContext(effectiveCourseId);
   const documentBody = isDetailDocument
     ? detailContext.body
     : isCbtCertificate
       ? "위 사람은 리셋에듀센터의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
-        ? `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다.`
-        : `위 사람은 본 기관에서 운영하는 「${requestedCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
+        ? `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다.`
+        : `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
-  const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : requestedCourseTitle;
+  const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : effectiveCourseTitle;
   const certificateRows = [
     ["교육과정명", displayedCourseTitle],
     [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육과정 수강 완료" : "교육과정 수강 중"],
@@ -660,20 +655,130 @@ function CertificatePageContent() {
   ];
   const detailEducationItems = detailContext.items;
   const detailCompletedAt = formatKoreanDate(certificate?.completedAt || issuedAt);
-  const selectedCertificateDocumentType = requestedDocumentType || (requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "cbt-completion" : "completion");
-  const selectedCertificateDocumentKey = requestedCourseId + ":" + selectedCertificateDocumentType;
+  const selectedCertificateDocumentType = effectiveDocumentType || (effectiveCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "cbt-completion" : "completion");
+  const selectedCertificateDocumentKey = effectiveCourseId + ":" + selectedCertificateDocumentType;
   useEffect(() => {
     void refresh();
   }, [searchParamsKey]);
 
+  const renderCertificatePdfImage = async () => {
+    if (!certificate) throw new Error("저장할 수료증 정보가 없습니다.");
+    const width = 1240;
+    const height = 1754;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("PDF 생성을 위한 캔버스를 준비하지 못했습니다.");
+
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, width, height);
+    context.strokeStyle = "#d9c08a";
+    context.lineWidth = 16;
+    context.strokeRect(64, 64, width - 128, height - 128);
+    context.lineWidth = 4;
+    context.strokeRect(94, 94, width - 188, height - 188);
+
+    const watermark = await loadCanvasImage(centerLogoPath);
+    if (watermark) {
+      context.save();
+      context.globalAlpha = 0.055;
+      context.drawImage(watermark, width / 2 - 300, height / 2 - 300, 600, 600);
+      context.restore();
+    }
+
+    context.textAlign = "center";
+    context.fillStyle = "#111827";
+    context.font = "700 30px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+    if (documentEnglishTitle) context.fillText(documentEnglishTitle, width / 2, 220);
+    context.font = "800 70px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+    context.fillText(documentHeading.replace(/\s+/g, " "), width / 2, documentEnglishTitle ? 330 : 260);
+
+    context.textAlign = "left";
+    context.fillStyle = "#475569";
+    context.font = "600 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+    context.fillText("발급번호: " + certificateNo, 150, 155);
+
+    if (isDetailDocument) {
+      let y = 430;
+      context.fillStyle = "#111827";
+      context.font = "700 28px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      context.fillText("1. 교육 이수자 정보", 150, y);
+      context.font = "600 25px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      y += 58;
+      context.fillText("성명: " + (certificate.userName || profileName), 180, y);
+      y += 42;
+      context.fillText("생년월일: " + formatBirthDate(certificate.birthDate), 180, y);
+      y += 78;
+      context.font = "700 28px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      context.fillText("2. 교육과정 정보", 150, y);
+      context.font = "600 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      y += 56;
+      context.fillText("교육과정명: " + detailContext.courseTitle, 180, y);
+      y += 42;
+      context.fillText("수료조건: 전체 교육과정 수강 완료", 180, y);
+      y += 42;
+      context.fillText("수료일자: " + detailCompletedAt, 180, y);
+      y += 76;
+      context.font = "700 28px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      context.fillText("3. 주요 교육내용", 150, y);
+      context.font = "500 21px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      y += 48;
+      detailEducationItems.forEach((item) => {
+        y = drawWrappedText(context, "- " + item, 180, y, 890, 32) + 8;
+      });
+      y += 30;
+      context.font = "700 25px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      drawWrappedText(context, "위 사람은 온라인 동영상 강의를 성실히 수강하고 전체 교육과정을 이수하였음을 확인합니다.", 180, y, 880, 36);
+    } else {
+      context.fillStyle = "#111827";
+      context.font = "700 34px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      context.fillText("성명: " + (certificate.userName || profileName), 250, 520);
+      context.fillText("생년월일: " + formatBirthDate(certificate.birthDate), 250, 585);
+      context.fillStyle = "#1f2937";
+      context.font = "500 31px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+      drawWrappedText(context, documentBody, 210, 730, 820, 58);
+      context.strokeStyle = "#d9c08a";
+      context.lineWidth = 2;
+      const tableX = 190;
+      const tableY = 1010;
+      const rowHeight = 74;
+      const labelWidth = 240;
+      certificateRows.forEach(([label, value], index) => {
+        const y = tableY + index * rowHeight;
+        context.fillStyle = "#fbf4e4";
+        context.fillRect(tableX, y, labelWidth, rowHeight);
+        context.strokeRect(tableX, y, 860, rowHeight);
+        context.fillStyle = "#5f4514";
+        context.font = "700 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+        context.fillText(String(label), tableX + 28, y + 47);
+        context.fillStyle = "#111827";
+        context.font = "600 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+        context.fillText(String(value), tableX + labelWidth + 28, y + 47);
+      });
+    }
+
+    context.textAlign = "center";
+    context.fillStyle = "#111827";
+    context.font = "600 27px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+    context.fillText(formatKoreanDate(issuedAt), width / 2, 1440);
+    context.font = "800 48px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
+    context.fillText(issuerName, width / 2 - 55, 1548);
+    const seal = await loadCanvasImage(sealStampPath);
+    if (seal) context.drawImage(seal, width / 2 + 125, 1480, 145, 145);
+
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.95));
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), width, height };
+  };
+
   const savePdfFile = async () => {
-    if (!certificate || !certificatePaperRef.current || pdfSaving) return;
+    if (!certificate || pdfSaving) return;
     setPdfSaving(true);
     setError("");
     try {
       trackEvent("certificate_download", { method: "pdf", document_type: isCompletionCertificate ? "completion" : "attendance" });
       const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
-      const image = await renderElementToJpeg(certificatePaperRef.current);
+      const image = await renderCertificatePdfImage();
       const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");

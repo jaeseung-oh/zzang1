@@ -2938,11 +2938,19 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
         return json({ message: '사용자 ID 또는 교육과정 정보가 올바르지 않습니다.', code: 'INVALID_REQUEST' }, 400, corsHeaders);
     }
 
-    const certificateId = uid + '_' + courseId;
+    const requestedDocumentType = String(body?.documentType || '').trim();
+    const defaultDocumentType = courseId === CBT_COURSE_PRODUCT.courseId || product.includesCbtCourse ? 'cbt-completion' : 'completion';
+    const rawDocumentType = requestedDocumentType || defaultDocumentType;
+    const allowedDocumentTypes = new Set(['completion', 'course-certificate', 'cbt-completion', 'cbt-detail', 'attendance']);
+    if (!allowedDocumentTypes.has(rawDocumentType)) {
+        return json({ message: '지원하지 않는 수료증 문서 종류입니다.', code: 'INVALID_DOCUMENT_TYPE' }, 400, corsHeaders);
+    }
+    const documentType = rawDocumentType === 'course-certificate' ? 'completion' : rawDocumentType;
+    const certificateId = documentType && documentType !== 'completion' ? uid + '_' + courseId + '_' + documentType : uid + '_' + courseId;
     const existing = await firestoreGetData(env, 'certificates', certificateId).catch((error) => error.status === 404 ? null : Promise.reject(error));
     if (existing?.certificateNo || existing?.issueNumber) {
-        await updateCertificateFlags(env, uid, courseId, existing.certificateNo || existing.issueNumber, certificateId, existing.issuedAt || existing.createdAt, true).catch((error) => console.error(error));
-        return json({ ok: true, certificateId, certificateNo: existing.certificateNo || existing.issueNumber, alreadyIssued: true, message: '이미 저장된 수료증이 있습니다.' }, 200, corsHeaders);
+        await updateCertificateFlags(env, uid, courseId, existing.certificateNo || existing.issueNumber, certificateId, existing.issuedAt || existing.createdAt, documentType !== 'attendance').catch((error) => console.error(error));
+        return json({ ok: true, certificateId, certificateNo: existing.certificateNo || existing.issueNumber, alreadyIssued: true, documentType, message: '이미 저장된 수료증이 있습니다.' }, 200, corsHeaders);
     }
 
     const user = await firestoreGetData(env, 'users', uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
@@ -2967,7 +2975,6 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
     const certificateNo = await makeCertificateNo(certificateId, issuedAt);
     const completedAt = body?.completedAt || progress?.completedAt || issuedAt;
     const issuerName = '리셋에듀센터';
-    const documentType = courseId === CBT_COURSE_PRODUCT.courseId ? 'cbt-completion' : 'completion';
     const certificateRecord = {
         certificateId, certificateNo, issueNumber: certificateNo,
         userId: uid, uid, userName, birthDate, dateOfBirth: birthDate,
@@ -2990,12 +2997,13 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
     };
 
     await firestorePatch(env, firestoreDocumentPath(env, 'certificates', certificateId), certificateRecord);
-    await updateCertificateFlags(env, uid, courseId, certificateNo, certificateId, issuedAt, true);
+    await updateCertificateFlags(env, uid, courseId, certificateNo, certificateId, issuedAt, documentType !== 'attendance');
     await savePaymentLog(env, certificateId, {
         type: 'admin_certificate_issued', certificateId, certificateNo, uid, userId: uid,
         courseId, documentType, issuedBy: admin.email || admin.uid,
         created_at: issuedAt, createdAt: issuedAt
     }).catch((logError) => console.error(logError));
+    await saveAdminAuditLog(env, request, admin, 'certificate.issue', 'certificates', certificateId, null, certificateRecord, String(body?.note || '관리자 직접 수료증 발급').trim()).catch((error) => console.error(error));
 
     return json({ ok: true, certificateId, certificateNo, alreadyIssued: false, documentType, message: '수료증이 발급 및 저장되었습니다.' }, 200, corsHeaders);
 }

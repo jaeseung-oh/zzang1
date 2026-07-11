@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { addDoc, collection, doc, getDoc, getDocs, serverTimestamp, setDoc } from "firebase/firestore";
 import { signOut } from "firebase/auth";
 import { useEffect, useMemo, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, duiBasicModules, duiCbtAdvancedModules, managedCourseCatalog } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, duiBasicModules, duiCbtAdvancedModules, getCourseModules, managedCourseCatalog } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
 import { applicationCourseCategories } from "@/lib/course/application-products";
 import { calculateRefundAmount } from "@/lib/payment/refund";
@@ -142,15 +142,31 @@ function getAdminCourseProduct(courseId?: string) {
 }
 
 function getAdminCourseModules(courseId?: string) {
-  return courseId === DUI_CBT_ADVANCED_COURSE_ID ? duiCbtAdvancedModules : duiBasicModules;
+  const modules = getCourseModules(courseId);
+  return modules.length ? modules : duiBasicModules;
 }
 
 function getAdminCourseTotalLessons(courseId?: string) {
   return getAdminCourseModules(courseId).length || duiPreventionCourseProduct.totalLessons;
 }
 
-function getAdminCertificateDocumentType(courseId?: string) {
-  return courseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육 이수증" : "수료증";
+function getAdminCertificateDocumentOptions(courseId?: string) {
+  const course = allCourseCatalog.find((item) => item.id === courseId);
+  const docs = course?.documents?.length ? course.documents : [{ type: "course-certificate" as const, title: (course?.certificateTitle || course?.title || "교육") + " 수료증" }];
+  return docs.map((doc) => ({ type: doc.type === "course-certificate" ? "completion" : doc.type, title: doc.title, courseId: doc.courseId || courseId || duiPreventionCourseProduct.courseId }));
+}
+
+function getAdminCertificateDocumentType(courseId?: string, documentType?: string) {
+  const normalized = documentType === "course-certificate" ? "completion" : documentType;
+  const option = getAdminCertificateDocumentOptions(courseId).find((item) => item.type === normalized);
+  if (option) return option.title;
+  return courseId === DUI_CBT_ADVANCED_COURSE_ID || normalized === "cbt-completion" ? "인지행동기반 재발방지교육 이수증" : normalized === "cbt-detail" ? "재범방지 교육 이수 상세 내역서" : "수료증";
+}
+
+function getCertificateViewHref(certificateId: string, mode?: "pdf" | "print") {
+  const params = new URLSearchParams({ certificateId });
+  if (mode) params.set(mode, "1");
+  return "/certificate?" + params.toString();
 }
 
 function getRefundInfo(row: { payment?: AnyRecord; enrollment?: AnyRecord; progress?: AnyRecord; certificate?: AnyRecord }) {
@@ -616,14 +632,23 @@ function EnrollmentDetail({ selected, ctx }: any) {
 function ManualCertificateIssuePanel({ onRefresh }: { onRefresh: () => void }) {
   const [uid, setUid] = useState("");
   const [courseId, setCourseId] = useState<string>(defaultAdminGrantProduct?.courseId || duiPreventionCourseProduct.courseId);
+  const documentOptions = getAdminCertificateDocumentOptions(courseId);
+  const [documentType, setDocumentType] = useState(documentOptions[0]?.type || "completion");
   const [userName, setUserName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [note, setNote] = useState("관리자 직접 수료증 발급");
   const [status, setStatus] = useState("");
+  const [issued, setIssued] = useState<{ certificateId: string; certificateNo?: string } | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const nextOptions = getAdminCertificateDocumentOptions(courseId);
+    if (!nextOptions.some((option) => option.type === documentType)) setDocumentType(nextOptions[0]?.type || "completion");
+  }, [courseId, documentType]);
 
   const handleIssue = async () => {
     setStatus("");
+    setIssued(null);
     if (!uid.trim()) {
       setStatus("사용자 ID(uid)를 입력해 주세요.");
       return;
@@ -637,11 +662,12 @@ function ManualCertificateIssuePanel({ onRefresh }: { onRefresh: () => void }) {
       const response = await fetch(baseUrl + "/api/admin/certificates/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-        body: JSON.stringify({ uid: uid.trim(), courseId, userName: userName.trim() || undefined, birthDate: birthDate.trim() || undefined, note: note.trim() || undefined }),
+        body: JSON.stringify({ uid: uid.trim(), courseId, documentType, userName: userName.trim() || undefined, birthDate: birthDate.trim() || undefined, note: note.trim() || undefined }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.message || "수료증 발급 및 저장에 실패했습니다.");
       setStatus(payload?.message || "수료증이 발급 및 저장되었습니다.");
+      if (payload?.certificateId) setIssued({ certificateId: payload.certificateId, certificateNo: payload.certificateNo });
       onRefresh();
     } catch (error) {
       console.error(error);
@@ -651,7 +677,7 @@ function ManualCertificateIssuePanel({ onRefresh }: { onRefresh: () => void }) {
     }
   };
 
-  return <section className="mb-4 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"><p className="font-bold">수료증 직접 발급 및 저장</p><p className="mt-1 text-xs leading-5">혹시 모를 오류 발생 시 관리자 권한으로 특정 회원의 수료증을 직접 발급해 Firestore에 저장합니다. 먼저 해당 과정의 활성 수강권이 있어야 합니다.</p><div className="mt-3 grid gap-2 md:grid-cols-[1fr_260px_150px_150px_1.3fr_auto]"><input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="사용자 ID(uid)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><select value={courseId} onChange={(e) => setCourseId(e.target.value)} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600">{adminGrantProducts.map((product) => <option key={product.id} value={product.courseId}>{product.categoryTitle} - {product.title}</option>)}</select><input value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="성명(선택)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} placeholder="YYYY-MM-DD" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="발급 사유" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><button type="button" onClick={handleIssue} disabled={submitting} className="rounded-xl border-2 border-emerald-900 bg-emerald-800 px-4 py-2 font-bold text-white shadow-sm transition hover:bg-emerald-950 hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{submitting ? "처리 중" : "발급 저장"}</button></div>{status ? <p className="mt-3 font-semibold">{status}</p> : null}</section>;
+  return <section className="mb-4 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"><p className="font-bold">수료증 직접 발급 및 PDF 저장</p><p className="mt-1 text-xs leading-5">회원 UID와 과정을 선택해 모든 과정의 수료증, 이수증, 상세내역서를 관리자 권한으로 발급합니다. 발급 후 PDF 저장 버튼으로 파일을 내려받을 수 있습니다.</p><div className="mt-3 grid gap-2 md:grid-cols-[1fr_260px_220px_150px_150px_1.3fr_auto]"><input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="사용자 ID(uid)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><select value={courseId} onChange={(e) => setCourseId(e.target.value)} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600">{adminGrantProducts.map((product) => <option key={product.id} value={product.courseId}>{product.categoryTitle} - {product.title}</option>)}</select><select value={documentType} onChange={(e) => setDocumentType(e.target.value)} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600">{documentOptions.map((option) => <option key={option.type + option.courseId} value={option.type}>{option.title}</option>)}</select><input value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="성명(선택)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} placeholder="YYYY-MM-DD" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="발급 사유" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><button type="button" onClick={handleIssue} disabled={submitting} className="rounded-xl border-2 border-emerald-900 bg-emerald-800 px-4 py-2 font-bold text-white shadow-sm transition hover:bg-emerald-950 hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{submitting ? "처리 중" : "발급 저장"}</button></div>{status ? <p className="mt-3 font-semibold">{status}</p> : null}{issued ? <div className="mt-3 flex flex-wrap gap-2"><Link href={getCertificateViewHref(issued.certificateId)} target="_blank" className="rounded-full border-2 border-emerald-900 bg-white px-4 py-2 text-xs font-bold text-emerald-950">보기/인쇄</Link><Link href={getCertificateViewHref(issued.certificateId, "pdf")} target="_blank" className="rounded-full border-2 border-emerald-900 bg-emerald-900 px-4 py-2 text-xs font-bold text-white">PDF 저장</Link></div> : null}</section>;
 }
 
 function CertificatesView(ctx: any) {
@@ -669,7 +695,7 @@ function CertificatesView(ctx: any) {
       const response = await fetch(baseUrl + "/api/admin/certificates/issue", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-        body: JSON.stringify({ uid: row.uid || row.userId, courseId: row.courseId, userName: row.userName !== "미입력" ? row.userName : undefined, birthDate: row.birthDateText !== "미입력" ? row.birthDateText : undefined, note: "관리자 수료증 관리 화면에서 직접 발급" }),
+        body: JSON.stringify({ uid: row.uid || row.userId, courseId: row.courseId, documentType: row.documentType || "completion", userName: row.userName !== "미입력" ? row.userName : undefined, birthDate: row.birthDateText !== "미입력" ? row.birthDateText : undefined, note: "관리자 수료증 관리 화면에서 직접 발급" }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.message || "수료증 발급 및 저장에 실패했습니다.");
@@ -690,35 +716,40 @@ function CertificatesView(ctx: any) {
     userName: c.userName || getUserName(ctx.maps.userById.get(c.uid || c.userId)),
     birthDateText: c.birthDate || c.dateOfBirth || "미입력",
     certificateNoText: c.certificateNo || c.issueNumber || "-",
-    documentTypeText: c.documentType === "attendance" ? "수강확인증" : getAdminCertificateDocumentType(c.courseId),
+    documentType: c.documentType || "completion",
+    documentTypeText: c.documentType === "attendance" ? "수강확인증" : getAdminCertificateDocumentType(c.courseId, c.documentType),
     issueStatusText: "발급완료",
   }));
   const issuedIds = new Set(issuedRows.map((row) => row.id));
   const pendingRows: AnyRecord[] = ctx.data.enrollments
-    .filter((e: AnyRecord) => !issuedIds.has(e.id) && !issuedIds.has(`${e.uid || e.userId}_${e.courseId}`))
-    .map((e: AnyRecord) => {
+    .flatMap((e: AnyRecord) => {
       const user = ctx.maps.userById.get(e.uid || e.userId);
       const progress = ctx.maps.progressByUserCourse.get(`${e.uid || e.userId}_${e.courseId}`);
-      return {
-        ...e,
-        id: e.id,
-        source: "enrollment",
-        userName: getUserName(user),
-        birthDateText: getBirthDate(user),
-        email: user?.email || "",
-        certificateNoText: "미발급",
-        documentTypeText: getCompletedLessons(e, progress) >= getAdminCourseTotalLessons(e.courseId) ? getAdminCertificateDocumentType(e.courseId) + " 발급 가능" : "수료증 발급 가능",
-        issueStatusText: "미발급",
-        issuedAt: null,
-        completedAt: progress?.completedAt || e.completedAt || null,
-      };
+      return getAdminCertificateDocumentOptions(e.courseId).map((option) => {
+        const certificateId = option.type && option.type !== "completion" ? `${e.uid || e.userId}_${e.courseId}_${option.type}` : `${e.uid || e.userId}_${e.courseId}`;
+        if (issuedIds.has(certificateId)) return null;
+        return {
+          ...e,
+          id: certificateId,
+          source: "enrollment",
+          documentType: option.type,
+          userName: getUserName(user),
+          birthDateText: getBirthDate(user),
+          email: user?.email || "",
+          certificateNoText: "미발급",
+          documentTypeText: option.title + " 발급 가능",
+          issueStatusText: "미발급",
+          issuedAt: null,
+          completedAt: progress?.completedAt || e.completedAt || null,
+        };
+      }).filter(Boolean) as AnyRecord[];
     });
   const rows = [...issuedRows, ...pendingRows].filter((row: AnyRecord) => textIncludes(row, ["certificateNoText", "userName", "email", "birthDateText", "courseTitle"], ctx.search));
   const sorted = rows.sort((a: AnyRecord, b: AnyRecord) => (toDate(b.issuedAt || b.createdAt || b.purchasedAt)?.getTime() || 0) - (toDate(a.issuedAt || a.createdAt || a.purchasedAt)?.getTime() || 0));
   const pager = usePagination(sorted);
   const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId);
   useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]);
-  return <section><ManualCertificateIssuePanel onRefresh={ctx.refresh} /><div className="mb-4 flex flex-wrap gap-2"><Link href="/certificate?adminPreview=attendance" className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#10213f] hover:text-white">수강확인증 샘플 보기</Link><Link href="/certificate?adminPreview=completion" className="rounded-full border-2 border-[#173968] bg-white px-4 py-2 text-sm font-semibold text-[#173968] transition hover:bg-slate-100 hover:text-[#10213f]">수료증 샘플 보기</Link><Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion&adminPreview=completion" className="rounded-full border-2 border-emerald-800 bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-950 hover:text-white">29만원 심화 이수증 샘플 보기</Link></div>{issueStatus ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950">{issueStatus}</p> : null}<AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-certificates.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "certificateNoText", label: "발급번호" }, { key: "documentTypeText", label: "서류 종류" }, { key: "userName", label: "사용자명" }, { key: "birthDateText", label: "생년월일" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "교육과정명" }, { key: "completedAt", label: "수료/수강일", render: (r) => formatDate(r.completedAt) }, { key: "issuedAt", label: "발급일", render: (r) => formatDate(r.issuedAt) }, { key: "issueStatusText", label: "상태" }, { key: "view", label: "서류", render: (r) => r.source === "certificate" ? <Link href={`/certificate?certificateId=${encodeURIComponent(r.id)}`} className="font-semibold text-[#173968] underline">보기/인쇄</Link> : <button type="button" onClick={() => void issueFromRow(r)} disabled={issuingId === r.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === r.id ? "발급 중" : "관리자 발급"}</button> }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">상세</button> }]} /><Pagination {...pager} />{selected ? <DetailPanel title="수강증/수료증 상세" memoTarget={selected.source === "certificate" ? "certificates" : "enrollments"} memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo(selected.source === "certificate" ? "certificates" : "enrollments", selected.id, ctx.memo)} rows={[["발급번호", selected.certificateNoText], ["서류 종류", selected.documentTypeText], ["수강자", `${selected.userName} / ${selected.birthDateText}`], ["이메일", selected.email || "-"], ["미리보기", selected.source === "certificate" ? <Link href={`/certificate?certificateId=${encodeURIComponent(selected.id)}`} className="text-[#173968] underline">서류 보기 및 인쇄</Link> : <button type="button" onClick={() => void issueFromRow(selected)} disabled={issuingId === selected.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === selected.id ? "발급 중" : "관리자 발급 및 저장"}</button>], ["결제정보", selected.orderId || "결제정보 없음"], ["환불", selected.source === "certificate" ? "교육 이수 관련 서류가 발급되어 환불이 불가합니다." : "서류 발급 전 환불규정에 따라 계산됩니다."]]} /> : null}</section>;
+  return <section><ManualCertificateIssuePanel onRefresh={ctx.refresh} /><div className="mb-4 flex flex-wrap gap-2"><Link href="/certificate?adminPreview=attendance" className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#10213f] hover:text-white">수강확인증 샘플 보기</Link><Link href="/certificate?adminPreview=completion" className="rounded-full border-2 border-[#173968] bg-white px-4 py-2 text-sm font-semibold text-[#173968] transition hover:bg-slate-100 hover:text-[#10213f]">수료증 샘플 보기</Link><Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion&adminPreview=completion" className="rounded-full border-2 border-emerald-800 bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-950 hover:text-white">29만원 심화 이수증 샘플 보기</Link></div>{issueStatus ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950">{issueStatus}</p> : null}<AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-certificates.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "certificateNoText", label: "발급번호" }, { key: "documentTypeText", label: "서류 종류" }, { key: "userName", label: "사용자명" }, { key: "birthDateText", label: "생년월일" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "교육과정명" }, { key: "completedAt", label: "수료/수강일", render: (r) => formatDate(r.completedAt) }, { key: "issuedAt", label: "발급일", render: (r) => formatDate(r.issuedAt) }, { key: "issueStatusText", label: "상태" }, { key: "view", label: "서류", render: (r) => r.source === "certificate" ? <div className="flex flex-wrap gap-2"><Link href={getCertificateViewHref(r.id)} target="_blank" className="font-semibold text-[#173968] underline">보기/인쇄</Link><Link href={getCertificateViewHref(r.id, "pdf")} target="_blank" className="font-semibold text-emerald-700 underline">PDF 저장</Link></div> : <button type="button" onClick={() => void issueFromRow(r)} disabled={issuingId === r.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === r.id ? "발급 중" : "관리자 발급"}</button> }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">상세</button> }]} /><Pagination {...pager} />{selected ? <DetailPanel title="수강증/수료증 상세" memoTarget={selected.source === "certificate" ? "certificates" : "enrollments"} memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo(selected.source === "certificate" ? "certificates" : "enrollments", selected.id, ctx.memo)} rows={[["발급번호", selected.certificateNoText], ["서류 종류", selected.documentTypeText], ["수강자", `${selected.userName} / ${selected.birthDateText}`], ["이메일", selected.email || "-"], ["미리보기", selected.source === "certificate" ? <div className="flex flex-wrap gap-2"><Link href={getCertificateViewHref(selected.id)} target="_blank" className="text-[#173968] underline">서류 보기 및 인쇄</Link><Link href={getCertificateViewHref(selected.id, "pdf")} target="_blank" className="text-emerald-700 underline">PDF 저장</Link></div> : <button type="button" onClick={() => void issueFromRow(selected)} disabled={issuingId === selected.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === selected.id ? "발급 중" : "관리자 발급 및 저장"}</button>], ["결제정보", selected.orderId || "결제정보 없음"], ["환불", selected.source === "certificate" ? "교육 이수 관련 서류가 발급되어 환불이 불가합니다." : "서류 발급 전 환불규정에 따라 계산됩니다."]]} /> : null}</section>;
 }
 
 function RefundsView(ctx: any) { const rows: AnyRecord[] = ctx.data.enrollments.map((e: AnyRecord) => { const user = ctx.maps.userById.get(e.uid || e.userId); const payment = ctx.maps.paymentByOrder.get(e.orderId || e.paymentId); const progress = ctx.maps.progressByUserCourse.get(`${e.uid || e.userId}_${e.courseId}`); const certificate = ctx.maps.certificateByUserCourse.get(`${e.uid || e.userId}_${e.courseId}`); const refund = getRefundInfo({ enrollment: e, payment, progress, certificate }); const left = daysLeft(e.expiresAt); return { ...e, userName: getUserName(user), email: user?.email || "", amount: Number(payment?.amount || duiPreventionCourseProduct.price), completedLessons: getCompletedLessons(e, progress), unusedLessons: refund.unusedLessons, refundAmount: refund.refundAmount, refundable: refund.refundable, reason: refund.reason, certificateIssued: Boolean(e.certificateIssued || certificate?.certificateNo), expired: left !== null && left < 0, paymentStatus: payment?.paymentStatus || e.paymentStatus }; }).filter((row: AnyRecord) => textIncludes(row, ["userName", "email", "courseTitle"], ctx.search)); const sorted = rows.sort((a: AnyRecord, b: AnyRecord) => b.refundAmount - a.refundAmount); const pager = usePagination(sorted); const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId); useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]); return <section><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-refunds.csv", sorted)} /><p className="mb-4 rounded-[1.25rem] border border-[#d7deea] bg-white p-4 text-sm text-slate-600">실제 환불 처리는 PG사 관리자 페이지 또는 환불 API 연동 후 가능합니다.</p><DataTable rows={pager.paged} columns={[{ key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "상품명" }, { key: "amount", label: "결제금액", render: (r) => formatKrw(r.amount) }, { key: "completedLessons", label: "수강 강의" }, { key: "unusedLessons", label: "미수강 강의" }, { key: "refundAmount", label: "예상 환불", render: (r) => formatKrw(r.refundAmount) }, { key: "refundable", label: "가능 여부", render: (r) => r.refundable ? "가능" : "불가" }, { key: "reason", label: "사유" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "expired", label: "만료", render: (r) => r.expired ? "만료" : "유효" }, { key: "purchasedAt", label: "결제일", render: (r) => formatDate(r.purchasedAt) }, { key: "expiresAt", label: "만료일", render: (r) => formatDate(r.expiresAt) }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <DetailPanel title="환불 상세" memoTarget="enrollments" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("enrollments", selected.id, ctx.memo)} rows={[["refundable", String(selected.refundable)], ["refundAmount", formatKrw(selected.refundAmount)], ["unusedLessons", selected.unusedLessons], ["reason", selected.reason], ["안내", "실제 환불 처리는 PG사 관리자 페이지 또는 환불 API 연동 후 가능합니다."]]} /> : null}</section>; }

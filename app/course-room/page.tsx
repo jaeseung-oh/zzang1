@@ -322,6 +322,7 @@ function getModuleState(item: ModuleProgressState | undefined, active: boolean) 
 
 export default function CourseRoomPage() {
   const router = useRouter();
+  const [hasExplicitCourseId] = useState(() => typeof window !== "undefined" && Boolean(new URLSearchParams(window.location.search).get("courseId")));
   const [requestedCourseId] = useState(() => {
     if (typeof window === "undefined") return defaultCourse.id;
     const courseId = new URLSearchParams(window.location.search).get("courseId") || defaultCourse.id;
@@ -484,6 +485,14 @@ export default function CourseRoomPage() {
         const adminBypass = isSuperAdmin(user);
         setAdminPreview(adminBypass);
         const enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
+        if (!hasExplicitCourseId && !adminBypass) {
+          const activeEnrollment = enrollments.find((item) => item.courseId === requestedCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => isEnrollmentActive(item));
+          if (activeEnrollment?.courseId && activeEnrollment.courseId !== requestedCourseId) {
+            router.replace("/course-room?courseId=" + encodeURIComponent(activeEnrollment.courseId));
+            return;
+          }
+        }
+
         const enrollment = enrollments.find((item) => item.courseId === requestedCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === requestedCourseId);
         const allowed = adminBypass || isEnrollmentActive(enrollment);
         const documentFormsAllowed = enrollments.some((item) => item.courseId === requestedCourseId && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
@@ -546,7 +555,7 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, requestedCourseId, courseModules]);
+  }, [router, requestedCourseId, courseModules, hasExplicitCourseId]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -1305,7 +1314,7 @@ export default function CourseRoomPage() {
                 {courseTitle}
               </h1>
               <p className="mt-4 max-w-3xl text-sm leading-7 text-slate-300 sm:text-[15px]">
-                {defaultCourse.subtitle}. 결제 확인, 강의별 재생 이력, 전체 진도율, 발급 안내를 하나의 학습 화면에서 관리합니다.
+                {courseDefinition?.subtitle || defaultCourse.subtitle}. 결제 확인, 강의별 재생 이력, 전체 진도율, 발급 안내를 하나의 학습 화면에서 관리합니다.
               </p>
             </div>
 
@@ -1696,7 +1705,7 @@ export default function CourseRoomPage() {
                       <p className="mt-2 font-semibold text-slate-100">{courseTitle}</p>
                     </div>
                     <span className="rounded-full border border-amber-300 bg-amber-300 px-3 py-1 text-xs font-black text-slate-950">
-                      {defaultCourse.priceLabel}
+                      {courseDefinition?.priceLabel || defaultCourse.priceLabel}
                     </span>
                   </div>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
