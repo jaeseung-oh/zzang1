@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import AuthNav from "@/app/components/auth-nav";
 import { centerLogoPath } from "@/app/components/SealStamp";
+import { buttonClass } from "@/app/components/ui/button-styles";
 import { platformCourseCategories } from "@/lib/course/platform-courses";
 
 const primaryNavItems = [
@@ -20,6 +21,14 @@ const courseLinks = [
   ...platformCourseCategories.map((course) => ({ href: "/courses/" + course.slug, label: course.title })),
 ];
 
+const mobileMenuItems = [
+  { href: "/courses", label: "교육과정" },
+  { href: "/prevention-documents", label: "제공자료" },
+  { href: "/#process", label: "이용방법" },
+  { href: "/about#support", label: "고객지원" },
+  { href: "/dashboard", label: "로그인 또는 내 강의실" },
+];
+
 function isActive(pathname: string, href: string) {
   const current = pathname.replace(/\/$/, "") || "/";
   const target = href.split("#")[0].split("?")[0].replace(/\/$/, "") || "/";
@@ -32,32 +41,69 @@ function linkClass(active: boolean) {
     : "whitespace-nowrap rounded-full border-2 border-slate-300 bg-white px-3 py-1.5 text-[#111827] hover:border-[#173968] hover:bg-[#173968] hover:!text-white sm:px-3.5 sm:py-2";
 }
 
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <svg className="h-5 w-5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+      {open ? <><path d="M6 6l12 12" /><path d="M18 6 6 18" /></> : <><path d="M4 7h16" /><path d="M4 12h16" /><path d="M4 17h16" /></>}
+    </svg>
+  );
+}
+
 export default function GlobalSiteHeader() {
   const pathname = usePathname() || "/";
   const courseActive = isActive(pathname, "/courses");
   const [courseMenuOpen, setCourseMenuOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   function closeCourseMenu() {
     setCourseMenuOpen(false);
   }
 
+  function closeAllMenus() {
+    setCourseMenuOpen(false);
+    setMobileMenuOpen(false);
+  }
+
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm backdrop-blur">
-      <div className="mx-auto flex max-w-7xl flex-col gap-1.5 px-3 py-2 sm:gap-2 sm:px-6 sm:py-3 lg:flex-row lg:flex-nowrap lg:items-center lg:justify-between lg:px-8">
-        <div className="flex min-w-0 items-center justify-between gap-2">
-          <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeCourseMenu}>
-            <img src={centerLogoPath} alt="ResetEdu 로고" className="h-8 w-8 shrink-0 object-contain sm:h-11 sm:w-11" />
-            <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-[14px] font-black leading-tight text-[#173968] min-[380px]:text-[15px] sm:text-xl">ResetEdu 재발방지교육센터</span>
-              <span className="hidden text-[11px] font-bold leading-tight text-slate-500 min-[420px]:block sm:text-xs">Prevention Education Center</span>
-            </span>
-          </Link>
-          <div className="shrink-0 lg:hidden">
-            <AuthNav />
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:px-6 lg:hidden">
+        <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeAllMenus}>
+          <img src={centerLogoPath} alt="ResetEdu 로고" className="h-9 w-9 shrink-0 object-contain" />
+          <span className="min-w-0 truncate text-[15px] font-black leading-tight text-[#173968]">ResetEdu</span>
+        </Link>
+        <Link href="/courses/apply?category=dui" className={buttonClass("warning", "sm", "min-h-10 rounded-full px-3 text-xs font-black !text-black hover:!text-black")}>수강 신청</Link>
+        <button type="button" aria-label={mobileMenuOpen ? "모바일 메뉴 닫기" : "모바일 메뉴 열기"} aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-950 shadow-sm">
+          <MenuIcon open={mobileMenuOpen} />
+        </button>
+      </div>
+
+      {mobileMenuOpen ? (
+        <div className="fixed inset-x-0 top-[61px] z-[80] min-h-[calc(100dvh-61px)] bg-white px-4 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] lg:hidden">
+          <nav aria-label="모바일 메뉴" className="mx-auto grid max-w-md gap-2 text-lg font-black text-slate-950">
+            {mobileMenuItems.map((item) => (
+              <Link key={item.href + item.label} href={item.href} onClick={closeAllMenus} className="flex min-h-14 items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 transition hover:border-[#173968] hover:bg-white focus:outline-none focus:ring-4 focus:ring-[#173968]/20">
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="mx-auto mt-5 max-w-md rounded-2xl bg-[#f8fafc] p-4 text-sm leading-6 text-slate-700">
+            교육 이수와 실천자료 준비를 한 흐름으로 진행합니다.
           </div>
         </div>
+      ) : null}
 
-        <nav aria-label="주요 메뉴" className="flex w-full gap-1 overflow-x-auto pb-1 text-[13px] font-bold text-slate-700 [-webkit-overflow-scrolling:touch] sm:text-sm lg:w-auto lg:items-center lg:justify-center lg:gap-2 lg:overflow-visible lg:pb-0">
+      <div className="mx-auto hidden max-w-7xl flex-col gap-2 px-6 py-3 lg:flex lg:flex-row lg:flex-nowrap lg:items-center lg:justify-between lg:px-8">
+        <div className="flex min-w-0 items-center justify-between gap-2">
+          <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeCourseMenu}>
+            <img src={centerLogoPath} alt="ResetEdu 로고" className="h-11 w-11 shrink-0 object-contain" />
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate text-xl font-black leading-tight text-[#173968]">ResetEdu 재발방지교육센터</span>
+              <span className="text-xs font-bold leading-tight text-slate-500">Prevention Education Center</span>
+            </span>
+          </Link>
+        </div>
+
+        <nav aria-label="주요 메뉴" className="flex w-auto items-center justify-center gap-2 overflow-visible pb-0 text-sm font-bold text-slate-700">
           <Link href="/about" className={linkClass(isActive(pathname, "/about"))} onClick={closeCourseMenu}>센터소개</Link>
 
           <div className="relative shrink-0" onMouseEnter={() => setCourseMenuOpen(true)}>
@@ -76,18 +122,12 @@ export default function GlobalSiteHeader() {
             {courseMenuOpen ? (
               <>
                 <button type="button" aria-label="교육과정 메뉴 닫기" className="fixed inset-0 z-[60] cursor-default bg-transparent" onClick={closeCourseMenu} />
-                <div className="fixed left-3 right-3 top-[92px] z-[70] grid max-h-[min(70vh,420px)] gap-1 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_45px_rgba(15,23,42,0.18)] sm:left-auto sm:right-6 sm:top-[104px] sm:w-[320px] lg:absolute lg:left-0 lg:right-auto lg:top-full lg:w-[300px]" role="menu">
-                {courseLinks.map((item) => (
-                  <Link
-                    key={item.href + item.label}
-                    href={item.href}
-                    role="menuitem"
-                    onClick={closeCourseMenu}
-                    className="rounded-xl px-3 py-2 text-sm font-bold text-slate-800 hover:bg-[#173968] hover:!text-white focus:bg-[#173968] focus:!text-white focus:outline-none"
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+                <div className="absolute left-0 top-full z-[70] grid max-h-[min(70vh,420px)] w-[300px] gap-1 overflow-auto rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_18px_45px_rgba(15,23,42,0.18)]" role="menu">
+                  {courseLinks.map((item) => (
+                    <Link key={item.href + item.label} href={item.href} role="menuitem" onClick={closeCourseMenu} className="rounded-xl px-3 py-2 text-sm font-bold text-slate-800 hover:bg-[#173968] hover:!text-white focus:bg-[#173968] focus:!text-white focus:outline-none">
+                      {item.label}
+                    </Link>
+                  ))}
                 </div>
               </>
             ) : null}
@@ -100,9 +140,7 @@ export default function GlobalSiteHeader() {
           ))}
         </nav>
 
-        <div className="hidden lg:block">
-          <AuthNav />
-        </div>
+        <AuthNav />
       </div>
     </header>
   );

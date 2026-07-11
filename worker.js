@@ -115,9 +115,6 @@ async function handleRequest(request, env) {
             return handleCertificateIssue(request, env, corsHeaders);
         }
 
-        if (url.pathname === '/api/admin/demo-seed' && request.method === 'POST') {
-            return handleAdminDemoSeed(request, env, corsHeaders);
-        }
 
         if (url.pathname === '/api/admin/payments' && request.method === 'GET') {
             return handleAdminPayments(request, env, corsHeaders);
@@ -131,8 +128,16 @@ async function handleRequest(request, env) {
             return handleAdminEnrollmentGrant(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/admin/enrollments/update' && request.method === 'POST') {
+            return handleAdminEnrollmentUpdate(request, env, corsHeaders);
+        }
+
         if (url.pathname === '/api/admin/certificates/issue' && request.method === 'POST') {
             return handleAdminCertificateIssue(request, env, corsHeaders);
+        }
+
+        if (url.pathname === '/api/admin/integrity' && request.method === 'GET') {
+            return handleAdminIntegrityCheck(request, env, corsHeaders);
         }
 
         return json({ error: 'not_found' }, 404, corsHeaders);
@@ -1575,6 +1580,22 @@ function getApplicationProductForPayment(productId) {
     return APPLICATION_PRODUCTS[productId] || null;
 }
 
+function normalizeOrderName(value) {
+    return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function getAllowedOrderNamesForProduct(product) {
+    return new Set([
+        product?.courseTitle,
+        product?.title
+    ].map(normalizeOrderName).filter(Boolean));
+}
+
+function isAllowedOrderNameForProduct(orderName, product) {
+    const normalizedOrderName = normalizeOrderName(orderName);
+    return normalizedOrderName && getAllowedOrderNamesForProduct(product).has(normalizedOrderName);
+}
+
 function parsePortOneCustomData(customData) {
     if (!customData) return {};
     if (typeof customData === 'object') return customData;
@@ -1699,8 +1720,8 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
         categoryId,
         productId,
         productTitle: product.title,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        orderName: DUI_COURSE_PRODUCT.courseTitle,
+        courseTitle: product.courseTitle,
+        orderName: product.courseTitle,
         amount: product.amount,
         requestedAmount: product.amount,
         method: requestedPaymentMethod,
@@ -2194,7 +2215,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         if (approved.status !== 'PAID') throw new Error('결제가 완료된 상태가 아닙니다.');
         if (expectedChannelType && channelType && channelType !== expectedChannelType) throw new Error('포트원 채널이 실연동 채널이 아닙니다.');
         if (configuredStoreId && storeId && storeId !== configuredStoreId) throw new Error('포트원 상점 ID가 일치하지 않습니다.');
-        if (approved.orderName !== product.courseTitle) throw new Error('주문명이 현재 상품과 일치하지 않습니다.');
+        if (!isAllowedOrderNameForProduct(approved.orderName, product)) throw new Error('주문명이 현재 상품과 일치하지 않습니다.');
         if (paidAmount !== product.amount) throw new Error('결제 승인 금액이 상품 금액과 일치하지 않습니다.');
         if (currency !== DUI_COURSE_PRODUCT.currency) throw new Error('결제 통화가 올바르지 않습니다.');
         if (customData.courseId && customData.courseId !== courseId) throw new Error('결제 상품 정보가 일치하지 않습니다.');
@@ -2449,91 +2470,48 @@ function getAdminEmailsFromEnv(env) {
 }
 
 async function requireFirebaseAdmin(request, env) {
-    const authHeader = request.headers.get('Authorization') || '';
-    const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
-    if (!idToken) throw new Error('로그인이 필요합니다.');
+    const authHeader = request.headers.get("Authorization") || "";
+    const idToken = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
+    if (!idToken) throw new Error("로그인이 필요합니다.");
     const user = await verifyFirebaseIdToken(idToken, env);
-    if (!getAdminEmailsFromEnv(env).includes(String(user.email || '').toLowerCase())) {
-        const error = new Error('관리자 권한이 없습니다.');
+    const adminEmails = getAdminEmailsFromEnv(env);
+    const emailAllowed = adminEmails.includes(String(user.email || "").toLowerCase());
+    const profile = await firestoreGetData(env, "users", user.uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    const role = String(profile?.role || profile?.adminRole || "").toLowerCase();
+    const roleAllowed = ["admin", "superadmin", "operator", "viewer"].includes(role);
+    if (!emailAllowed && !roleAllowed) {
+        const error = new Error("관리자 권한이 없습니다.");
         error.status = 403;
         throw error;
     }
-    return user;
+    return { ...user, role: role || (emailAllowed ? "superadmin" : "admin"), profile: profile || null };
 }
 
-async function handleAdminDemoSeed(request, env, corsHeaders) {
-    let admin;
-    try {
-        admin = await requireFirebaseAdmin(request, env);
-    } catch (error) {
-        return json({ message: error.message || '관리자 권한이 없습니다.', code: 'ADMIN_FORBIDDEN' }, error.status || 403, corsHeaders);
-    }
-
-    const uid = admin.uid;
-    const now = new Date();
-    const nowIso = now.toISOString();
-    const orderId = `demo_${uid}_${compactDate(nowIso)}`;
-    const paymentId = `demo_payment_${uid}`;
-    const enrollmentId = `${uid}_${DUI_COURSE_PRODUCT.courseId}`;
-    const expiresAt = new Date(now.getTime() + DUI_COURSE_PRODUCT.durationDays * 24 * 60 * 60 * 1000).toISOString();
-
-    const existingUser = await firestoreGetData(env, 'users', uid).catch(() => null);
-    await firestorePatch(env, firestoreDocumentPath(env, 'users', uid), {
-        fullName: existingUser?.fullName || existingUser?.realName || admin.name || '관리자 시범 사용자',
-        realName: existingUser?.realName || existingUser?.fullName || admin.name || '관리자 시범 사용자',
-        email: existingUser?.email || admin.email || '',
-        dateOfBirth: existingUser?.dateOfBirth || existingUser?.birthDate || '1990-01-01',
-        birthDate: existingUser?.birthDate || existingUser?.dateOfBirth || '1990-01-01',
-        phoneNumber: existingUser?.phoneNumber || '',
-        provider: existingUser?.provider || 'admin-demo',
-        providerLabel: existingUser?.providerLabel || '관리자 시범',
-        updatedAt: nowIso,
-        createdAt: existingUser?.createdAt || nowIso
-    });
-
-    await firestorePatch(env, firestoreDocumentPath(env, 'payments', orderId), {
-        paymentId, orderId, paymentKey: paymentId, userId: uid, uid,
-        courseId: DUI_COURSE_PRODUCT.courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        orderName: DUI_COURSE_PRODUCT.courseTitle, amount: DUI_COURSE_PRODUCT.price,
-        method: 'admin-demo', status: 'paid', paymentStatus: 'paid', paymentProvider: 'admin-demo',
-        approvedAt: nowIso, createdAt: nowIso, updatedAt: nowIso,
-        adminDemo: true
-    });
-
-    await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), {
-        uid, userId: uid, courseId: DUI_COURSE_PRODUCT.courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        orderId, paymentKey: paymentId, paymentStatus: 'paid', accessStatus: 'active', paymentProvider: 'admin-demo',
-        amount: DUI_COURSE_PRODUCT.price, method: 'admin-demo', orderedAt: nowIso, approvedAt: nowIso,
-        purchasedAt: nowIso, expiresAt, accessValidDays: DUI_COURSE_PRODUCT.durationDays,
-        totalLessons: DUI_COURSE_PRODUCT.totalLessons, completedLessons: DUI_COURSE_PRODUCT.totalLessons,
-        progress: 100, certificateIssued: false, updatedAt: nowIso, createdAt: nowIso, adminDemo: true
-    });
-
-    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), {
-        enrollmentId, userId: uid, uid, courseId: DUI_COURSE_PRODUCT.courseId,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle, paymentId, orderId,
-        purchasedAt: nowIso, expiresAt, paymentStatus: 'paid', accessStatus: 'active',
-        progress: 100, completedLessons: DUI_COURSE_PRODUCT.totalLessons, totalLessons: DUI_COURSE_PRODUCT.totalLessons,
-        certificateIssued: false, certificateIssuedAt: null, createdAt: nowIso, updatedAt: nowIso, adminDemo: true
-    });
-
-    const moduleProgress = {};
-    for (let index = 1; index <= DUI_COURSE_PRODUCT.totalLessons; index += 1) {
-        moduleProgress[`dui-lesson-${index}`] = { watchedSeconds: 600, durationSeconds: 600, completionRate: 100, lastPlaybackPositionSeconds: 600, isCompleted: true };
-    }
-    await firestorePatch(env, firestoreDocumentPath(env, 'courseProgress', enrollmentId), {
-        uid, userId: uid, courseId: DUI_COURSE_PRODUCT.courseId, courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        purchaseId: orderId, learnerName: existingUser?.realName || existingUser?.fullName || admin.name || '관리자 시범 사용자',
-        caseType: 'dui', watchedSeconds: 3000, durationSeconds: 3000, completionRate: 100,
-        remainingSeconds: 0, lastPlaybackPositionSeconds: 600,
-        completedModuleCount: DUI_COURSE_PRODUCT.totalLessons, totalModuleCount: DUI_COURSE_PRODUCT.totalLessons,
-        moduleProgress, isCompleted: true, legalDisclaimerAccepted: true, userReviewAccepted: true,
-        completedAt: nowIso, createdAt: nowIso, updatedAt: nowIso, adminDemo: true
-    });
-
-    return json({ ok: true, uid, orderId, enrollmentId, message: '관리자 시범 수강 완료 데이터가 준비되었습니다. /certificate에서 수료증을 발급할 수 있습니다.' }, 200, corsHeaders);
+function getRequestIp(request) {
+    return request.headers.get("CF-Connecting-IP") || request.headers.get("X-Forwarded-For") || null;
 }
 
+async function saveAdminAuditLog(env, request, admin, action, targetType, targetId, beforeValue, afterValue, reason) {
+    const nowIso = new Date().toISOString();
+    const safeTargetId = encodeFirestoreDocId(targetId || action || String(Date.now()));
+    const logId = encodeFirestoreDocId(action + "_" + safeTargetId + "_" + Date.now());
+    const record = {
+        action,
+        targetType,
+        targetId: targetId || null,
+        beforeValue: beforeValue || null,
+        afterValue: afterValue || null,
+        reason: reason || null,
+        adminId: admin?.uid || null,
+        adminEmail: admin?.email || null,
+        adminRole: admin?.role || null,
+        ip: getRequestIp(request),
+        createdAt: nowIso,
+        processedAt: nowIso
+    };
+    await firestorePatch(env, firestoreDocumentPath(env, "adminLogs", logId), record);
+    return record;
+}
 async function handleAdminPaymentResync(request, env, corsHeaders) {
     let admin;
     try {
@@ -2612,14 +2590,17 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         const existing = fromFirestoreFields(existingEnrollment.fields || {});
         const existingExpiresAt = existing.expiresAt ? new Date(existing.expiresAt).getTime() : 0;
         if (existing.paymentStatus === 'paid' && existing.accessStatus === 'active' && existingExpiresAt > Date.now()) {
-            return json({
-                ok: true,
-                message: '이미 활성화된 수강권이 있습니다.',
-                enrollmentId,
-                orderId: existing.orderId || existing.paymentId || null,
-                expiresAt: existing.expiresAt || null,
-                accessStatus: 'active'
-            }, 200, corsHeaders);
+            const duplicateResolution = String(body?.duplicateResolution || 'keep').trim();
+            if (duplicateResolution === 'extend') {
+                const nowIso = new Date().toISOString();
+                const extensionDays = Number(body?.extensionDays || getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
+                const expiresAt = new Date(existingExpiresAt + Math.max(1, extensionDays) * 24 * 60 * 60 * 1000).toISOString();
+                const patch = { expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장' };
+                await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), patch);
+                await saveAdminAuditLog(env, request, admin, 'enrollment.extend', 'enrollments', enrollmentId, existing, patch, note || '중복 수강권 기간 연장');
+                return json({ ok: true, message: '기존 수강권 기간을 연장했습니다.', enrollmentId, expiresAt, accessStatus: 'active' }, 200, corsHeaders);
+            }
+            return json({ ok: false, message: '이미 활성화된 수강권이 있습니다. 기존 수강권 유지, 기간 연장, 교체 중 하나를 선택해 주세요.', code: 'ACTIVE_ENROLLMENT_EXISTS', enrollmentId, orderId: existing.orderId || existing.paymentId || null, expiresAt: existing.expiresAt || null, accessStatus: 'active', choices: ['keep', 'extend', 'replace'] }, 409, corsHeaders);
         }
     }
 
@@ -2732,6 +2713,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             created_at: nowIso,
             createdAt: nowIso
         });
+        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, enrollmentRecord, note || '관리자 수동 수강권 지급');
     } catch (error) {
         await savePaymentLog(env, orderId, {
             type: 'admin_manual_enrollment_failed',
@@ -2763,6 +2745,101 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     }, 200, corsHeaders);
 }
 
+async function handleAdminEnrollmentUpdate(request, env, corsHeaders) {
+    let admin;
+    try {
+        admin = await requireFirebaseAdmin(request, env);
+    } catch (error) {
+        return json({ message: error.message || "관리자 권한이 없습니다.", code: "ADMIN_FORBIDDEN" }, error.status || 403, corsHeaders);
+    }
+
+    const body = await request.json().catch(() => null);
+    const uid = String(body?.uid || "").trim();
+    const courseId = String(body?.courseId || DUI_COURSE_PRODUCT.courseId).trim();
+    const action = String(body?.action || "").trim();
+    const reason = String(body?.reason || body?.note || "").trim();
+    if (!uid || !courseId || !action || !reason) {
+        return json({ message: "uid, courseId, action, reason이 필요합니다.", code: "MISSING_FIELDS" }, 400, corsHeaders);
+    }
+
+    const product = getCourseProduct(courseId);
+    if (!product) return json({ message: "지원하지 않는 교육과정입니다.", code: "INVALID_COURSE" }, 400, corsHeaders);
+    const enrollmentId = uid + "_" + courseId;
+    const enrollmentPath = firestoreDocumentPath(env, "enrollments", enrollmentId);
+    const existingRaw = await firestoreGet(env, enrollmentPath).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (!existingRaw) return json({ message: "수강권을 찾을 수 없습니다.", code: "ENROLLMENT_NOT_FOUND" }, 404, corsHeaders);
+    const before = fromFirestoreFields(existingRaw.fields || {});
+    const nowIso = new Date().toISOString();
+    let patch = { updatedAt: nowIso, updatedBy: admin.email || admin.uid, adminUpdateReason: reason };
+
+    if (action === "extend") {
+        const baseTime = before.expiresAt ? new Date(before.expiresAt).getTime() : Date.now();
+        const extensionDays = Number(body?.extensionDays || 0);
+        const explicitExpiresAt = body?.expiresAt ? new Date(String(body.expiresAt)).toISOString() : null;
+        const expiresAt = explicitExpiresAt || new Date(Math.max(baseTime, Date.now()) + Math.max(1, extensionDays || 30) * 24 * 60 * 60 * 1000).toISOString();
+        patch = { ...patch, expiresAt, accessStatus: "active", enrollmentStatus: "active", extendedAt: nowIso, extendedBy: admin.email || admin.uid };
+    } else if (action === "revoke") {
+        patch = { ...patch, accessStatus: "cancelled", enrollmentStatus: "cancelled", revokedAt: nowIso, revokedBy: admin.email || admin.uid };
+    } else if (action === "complete") {
+        patch = { ...patch, progress: 100, completedLessons: product.totalLessons, totalLessons: product.totalLessons, completedAt: body?.completedAt || nowIso, completionForcedBy: admin.email || admin.uid, completionForcedAt: nowIso };
+        await firestorePatch(env, firestoreDocumentPath(env, "courseProgress", enrollmentId), {
+            uid, userId: uid, courseId, courseTitle: before.courseTitle || product.courseTitle,
+            completionRate: 100, completedModuleCount: product.totalLessons, totalModuleCount: product.totalLessons,
+            isCompleted: true, completedAt: patch.completedAt, updatedAt: nowIso, adminUpdated: true
+        });
+    } else if (action === "resetProgress") {
+        const certificate = await firestoreGetData(env, "certificates", enrollmentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
+        if (certificate?.certificateNo && !body?.force) return json({ message: "발급된 수료증이 있어 진도 초기화를 중단했습니다. 먼저 수료증 상태를 확인하세요.", code: "CERTIFICATE_EXISTS" }, 409, corsHeaders);
+        patch = { ...patch, progress: 0, completedLessons: 0, completedAt: null, progressResetBy: admin.email || admin.uid, progressResetAt: nowIso };
+        await firestorePatch(env, firestoreDocumentPath(env, "courseProgress", enrollmentId), { completionRate: 0, completedModuleCount: 0, isCompleted: false, completedAt: null, updatedAt: nowIso, adminUpdated: true });
+    } else {
+        return json({ message: "지원하지 않는 작업입니다.", code: "INVALID_ACTION" }, 400, corsHeaders);
+    }
+
+    await firestorePatch(env, enrollmentPath, patch);
+    await saveAdminAuditLog(env, request, admin, "enrollment." + action, "enrollments", enrollmentId, before, patch, reason);
+    await savePaymentLog(env, enrollmentId, { type: "admin_enrollment_" + action, uid, userId: uid, courseId, beforeValue: before, afterValue: patch, reason, processedBy: admin.email || admin.uid, createdAt: nowIso, created_at: nowIso }).catch((error) => console.error(error));
+    return json({ ok: true, enrollmentId, action, updated: patch, message: "수강권 변경사항이 저장되었습니다." }, 200, corsHeaders);
+}
+
+async function handleAdminIntegrityCheck(request, env, corsHeaders) {
+    let admin;
+    try {
+        admin = await requireFirebaseAdmin(request, env);
+    } catch (error) {
+        return json({ message: error.message || "관리자 권한이 없습니다.", code: "ADMIN_FORBIDDEN" }, error.status || 403, corsHeaders);
+    }
+    const [payments, enrollments, certificates] = await Promise.all([
+        firestoreList(env, "payments"),
+        firestoreList(env, "enrollments"),
+        firestoreList(env, "certificates").catch(() => [])
+    ]);
+    const enrollmentByPayment = new Map(enrollments.map((row) => [row.paymentId || row.orderId, row]));
+    const enrollmentByUserCourse = new Map(enrollments.map((row) => [(row.uid || row.userId) + "_" + row.courseId, row]));
+    const certificateByUserCourse = new Map(certificates.map((row) => [(row.uid || row.userId) + "_" + row.courseId, row]));
+    const issues = [];
+    for (const payment of payments) {
+        const status = String(payment.paymentStatus || payment.status || "").toLowerCase();
+        const key = payment.paymentId || payment.orderId;
+        const userCourseKey = (payment.uid || payment.userId) + "_" + payment.courseId;
+        if (status === "paid" && !enrollmentByPayment.get(key) && !enrollmentByUserCourse.get(userCourseKey)) issues.push({ type: "paid_without_enrollment", severity: "high", paymentId: key, uid: payment.uid || payment.userId, courseId: payment.courseId });
+        if (["cancelled", "canceled", "refunded"].includes(status) && isFirestoreEnrollmentActiveRecord(enrollmentByPayment.get(key))) issues.push({ type: "cancelled_payment_active_enrollment", severity: "high", paymentId: key, uid: payment.uid || payment.userId, courseId: payment.courseId });
+    }
+    for (const enrollment of enrollments) {
+        const key = enrollment.paymentId || enrollment.orderId;
+        if (enrollment.paymentStatus === "paid" && key && !payments.find((payment) => payment.paymentId === key || payment.orderId === key)) issues.push({ type: "enrollment_without_payment", severity: enrollment.adminGranted ? "info" : "medium", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId });
+        if ((Number(enrollment.progress || 0) >= 100 || Number(enrollment.completedLessons || 0) >= Number(enrollment.totalLessons || 0)) && !certificateByUserCourse.get((enrollment.uid || enrollment.userId) + "_" + enrollment.courseId)) issues.push({ type: "completed_without_certificate", severity: "medium", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId });
+    }
+    const certificateNos = new Map();
+    for (const certificate of certificates) {
+        const no = certificate.certificateNo || certificate.issueNumber;
+        if (!no) continue;
+        if (certificateNos.has(no)) issues.push({ type: "duplicate_certificate_no", severity: "high", certificateNo: no, certificateIds: [certificateNos.get(no), certificate.id] });
+        certificateNos.set(no, certificate.id);
+    }
+    await saveAdminAuditLog(env, request, admin, "integrity.check", "admin", "integrity", null, { issueCount: issues.length }, "관리자 데이터 정합성 점검").catch((error) => console.error(error));
+    return json({ ok: true, checkedAt: new Date().toISOString(), counts: { payments: payments.length, enrollments: enrollments.length, certificates: certificates.length }, issues }, 200, corsHeaders);
+}
 async function handleAdminCertificateIssue(request, env, corsHeaders) {
     let admin;
     try {

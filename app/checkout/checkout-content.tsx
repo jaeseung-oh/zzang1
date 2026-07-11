@@ -17,9 +17,10 @@ import { trackBeginCheckout } from "@/lib/analytics/ga";
 
 const appOrigin = paymentConfig.siteUrl;
 const defaultCheckoutProduct = duiDocumentsApplicationProduct;
+const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.";
 
 const CARD_APPROVAL_DELAY_MESSAGE =
-  "안녕하세요. ResetEdu 재발방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
+  "안녕하세요. ResetEdu 재발방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n문제가 계속되면 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
 
 type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>;
 type CheckoutPaymentMethod = "card" | "kakaopay";
@@ -101,6 +102,7 @@ export default function CheckoutContent() {
   const selectedCourseId = selectedProduct.courseId || duiPreventionCourseProduct.courseId;
   const selectedCourseDefinition = getCourseDefinition(selectedCourseId);
   const selectedCourseTitle = selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
+  const selectedPaymentOrderName = selectedProduct.id === "dui-cbt-advanced" ? "인지행동기반 재발방지교육 심화과정" : selectedCourseTitle;
   const selectedTotalLessons = selectedCourseDefinition?.modules.length || (selectedProduct.courseId ? 5 : 3);
   const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : selectedProduct.id === "dui-documents" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : "수료증 · 기본 서식");
   const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
@@ -293,7 +295,7 @@ export default function CheckoutContent() {
         storeId: paymentConfig.storeId,
         channelKey: selectedChannelKey,
         paymentId: activePaymentId,
-        orderName: selectedCourseTitle,
+        orderName: selectedPaymentOrderName,
         totalAmount: selectedProduct.price,
         currency: "KRW",
         payMethod: selectedPaymentMethod === "kakaopay" ? "EASY_PAY" : "CARD",
@@ -348,7 +350,7 @@ export default function CheckoutContent() {
     } catch (paymentError) {
       const message = paymentError instanceof Error ? paymentError.message : String(paymentError);
       console.error("PortOne requestPayment failed", { stage: paymentWindowRequested ? "requestPayment_or_redirect" : "before_requestPayment", paymentId: recoveryPaymentId, productId: recoveryProductId, message, error: paymentError });
-      setError(`결제창 처리 실패: ${message}. paymentId=${recoveryPaymentId || "없음"}`);
+      setError(`결제창 처리 실패: ${message}. paymentId=${recoveryPaymentId || "없음"}\n${paymentSupportMessage}`);
       setIsSubmitting(false);
       if (paymentWindowRequested && recoveryPaymentId) {
         window.location.href = `/payment/success?paymentId=${encodeURIComponent(recoveryPaymentId)}&courseId=${encodeURIComponent(selectedCourseId)}&productId=${encodeURIComponent(recoveryProductId)}&recovery=1`;
@@ -504,6 +506,9 @@ export default function CheckoutContent() {
 
             <div className="mt-5">
               <p className="text-sm font-semibold text-slate-500">결제수단</p>
+              <p className="mt-2 text-xs leading-5 text-slate-500">
+                무통장입금이 필요하거나 결제 실패가 반복되는 경우 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.
+              </p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
                 {paymentMethodOptions.map((option) => {
                   const isSelected = selectedPaymentMethod === option.id;

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { useSearchParams } from "next/navigation";
 
+const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.";
+
 export default function PaymentFailContent() {
   const searchParams = useSearchParams();
   const message = searchParams.get("message") || "";
@@ -19,6 +21,9 @@ export default function PaymentFailContent() {
         <div className="mt-6 rounded-xl border border-red-100 bg-red-50 p-4 text-sm leading-7 text-red-700">
           {message || "결제 실패 사유를 확인하지 못했습니다."}
         </div>
+        <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-7 text-amber-900">
+          {paymentSupportMessage}
+        </p>
 
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
           <Link href="/courses/apply/?category=dui" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>

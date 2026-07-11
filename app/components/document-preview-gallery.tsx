@@ -28,10 +28,10 @@ export default function DocumentPreviewGallery({ documents, columnsClassName = "
             <div className={showPreviewButton ? "relative h-52 overflow-hidden bg-slate-100" : "relative aspect-[3/4] max-h-[760px] overflow-hidden bg-slate-100"}>
               <img src={document.imageSrc} alt={`${document.title} 예시 문서 일부`} className={showPreviewButton ? "h-full w-full object-cover object-top" : "h-full w-full object-cover object-top"} />
               {showPreviewButton ? <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-white to-white/0" /> : null}
-              {document.statusLabel ? <span className="absolute left-3 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-black text-[#173968] shadow-sm">{document.statusLabel}</span> : null}
+              {document.statusLabel ? <span className="absolute left-2 top-2 rounded-full bg-white/95 px-2.5 py-1 text-[11px] font-black text-[#173968] shadow-sm sm:left-3 sm:top-3 sm:px-3 sm:text-xs">{document.statusLabel}</span> : null}
             </div>
-            <div className={showPreviewButton ? "p-5" : "p-4"}>
-              <h3 className={showPreviewButton ? "break-keep text-lg font-black text-[#06101b]" : "break-keep text-center text-lg font-black text-[#06101b]"}>{document.title}</h3>
+            <div className={showPreviewButton ? "p-5" : "p-3 sm:p-4"}>
+              <h3 className={showPreviewButton ? "break-keep text-lg font-black text-[#06101b]" : "break-keep text-center text-sm font-black leading-5 text-[#06101b] sm:text-lg"}>{document.title}</h3>
               {showPreviewButton ? (
                 <>
                   <div className="mt-3 flex flex-wrap gap-1.5">

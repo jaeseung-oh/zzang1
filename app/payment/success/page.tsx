@@ -28,8 +28,10 @@ type ConfirmResponse = {
 const disclaimer =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
+const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.";
+
 const CARD_APPROVAL_DELAY_MESSAGE =
-  "안녕하세요. ResetEdu 재발방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
+  "안녕하세요. ResetEdu 재발방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n문제가 계속되면 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
 
 async function waitForRetry(attempt: number) {
   await new Promise((resolve) => window.setTimeout(resolve, 900 * attempt));
@@ -342,6 +344,9 @@ function PortOnePaymentSuccessContent() {
           <div className="mt-6 rounded-xl border border-red-100 bg-red-50 p-4 text-sm leading-7 text-red-700">
             {message || "결제 실패 사유를 확인하지 못했습니다."}
           </div>
+          <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm font-semibold leading-7 text-amber-900">
+            {paymentSupportMessage}
+          </p>
           <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
             <Link href="/courses/apply/?category=dui" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>결제 페이지로 돌아가기</Link>
             <Link href="/refund-policy" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>환불규정 보기</Link>
