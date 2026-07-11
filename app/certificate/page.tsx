@@ -676,7 +676,7 @@ function CertificatePageContent() {
               {documentTitle} 인쇄하기
             </button>
             <button type="button" onClick={() => openPrintDialog("pdf")} disabled={!certificate} className={buttonClass("primary", "md", "rounded-full px-5 font-black disabled:opacity-100")}>
-              PDF 저장
+              PDF로 저장(인쇄창)
             </button>
             <Link href="/dashboard" className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
               마이페이지로 돌아가기
@@ -713,7 +713,7 @@ function CertificatePageContent() {
                         바로 인쇄
                       </Link>
                       <Link href={document.pdfHref} className={selected ? buttonClass("primary", "sm", "rounded-full px-4 font-black !text-white hover:!text-white") : buttonClass("secondary", "sm", "rounded-full px-4 font-black")}>
-                        PDF 저장
+                        PDF로 저장(인쇄창)
                       </Link>
                     </div>
                   </article>

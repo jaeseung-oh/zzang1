@@ -878,17 +878,30 @@ function buildEnrollmentApiRecord(enrollment, progress) {
 
 async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
     const uid = firebaseUser.uid;
-    const [currentCourseEnrollment, advancedCourseEnrollment] = await Promise.all([
-        getWorkerEnrollmentRecord(env, uid, DUI_COURSE_PRODUCT.courseId),
-        getWorkerEnrollmentRecord(env, uid, CBT_COURSE_PRODUCT.courseId)
-    ]);
+    const knownCourseIds = Object.keys(COURSE_PRODUCTS_BY_ID);
+    const directEnrollments = await Promise.all(
+        knownCourseIds.map((courseId) => getWorkerEnrollmentRecord(env, uid, courseId).catch((error) => {
+            logEnrollmentWorkerEvent('enrollment_known_course_lookup_failed', {
+                uid: maskLogIdentifier(uid),
+                courseId,
+                message: error instanceof Error ? error.message : String(error)
+            });
+            return null;
+        }))
+    );
     const [byUserId, byUid] = await Promise.all([
-        firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]),
-        firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }])
+        firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]).catch((error) => {
+            logEnrollmentWorkerEvent('enrollment_user_query_failed', { uid: maskLogIdentifier(uid), field: 'userId', message: error instanceof Error ? error.message : String(error) });
+            return [];
+        }),
+        firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }]).catch((error) => {
+            logEnrollmentWorkerEvent('enrollment_user_query_failed', { uid: maskLogIdentifier(uid), field: 'uid', message: error instanceof Error ? error.message : String(error) });
+            return [];
+        })
     ]);
 
     const byCourse = new Map();
-    [currentCourseEnrollment, advancedCourseEnrollment, ...byUserId, ...byUid]
+    [...directEnrollments, ...byUserId, ...byUid]
         .filter((enrollment) => enrollment?.courseId && isFirestoreEnrollmentActiveRecord(enrollment))
         .forEach((enrollment) => {
             const existing = byCourse.get(enrollment.courseId);
