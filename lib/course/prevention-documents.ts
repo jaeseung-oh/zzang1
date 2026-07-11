@@ -1,6 +1,6 @@
 import type { StoredUserProfile } from "@/lib/firebase/user-profile";
 
-export type PreventionDocumentCategory = "dui" | "violence" | "gambling" | "sexual-offense";
+export type PreventionDocumentCategory = "dui" | "violence" | "gambling" | "sexual-offense" | "drug";
 export type PreventionDocumentKind = "prevention-plan" | "action-plan" | "pledge";
 export type PreventionDocumentType = string;
 
@@ -28,6 +28,7 @@ export const preventionDocumentCategoryLabels: Record<PreventionDocumentCategory
   violence: "폭력범죄 재범방지교육",
   gambling: "도박중독 재발방지교육",
   "sexual-offense": "성범죄 재범방지교육",
+  drug: "마약류중독 재활예방교육",
 };
 
 export const preventionDocumentApplyInfo: Record<PreventionDocumentCategory, { category: string; productId: string }> = {
@@ -35,6 +36,7 @@ export const preventionDocumentApplyInfo: Record<PreventionDocumentCategory, { c
   violence: { category: "violence-prevention", productId: "violence-basic" },
   gambling: { category: "gambling-relapse-prevention", productId: "gambling-basic" },
   "sexual-offense": { category: "sexual-offense-prevention", productId: "sexual-offense-basic" },
+  drug: { category: "drug-rehab-prevention", productId: "drug-basic" },
 };
 
 export const preventionDocuments: PreventionDocumentDefinition[] = [
@@ -50,6 +52,9 @@ export const preventionDocuments: PreventionDocumentDefinition[] = [
   { id: "sexual-offense-prevention-plan", category: "sexual-offense", kind: "prevention-plan", title: "성범죄 재범방지계획서 서식", description: "동의·경계·왜곡된 인식·위험 상황을 점검하고 재범방지 계획을 정리하는 서식입니다." },
   { id: "sexual-offense-action-plan", category: "sexual-offense", kind: "action-plan", title: "성범죄예방 실천계획서 서식", description: "관계 윤리, 디지털 경계, 위험 상황 회피와 도움 요청 기준을 정리하는 서식입니다." },
   { id: "sexual-offense-pledge", category: "sexual-offense", kind: "pledge", title: "성범죄 재범방지 서약서 서식", description: "타인의 성적 자기결정권과 경계를 존중하겠다는 구체적 서약서입니다." },
+  { id: "drug-prevention-plan", category: "drug", kind: "prevention-plan", title: "마약류중독 재활예방계획서 서식", description: "재사용 위험요인과 회복 지원 계획을 정리하는 서식입니다." },
+  { id: "drug-action-plan", category: "drug", kind: "action-plan", title: "마약류 재활 실천계획서 서식", description: "고위험 상황 회피, 상담·치료 연계, 생활 루틴을 정리하는 실천 서식입니다." },
+  { id: "drug-pledge", category: "drug", kind: "pledge", title: "마약류중독 재활예방 서약서 서식", description: "마약류에 다시 접근하지 않기 위한 생활 서약서입니다." },
 ];
 
 export function getPreventionDocumentCategoryFromCourseId(courseId?: string | null): PreventionDocumentCategory {
@@ -57,6 +62,7 @@ export function getPreventionDocumentCategoryFromCourseId(courseId?: string | nu
   if (normalized.includes("violence")) return "violence";
   if (normalized.includes("gambling")) return "gambling";
   if (normalized.includes("sexual-offense")) return "sexual-offense";
+  if (normalized.includes("drug")) return "drug";
   return "dui";
 }
 
@@ -65,6 +71,7 @@ export function getPreventionDocumentCategoryFromProduct(productId?: string | nu
   if (normalized.includes("violence") || normalized.includes("폭력")) return "violence";
   if (normalized.includes("gambling") || normalized.includes("도박")) return "gambling";
   if (normalized.includes("sexual-offense") || normalized.includes("성범죄")) return "sexual-offense";
+  if (normalized.includes("drug") || normalized.includes("마약")) return "drug";
   return "dui";
 }
 
@@ -92,6 +99,7 @@ export function hasPreventionDocumentsAccess(productId?: string | null, amount?:
     || normalizedProductId.startsWith("violence-")
     || normalizedProductId.startsWith("gambling-")
     || normalizedProductId.startsWith("sexual-offense-")
+    || normalizedProductId.startsWith("drug-")
     || Number(amount) >= 49000
     || normalizedTitle.includes("서식포함")
     || normalizedTitle.includes("재범방지교육")

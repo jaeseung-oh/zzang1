@@ -139,6 +139,24 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     description: "예방교육과 양형자료 준비 참고자료를 함께 정리하는 심화 과정입니다.",
     includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "성범죄 재범방지계획서 서식", "성범죄예방 실천계획서 서식", "성범죄 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
+  ["drug-basic", {
+    id: "drug-basic",
+    courseId: "drug-basic",
+    title: "기본과정",
+    price: APPLICATION_PRICES.PREVENTION_BASIC,
+    badge: "가장 부담 없이 시작",
+    description: "마약류중독 재활예방교육 1강과 수료증을 제공하는 기본 과정입니다.",
+    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "마약류중독 재활예방계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재활예방 서약서 서식", "인쇄 및 PDF 저장"],
+  }],
+  ["drug-advanced", {
+    id: "drug-advanced",
+    courseId: "drug-advanced",
+    title: "심화과정",
+    price: APPLICATION_PRICES.PREVENTION_ADVANCED,
+    badge: "가장 많이 선택하는 과정",
+    description: "예방교육과 양형자료 준비 참고자료를 함께 정리하는 심화 과정입니다.",
+    includes: ["온라인 예방교육", "교육 수료증 PDF 발급", "마약류중독 재활예방계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재활예방 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
+  }],
 ]);
 
 function getNewPreventionProducts(basicId: string, advancedId: string) {
@@ -198,15 +216,15 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
     defaultProductId: "dui-documents",
   },
   {
-    id: "drug",
-    title: "마약 예방교육",
-    description: "마약류 문제와 재발방지 계획을 다루는 교육 과정은 준비중입니다.",
-    summary: "3개 가격 상품 구성, 준비중",
+    id: "drug-rehab-prevention",
+    title: "마약류중독 재활예방교육",
+    description: "마약류 문제와 재활·재발방지 계획을 다루는 교육 과정은 준비중입니다.",
+    summary: "영상 준비중",
     icon: "alert",
     status: "comingSoon",
-    comingSoonText: "마약류 문제의 위험성과 재발방지 계획을 다루는 온라인 예방교육을 준비하고 있습니다.",
-    products: [duiDocumentsApplicationProduct, duiCbtAdvancedApplicationProduct],
-    defaultProductId: "dui-documents",
+    comingSoonText: "마약류중독 재활예방교육 영상 준비 후 신청을 열 예정입니다.",
+    products: [],
+    defaultProductId: "drug-basic",
   },
 ];
 

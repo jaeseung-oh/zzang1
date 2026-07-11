@@ -100,6 +100,15 @@ function toDate(value?: TimestampLike) {
   return null;
 }
 
+function sanitizeFilePart(value: string) {
+  return String(value || "").replace(/[^0-9A-Za-z가-힣_-]/g, "").slice(0, 60) || "문서";
+}
+
+function formatCompactDate(value: unknown) {
+  const date = toDate(value as TimestampLike | undefined) || new Date();
+  return `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function formatKoreanDate(value?: TimestampLike) {
   const date = toDate(value) ?? new Date();
   return `${date.getFullYear()}년 ${String(date.getMonth() + 1).padStart(2, "0")}월 ${String(date.getDate()).padStart(2, "0")}일`;
@@ -777,13 +786,16 @@ function CertificatePageContent() {
     setError("");
     try {
       trackEvent("certificate_download", { method: "pdf", document_type: isCompletionCertificate ? "completion" : "attendance" });
-      const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
+      const safeDate = formatCompactDate(issuedAt);
+      const safeName = sanitizeFilePart(certificate.userName || profileName || "회원");
+      const safeCourse = sanitizeFilePart(displayedCourseTitle);
+      const safeDocument = sanitizeFilePart(documentTitle);
       const image = await renderCertificatePdfImage();
       const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
       const url = URL.createObjectURL(pdfBlob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = documentTitle + "_" + safeNo + ".pdf";
+      link.download = `${safeName}_${safeCourse}_${safeDocument}_${safeDate}.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();

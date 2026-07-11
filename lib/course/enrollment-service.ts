@@ -54,7 +54,7 @@ export type EnrollmentRecord = {
 };
 
 export const OPERATING_COURSE_ID = defaultCourse.id;
-export const APPLICATION_TO_COURSE_ID: Record<string, string> = { dui: defaultCourse.id, cbt: DUI_CBT_ADVANCED_COURSE_ID, "violence-prevention": "violence-basic", "gambling-relapse-prevention": "gambling-basic", "sexual-offense-prevention": "sexual-offense-basic" };
+export const APPLICATION_TO_COURSE_ID: Record<string, string> = { dui: defaultCourse.id, cbt: DUI_CBT_ADVANCED_COURSE_ID, "violence-prevention": "violence-basic", "gambling-relapse-prevention": "gambling-basic", "sexual-offense-prevention": "sexual-offense-basic", "drug-rehab-prevention": "drug-basic" };
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {
   if (!courseIdOrCategory || courseIdOrCategory === "dui") return defaultCourse.id;

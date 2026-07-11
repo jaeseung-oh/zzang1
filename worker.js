@@ -17,7 +17,8 @@ function getConfiguredCourseStreamUids(env) {
         ...COURSE_STREAM_UIDS,
         env.STREAM_UID_VIOLENCE_PREVENTION,
         env.STREAM_UID_GAMBLING_RELAPSE_PREVENTION,
-        env.STREAM_UID_SEXUAL_OFFENSE_PREVENTION
+        env.STREAM_UID_SEXUAL_OFFENSE_PREVENTION,
+        env.STREAM_UID_DRUG_REHAB_PREVENTION
     ].filter(Boolean));
 }
 
@@ -921,7 +922,7 @@ async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
 
 async function handleCurrentUserEnrollments(request, env, corsHeaders) {
     const url = new URL(request.url);
-    const courseId = (url.searchParams.get('courseId') || DUI_COURSE_PRODUCT.courseId).trim();
+    const courseId = (url.searchParams.get('courseId') || '').trim();
     const scope = url.searchParams.get('scope') === 'all' ? 'all' : 'course';
     const authHeader = request.headers.get('Authorization') || '';
     const idToken = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
@@ -1037,7 +1038,11 @@ async function handleStreamToken(request, env, corsHeaders) {
     }
     const url = new URL(request.url);
     const uid = (url.searchParams.get('uid') || '').trim();
-    const courseId = (url.searchParams.get('courseId') || DUI_COURSE_PRODUCT.courseId).trim();
+    const courseId = (url.searchParams.get('courseId') || '').trim();
+
+    if (!courseId) {
+        return json({ error: 'missing_course_id', message: '해당 수강권에 연결된 교육과정 정보를 확인할 수 없습니다.' }, 400, corsHeaders);
+    }
 
     if (!getConfiguredCourseStreamUids(env).has(uid)) {
         return json({ error: 'invalid_stream_uid', message: '지원하지 않는 강의 영상입니다.' }, 400, corsHeaders);
@@ -1276,7 +1281,9 @@ const NEW_PREVENTION_COURSE_PRODUCTS = {
     'gambling-basic': { courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', certificateTitle: '도박중독 재발방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '도박중독 재발방지교육 기본과정', certificateAvailable: true },
     'gambling-advanced': { courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', certificateTitle: '도박중독 재발방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '도박중독 재발방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'sexual-offense-basic': { courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', certificateTitle: '성범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '성범죄 재범방지교육 기본과정', certificateAvailable: true },
-    'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
+    'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'drug-basic': { courseId: 'drug-basic', courseTitle: '마약류중독 재활예방교육 기본과정', certificateTitle: '마약류중독 재활예방교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약류중독 재활예방교육 기본과정', certificateAvailable: true },
+    'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재활예방교육 심화과정', certificateTitle: '마약류중독 재활예방교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '마약류중독 재활예방교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
 };
 
 const COURSE_PRODUCTS_BY_ID = {
@@ -1322,7 +1329,9 @@ const APPLICATION_PRODUCTS = {
     'gambling-basic': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-basic', title: '도박중독 재발방지교육 기본과정', amount: 49000, courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', totalLessons: 1 },
     'gambling-advanced': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-advanced', title: '도박중독 재발방지교육 심화과정', amount: 99000, courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
     'sexual-offense-basic': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-basic', title: '성범죄 재범방지교육 기본과정', amount: 49000, courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', totalLessons: 1 },
-    'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 99000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
+    'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 99000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'drug-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-basic', title: '마약류중독 재활예방교육 기본과정', amount: 49000, courseId: 'drug-basic', courseTitle: '마약류중독 재활예방교육 기본과정', totalLessons: 1 },
+    'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재활예방교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재활예방교육 심화과정', totalLessons: 2, includesCbtCourse: true }
 };
 
 
@@ -1340,10 +1349,19 @@ function compactDate(value) {
     return `${year}${month}${day}`;
 }
 
-async function makeCertificateNo(certificateId, issuedAt) {
+function getCertificateCourseCode(courseId) {
+    const normalized = String(courseId || '');
+    if (normalized.includes('violence')) return 'VIOLENCE';
+    if (normalized.includes('gambling')) return 'GAMBLING';
+    if (normalized.includes('sexual-offense')) return 'SEX';
+    if (normalized.includes('drug')) return 'DRUG';
+    return 'DUI';
+}
+
+async function makeCertificateNo(certificateId, issuedAt, courseId) {
     const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(certificateId));
-    const hex = Array.from(new Uint8Array(bytes)).map((byte) => byte.toString(16).padStart(2, '0')).join('').slice(0, 6).toUpperCase();
-    return `CERT-DUI-${compactDate(issuedAt)}-${hex}`;
+    const numeric = Array.from(new Uint8Array(bytes.slice(0, 4))).reduce((acc, byte) => (acc * 256 + byte) % 100000, 0);
+    return `RESET-${getCertificateCourseCode(courseId)}-${compactDate(issuedAt)}-${String(numeric).padStart(5, '0')}`;
 }
 
 async function firestoreGetData(env, collectionName, documentId) {
@@ -1412,7 +1430,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const purchase = payments.find((item) => (item.uid || item.userId) === uid && item.courseId === courseId && item.paymentStatus === 'paid') || {};
     const issuedAt = new Date().toISOString();
     const completedAt = progress?.completedAt || issuedAt;
-    const certificateNo = await makeCertificateNo(certificateId, issuedAt);
+    const certificateNo = await makeCertificateNo(certificateId, issuedAt, courseId);
     const issuerName = '리셋에듀센터';
     const certificateRecord = {
         certificateId, certificateNo, issueNumber: certificateNo,
@@ -2592,6 +2610,8 @@ async function ensureManualIncludedBaseEnrollment(env, uid, sourceProduct, sourc
         if (isFirestoreEnrollmentActiveRecord(existing)) return { ...existing, enrollmentId, alreadyActive: true };
     }
     const nowIso = new Date().toISOString();
+    const startsAt = nowIso;
+    const accessStatus = 'active';
     const expiresAt = new Date(Date.now() + (getCourseProduct(baseProduct.courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     const record = {
         enrollmentId,
@@ -2604,10 +2624,14 @@ async function ensureManualIncludedBaseEnrollment(env, uid, sourceProduct, sourc
         courseTitle: baseProduct.courseTitle,
         paymentId: sourceOrderId,
         orderId: sourceOrderId + '_included_' + baseProduct.courseId,
-        purchasedAt: nowIso,
+        purchasedAt: startsAt,
+        startsAt,
+        accessStartsAt: startsAt,
         expiresAt,
+        accessEndsAt: expiresAt,
         paymentStatus: 'paid',
-        accessStatus: 'active',
+        enrollmentStatus: accessStatus,
+        accessStatus,
         progress: 0,
         completedLessons: 0,
         totalLessons: baseProduct.totalLessons,
@@ -2652,7 +2676,12 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     const productId = String(body?.productId || 'basic').trim();
     const requestedCourseId = String(body?.courseId || '').trim();
     const requestedCategoryId = String(body?.categoryId || '').trim();
-    const note = String(body?.note || '').trim();
+    const note = String(body?.note || body?.adminMemo || '').trim();
+    const grantType = 'MANUAL';
+    const grantReason = note || '관리자 수동 수강권 지급';
+    const requestedStartsAt = body?.startsAt ? new Date(String(body.startsAt)).toISOString() : null;
+    const requestedExpiresAt = body?.expiresAt ? new Date(String(body.expiresAt)).toISOString() : null;
+    const requestedActive = body?.active !== false;
     const product = getApplicationProductForPayment(productId);
     const amount = typeof body?.amount === 'number' ? body.amount : product?.amount;
 
@@ -2686,7 +2715,12 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     }
 
     const nowIso = new Date().toISOString();
-    const expiresAt = new Date(Date.now() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const startsAt = requestedStartsAt || nowIso;
+    const expiresAt = requestedExpiresAt || new Date(new Date(startsAt).getTime() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    if (!Number.isFinite(new Date(startsAt).getTime()) || !Number.isFinite(new Date(expiresAt).getTime()) || new Date(expiresAt).getTime() <= new Date(startsAt).getTime()) {
+        return json({ message: '수강 시작일 또는 종료일이 올바르지 않습니다.', code: 'INVALID_ACCESS_PERIOD' }, 400, corsHeaders);
+    }
+    const accessStatus = requestedActive ? 'active' : 'pending';
     const safeUid = uid.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) || 'user';
     const orderId = 'manual_' + Date.now().toString(36) + '_' + safeUid;
 
@@ -2707,9 +2741,15 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         status: 'paid',
         paymentStatus: 'paid',
         paymentProvider: 'admin-manual',
+        grantType,
+        issueType: grantType,
         adminGranted: true,
-        adminGrantReason: note || '관리자 수동 수강권 지급',
+        adminGrantReason: grantReason,
+        adminMemo: note || '',
         grantedBy: admin.email || admin.uid,
+        grantedByAdminId: admin.uid || '',
+        grantedByAdminName: admin.name || admin.email || admin.uid,
+        grantedAt: nowIso,
         approvedAt: nowIso,
         createdAt: nowIso,
         updatedAt: nowIso
@@ -2725,18 +2765,28 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         courseTitle: product.courseTitle,
         paymentId: orderId,
         orderId,
-        purchasedAt: nowIso,
+        purchasedAt: startsAt,
+        startsAt,
+        accessStartsAt: startsAt,
         expiresAt,
+        accessEndsAt: expiresAt,
         paymentStatus: 'paid',
-        accessStatus: 'active',
+        enrollmentStatus: accessStatus,
+        accessStatus,
         progress: 0,
         completedLessons: 0,
         totalLessons: product.totalLessons,
         certificateIssued: false,
         certificateIssuedAt: null,
+        grantType,
+        issueType: grantType,
         adminGranted: true,
-        adminGrantReason: note || '관리자 수동 수강권 지급',
+        adminGrantReason: grantReason,
+        adminMemo: note || '',
         grantedBy: admin.email || admin.uid,
+        grantedByAdminId: admin.uid || '',
+        grantedByAdminName: admin.name || admin.email || admin.uid,
+        grantedAt: nowIso,
         createdAt: nowIso,
         updatedAt: nowIso
     };
@@ -2751,22 +2801,29 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         orderId,
         paymentKey: orderId,
         paymentStatus: 'paid',
-        accessStatus: 'active',
+        accessStatus,
         paymentProvider: 'admin-manual',
         amount: amount ?? product.amount,
         method: 'admin_manual',
-        orderedAt: nowIso,
+        grantType,
+        orderedAt: startsAt,
         approvedAt: nowIso,
-        purchasedAt: nowIso,
+        purchasedAt: startsAt,
         expiresAt,
         accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays,
         accessValidMonths: 3,
         totalLessons: product.totalLessons,
         completedLessons: 0,
         certificateIssued: false,
+        grantType,
+        issueType: grantType,
         adminGranted: true,
-        adminGrantReason: note || '관리자 수동 수강권 지급',
+        adminGrantReason: grantReason,
+        adminMemo: note || '',
         grantedBy: admin.email || admin.uid,
+        grantedByAdminId: admin.uid || '',
+        grantedByAdminName: admin.name || admin.email || admin.uid,
+        grantedAt: nowIso,
         createdAt: nowIso,
         updatedAt: nowIso
     };
@@ -2795,7 +2852,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             createdAt: nowIso
         });
         const includedBaseEnrollment = await ensureManualIncludedBaseEnrollment(env, uid, product, orderId, admin, note);
-        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, { ...enrollmentRecord, includedBaseEnrollment }, note || '관리자 수동 수강권 지급');
+        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, { ...enrollmentRecord, includedBaseEnrollment }, grantReason);
     } catch (error) {
         await savePaymentLog(env, orderId, {
             type: 'admin_manual_enrollment_failed',
@@ -2823,7 +2880,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         courseId,
         productId,
         expiresAt,
-        accessStatus: 'active'
+        accessStatus
     }, 200, corsHeaders);
 }
 
@@ -2837,7 +2894,7 @@ async function handleAdminEnrollmentUpdate(request, env, corsHeaders) {
 
     const body = await request.json().catch(() => null);
     const uid = String(body?.uid || "").trim();
-    const courseId = String(body?.courseId || DUI_COURSE_PRODUCT.courseId).trim();
+    const courseId = String(body?.courseId || "").trim();
     const action = String(body?.action || "").trim();
     const reason = String(body?.reason || body?.note || "").trim();
     if (!uid || !courseId || !action || !reason) {
@@ -2909,6 +2966,10 @@ async function handleAdminIntegrityCheck(request, env, corsHeaders) {
     }
     for (const enrollment of enrollments) {
         const key = enrollment.paymentId || enrollment.orderId;
+        const product = APPLICATION_PRODUCTS[enrollment.productId];
+        if (!enrollment.courseId) issues.push({ type: "enrollment_missing_course_id", severity: "high", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted) });
+        if (enrollment.courseId && !getCourseProduct(enrollment.courseId)) issues.push({ type: "enrollment_unknown_course_id", severity: "high", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted) });
+        if (product && enrollment.courseId && product.courseId !== enrollment.courseId) issues.push({ type: "enrollment_product_course_mismatch", severity: "high", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId, expectedCourseId: product.courseId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted) });
         if (enrollment.paymentStatus === "paid" && key && !payments.find((payment) => payment.paymentId === key || payment.orderId === key)) issues.push({ type: "enrollment_without_payment", severity: enrollment.adminGranted ? "info" : "medium", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId });
         if ((Number(enrollment.progress || 0) >= 100 || Number(enrollment.completedLessons || 0) >= Number(enrollment.totalLessons || 0)) && !certificateByUserCourse.get((enrollment.uid || enrollment.userId) + "_" + enrollment.courseId)) issues.push({ type: "completed_without_certificate", severity: "medium", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId });
     }
@@ -2932,7 +2993,7 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
 
     const body = await request.json().catch(() => null);
     const uid = String(body?.uid || '').trim();
-    const courseId = String(body?.courseId || DUI_COURSE_PRODUCT.courseId).trim();
+    const courseId = String(body?.courseId || "").trim();
     const product = getCourseProduct(courseId);
     if (!uid || !product) {
         return json({ message: '사용자 ID 또는 교육과정 정보가 올바르지 않습니다.', code: 'INVALID_REQUEST' }, 400, corsHeaders);
@@ -2972,7 +3033,13 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
     const issuedAt = new Date().toISOString();
     const progressId = uid + '_' + courseId;
     const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    const certificateNo = await makeCertificateNo(certificateId, issuedAt);
+    const isProgressCompleted = Boolean(progress?.isCompleted) || Number(progress?.completionRate || 0) >= 100 || Number(enrollment.completedLessons || 0) >= Number(enrollment.totalLessons || product.totalLessons);
+    const exceptionReason = String(body?.exceptionReason || body?.note || '').trim();
+    const isExceptionIssue = documentType !== 'attendance' && !isProgressCompleted;
+    if (isExceptionIssue && !exceptionReason) {
+        return json({ message: '수료 조건이 충족되지 않았습니다. 예외 발급 사유를 입력해 주세요.', code: 'COMPLETION_NOT_MET' }, 409, corsHeaders);
+    }
+    const certificateNo = await makeCertificateNo(certificateId, issuedAt, courseId);
     const completedAt = body?.completedAt || progress?.completedAt || issuedAt;
     const issuerName = '리셋에듀센터';
     const certificateRecord = {
@@ -2990,9 +3057,12 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
         issuerContact: env.CERTIFICATE_ISSUER_CONTACT || '',
         issuerEmail: env.CERTIFICATE_ISSUER_EMAIL || '',
         status: 'issued', documentType,
+        issueMode: isExceptionIssue ? 'exception' : 'normal',
+        exceptionIssue: isExceptionIssue,
+        exceptionReason: isExceptionIssue ? exceptionReason : '',
         issuedByAdmin: true,
         issuedBy: admin.email || admin.uid,
-        adminIssueReason: String(body?.note || '관리자 직접 수료증 발급').trim(),
+        adminIssueReason: exceptionReason || '관리자 직접 수료증 발급',
         createdAt: issuedAt, updatedAt: issuedAt
     };
 
@@ -3001,6 +3071,7 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
     await savePaymentLog(env, certificateId, {
         type: 'admin_certificate_issued', certificateId, certificateNo, uid, userId: uid,
         courseId, documentType, issuedBy: admin.email || admin.uid,
+        issueMode: isExceptionIssue ? 'exception' : 'normal', exceptionIssue: isExceptionIssue, exceptionReason: isExceptionIssue ? exceptionReason : '',
         created_at: issuedAt, createdAt: issuedAt
     }).catch((logError) => console.error(logError));
     await saveAdminAuditLog(env, request, admin, 'certificate.issue', 'certificates', certificateId, null, certificateRecord, String(body?.note || '관리자 직접 수료증 발급').trim()).catch((error) => console.error(error));

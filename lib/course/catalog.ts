@@ -156,6 +156,7 @@ const preventionStreamUids = {
   violence: process.env.NEXT_PUBLIC_STREAM_UID_VIOLENCE_PREVENTION || "",
   gambling: process.env.NEXT_PUBLIC_STREAM_UID_GAMBLING_RELAPSE_PREVENTION || "",
   sexualOffense: process.env.NEXT_PUBLIC_STREAM_UID_SEXUAL_OFFENSE_PREVENTION || "",
+  drug: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
 };
 
 type PreventionCategorySeed = {
@@ -199,6 +200,16 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     streamUid: preventionStreamUids.sexualOffense,
     sourceFileName: "성폭력재벙예방교육_vrew_내보내기.mp4",
     documentTitles: ["성범죄 재범방지계획서 서식", "성범죄예방 실천계획서 서식", "성범죄 재범방지 서약서 서식"],
+  },
+  {
+    categoryId: "drug-rehab-prevention",
+    productPrefix: "drug",
+    baseLessonId: "drug-rehab-prevention-lesson-1",
+    title: "마약류중독 재활예방교육",
+    caseType: "마약류",
+    streamUid: preventionStreamUids.drug,
+    sourceFileName: "마약류중독재활예방교육.mp4",
+    documentTitles: ["마약류중독 재활예방계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재활예방 서약서 서식"],
   },
 ];
 
@@ -277,6 +288,10 @@ export function getCourseDefinition(courseId?: string | null) {
 export function getCourseModules(courseId?: string | null) {
   if (courseId === DUI_CBT_ADVANCED_COURSE_ID) return duiCbtAdvancedModules;
   return getCourseDefinition(courseId)?.modules || duiBasicModules;
+}
+
+export function isKnownCourseId(courseId?: string | null) {
+  return courseId === DUI_CBT_ADVANCED_COURSE_ID || Boolean(getCourseDefinition(courseId));
 }
 
 export function getCourseCertificateTitle(courseId?: string | null) {

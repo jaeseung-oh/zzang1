@@ -6,7 +6,7 @@ import Link from "next/link";
 import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules, isKnownCourseId } from "@/lib/course/catalog";
 import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -324,16 +324,21 @@ export default function CourseRoomPage() {
   const router = useRouter();
   const [hasExplicitCourseId] = useState(() => typeof window !== "undefined" && Boolean(new URLSearchParams(window.location.search).get("courseId")));
   const [requestedCourseId] = useState(() => {
-    if (typeof window === "undefined") return defaultCourse.id;
-    const courseId = new URLSearchParams(window.location.search).get("courseId") || defaultCourse.id;
-    return getCourseDefinition(courseId) || courseId === DUI_CBT_ADVANCED_COURSE_ID ? courseId : defaultCourse.id;
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("courseId") || "";
   });
-  const isCbtAdvancedCourse = requestedCourseId === DUI_CBT_ADVANCED_COURSE_ID;
-  const isAdvancedCourse = isCbtAdvancedCourse || getCourseDefinition(requestedCourseId)?.level === "advanced";
-  const courseDefinition = getCourseDefinition(requestedCourseId);
-  const courseModules = getCourseModules(requestedCourseId);
+  const courseIdError = !requestedCourseId
+    ? "해당 수강권에 연결된 교육과정 정보를 확인할 수 없습니다."
+    : !isKnownCourseId(requestedCourseId)
+      ? "지원하지 않는 교육과정입니다. 관리자에게 수강권의 과정 ID를 확인해 주세요."
+      : "";
+  const effectiveCourseId = courseIdError ? defaultCourse.id : requestedCourseId;
+  const isCbtAdvancedCourse = effectiveCourseId === DUI_CBT_ADVANCED_COURSE_ID;
+  const isAdvancedCourse = isCbtAdvancedCourse || getCourseDefinition(effectiveCourseId)?.level === "advanced";
+  const courseDefinition = getCourseDefinition(effectiveCourseId);
+  const courseModules = getCourseModules(effectiveCourseId);
   const courseTitle = isCbtAdvancedCourse ? "인지행동 개선교육" : courseDefinition?.title || defaultCourse.title;
-  const coursePreventionDocuments = getPreventionDocumentsForCourse(requestedCourseId);
+  const coursePreventionDocuments = getPreventionDocumentsForCourse(effectiveCourseId);
   const courseDocumentCategory = coursePreventionDocuments[0]?.category || "dui";
   const [fullName, setFullName] = useState("");
   const [uid, setUid] = useState("");
@@ -462,6 +467,13 @@ export default function CourseRoomPage() {
 
     const load = async () => {
       try {
+        if (courseIdError) {
+          setError(courseIdError);
+          setStatusMessage(courseIdError);
+          setAccessChecking(false);
+          return;
+        }
+
         const user = await requireAuthenticatedUser();
         const profile = await getUserProfile(user.uid);
 
@@ -486,16 +498,16 @@ export default function CourseRoomPage() {
         setAdminPreview(adminBypass);
         const enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
         if (!hasExplicitCourseId && !adminBypass) {
-          const activeEnrollment = enrollments.find((item) => item.courseId === requestedCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => isEnrollmentActive(item));
-          if (activeEnrollment?.courseId && activeEnrollment.courseId !== requestedCourseId) {
+          const activeEnrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => isEnrollmentActive(item));
+          if (activeEnrollment?.courseId && activeEnrollment.courseId !== effectiveCourseId) {
             router.replace("/course-room?courseId=" + encodeURIComponent(activeEnrollment.courseId));
             return;
           }
         }
 
-        const enrollment = enrollments.find((item) => item.courseId === requestedCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === requestedCourseId);
+        const enrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === effectiveCourseId);
         const allowed = adminBypass || isEnrollmentActive(enrollment);
-        const documentFormsAllowed = enrollments.some((item) => item.courseId === requestedCourseId && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
+        const documentFormsAllowed = enrollments.some((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
         setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
 
         if (!allowed) {
@@ -506,15 +518,15 @@ export default function CourseRoomPage() {
           setAccessBlockedMessage(message);
           setPlayerError(message);
           setAccessChecking(false);
-          router.replace(getCourseApplyHref(requestedCourseId) + (getCourseApplyHref(requestedCourseId).includes("?") ? "&notice=" : "?notice=") + encodeURIComponent(message));
+          router.replace(getCourseApplyHref(effectiveCourseId) + (getCourseApplyHref(effectiveCourseId).includes("?") ? "&notice=" : "?notice=") + encodeURIComponent(message));
           return;
         } else {
           setAccessBlockedMessage("");
         }
         setAccessChecking(false);
-        const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + requestedCourseId));
+        const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + effectiveCourseId));
         const remote = progressSnapshot.exists() ? (progressSnapshot.data() as ProgressRecord) : null;
-        const local = readLocalSnapshot(requestedCourseId);
+        const local = readLocalSnapshot(effectiveCourseId);
         const mergedProgress = mergeModuleProgress(buildEmptyModuleProgress(courseModules), remote?.moduleProgress, local?.moduleProgress);
         const initialModuleId = remote?.moduleProgress?.[selectedModuleId]?.lastPlaybackPositionSeconds
           ? selectedModuleId
@@ -555,7 +567,7 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [router, requestedCourseId, courseModules, hasExplicitCourseId]);
+  }, [router, requestedCourseId, effectiveCourseId, courseIdError, courseModules, hasExplicitCourseId]);
 
   useEffect(() => {
     if (typeof window === "undefined") {
@@ -563,7 +575,7 @@ export default function CourseRoomPage() {
     }
 
     window.localStorage.setItem(
-      getLocalStorageKey(requestedCourseId),
+      getLocalStorageKey(effectiveCourseId),
       JSON.stringify({
         caseType,
         selectedModuleId,
@@ -575,7 +587,7 @@ export default function CourseRoomPage() {
         savedAt: new Date().toLocaleString("ko-KR"),
       } satisfies StoredPlaybackSnapshot)
     );
-  }, [requestedCourseId, caseType, selectedModuleId, legalAccepted, reviewAccepted, purchaseNoticeAccepted, moduleProgress]);
+  }, [effectiveCourseId, caseType, selectedModuleId, legalAccepted, reviewAccepted, purchaseNoticeAccepted, moduleProgress]);
 
   useEffect(() => {
     return () => {
@@ -607,7 +619,7 @@ export default function CourseRoomPage() {
 
     const currentTime = getActivePlaybackSeconds();
     const duration = Math.max(item.durationSeconds, selectedProgressRef.current.durationSeconds, 1);
-    return moduleProgressToLessonProgress(userId, requestedCourseId, lessonId, {
+    return moduleProgressToLessonProgress(userId, effectiveCourseId, lessonId, {
       ...item,
       durationSeconds: duration,
       lastPlaybackPositionSeconds: Math.min(duration, currentTime),
@@ -748,7 +760,7 @@ export default function CourseRoomPage() {
             return;
           }
 
-          const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, requestedCourseId);
+          const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, effectiveCourseId);
 
           if (cancelled) {
             return;
@@ -767,7 +779,7 @@ export default function CourseRoomPage() {
         } else {
           const { functions } = getFirebaseServices();
           const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
-          const response = await callable({ courseId: requestedCourseId, moduleId: selectedModule.id });
+          const response = await callable({ courseId: effectiveCourseId, moduleId: selectedModule.id });
 
           if (cancelled) {
             return;
@@ -855,7 +867,7 @@ export default function CourseRoomPage() {
     };
 
     const handleStreamPlay = () => {
-      trackCourseStart(requestedCourseId, selectedModule?.id);
+      trackCourseStart(effectiveCourseId, selectedModule?.id);
       dispatchLectureActivity(true);
     };
 
@@ -924,14 +936,14 @@ export default function CourseRoomPage() {
       const refresh = async () => {
         try {
           if (selectedModule.cloudflareStreamUid) {
-            const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, requestedCourseId);
+            const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, effectiveCourseId);
             setVideoProvider("cloudflare-stream");
             setVideoUrl(streamUrl);
             setVideoExpiresAt(Date.now() + 1000 * 60 * 55);
           } else {
             const { functions } = getFirebaseServices();
             const callable = httpsCallable<{ courseId: string; moduleId: string }, GetCourseVideoAccessResponse>(functions, "getCourseVideoAccess");
-            const response = await callable({ courseId: requestedCourseId, moduleId: selectedModule.id });
+            const response = await callable({ courseId: effectiveCourseId, moduleId: selectedModule.id });
             setVideoProvider(response.data.provider ?? "storage");
             setVideoUrl(response.data.videoUrl);
             setVideoExpiresAt(response.data.expiresAt);
@@ -1019,7 +1031,7 @@ export default function CourseRoomPage() {
       >(functions, "saveCourseProgress");
 
       const response = await callable({
-        courseId: requestedCourseId,
+        courseId: effectiveCourseId,
         courseTitle: courseTitle,
         caseType: caseTypeRef.current,
         watchedSeconds: totalWatchedSeconds,
@@ -1041,7 +1053,7 @@ export default function CourseRoomPage() {
       void syncCurrentLessonBackup();
 
       if (response.data.isCompleted) {
-        trackCourseComplete(requestedCourseId);
+        trackCourseComplete(effectiveCourseId);
       }
 
       if (response.data.issuedCertificates.length) {
@@ -1135,7 +1147,7 @@ export default function CourseRoomPage() {
   };
 
   const handlePlay = () => {
-    trackCourseStart(requestedCourseId, selectedModule?.id);
+    trackCourseStart(effectiveCourseId, selectedModule?.id);
     dispatchLectureActivity(true);
   };
 
@@ -1209,10 +1221,10 @@ export default function CourseRoomPage() {
     try {
       const { db } = getFirebaseServices();
       await setDoc(
-        doc(db, "courseProgress", `${uidRef.current}_${requestedCourseId}`),
+        doc(db, "courseProgress", `${uidRef.current}_${effectiveCourseId}`),
         {
           uid: uidRef.current,
-          courseId: requestedCourseId,
+          courseId: effectiveCourseId,
           courseTitle: courseTitle,
           caseType: caseTypeRef.current,
           legalDisclaimerAccepted: true,
@@ -1658,13 +1670,13 @@ export default function CourseRoomPage() {
                         {isManualSaving ? "저장 중..." : "현재 학습 저장"}
                       </button>
                         <Link
-                          href={isAdvancedCourse ? "/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-completion" : "/certificate?courseId=" + encodeURIComponent(requestedCourseId)}
+                          href={isAdvancedCourse ? "/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-completion" : "/certificate?courseId=" + encodeURIComponent(effectiveCourseId)}
                           className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold !text-black hover:!text-black focus:ring-offset-[#111827]")}
                         >
                           수료증 발급
                         </Link>
                         <Link
-                          href={isAdvancedCourse ? "/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-completion&print=1" : "/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&print=1"}
+                          href={isAdvancedCourse ? "/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-completion&print=1" : "/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&print=1"}
                           className={buttonClass("warning", "md", "rounded-full px-5 font-black !text-black hover:!text-black shadow-[0_18px_36px_rgba(250,204,21,0.30)] ring-2 ring-amber-100/70 focus:ring-offset-[#111827]")}
                         >
                           바로 인쇄
@@ -1839,15 +1851,15 @@ export default function CourseRoomPage() {
                 <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-amber-300 bg-amber-50 p-4 shadow-[0_18px_44px_rgba(245,158,11,0.18)]">
                   <p className="text-sm font-black text-amber-950">인지행동기반 재발방지교육 이수 서류</p>
                   <p className="text-sm leading-6 text-amber-900">심화과정 수강권은 과정 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 출력할 수 있습니다.</p>
-                  <Link href={"/certificate?courseId=" + encodeURIComponent(isCbtAdvancedCourse ? "dui-prevention-basic" : requestedCourseId) + "&documentType=completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(isCbtAdvancedCourse ? "dui-prevention-basic" : effectiveCourseId) + "&documentType=completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
                     <span>{isCbtAdvancedCourse ? "음주운전 예방교육 수료증" : (courseDefinition?.certificateTitle || courseTitle) + " 수료증"}</span>
                     <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
                   </Link>
-                  <Link href={"/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg">
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg">
                     <span>인지행동기반 재발방지교육 이수증</span>
                     <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-black !text-white">인쇄 · PDF 저장</span>
                   </Link>
-                  <Link href={"/certificate?courseId=" + encodeURIComponent(requestedCourseId) + "&documentType=cbt-detail"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-detail"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
                     <span>교육이수 상세내역서</span>
                     <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
                   </Link>
@@ -1859,7 +1871,7 @@ export default function CourseRoomPage() {
                 {coursePreventionDocuments.map((document) => (
                   <Link
                     key={document.id}
-                    href={hasDocumentFormsAccess ? "/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(requestedCourseId) : getPreventionDocumentsApplyHref(courseDocumentCategory)}
+                    href={hasDocumentFormsAccess ? "/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(effectiveCourseId) : getPreventionDocumentsApplyHref(courseDocumentCategory)}
                     className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg"
                   >
                     <span>{document.title}</span>
