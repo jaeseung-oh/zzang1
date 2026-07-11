@@ -111,6 +111,113 @@ function formatBirthDate(value?: string) {
   return `${matched[1]}년 ${matched[2]}월 ${matched[3]}일`;
 }
 
+function concatUint8Arrays(parts: Uint8Array[]) {
+  const totalLength = parts.reduce((sum, part) => sum + part.length, 0);
+  const result = new Uint8Array(totalLength);
+  let offset = 0;
+  parts.forEach((part) => {
+    result.set(part, offset);
+    offset += part.length;
+  });
+  return result;
+}
+
+function createPdfFromJpeg(jpegBytes: Uint8Array, imageWidth: number, imageHeight: number) {
+  const encoder = new TextEncoder();
+  const objects: Array<string | Uint8Array> = [];
+  const pageWidth = 595.28;
+  const pageHeight = 841.89;
+  const content = `q\n${pageWidth} 0 0 ${pageHeight} 0 0 cm\n/Im1 Do\nQ`;
+  objects[1] = `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
+  objects[2] = `2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n`;
+  objects[3] = `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth} ${pageHeight}] /Resources << /XObject << /Im1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`;
+  objects[4] = concatUint8Arrays([
+    encoder.encode(`4 0 obj\n<< /Type /XObject /Subtype /Image /Width ${imageWidth} /Height ${imageHeight} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${jpegBytes.length} >>\nstream\n`),
+    jpegBytes,
+    encoder.encode("\nendstream\nendobj\n"),
+  ]);
+  objects[5] = `5 0 obj\n<< /Length ${content.length} >>\nstream\n${content}\nendstream\nendobj\n`;
+
+  const parts: Uint8Array[] = [encoder.encode("%PDF-1.4\n%\xE2\xE3\xCF\xD3\n")];
+  const offsets = [0];
+  let length = parts[0].length;
+  for (let index = 1; index <= 5; index += 1) {
+    offsets[index] = length;
+    const part = typeof objects[index] === "string" ? encoder.encode(objects[index] as string) : objects[index] as Uint8Array;
+    parts.push(part);
+    length += part.length;
+  }
+  const xrefOffset = length;
+  const xref = ["xref", "0 6", "0000000000 65535 f ", ...offsets.slice(1).map((offset) => String(offset).padStart(10, "0") + " 00000 n "), "trailer", "<< /Size 6 /Root 1 0 R >>", "startxref", String(xrefOffset), "%%EOF", ""].join("\n");
+  parts.push(encoder.encode(xref));
+  return new Blob([concatUint8Arrays(parts)], { type: "application/pdf" });
+}
+
+async function blobToDataUrl(blob: Blob) {
+  return await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(reader.error || new Error("파일을 읽지 못했습니다."));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function inlineImages(root: HTMLElement) {
+  const images = Array.from(root.querySelectorAll("img"));
+  await Promise.all(images.map(async (image) => {
+    const source = image.getAttribute("src");
+    if (!source || source.startsWith("data:")) return;
+    const response = await fetch(new URL(source, window.location.href).toString(), { credentials: "same-origin" });
+    if (!response.ok) return;
+    image.setAttribute("src", await blobToDataUrl(await response.blob()));
+  }));
+}
+
+function inlineComputedStyles(source: Element, target: Element) {
+  const computed = window.getComputedStyle(source);
+  const style = Array.from(computed).map((name) => name + ":" + computed.getPropertyValue(name) + ";").join("");
+  target.setAttribute("style", style);
+  Array.from(source.children).forEach((child, index) => {
+    const targetChild = target.children[index];
+    if (targetChild) inlineComputedStyles(child, targetChild);
+  });
+}
+
+async function renderElementToJpeg(element: HTMLElement) {
+  const width = Math.ceil(element.offsetWidth || element.getBoundingClientRect().width);
+  const height = Math.ceil(element.offsetHeight || element.getBoundingClientRect().height);
+  const clone = element.cloneNode(true) as HTMLElement;
+  inlineComputedStyles(element, clone);
+  await inlineImages(clone);
+  clone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
+  const xhtml = new XMLSerializer().serializeToString(clone);
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${xhtml}</foreignObject></svg>`;
+  const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+  try {
+    const image = new Image();
+    image.decoding = "sync";
+    const loaded = new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("수료증 이미지를 생성하지 못했습니다."));
+    });
+    image.src = url;
+    await loaded;
+    const scale = Math.min(2, Math.max(1.25, 1240 / width));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("PDF 생성을 위한 캔버스를 준비하지 못했습니다.");
+    context.fillStyle = "#ffffff";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.94));
+    return { bytes: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height };
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 function getCertificateRecordId(userId: string, courseId: string, documentType?: string | null) {
   return documentType && documentType !== "completion" ? userId + "_" + courseId + "_" + documentType : userId + "_" + courseId;
 }
@@ -301,7 +408,9 @@ function CertificatePageContent() {
   const [issuing, setIssuing] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const [pdfSaving, setPdfSaving] = useState(false);
   const autoPrintStartedRef = useRef(false);
+  const certificatePaperRef = useRef<HTMLElement | null>(null);
 
   const requestedCertificateId = searchParams.get("certificateId");
   const requestedAdminPreview = searchParams.get("adminPreview");
@@ -557,16 +666,45 @@ function CertificatePageContent() {
     void refresh();
   }, [searchParamsKey]);
 
+  const savePdfFile = async () => {
+    if (!certificate || !certificatePaperRef.current || pdfSaving) return;
+    setPdfSaving(true);
+    setError("");
+    try {
+      trackEvent("certificate_download", { method: "pdf", document_type: isCompletionCertificate ? "completion" : "attendance" });
+      const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
+      const image = await renderElementToJpeg(certificatePaperRef.current);
+      const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = documentTitle + "_" + safeNo + ".pdf";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch (downloadError) {
+      console.error(downloadError);
+      setError(downloadError instanceof Error ? downloadError.message : "PDF 파일 저장 중 오류가 발생했습니다.");
+    } finally {
+      setPdfSaving(false);
+    }
+  };
+
   useEffect(() => {
     if ((!shouldAutoPrint && !shouldAutoPdf) || loading || !certificate || autoPrintStartedRef.current) {
       return;
     }
 
     autoPrintStartedRef.current = true;
+    if (shouldAutoPdf) {
+      window.setTimeout(() => void savePdfFile(), 120);
+      return;
+    }
     const previousTitle = document.title;
     const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
     document.title = documentTitle + "_" + safeNo;
-    const timer = window.setTimeout(() => window.print(), shouldAutoPdf ? 120 : 450);
+    const timer = window.setTimeout(() => window.print(), 450);
     const titleTimer = window.setTimeout(() => {
       document.title = previousTitle;
     }, 1400);
@@ -577,15 +715,13 @@ function CertificatePageContent() {
     };
   }, [certificate, certificateNo, documentTitle, loading, shouldAutoPdf, shouldAutoPrint]);
 
-
-
-  const openPrintDialog = (mode: "print" | "pdf") => {
+  const openPrintDialog = () => {
     if (!certificate) return;
-    trackEvent("certificate_download", { method: mode, document_type: isCompletionCertificate ? "completion" : "attendance" });
+    trackEvent("certificate_download", { method: "print", document_type: isCompletionCertificate ? "completion" : "attendance" });
     const previousTitle = document.title;
     const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
     document.title = documentTitle + "_" + safeNo;
-    window.setTimeout(() => window.print(), mode === "pdf" ? 80 : 0);
+    window.setTimeout(() => window.print(), 0);
     window.setTimeout(() => {
       document.title = previousTitle;
     }, 1200);
@@ -672,11 +808,11 @@ function CertificatePageContent() {
             <h1 className="mt-2 break-keep text-2xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-3xl sm:tracking-[-0.04em]">수강증/수료증 확인 및 인쇄</h1>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
-            <button type="button" onClick={() => openPrintDialog("print")} disabled={!certificate} className={buttonClass("warning", "md", "rounded-full px-5 font-black disabled:opacity-100")}>
+            <button type="button" onClick={openPrintDialog} disabled={!certificate} className={buttonClass("warning", "md", "rounded-full px-5 font-black disabled:opacity-100")}>
               {documentTitle} 인쇄하기
             </button>
-            <button type="button" onClick={() => openPrintDialog("pdf")} disabled={!certificate} className={buttonClass("primary", "md", "rounded-full px-5 font-black disabled:opacity-100")}>
-              PDF로 저장(인쇄창)
+            <button type="button" onClick={() => void savePdfFile()} disabled={!certificate || pdfSaving} className={buttonClass("primary", "md", "rounded-full px-5 font-black disabled:opacity-100")}>
+              {pdfSaving ? "PDF 생성 중" : "PDF 저장"}
             </button>
             <Link href="/dashboard" className={buttonClass("secondary", "md", "rounded-full px-5 font-semibold")}>
               마이페이지로 돌아가기
@@ -713,7 +849,7 @@ function CertificatePageContent() {
                         바로 인쇄
                       </Link>
                       <Link href={document.pdfHref} className={selected ? buttonClass("primary", "sm", "rounded-full px-4 font-black !text-white hover:!text-white") : buttonClass("secondary", "sm", "rounded-full px-4 font-black")}>
-                        PDF로 저장(인쇄창)
+                        PDF 저장
                       </Link>
                     </div>
                   </article>
@@ -753,7 +889,7 @@ function CertificatePageContent() {
 
         {certificate ? (
           <>
-            <section className={`certificate-print-root certificate-paper ${isDetailDocument ? "certificate-detail-document" : "certificate-completion-document"} mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0`}>
+            <section ref={certificatePaperRef} className={`certificate-print-root certificate-paper ${isDetailDocument ? "certificate-detail-document" : "certificate-completion-document"} mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0`}>
               <div className="certificate-inner relative flex h-full min-h-[257mm] flex-col overflow-hidden border-[3px] border-[#d9c08a] px-8 py-10 text-center">
                 <img src={centerLogoPath} alt="" aria-hidden="true" className="certificate-watermark pointer-events-none absolute left-1/2 top-1/2 z-0 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.055]" />
                 <div className="relative z-10 flex h-full min-h-0 flex-col">
