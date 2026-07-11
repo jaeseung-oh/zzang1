@@ -2563,6 +2563,69 @@ async function handleAdminPaymentResync(request, env, corsHeaders) {
     }, { uid, email: admin.email || null }, env, corsHeaders);
 }
 
+function getIncludedBaseProductForManualGrant(productId) {
+    if (productId === 'dui-cbt-advanced') return APPLICATION_PRODUCTS['dui-documents'];
+    if (String(productId || '').endsWith('-advanced')) return APPLICATION_PRODUCTS[String(productId).replace(/-advanced$/, '-basic')] || null;
+    return null;
+}
+
+async function ensureManualIncludedBaseEnrollment(env, uid, sourceProduct, sourceOrderId, admin, note) {
+    const baseProduct = getIncludedBaseProductForManualGrant(sourceProduct.productId);
+    if (!baseProduct) return null;
+    const enrollmentId = uid + '_' + baseProduct.courseId;
+    const existingEnrollment = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (existingEnrollment) {
+        const existing = fromFirestoreFields(existingEnrollment.fields || {});
+        if (isFirestoreEnrollmentActiveRecord(existing)) return { ...existing, enrollmentId, alreadyActive: true };
+    }
+    const nowIso = new Date().toISOString();
+    const expiresAt = new Date(Date.now() + (getCourseProduct(baseProduct.courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const record = {
+        enrollmentId,
+        userId: uid,
+        uid,
+        courseId: baseProduct.courseId,
+        categoryId: baseProduct.categoryId,
+        productId: baseProduct.productId,
+        productTitle: baseProduct.title,
+        courseTitle: baseProduct.courseTitle,
+        paymentId: sourceOrderId,
+        orderId: sourceOrderId + '_included_' + baseProduct.courseId,
+        purchasedAt: nowIso,
+        expiresAt,
+        paymentStatus: 'paid',
+        accessStatus: 'active',
+        progress: 0,
+        completedLessons: 0,
+        totalLessons: baseProduct.totalLessons,
+        certificateIssued: false,
+        certificateIssuedAt: null,
+        adminGranted: true,
+        includedWithProductId: sourceProduct.productId,
+        includedWithOrderId: sourceOrderId,
+        adminGrantReason: note || '심화과정 수동 지급에 포함된 기본과정 수강권',
+        grantedBy: admin.email || admin.uid,
+        createdAt: nowIso,
+        updatedAt: nowIso
+    };
+    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), record);
+    await savePaymentLog(env, record.orderId, {
+        type: 'admin_manual_included_base_enrollment_granted',
+        paymentId: sourceOrderId,
+        orderId: record.orderId,
+        userId: uid,
+        uid,
+        courseId: baseProduct.courseId,
+        productId: baseProduct.productId,
+        includedWithProductId: sourceProduct.productId,
+        grantedBy: admin.email || admin.uid,
+        note: note || null,
+        createdAt: nowIso,
+        created_at: nowIso
+    }).catch((error) => console.error(error));
+    return record;
+}
+
 async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     let admin;
     try {
@@ -2574,16 +2637,21 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     const body = await request.json().catch(() => null);
     const uid = String(body?.uid || '').trim();
     const productId = String(body?.productId || 'basic').trim();
-    const courseId = String(body?.courseId || DUI_COURSE_PRODUCT.courseId).trim();
-    const categoryId = String(body?.categoryId || 'dui').trim();
+    const requestedCourseId = String(body?.courseId || '').trim();
+    const requestedCategoryId = String(body?.categoryId || '').trim();
     const note = String(body?.note || '').trim();
     const product = getApplicationProductForPayment(productId);
     const amount = typeof body?.amount === 'number' ? body.amount : product?.amount;
 
-    if (!uid || !product || courseId !== product.courseId || categoryId !== product.categoryId) {
+    if (!uid || !product) {
         return json({ message: '사용자 ID 또는 수강권 상품 정보가 올바르지 않습니다.', code: 'INVALID_REQUEST' }, 400, corsHeaders);
     }
+    if ((requestedCourseId && requestedCourseId !== product.courseId) || (requestedCategoryId && requestedCategoryId !== product.categoryId)) {
+        return json({ message: '선택한 교육 종류와 상품 등급이 일치하지 않습니다. 다시 선택해 주세요.', code: 'PRODUCT_COURSE_MISMATCH' }, 400, corsHeaders);
+    }
 
+    const courseId = product.courseId;
+    const categoryId = product.categoryId;
     const enrollmentId = uid + '_' + courseId;
     const existingEnrollment = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
     if (existingEnrollment) {
@@ -2713,7 +2781,8 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             created_at: nowIso,
             createdAt: nowIso
         });
-        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, enrollmentRecord, note || '관리자 수동 수강권 지급');
+        const includedBaseEnrollment = await ensureManualIncludedBaseEnrollment(env, uid, product, orderId, admin, note);
+        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, { ...enrollmentRecord, includedBaseEnrollment }, note || '관리자 수동 수강권 지급');
     } catch (error) {
         await savePaymentLog(env, orderId, {
             type: 'admin_manual_enrollment_failed',
