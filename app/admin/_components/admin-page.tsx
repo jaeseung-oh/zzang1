@@ -43,9 +43,28 @@ const menu: Array<{ view: AdminMenuView; label: string; href: string }> = [
 ];
 
 const emptyData: AdminDataset = { users: [], payments: [], enrollments: [], certificates: [], progress: [], refundPolicies: [] };
-const adminGrantProducts = applicationCourseCategories.find((category) => category.id === "dui")?.products || [];
-const getAdminGrantProductAmount = (productId: string) => String(adminGrantProducts.find((product) => product.id === productId)?.price || 49000);
-const renderAdminGrantProductOptions = () => adminGrantProducts.map((product) => <option key={product.id} value={product.id}>{product.title}</option>);
+type AdminGrantProduct = {
+  id: string;
+  title: string;
+  price: number;
+  description: string;
+  categoryId: string;
+  categoryTitle: string;
+  courseId: string;
+};
+
+const adminGrantProducts: AdminGrantProduct[] = applicationCourseCategories
+  .filter((category) => category.status === "available")
+  .flatMap((category) => category.products.map((product) => ({
+    ...product,
+    categoryId: category.id,
+    categoryTitle: category.title,
+    courseId: product.courseId || duiPreventionCourseProduct.courseId,
+  })));
+const defaultAdminGrantProduct = adminGrantProducts[0];
+const getAdminGrantProduct = (productId: string) => adminGrantProducts.find((product) => product.id === productId) || defaultAdminGrantProduct;
+const getAdminGrantProductAmount = (productId: string) => String(getAdminGrantProduct(productId)?.price || 49000);
+const renderAdminGrantProductOptions = () => adminGrantProducts.map((product) => <option key={product.id} value={product.id}>{product.categoryTitle} - {product.title}</option>);
 
 function toDate(value: any) {
   if (!value) return null;
@@ -463,8 +482,8 @@ function filterPayment(row: AnyRecord, filter: string) { const status = row.paym
 function PaymentResyncPanel({ onRefresh }: { onRefresh: () => void }) {
   const [paymentId, setPaymentId] = useState("");
   const [uid, setUid] = useState("");
-  const [productId, setProductId] = useState("basic");
-  const [amount, setAmount] = useState("49000");
+  const [productId, setProductId] = useState(defaultAdminGrantProduct?.id || "dui-documents");
+  const [amount, setAmount] = useState(String(defaultAdminGrantProduct?.price || 49000));
   const [status, setStatus] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -480,10 +499,11 @@ function PaymentResyncPanel({ onRefresh }: { onRefresh: () => void }) {
       const idToken = await user.getIdToken();
       const baseUrl = paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "");
       if (!baseUrl) throw new Error("결제 확인 Worker URL이 설정되지 않았습니다.");
+      const selectedProduct = getAdminGrantProduct(productId);
       const response = await fetch(baseUrl + "/api/admin/payments/resync", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-        body: JSON.stringify({ paymentId: paymentId.trim(), uid: uid.trim(), productId, amount: Number(amount) || undefined }),
+        body: JSON.stringify({ paymentId: paymentId.trim(), uid: uid.trim(), productId, courseId: selectedProduct?.courseId, categoryId: selectedProduct?.categoryId, amount: Number(amount) || undefined }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.message || "결제 재조회에 실패했습니다.");
@@ -502,8 +522,8 @@ function PaymentResyncPanel({ onRefresh }: { onRefresh: () => void }) {
 
 function ManualEnrollmentGrantPanel({ onRefresh }: { onRefresh: () => void }) {
   const [uid, setUid] = useState("");
-  const [productId, setProductId] = useState("basic");
-  const [amount, setAmount] = useState("49000");
+  const [productId, setProductId] = useState(defaultAdminGrantProduct?.id || "dui-documents");
+  const [amount, setAmount] = useState(String(defaultAdminGrantProduct?.price || 49000));
   const [note, setNote] = useState("카드 승인 후 수강권 반영 지연으로 인한 관리자 수동 지급");
   const [duplicateResolution, setDuplicateResolution] = useState("keep");
   const [status, setStatus] = useState("");
@@ -521,10 +541,11 @@ function ManualEnrollmentGrantPanel({ onRefresh }: { onRefresh: () => void }) {
       const idToken = await user.getIdToken();
       const baseUrl = paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "");
       if (!baseUrl) throw new Error("결제 확인 Worker URL이 설정되지 않았습니다.");
+      const selectedProduct = getAdminGrantProduct(productId);
       const response = await fetch(baseUrl + "/api/admin/enrollments/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-        body: JSON.stringify({ uid: uid.trim(), productId, amount: Number(amount) || undefined, note: note.trim() || undefined, duplicateResolution }),
+        body: JSON.stringify({ uid: uid.trim(), productId, courseId: selectedProduct?.courseId, categoryId: selectedProduct?.categoryId, amount: Number(amount) || undefined, note: note.trim() || undefined, duplicateResolution }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.message || "수강권 수동 지급에 실패했습니다.");
@@ -592,7 +613,7 @@ function EnrollmentDetail({ selected, ctx }: any) {
 
 function ManualCertificateIssuePanel({ onRefresh }: { onRefresh: () => void }) {
   const [uid, setUid] = useState("");
-  const [courseId, setCourseId] = useState<string>(duiPreventionCourseProduct.courseId);
+  const [courseId, setCourseId] = useState<string>(defaultAdminGrantProduct?.courseId || duiPreventionCourseProduct.courseId);
   const [userName, setUserName] = useState("");
   const [birthDate, setBirthDate] = useState("");
   const [note, setNote] = useState("관리자 직접 수료증 발급");
@@ -628,7 +649,7 @@ function ManualCertificateIssuePanel({ onRefresh }: { onRefresh: () => void }) {
     }
   };
 
-  return <section className="mb-4 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"><p className="font-bold">수료증 직접 발급 및 저장</p><p className="mt-1 text-xs leading-5">혹시 모를 오류 발생 시 관리자 권한으로 특정 회원의 수료증을 직접 발급해 Firestore에 저장합니다. 먼저 해당 과정의 활성 수강권이 있어야 합니다.</p><div className="mt-3 grid gap-2 md:grid-cols-[1fr_260px_150px_150px_1.3fr_auto]"><input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="사용자 ID(uid)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><select value={courseId} onChange={(e) => setCourseId(e.target.value)} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600">{adminGrantProducts.map((product) => <option key={product.id} value={product.courseId}>{product.title}</option>)}</select><input value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="성명(선택)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} placeholder="YYYY-MM-DD" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="발급 사유" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><button type="button" onClick={handleIssue} disabled={submitting} className="rounded-xl border-2 border-emerald-900 bg-emerald-800 px-4 py-2 font-bold text-white shadow-sm transition hover:bg-emerald-950 hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{submitting ? "처리 중" : "발급 저장"}</button></div>{status ? <p className="mt-3 font-semibold">{status}</p> : null}</section>;
+  return <section className="mb-4 rounded-[1.25rem] border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950"><p className="font-bold">수료증 직접 발급 및 저장</p><p className="mt-1 text-xs leading-5">혹시 모를 오류 발생 시 관리자 권한으로 특정 회원의 수료증을 직접 발급해 Firestore에 저장합니다. 먼저 해당 과정의 활성 수강권이 있어야 합니다.</p><div className="mt-3 grid gap-2 md:grid-cols-[1fr_260px_150px_150px_1.3fr_auto]"><input value={uid} onChange={(e) => setUid(e.target.value)} placeholder="사용자 ID(uid)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><select value={courseId} onChange={(e) => setCourseId(e.target.value)} className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600">{adminGrantProducts.map((product) => <option key={product.id} value={product.courseId}>{product.categoryTitle} - {product.title}</option>)}</select><input value={userName} onChange={(e) => setUserName(e.target.value)} placeholder="성명(선택)" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={birthDate} onChange={(e) => setBirthDate(e.target.value)} placeholder="YYYY-MM-DD" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><input value={note} onChange={(e) => setNote(e.target.value)} placeholder="발급 사유" className="min-h-11 rounded-xl border border-emerald-200 bg-white px-3 outline-none focus:border-emerald-600" /><button type="button" onClick={handleIssue} disabled={submitting} className="rounded-xl border-2 border-emerald-900 bg-emerald-800 px-4 py-2 font-bold text-white shadow-sm transition hover:bg-emerald-950 hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{submitting ? "처리 중" : "발급 저장"}</button></div>{status ? <p className="mt-3 font-semibold">{status}</p> : null}</section>;
 }
 
 function CertificatesView(ctx: any) {
