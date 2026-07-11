@@ -356,6 +356,58 @@ function createCertificateNumber(certificateId: string, issuedAt: Date) {
   return `CERT-DUI-${formatCertificateDate(issuedAt)}-${suffix}`;
 }
 
+type EnrollmentAccessDecision = {
+  allowed: boolean;
+  reason: "OK" | "NO_ENROLLMENT" | "USER_MISMATCH" | "COURSE_MISMATCH" | "DELETED_ENROLLMENT" | "INACTIVE_ENROLLMENT" | "NOT_STARTED" | "EXPIRED";
+};
+
+function normalizeEnrollmentStatus(value: unknown) {
+  return String(value ?? "").trim().toLowerCase();
+}
+
+function getEnrollmentAccessDecision(data: Record<string, any> | undefined, uid: string, courseId: string): EnrollmentAccessDecision {
+  if (!data) return { allowed: false, reason: "NO_ENROLLMENT" };
+  const ownerId = data.userId ?? data.uid ?? "";
+  if (ownerId && ownerId !== uid) return { allowed: false, reason: "USER_MISMATCH" };
+  if (data.courseId && data.courseId !== courseId) return { allowed: false, reason: "COURSE_MISMATCH" };
+  if (data.deletedAt || data.isDeleted === true || data.deleted === true) return { allowed: false, reason: "DELETED_ENROLLMENT" };
+
+  const paymentStatus = normalizeEnrollmentStatus(data.paymentStatus ?? data.paymentState);
+  const paidLike = ["paid", "done", "completed", "approved", "success"].includes(paymentStatus);
+  const accessStatus = normalizeEnrollmentStatus(data.enrollmentStatus ?? data.accessStatus ?? data.status ?? (data.isActive === true || paidLike ? "active" : ""));
+  const blockedStatuses = ["cancelled", "canceled", "refunded", "failed", "revoked", "deleted"];
+  if (blockedStatuses.includes(paymentStatus) || blockedStatuses.includes(accessStatus)) return { allowed: false, reason: "INACTIVE_ENROLLMENT" };
+  if (accessStatus === "expired") return { allowed: false, reason: "EXPIRED" };
+  if (data.isActive === false || accessStatus === "inactive" || accessStatus === "disabled") return { allowed: false, reason: "INACTIVE_ENROLLMENT" };
+  if (!accessStatus) return { allowed: false, reason: "INACTIVE_ENROLLMENT" };
+  if (!["active", "paid", "done", "completed", "approved", "success"].includes(accessStatus)) return { allowed: false, reason: "INACTIVE_ENROLLMENT" };
+
+  const startsAt = parseTimestampToDate(data.startsAt ?? data.accessStartsAt ?? data.startAt ?? data.purchasedAt ?? data.grantedAt ?? data.createdAt);
+  if (startsAt && startsAt.getTime() > Date.now()) return { allowed: false, reason: "NOT_STARTED" };
+  const expiresAt = parseTimestampToDate(data.expiresAt ?? data.accessEndsAt ?? data.endsAt ?? data.endAt);
+  if (expiresAt && expiresAt.getTime() < Date.now()) return { allowed: false, reason: "EXPIRED" };
+
+  return { allowed: true, reason: "OK" };
+}
+
+function logEnrollmentAccessDecision(context: string, uid: string, courseId: string, data: Record<string, any> | undefined, decision: EnrollmentAccessDecision) {
+  console.info("[enrollments:functions]", {
+    event: "enrollment_access_decision",
+    userId: uid ? uid.slice(0, 4) + "***" + uid.slice(-4) : "",
+    courseId,
+    enrollmentId: data?.enrollmentId ?? null,
+    sourceType: data?.sourceType ?? data?.grantType ?? data?.issueType ?? (data?.adminGranted ? "MANUAL" : "PAYMENT"),
+    status: data?.enrollmentStatus ?? data?.accessStatus ?? data?.status ?? null,
+    isActive: typeof data?.isActive === "boolean" ? data.isActive : null,
+    startsAt: data?.startsAt ?? data?.accessStartsAt ?? null,
+    expiresAt: data?.expiresAt ?? data?.accessEndsAt ?? null,
+    accessAllowed: decision.allowed,
+    accessDeniedReason: decision.allowed ? null : decision.reason,
+    requestPath: context,
+    checkedAt: new Date().toISOString(),
+  });
+}
+
 async function getActiveEnrollment(uid: string, courseId: string) {
   const enrollmentId = `${uid}_${courseId}`;
   const enrollmentRef = db.collection("enrollments").doc(enrollmentId);
@@ -366,30 +418,15 @@ async function getActiveEnrollment(uid: string, courseId: string) {
   }
 
   const data = snapshot.data() ?? {};
-  if ((data.userId ?? data.uid) !== uid || data.courseId !== courseId || data.paymentStatus !== "paid") {
-    return null;
-  }
-
-  if (data.accessStatus !== "active") {
-    return null;
-  }
-
-  const expiresAt = parseTimestampToDate(data.expiresAt);
-  if (expiresAt && expiresAt.getTime() < Date.now()) {
+  const decision = getEnrollmentAccessDecision(data, uid, courseId);
+  logEnrollmentAccessDecision("getActiveEnrollment", uid, courseId, data, decision);
+  if (!decision.allowed) {
     return null;
   }
 
   return { ref: enrollmentRef, id: enrollmentId, data };
 }
 
-function isActiveEnrollmentData(data: Record<string, any> | undefined, uid: string, courseId: string) {
-  if (!data) return false;
-  const ownerId = data.userId ?? data.uid;
-  const paymentStatus = String(data.paymentStatus ?? "").toLowerCase();
-  const accessStatus = String(data.enrollmentStatus ?? data.accessStatus ?? "").toLowerCase();
-  const expiresAt = parseTimestampToDate(data.expiresAt);
-  return ownerId === uid && data.courseId === courseId && paymentStatus === "paid" && accessStatus === "active" && (!expiresAt || expiresAt.getTime() >= Date.now());
-}
 
 async function hasVerifiedCourseAccess(uid: string, courseId: string) {
   const [userDoc, userRecord] = await Promise.all([
@@ -408,7 +445,14 @@ async function hasVerifiedCourseAccess(uid: string, courseId: string) {
     db.collection("users").doc(uid).collection("enrollments").doc(courseId).get(),
   ]);
 
-  return isActiveEnrollmentData(rootEnrollment.data(), uid, courseId) || isActiveEnrollmentData(nestedEnrollment.data(), uid, courseId);
+  const rootDecision = getEnrollmentAccessDecision(rootEnrollment.data(), uid, courseId);
+  if (rootDecision.allowed) {
+    logEnrollmentAccessDecision("hasVerifiedCourseAccess:root", uid, courseId, rootEnrollment.data(), rootDecision);
+    return true;
+  }
+  const nestedDecision = getEnrollmentAccessDecision(nestedEnrollment.data(), uid, courseId);
+  logEnrollmentAccessDecision("hasVerifiedCourseAccess:nested", uid, courseId, nestedEnrollment.data(), nestedDecision);
+  return nestedDecision.allowed;
 }
 
 async function getLatestPaidPurchaseForCertificate(uid: string, courseId: string) {
@@ -957,7 +1001,7 @@ export const getCourseVideoAccess = onCall({ region: "asia-northeast3" }, async 
 
   const allowed = await hasVerifiedCourseAccess(uid, courseId);
   if (!allowed) {
-    throw new HttpsError("permission-denied", "수강권 결제 후 이용할 수 있습니다.");
+    throw new HttpsError("permission-denied", "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.");
   }
 
   const asset = getCourseVideoAsset(courseId, moduleId);

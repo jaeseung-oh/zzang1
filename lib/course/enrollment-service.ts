@@ -39,11 +39,17 @@ export type EnrollmentRecord = {
   productTitle?: string;
   paymentId?: string;
   orderId?: string;
-  paymentStatus: "paid" | "pending" | "failed" | "cancelled" | "refunded" | string;
+  paymentStatus?: "paid" | "pending" | "failed" | "cancelled" | "refunded" | string | null;
+  sourceType?: "PAYMENT" | "MANUAL" | "PROMOTION" | "FREE" | string;
+  status?: EnrollmentStatus | string;
+  isActive?: boolean;
   enrollmentStatus?: EnrollmentStatus;
   accessStatus?: EnrollmentStatus;
   purchasedAt?: string | Date | { seconds: number } | null;
+  startsAt?: string | Date | { seconds: number } | null;
+  accessStartsAt?: string | Date | { seconds: number } | null;
   expiresAt?: string | Date | { seconds: number } | null;
+  accessEndsAt?: string | Date | { seconds: number } | null;
   certificateAvailable?: boolean;
   amount?: number;
   progress?: number;
@@ -93,13 +99,18 @@ function toMillis(value: unknown) {
 
 export function isEnrollmentActive(enrollment: EnrollmentRecord | null | undefined) {
   if (!enrollment) return false;
-  const expiresAt = toMillis(enrollment.expiresAt);
   const paymentStatus = String(enrollment.paymentStatus || "").toLowerCase();
-  const paid = ["paid", "done", "completed", "approved", "success"].includes(paymentStatus);
-  const status = enrollment.enrollmentStatus ?? enrollment.accessStatus ?? (paid ? "active" : "");
-  const accessStatus = String(status || "").toLowerCase();
-  const blocked = ["cancelled", "canceled", "refunded", "expired", "failed"].includes(accessStatus);
-  return paid && !blocked && accessStatus === "active" && (expiresAt === null || expiresAt >= Date.now());
+  const paidLike = ["paid", "done", "completed", "approved", "success"].includes(paymentStatus);
+  const accessStatus = String(enrollment.enrollmentStatus ?? enrollment.accessStatus ?? enrollment.status ?? (enrollment.isActive === true || paidLike ? "active" : "")).toLowerCase();
+  const blockedStatuses = ["cancelled", "canceled", "refunded", "expired", "failed", "revoked", "deleted"];
+  if (blockedStatuses.includes(paymentStatus) || blockedStatuses.includes(accessStatus)) return false;
+  if (enrollment.isActive === false || accessStatus === "inactive" || accessStatus === "disabled") return false;
+  if (!accessStatus) return false;
+  if (!["active", "paid", "done", "completed", "approved", "success"].includes(accessStatus)) return false;
+  const startsAt = toMillis(enrollment.startsAt ?? enrollment.accessStartsAt ?? enrollment.purchasedAt);
+  if (startsAt !== null && startsAt > Date.now()) return false;
+  const expiresAt = toMillis(enrollment.expiresAt ?? enrollment.accessEndsAt);
+  return expiresAt === null || expiresAt >= Date.now();
 }
 
 export async function getUserEnrollment(userId: string, courseIdOrCategory: string) {

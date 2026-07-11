@@ -643,23 +643,65 @@ function logEnrollmentWorkerEvent(event, details = {}) {
     });
 }
 
+function normalizeEnrollmentStatus(value) {
+    return String(value || '').trim().toLowerCase();
+}
+
+function getEnrollmentRecordTime(value) {
+    if (!value) return null;
+    const time = value instanceof Date ? value.getTime() : new Date(value).getTime();
+    return Number.isFinite(time) ? time : null;
+}
+
+function getEnrollmentAccessDecision(enrollment, uid, courseId) {
+    if (!enrollment) return { allowed: false, reason: 'NO_ENROLLMENT' };
+    const ownerId = enrollment.userId || enrollment.uid || '';
+    if (uid && ownerId && ownerId !== uid) return { allowed: false, reason: 'USER_MISMATCH' };
+    if (courseId && enrollment.courseId && enrollment.courseId !== courseId) return { allowed: false, reason: 'COURSE_MISMATCH' };
+    if (enrollment.deletedAt || enrollment.isDeleted === true || enrollment.deleted === true) return { allowed: false, reason: 'DELETED_ENROLLMENT' };
+
+    const paymentStatus = normalizeEnrollmentStatus(enrollment.paymentStatus || enrollment.paymentState);
+    const paidLike = ['paid', 'done', 'completed', 'approved', 'success'].includes(paymentStatus);
+    const accessStatus = normalizeEnrollmentStatus(enrollment.enrollmentStatus || enrollment.accessStatus || enrollment.status || (enrollment.isActive === true || paidLike ? 'active' : ''));
+    const blockedStatuses = ['cancelled', 'canceled', 'refunded', 'failed', 'revoked', 'deleted'];
+    if (blockedStatuses.includes(paymentStatus) || blockedStatuses.includes(accessStatus)) return { allowed: false, reason: 'INACTIVE_ENROLLMENT' };
+    if (accessStatus === 'expired') return { allowed: false, reason: 'EXPIRED' };
+    if (enrollment.isActive === false || accessStatus === 'inactive' || accessStatus === 'disabled') return { allowed: false, reason: 'INACTIVE_ENROLLMENT' };
+    if (!accessStatus) return { allowed: false, reason: 'INACTIVE_ENROLLMENT' };
+    if (!['active', 'paid', 'done', 'completed', 'approved', 'success'].includes(accessStatus)) return { allowed: false, reason: 'INACTIVE_ENROLLMENT' };
+
+    const startsAt = getEnrollmentRecordTime(enrollment.startsAt || enrollment.accessStartsAt || enrollment.startAt || enrollment.purchasedAt || enrollment.grantedAt || enrollment.createdAt);
+    if (startsAt && startsAt > Date.now()) return { allowed: false, reason: 'NOT_STARTED' };
+    const expiresAt = getEnrollmentRecordTime(enrollment.expiresAt || enrollment.accessEndsAt || enrollment.endsAt || enrollment.endAt);
+    if (expiresAt && expiresAt < Date.now()) return { allowed: false, reason: 'EXPIRED' };
+
+    return { allowed: true, reason: 'OK' };
+}
+
 function isFirestoreEnrollmentActiveRecord(enrollment) {
-    if (!enrollment) return false;
-    const paymentStatus = String(enrollment.paymentStatus || enrollment.status || '').toLowerCase();
-    const paid = ['paid', 'done', 'completed', 'approved', 'success'].includes(paymentStatus);
-    const accessStatus = String(enrollment.enrollmentStatus || enrollment.accessStatus || (paid ? 'active' : '')).toLowerCase();
-    const blocked = ['cancelled', 'canceled', 'refunded', 'expired', 'failed'].includes(accessStatus)
-        || ['cancelled', 'canceled', 'refunded', 'failed'].includes(paymentStatus);
-    const expiresAt = enrollment.expiresAt ? new Date(enrollment.expiresAt).getTime() : null;
-    return paid && !blocked && accessStatus === 'active' && (!expiresAt || expiresAt >= Date.now());
+    return getEnrollmentAccessDecision(enrollment).allowed;
 }
 
 function isExplicitlyBlockedEnrollmentRecord(enrollment) {
     if (!enrollment) return false;
-    const paymentStatus = String(enrollment.paymentStatus || enrollment.status || '').toLowerCase();
-    const accessStatus = String(enrollment.enrollmentStatus || enrollment.accessStatus || '').toLowerCase();
-    return ['cancelled', 'canceled', 'refunded', 'failed'].includes(paymentStatus)
-        || ['cancelled', 'canceled', 'refunded'].includes(accessStatus);
+    return ['DELETED_ENROLLMENT', 'INACTIVE_ENROLLMENT', 'EXPIRED'].includes(getEnrollmentAccessDecision(enrollment).reason);
+}
+
+function logEnrollmentAccessDecision(requestPath, uid, courseId, enrollment, decision) {
+    logEnrollmentWorkerEvent('enrollment_access_decision', {
+        userId: maskLogIdentifier(uid),
+        courseId,
+        enrollmentId: enrollment?.enrollmentId || enrollment?.id || null,
+        sourceType: enrollment?.sourceType || enrollment?.grantType || enrollment?.issueType || (enrollment?.adminGranted ? 'MANUAL' : 'PAYMENT'),
+        status: enrollment?.enrollmentStatus || enrollment?.accessStatus || enrollment?.status || null,
+        isActive: enrollment?.isActive !== undefined ? Boolean(enrollment.isActive) : null,
+        startsAt: enrollment?.startsAt || enrollment?.accessStartsAt || null,
+        expiresAt: enrollment?.expiresAt || enrollment?.accessEndsAt || null,
+        accessAllowed: Boolean(decision?.allowed),
+        accessDeniedReason: decision?.allowed ? null : decision?.reason || 'NO_ENROLLMENT',
+        requestPath,
+        checkedAt: new Date().toISOString()
+    });
 }
 
 function resolveApplicationProductIdFromRecord(source = {}, fallbackProductId = 'basic') {
@@ -693,8 +735,9 @@ async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canon
         orderId: source.orderId || source.id || null,
         purchasedAt: source.purchasedAt || source.approvedAt || source.orderedAt || source.createdAt || nowIso,
         expiresAt: source.expiresAt || null,
-        paymentStatus: 'paid',
-        accessStatus: 'active',
+        sourceType: source.sourceType || source.grantType || source.issueType || (source.adminGranted ? 'MANUAL' : 'PAYMENT'),
+        paymentStatus: source.paymentStatus || source.status || (source.adminGranted || source.sourceType === 'MANUAL' ? null : 'paid'),
+        accessStatus: source.accessStatus || source.enrollmentStatus || 'active',
         progress: Number(source.progress) || 0,
         completedLessons: Number(source.completedLessons) || 0,
         totalLessons: Number(source.totalLessons) || APPLICATION_PRODUCTS[sourceProductId]?.totalLessons || getCourseProduct(courseId)?.totalLessons || DUI_COURSE_PRODUCT.totalLessons,
@@ -712,12 +755,16 @@ async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canon
     return { ...source, ...repaired, id: repaired.enrollmentId, documentPath: canonicalPath, recordSource: 'root_repaired' };
 }
 
-async function getWorkerCourseAccessDecision(env, user, courseId) {
+async function getWorkerCourseAccessDecision(env, user, courseId, requestPath = 'unknown') {
     if (isWorkerAdminUser(user, env)) {
-        return { allowed: true, enrollment: null, adminBypass: true };
+        const decision = { allowed: true, reason: 'ADMIN_BYPASS' };
+        logEnrollmentAccessDecision(requestPath, user?.uid || '', courseId, null, decision);
+        return { allowed: true, enrollment: null, adminBypass: true, deniedReason: null };
     }
     const enrollment = await getWorkerEnrollmentRecord(env, user.uid, courseId);
-    return { allowed: isFirestoreEnrollmentActiveRecord(enrollment), enrollment, adminBypass: false };
+    const decision = getEnrollmentAccessDecision(enrollment, user.uid, courseId);
+    logEnrollmentAccessDecision(requestPath, user.uid, courseId, enrollment, decision);
+    return { allowed: decision.allowed, enrollment, adminBypass: false, deniedReason: decision.allowed ? null : decision.reason };
 }
 
 async function userHasWorkerCourseAccess(env, user, courseId) {
@@ -864,10 +911,14 @@ function buildEnrollmentApiRecord(enrollment, progress) {
         orderId: enrollment.orderId || null,
         amount: typeof enrollment.amount === 'number' ? enrollment.amount : product.amount,
         paymentStatus: enrollment.paymentStatus || '',
-        enrollmentStatus: enrollment.enrollmentStatus || enrollment.accessStatus || '',
-        accessStatus: enrollment.accessStatus || enrollment.enrollmentStatus || '',
-        purchasedAt: enrollment.purchasedAt || enrollment.approvedAt || null,
-        expiresAt: enrollment.expiresAt || null,
+        sourceType: enrollment.sourceType || enrollment.grantType || enrollment.issueType || (enrollment.adminGranted ? 'MANUAL' : 'PAYMENT'),
+        isActive: enrollment.isActive !== false,
+        status: enrollment.status || enrollment.enrollmentStatus || enrollment.accessStatus || '',
+        enrollmentStatus: enrollment.enrollmentStatus || enrollment.accessStatus || enrollment.status || '',
+        accessStatus: enrollment.accessStatus || enrollment.enrollmentStatus || enrollment.status || '',
+        purchasedAt: enrollment.purchasedAt || enrollment.approvedAt || enrollment.grantedAt || null,
+        startsAt: enrollment.startsAt || enrollment.accessStartsAt || null,
+        expiresAt: enrollment.expiresAt || enrollment.accessEndsAt || null,
         progress: Math.max(0, Math.min(100, Number.isFinite(progressRate) ? progressRate : 0)),
         completedLessons: Number.isFinite(completedLessons) ? completedLessons : 0,
         totalLessons: Number.isFinite(totalLessons) ? totalLessons : product.totalLessons,
@@ -1051,9 +1102,9 @@ async function handleStreamToken(request, env, corsHeaders) {
         return json({ error: 'invalid_course', message: '지원하지 않는 교육과정입니다.' }, 400, corsHeaders);
     }
 
-    const allowed = await userHasWorkerCourseAccess(env, firebaseUser, courseId);
-    if (!allowed) {
-        return json({ error: 'enrollment_required', message: '수강권 결제 후 이용할 수 있습니다.' }, 403, corsHeaders);
+    const accessDecision = await getWorkerCourseAccessDecision(env, firebaseUser, courseId, '/api/stream/token');
+    if (!accessDecision.allowed) {
+        return json({ error: 'enrollment_required', code: accessDecision.deniedReason || 'NO_ENROLLMENT', message: '유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.' }, 403, corsHeaders);
     }
 
     const response = await fetch(
@@ -2622,14 +2673,17 @@ async function ensureManualIncludedBaseEnrollment(env, uid, sourceProduct, sourc
         productId: baseProduct.productId,
         productTitle: baseProduct.title,
         courseTitle: baseProduct.courseTitle,
-        paymentId: sourceOrderId,
-        orderId: sourceOrderId + '_included_' + baseProduct.courseId,
+        paymentId: null,
+        orderId: null,
         purchasedAt: startsAt,
         startsAt,
         accessStartsAt: startsAt,
         expiresAt,
         accessEndsAt: expiresAt,
-        paymentStatus: 'paid',
+        paymentStatus: null,
+        sourceType: 'MANUAL',
+        status: accessStatus,
+        isActive: accessStatus === 'active',
         enrollmentStatus: accessStatus,
         accessStatus,
         progress: 0,
@@ -2639,17 +2693,18 @@ async function ensureManualIncludedBaseEnrollment(env, uid, sourceProduct, sourc
         certificateIssuedAt: null,
         adminGranted: true,
         includedWithProductId: sourceProduct.productId,
-        includedWithOrderId: sourceOrderId,
+        includedWithEnrollmentId: sourceOrderId,
+        includedWithOrderId: null,
         adminGrantReason: note || '심화과정 수동 지급에 포함된 기본과정 수강권',
         grantedBy: admin.email || admin.uid,
         createdAt: nowIso,
         updatedAt: nowIso
     };
     await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), record);
-    await savePaymentLog(env, record.orderId, {
+    await savePaymentLog(env, record.enrollmentId, {
         type: 'admin_manual_included_base_enrollment_granted',
-        paymentId: sourceOrderId,
-        orderId: record.orderId,
+        paymentId: null,
+        orderId: record.enrollmentId,
         userId: uid,
         uid,
         courseId: baseProduct.courseId,
@@ -2699,12 +2754,13 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     if (existingEnrollment) {
         const existing = fromFirestoreFields(existingEnrollment.fields || {});
         const existingExpiresAt = existing.expiresAt ? new Date(existing.expiresAt).getTime() : 0;
-        if (existing.paymentStatus === 'paid' && existing.accessStatus === 'active' && existingExpiresAt > Date.now()) {
+        if (isFirestoreEnrollmentActiveRecord(existing)) {
             const duplicateResolution = String(body?.duplicateResolution || 'keep').trim();
             if (duplicateResolution === 'extend') {
                 const nowIso = new Date().toISOString();
                 const extensionDays = Number(body?.extensionDays || getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
-                const expiresAt = new Date(existingExpiresAt + Math.max(1, extensionDays) * 24 * 60 * 60 * 1000).toISOString();
+                const extensionBase = existingExpiresAt > Date.now() ? existingExpiresAt : Date.now();
+                const expiresAt = new Date(extensionBase + Math.max(1, extensionDays) * 24 * 60 * 60 * 1000).toISOString();
                 const patch = { expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장' };
                 await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), patch);
                 await saveAdminAuditLog(env, request, admin, 'enrollment.extend', 'enrollments', enrollmentId, existing, patch, note || '중복 수강권 기간 연장');
@@ -2721,39 +2777,8 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         return json({ message: '수강 시작일 또는 종료일이 올바르지 않습니다.', code: 'INVALID_ACCESS_PERIOD' }, 400, corsHeaders);
     }
     const accessStatus = requestedActive ? 'active' : 'pending';
-    const safeUid = uid.replace(/[^a-zA-Z0-9]/g, '').slice(0, 10) || 'user';
-    const orderId = 'manual_' + Date.now().toString(36) + '_' + safeUid;
+    const manualGrantId = 'manual_' + Date.now().toString(36) + '_' + enrollmentId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 32);
 
-    const paymentRecord = {
-        paymentId: orderId,
-        orderId,
-        paymentKey: orderId,
-        userId: uid,
-        uid,
-        courseId,
-        categoryId,
-        productId,
-        productTitle: product.title,
-        courseTitle: product.courseTitle,
-        orderName: product.courseTitle,
-        amount: amount ?? product.amount,
-        method: 'admin_manual',
-        status: 'paid',
-        paymentStatus: 'paid',
-        paymentProvider: 'admin-manual',
-        grantType,
-        issueType: grantType,
-        adminGranted: true,
-        adminGrantReason: grantReason,
-        adminMemo: note || '',
-        grantedBy: admin.email || admin.uid,
-        grantedByAdminId: admin.uid || '',
-        grantedByAdminName: admin.name || admin.email || admin.uid,
-        grantedAt: nowIso,
-        approvedAt: nowIso,
-        createdAt: nowIso,
-        updatedAt: nowIso
-    };
     const enrollmentRecord = {
         enrollmentId,
         userId: uid,
@@ -2763,14 +2788,17 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         productId,
         productTitle: product.title,
         courseTitle: product.courseTitle,
-        paymentId: orderId,
-        orderId,
+        paymentId: null,
+        orderId: null,
         purchasedAt: startsAt,
         startsAt,
         accessStartsAt: startsAt,
         expiresAt,
         accessEndsAt: expiresAt,
-        paymentStatus: 'paid',
+        paymentStatus: null,
+        sourceType: grantType,
+        status: accessStatus,
+        isActive: accessStatus === 'active',
         enrollmentStatus: accessStatus,
         accessStatus,
         progress: 0,
@@ -2790,7 +2818,9 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         createdAt: nowIso,
         updatedAt: nowIso
     };
-    const purchaseRecord = {
+    const grantAuditRecord = {
+        manualGrantId,
+        enrollmentId,
         uid,
         userId: uid,
         courseId,
@@ -2798,26 +2828,11 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         categoryId,
         productId,
         productTitle: product.title,
-        orderId,
-        paymentKey: orderId,
-        paymentStatus: 'paid',
-        accessStatus,
-        paymentProvider: 'admin-manual',
-        amount: amount ?? product.amount,
-        method: 'admin_manual',
-        orderedAt: startsAt,
-        approvedAt: nowIso,
-        purchasedAt: startsAt,
+        sourceType: grantType,
+        status: accessStatus,
+        isActive: accessStatus === 'active',
+        startsAt,
         expiresAt,
-        accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays,
-        accessValidMonths: 3,
-        totalLessons: product.totalLessons,
-        completedLessons: 0,
-        certificateIssued: false,
-        grantType,
-        issueType: grantType,
-        adminGranted: true,
-        adminGrantReason: grantReason,
         adminMemo: note || '',
         grantedBy: admin.email || admin.uid,
         grantedByAdminId: admin.uid || '',
@@ -2828,14 +2843,14 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     };
 
     try {
-        await firestorePatch(env, firestoreDocumentPath(env, 'payments', orderId), paymentRecord);
         await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
-        await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
+        await firestorePatch(env, firestoreDocumentPath(env, 'adminManualEnrollmentGrants', manualGrantId), grantAuditRecord);
         await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
-        await savePaymentLog(env, orderId, {
+        await savePaymentLog(env, manualGrantId, {
             type: 'admin_manual_enrollment_granted',
-            paymentId: orderId,
-            orderId,
+            paymentId: null,
+            orderId: null,
+            manualGrantId,
             user_id: uid,
             userId: uid,
             uid,
@@ -2843,20 +2858,21 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             productId,
             requested_amount: amount ?? product.amount,
             amount: amount ?? product.amount,
-            approval_status: 'paid',
+            approval_status: accessStatus,
             payment_method: 'admin_manual',
             grantedBy: admin.email || admin.uid,
             note: note || null,
             created_at: nowIso,
             createdAt: nowIso
         });
-        const includedBaseEnrollment = await ensureManualIncludedBaseEnrollment(env, uid, product, orderId, admin, note);
+        const includedBaseEnrollment = await ensureManualIncludedBaseEnrollment(env, uid, product, enrollmentId, admin, note);
         await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, { ...enrollmentRecord, includedBaseEnrollment }, grantReason);
     } catch (error) {
-        await savePaymentLog(env, orderId, {
+        await savePaymentLog(env, manualGrantId, {
             type: 'admin_manual_enrollment_failed',
-            paymentId: orderId,
-            orderId,
+            paymentId: null,
+            orderId: null,
+            manualGrantId,
             user_id: uid,
             userId: uid,
             uid,
@@ -2874,7 +2890,8 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         ok: true,
         message: '수강권이 수동 지급되었습니다.',
         uid,
-        orderId,
+        orderId: null,
+        manualGrantId,
         enrollmentId,
         courseId,
         productId,

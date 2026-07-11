@@ -208,12 +208,24 @@ async function resolveCloudflareStreamUrl(uid: string, courseId: string) {
     headers: { Authorization: "Bearer " + idToken },
   });
 
-  const data = (await response.json().catch(() => ({}))) as { videoUrl?: string; message?: string; error?: string };
+  const data = (await response.json().catch(() => ({}))) as { videoUrl?: string; message?: string; error?: string; code?: string };
   if (!response.ok || !data.videoUrl) {
-    throw new Error(data.message || data.error || `Stream token request failed: ${response.status}`);
+    const error = new Error(data.message || data.error || `Stream token request failed: ${response.status}`);
+    (error as Error & { code?: string }).code = data.error || data.code || String(response.status);
+    throw error;
   }
 
   return data.videoUrl;
+}
+
+function formatVideoLoadError(error: unknown) {
+  const code = String((error as { code?: unknown })?.code || "").toLowerCase();
+  const message = error instanceof Error ? error.message : "강의 영상을 불러오지 못했습니다.";
+  const permissionCodes = ["enrollment_required", "permission-denied", "no_enrollment", "expired", "inactive_enrollment", "not_started"];
+  if (permissionCodes.some((item) => code.includes(item)) || message.includes("유효한 수강권") || message.includes("수강권") || message.includes("수강기간")) {
+    return message || "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.";
+  }
+  return "수강 권한은 확인되었으나 강의 영상을 불러오지 못했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";
 }
 function buildEmptyModuleProgress(modules = defaultCourse.modules) {
   return Object.fromEntries(
@@ -511,10 +523,11 @@ export default function CourseRoomPage() {
         setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
 
         if (!allowed) {
-          const expired = enrollment?.paymentStatus === "paid" && !isEnrollmentActive(enrollment);
+          const hasEnrollment = Boolean(enrollment);
+          const expired = hasEnrollment && !isEnrollmentActive(enrollment);
           const message = expired
-            ? "해당 강의의 수강기간은 결제일로부터 90일이며, 현재 수강기간이 만료되어 수강할 수 없습니다."
-            : "수강권 결제 후 이용할 수 있습니다.";
+            ? "해당 강의의 수강기간이 유효하지 않아 수강할 수 없습니다. 관리자에게 수강권 상태를 확인해 주세요."
+            : "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.";
           setAccessBlockedMessage(message);
           setPlayerError(message);
           setAccessChecking(false);
@@ -800,7 +813,7 @@ export default function CourseRoomPage() {
       } catch (videoLoadError) {
         console.error(videoLoadError);
         if (!cancelled) {
-          const message = videoLoadError instanceof Error ? videoLoadError.message : "강의 영상을 불러오지 못했습니다.";
+          const message = formatVideoLoadError(videoLoadError);
           setPlayerError(message);
           setStatusMessage(message);
           setVideoProvider("storage");
@@ -1578,7 +1591,7 @@ export default function CourseRoomPage() {
                         )
                       ) : (
                         <div className="flex h-full items-center justify-center px-8 text-center text-sm leading-7 text-slate-300">
-                          {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : "강의 영상은 수강권을 구매 후 이용하실 수 있습니다. 결제 후에도 이 문구가 보이면 고객센터로 문의해 주세요."}
+                          {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : playerError || "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다."}
                         </div>
                       )}
                     </div>
