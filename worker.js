@@ -2805,7 +2805,6 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         paymentProvider: 'admin-manual',
         amount: amount ?? product.amount,
         method: 'admin_manual',
-        grantType,
         orderedAt: startsAt,
         approvedAt: nowIso,
         purchasedAt: startsAt,
