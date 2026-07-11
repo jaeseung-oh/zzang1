@@ -562,12 +562,13 @@ export default function CheckoutContent() {
               </label>
               <label className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium leading-6 text-slate-700">
                 <input type="checkbox" checked={refundNoticeChecked} onChange={(event) => setRefundNoticeChecked(event.target.checked)} className="mt-1 h-4 w-4 accent-[#10213f]" />
-                <span>
-                  <Link href="/terms" className="font-semibold text-[#10213f] underline underline-offset-4">이용약관</Link>,{" "}
-                  <Link href="/privacy-policy" className="font-semibold text-[#10213f] underline underline-offset-4">개인정보처리방침</Link>,{" "}
-                  <Link href="/refund-policy" className="font-semibold text-[#10213f] underline underline-offset-4">환불규정</Link>에 동의합니다.
-                </span>
+                <span>결제 전 필수 안내와 정책을 확인했으며 이에 동의합니다.</span>
               </label>
+              <div className="grid gap-2 sm:grid-cols-3">
+                <Link href="/terms" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-sm font-bold leading-6 text-[#10213f] shadow-sm transition hover:border-[#10213f] hover:bg-slate-50">이용약관 보기</Link>
+                <Link href="/privacy-policy" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-sm font-bold leading-6 text-[#10213f] shadow-sm transition hover:border-[#10213f] hover:bg-slate-50">개인정보처리방침 보기</Link>
+                <Link href="/refund-policy" className="min-h-11 rounded-xl border border-slate-200 bg-white px-3 py-2 text-center text-sm font-bold leading-6 text-[#10213f] shadow-sm transition hover:border-[#10213f] hover:bg-slate-50">환불규정 보기</Link>
+              </div>
             </div>
 
             {error ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">{error}</p> : null}
