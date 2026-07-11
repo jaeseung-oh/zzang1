@@ -556,7 +556,6 @@ export default function CheckoutContent() {
             <div className="mt-4 grid gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-700 sm:grid-cols-2">{["온라인 즉시 수강 가능", "PDF 저장 및 출력 지원", "모바일·PC 이용 가능", "실천자료 직접 작성 가능"].map((item) => <span key={item}>✓ {item}</span>)}</div>
 
             <div className="mt-6 space-y-3">
-              <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-4 text-xs leading-6 text-amber-950">본 교육과 자료는 예방교육, 자기점검 및 재발방지 계획 수립을 지원하기 위한 콘텐츠입니다. 교육 수강이나 자료 제출만으로 개별 사건의 특정한 법률적 결과가 보장되지는 않습니다.</div>
               <label className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm font-medium leading-6 text-slate-700">
                 <input type="checkbox" checked={orderNoticeChecked} onChange={(event) => setOrderNoticeChecked(event.target.checked)} className="mt-1 h-4 w-4 accent-[#10213f]" />
                 <span>상품명, 결제금액, 수강기간을 확인했습니다.</span>
