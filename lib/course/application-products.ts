@@ -100,7 +100,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     title: "심화과정",
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
-    description: "재범방지교육과 양형자료 준비 참고자료를 함께 정리하는 심화 과정입니다.",
+    description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
     includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "폭력범죄 재범방지계획서 서식", "폭력예방 실천계획서 서식", "폭력범죄 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
   ["gambling-basic", {
@@ -118,7 +118,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     title: "심화과정",
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
-    description: "재범방지교육과 양형자료 준비 참고자료를 함께 정리하는 심화 과정입니다.",
+    description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
     includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "도박중독 재발방지계획서 서식", "도박예방 실천계획서 서식", "도박중독 재발방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
   ["sexual-offense-basic", {
@@ -136,7 +136,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     title: "심화과정",
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
-    description: "재범방지교육과 양형자료 준비 참고자료를 함께 정리하는 심화 과정입니다.",
+    description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
     includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "성범죄 재범방지계획서 서식", "성범죄예방 실천계획서 서식", "성범죄 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
   ["drug-basic", {
@@ -154,7 +154,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     title: "심화과정",
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
-    description: "재범방지교육과 양형자료 준비 참고자료를 함께 정리하는 심화 과정입니다.",
+    description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
     includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "마약류중독 재범방지계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
 ]);

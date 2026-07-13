@@ -7,11 +7,11 @@ import { getPreventionDocumentsForCourse } from "@/lib/course/prevention-documen
 
 export const metadata: Metadata = {
   title: "교육과정 | ResetEdu 재발방지교육센터",
-  description: "사건 이후 재범방지교육, 재발방지 실천자료, 생활개선 계획, 양형자료 준비 참고자료를 과정별로 선택할 수 있습니다.",
+  description: "사건 이후 재범방지교육, 재발방지 실천자료, 생활개선 계획, 실천자료 정리를 과정별로 선택할 수 있습니다.",
   alternates: { canonical: "/courses/" },
   openGraph: {
     title: "교육과정 | ResetEdu 재발방지교육센터",
-    description: "온라인 재범방지교육과 양형자료 준비를 위한 실천자료 과정을 확인하세요.",
+    description: "온라인 재범방지교육과 자기성찰 중심 실천자료 과정을 확인하세요.",
     url: "https://resetedu.kr/courses/",
     siteName: "ResetEdu 재발방지교육센터",
     locale: "ko_KR",
@@ -35,7 +35,7 @@ function ProductCard({ course, product }: { course: CourseCategory; product: Ret
   const isAdvanced = product.id === course.advancedProductId || product.id.endsWith("advanced");
   const label = product.id === course.basicProductId ? "기본과정" : isAdvanced ? "심화과정" : product.title;
   const previousPrice = isAdvanced ? "129,000원" : "69,000원";
-  const description = isAdvanced ? "양형자료 준비를 위한 실천자료까지 함께 정리할 수 있는 심화 과정" : "재범방지교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정";
+  const description = isAdvanced ? "자기성찰과 재범방지 실천자료까지 함께 정리할 수 있는 심화 과정" : "재범방지교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정";
   const courseDocumentTitles = getPreventionDocumentsForCourse(product.courseId || course.basicProductId).map((document) => document.title);
   const displayIncludes = ["온라인 재범방지교육", "교육 수료증 PDF 발급", ...courseDocumentTitles, ...(isAdvanced ? ["반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"] : []), "인쇄 및 PDF 저장"];
   return (
