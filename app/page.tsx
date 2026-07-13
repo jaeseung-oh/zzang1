@@ -51,7 +51,7 @@ const paymentFaqs = [
 ] as const;
 
 const homeCertificateSamples: DocumentPreviewItem[] = [
-  { id: "home-basic-certificate", title: "수료증", products: ["기본과정", "심화과정"], statusLabel: "샘플", description: "온라인 재범방지교육 이수 내용을 확인할 수 있는 기본 수료증 샘플입니다.", imageSrc: "/images/document-samples/certificate-sample.svg" },
+  { id: "home-basic-certificate", title: "수료증", products: ["기본과정", "심화과정"], statusLabel: "샘플", description: "온라인 재범방지교육 이수 내용을 확인할 수 있는 기본 수료증 샘플입니다.", imageSrc: "/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" },
   { id: "home-advanced-certificate", title: "심화 이수증", products: ["심화과정"], statusLabel: "샘플", description: "심화과정에서 제공되는 인지행동기반 재발방지교육 이수증 샘플입니다.", imageSrc: "/images/document-samples/advanced-certificate-capture.jpg" },
   { id: "home-prevention-plan", title: "재발방지계획서", products: ["기본과정", "심화과정"], statusLabel: "서식", description: "사건 이후 생활 개선 노력을 문서로 정리하는 작성 서식입니다.", imageSrc: "/images/document-samples/prevention-plan-sample.jpg" },
   { id: "home-risk-response-plan", title: "실천계획서", products: ["기본과정", "심화과정"], statusLabel: "서식", description: "위험 상황과 대처 행동을 직접 정리하는 실천자료입니다.", imageSrc: "/images/document-samples/risk-response-plan-sample.jpg" },
