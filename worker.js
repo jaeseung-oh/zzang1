@@ -1304,13 +1304,13 @@ function assertStreamEnv(env) {
 
 const DUI_COURSE_PRODUCT = {
     courseId: 'dui-prevention-basic',
-    courseTitle: '음주운전 예방교육',
+    courseTitle: '음주운전 재범방지교육',
     price: 49000,
     currency: 'KRW',
     durationDays: 90,
     totalLessons: 3,
     pricePerLesson: 16333,
-    description: '음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정',
+    description: '음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 재범방지교육 과정',
     certificateAvailable: true
 };
 
@@ -1333,8 +1333,8 @@ const NEW_PREVENTION_COURSE_PRODUCTS = {
     'gambling-advanced': { courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', certificateTitle: '도박중독 재발방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '도박중독 재발방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'sexual-offense-basic': { courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', certificateTitle: '성범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '성범죄 재범방지교육 기본과정', certificateAvailable: true },
     'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
-    'drug-basic': { courseId: 'drug-basic', courseTitle: '마약류중독 재활예방교육 기본과정', certificateTitle: '마약류중독 재활예방교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약류중독 재활예방교육 기본과정', certificateAvailable: true },
-    'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재활예방교육 심화과정', certificateTitle: '마약류중독 재활예방교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '마약류중독 재활예방교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
+    'drug-basic': { courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', certificateTitle: '마약류중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약류중독 재범방지교육 기본과정', certificateAvailable: true },
+    'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', certificateTitle: '마약류중독 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '마약류중독 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
 };
 
 const COURSE_PRODUCTS_BY_ID = {
@@ -1381,8 +1381,8 @@ const APPLICATION_PRODUCTS = {
     'gambling-advanced': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-advanced', title: '도박중독 재발방지교육 심화과정', amount: 99000, courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
     'sexual-offense-basic': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-basic', title: '성범죄 재범방지교육 기본과정', amount: 49000, courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', totalLessons: 1 },
     'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 99000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
-    'drug-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-basic', title: '마약류중독 재활예방교육 기본과정', amount: 49000, courseId: 'drug-basic', courseTitle: '마약류중독 재활예방교육 기본과정', totalLessons: 1 },
-    'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재활예방교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재활예방교육 심화과정', totalLessons: 2, includesCbtCourse: true }
+    'drug-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-basic', title: '마약류중독 재범방지교육 기본과정', amount: 49000, courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', totalLessons: 1 },
+    'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
 };
 
 

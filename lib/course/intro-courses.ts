@@ -14,7 +14,7 @@ export type IntroCourse = {
 export const introCourses: IntroCourse[] = [
   {
     slug: "dui-prevention",
-    title: "음주운전 예방교육",
+    title: "음주운전 재범방지교육",
     shortTitle: "음주운전",
     headline: "음주운전 사건 이후 필요한 교육 이수와 재발방지 자료를 온라인으로 준비하세요.",
     summary: "금주 실천 의지, 생활 패턴 점검, 재발방지 계획을 정리할 수 있도록 구성한 유료 온라인 교육입니다. 수강자는 교육 이수 확인 자료와 금주실천서약서, 재발방지계획서 참고 양식을 함께 활용할 수 있습니다.",
@@ -26,7 +26,7 @@ export const introCourses: IntroCourse[] = [
   },
   {
     slug: "fraud-prevention",
-    title: "사기 예방 교육",
+    title: "사기 재범방지교육",
     shortTitle: "사기",
     headline: "거래 책임과 신뢰 회복 노력을 교육 이수 자료와 함께 정리하세요.",
     summary: "문서 책임, 거래 윤리, 피해 회복 의지, 재발방지 계획을 정리하는 데 초점을 둔 온라인 교육입니다. 사건 이후 반성문 외에 교육 참여 기록과 계획서 형태의 참고자료를 준비하려는 분에게 적합합니다.",
@@ -50,7 +50,7 @@ export const introCourses: IntroCourse[] = [
   },
   {
     slug: "drug-prevention",
-    title: "마약 예방 교육",
+    title: "마약 재범방지교육",
     shortTitle: "마약",
     headline: "약물 문제의 위험성을 점검하고 회복 중심의 실천 계획을 준비하세요.",
     summary: "약물 사용의 위험성, 생활 환경 관리, 재발방지 습관 형성, 도움 요청 계획을 정리하는 온라인 교육입니다. 교육 이수와 실천 계획을 참고자료로 정리하려는 분을 위한 구성입니다.",

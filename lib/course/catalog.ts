@@ -43,7 +43,7 @@ export const courseCatalog: CourseDefinition[] = [
     accessValidMonths: 3,
     accessValidLabel: `결제일로부터 ${duiPreventionCourseProduct.durationDays}일`,
     caseTypes: ["음주운전"],
-    outputs: ["음주운전 예방교육 수료증", "재발방지계획서 서식", "음주예방실천계획서 서식", "음주운전 재발방지 서약서 서식"],
+    outputs: ["음주운전 재범방지교육 수료증", "재발방지계획서 서식", "음주예방실천계획서 서식", "음주운전 재발방지 서약서 서식"],
     modules: [
       {
         id: "dui-lesson-1",
@@ -205,11 +205,11 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     categoryId: "drug-rehab-prevention",
     productPrefix: "drug",
     baseLessonId: "drug-rehab-prevention-lesson-1",
-    title: "마약류중독 재활예방교육",
+    title: "마약류중독 재범방지교육",
     caseType: "마약류",
     streamUid: preventionStreamUids.drug,
     sourceFileName: "마약류중독재활예방교육.mp4",
-    documentTitles: ["마약류중독 재활예방계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재활예방 서약서 서식"],
+    documentTitles: ["마약류중독 재범방지계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재범방지 서약서 서식"],
   },
 ];
 

@@ -24,8 +24,8 @@ function ProductComparison({ course }: { course: CourseCategory }) {
   const products = getPlatformCourseProducts(course);
   const pair = getMainProductPair(course);
   const rows = course.id === "dui" ? [
-    ["음주운전 예방교육", true, true],
-    ["음주운전 예방교육 수료증", true, true],
+    ["음주운전 재범방지교육", true, true],
+    ["음주운전 재범방지교육 수료증", true, true],
     ["음주운전 전용 작성자료", false, true],
     ["인지행동 개선교육", false, true],
     ["인지행동기반 재발방지교육 이수증", false, true],

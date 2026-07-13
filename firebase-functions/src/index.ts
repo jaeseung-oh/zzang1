@@ -24,7 +24,7 @@ const COURSE_PRICE_KRW: Record<string, number> = {
   "rapid-sentencing-prep": 59000,
 };
 const DUI_COURSE_ID = "dui-prevention-basic";
-const DUI_COURSE_TITLE = "음주운전 예방교육";
+const DUI_COURSE_TITLE = "음주운전 재범방지교육";
 const DUI_TOTAL_LESSONS = 5;
 const DUI_CERTIFICATE_ISSUER = {
   issuerName: process.env.CERTIFICATE_ISSUER_NAME || "리셋에듀센터",

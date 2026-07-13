@@ -2,12 +2,12 @@ import { APPLICATION_PRICES } from "./application-products";
 
 export const duiPreventionCourseProduct = {
   courseId: "dui-prevention-basic",
-  courseTitle: "음주운전 예방교육",
+  courseTitle: "음주운전 재범방지교육",
   price: APPLICATION_PRICES.BASIC,
   currency: "KRW",
   durationDays: 90,
   totalLessons: 3,
-  description: "음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 예방교육 과정",
+  description: "음주운전의 위험성과 법적 책임, 재범 예방을 위한 온라인 재범방지교육 과정",
   certificateAvailable: true,
 } as const;
 

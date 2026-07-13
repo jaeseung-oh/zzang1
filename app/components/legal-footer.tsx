@@ -2,7 +2,7 @@ import Link from "next/link";
 
 const quickLinks = [
   ["전체 교육과정", "/courses"],
-  ["음주운전 예방교육", "/courses/dui-prevention"],
+  ["음주운전 재범방지교육", "/courses/dui-prevention"],
   ["폭력범죄 재범방지교육", "/courses/violence-prevention"],
   ["도박중독 재발방지교육", "/courses/gambling-relapse-prevention"],
   ["성범죄 재범방지교육", "/courses/sexual-offense-prevention"],
@@ -26,7 +26,7 @@ export default function LegalFooter() {
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#d7b56c]">ResetEdu Prevention Education Center</p>
             <h2 className="mt-3 text-2xl font-bold tracking-[-0.03em] text-white">ResetEdu 재발방지교육센터 운영 정보</h2>
-            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">사건 이후 온라인 예방교육, 재발방지 실천자료, 생활개선 기록 정리를 돕는 교육 플랫폼입니다.</p>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">사건 이후 온라인 재범방지교육, 재발방지 실천자료, 생활개선 기록 정리를 돕는 교육 플랫폼입니다.</p>
             <div className="mt-5 grid gap-2 text-sm leading-7 text-slate-300 sm:grid-cols-2">
               <p><span className="font-semibold text-white">상호</span> 보듬심리상담센터</p>
               <p><span className="font-semibold text-white">대표자명</span> 홍경자</p>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "환불규정 | ResetEdu 재발방지교육센터",
-  description: "음주운전 예방교육 환불규정 안내",
+  description: "음주운전 재범방지교육 환불규정 안내",
   alternates: { canonical: "/refund-policy/" },
 };
 
@@ -86,7 +86,7 @@ export default function RefundPolicyPage() {
 
         <section className="rounded-[2rem] border border-[#d7dee8] bg-white p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
           <div className="space-y-2 text-sm leading-7 text-slate-700">
-            <p>※ 음주운전 예방교육 기본 과정은 총 3강으로 구성되어 있으며, 상품별 실제 결제금액을 기준으로 환불금액을 산정합니다.</p>
+            <p>※ 음주운전 재범방지교육 기본 과정은 총 3강으로 구성되어 있으며, 상품별 실제 결제금액을 기준으로 환불금액을 산정합니다.</p>
             <p>※ 강의별 고정 금액이 아니라, 실제 결제금액에서 미수강 강의 수가 전체 강의 수에서 차지하는 비율을 기준으로 계산합니다.</p>
             <p>※ 수료증, 수료확인서, 이수확인서 등 교육 이수 관련 서류가 발급 또는 출력된 이후에는 환불이 불가합니다.</p>
             <p>※ 환불은 결제수단 및 결제대행사 처리 기준에 따라 영업일 기준 일정 기간이 소요될 수 있습니다.</p>

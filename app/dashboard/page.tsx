@@ -140,7 +140,7 @@ function buildAdminPreviewEnrollments(): EnrollmentListItem[] {
       id: "admin-preview-" + DUI_CBT_ADVANCED_COURSE_ID,
       userId: "admin-preview",
       courseId: DUI_CBT_ADVANCED_COURSE_ID,
-      courseTitle: "음주운전 예방교육 심화과정",
+      courseTitle: "음주운전 재범방지교육 심화과정",
       productId: "dui-cbt-advanced",
       productTitle: "심화과정",
       paymentStatus: "paid",
@@ -158,7 +158,7 @@ function buildAdminPreviewEnrollments(): EnrollmentListItem[] {
 }
 
 const documentLabels: Record<string, string> = {
-  completion: "음주운전 예방교육 수료증",
+  completion: "음주운전 재범방지교육 수료증",
   "cbt-completion": "인지행동기반 재발방지교육 이수증",
   "cbt-detail": "재범방지 교육 이수 상세 내역서",
   "psychology-report": "인지행동 심리검사 결과지",
@@ -587,7 +587,7 @@ export default function DashboardPage() {
                   certificates.map((certificate) => (
                     <div key={certificate.id} className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30">
                       <div>
-                        <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType ?? "completion"] ?? certificate.courseTitle ?? "음주운전 예방교육 수료증"}</p>
+                        <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType ?? "completion"] ?? certificate.courseTitle ?? "음주운전 재범방지교육 수료증"}</p>
                         <p className="mt-2 text-sm text-white/65">발급번호 {certificate.certificateNo || certificate.issueNumber || "확인 중"}</p>
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt || certificate.certificateIssuedAt)}</p>
                       </div>
@@ -603,7 +603,7 @@ export default function DashboardPage() {
                   ))
                 ) : hasActiveEnrollment ? (
                   <div className="rounded-[1.5rem] border border-emerald-300/30 bg-emerald-400/10 p-6 text-sm leading-7 text-emerald-50">
-                    <p className="font-semibold text-white">결제된 음주운전 예방교육 수강권이 확인되었습니다.</p>
+                    <p className="font-semibold text-white">결제된 음주운전 재범방지교육 수강권이 확인되었습니다.</p>
                     <p className="mt-2">아래 버튼을 눌러 진도율과 관계없이 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link href="/certificate" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">

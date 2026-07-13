@@ -24,11 +24,11 @@ export const DOCUMENTS_PRODUCT_ID = "dui-documents";
 export const ADVANCED_PRODUCT_ID = "dui-cbt-advanced";
 
 export const preventionDocumentCategoryLabels: Record<PreventionDocumentCategory, string> = {
-  dui: "음주운전 예방교육",
+  dui: "음주운전 재범방지교육",
   violence: "폭력범죄 재범방지교육",
   gambling: "도박중독 재발방지교육",
   "sexual-offense": "성범죄 재범방지교육",
-  drug: "마약류중독 재활예방교육",
+  drug: "마약류중독 재범방지교육",
 };
 
 export const preventionDocumentApplyInfo: Record<PreventionDocumentCategory, { category: string; productId: string }> = {
@@ -52,9 +52,9 @@ export const preventionDocuments: PreventionDocumentDefinition[] = [
   { id: "sexual-offense-prevention-plan", category: "sexual-offense", kind: "prevention-plan", title: "성범죄 재범방지계획서 서식", description: "동의·경계·왜곡된 인식·위험 상황을 점검하고 재범방지 계획을 정리하는 서식입니다." },
   { id: "sexual-offense-action-plan", category: "sexual-offense", kind: "action-plan", title: "성범죄예방 실천계획서 서식", description: "관계 윤리, 디지털 경계, 위험 상황 회피와 도움 요청 기준을 정리하는 서식입니다." },
   { id: "sexual-offense-pledge", category: "sexual-offense", kind: "pledge", title: "성범죄 재범방지 서약서 서식", description: "타인의 성적 자기결정권과 경계를 존중하겠다는 구체적 서약서입니다." },
-  { id: "drug-prevention-plan", category: "drug", kind: "prevention-plan", title: "마약류중독 재활예방계획서 서식", description: "재사용 위험요인과 회복 지원 계획을 정리하는 서식입니다." },
+  { id: "drug-prevention-plan", category: "drug", kind: "prevention-plan", title: "마약류중독 재범방지계획서 서식", description: "재사용 위험요인과 회복 지원 계획을 정리하는 서식입니다." },
   { id: "drug-action-plan", category: "drug", kind: "action-plan", title: "마약류 재활 실천계획서 서식", description: "고위험 상황 회피, 상담·치료 연계, 생활 루틴을 정리하는 실천 서식입니다." },
-  { id: "drug-pledge", category: "drug", kind: "pledge", title: "마약류중독 재활예방 서약서 서식", description: "마약류에 다시 접근하지 않기 위한 생활 서약서입니다." },
+  { id: "drug-pledge", category: "drug", kind: "pledge", title: "마약류중독 재범방지 서약서 서식", description: "마약류에 다시 접근하지 않기 위한 생활 서약서입니다." },
 ];
 
 export function getPreventionDocumentCategoryFromCourseId(courseId?: string | null): PreventionDocumentCategory {

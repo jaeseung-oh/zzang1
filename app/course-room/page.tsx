@@ -1468,7 +1468,7 @@ export default function CourseRoomPage() {
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-indigo-200">강의 바로가기</p>
-                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">{isAdvancedCourse ? "인지행동기반 심화 교육 보기" : "온라인 예방교육 보기"}</h2>
+                <h2 className="mt-1 text-xl font-semibold tracking-[-0.03em] text-white">{isAdvancedCourse ? "인지행동기반 심화 교육 보기" : "온라인 재범방지교육 보기"}</h2>
               </div>
               <span className="rounded-full border border-[#d7deea] bg-white/[0.06] px-3 py-1 text-xs font-semibold text-slate-200">현재 {selectedModule?.title.split(".")[0] ?? "선택 대기"}</span>
             </div>
@@ -1736,7 +1736,7 @@ export default function CourseRoomPage() {
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">제공 내용</p>
-                      <p className="mt-1.5 text-slate-100">온라인 예방교육 수강, 학습확인 자료 안내</p>
+                      <p className="mt-1.5 text-slate-100">온라인 재범방지교육 수강, 학습확인 자료 안내</p>
                     </div>
                     <div className="rounded-xl border border-[#eadfcb] bg-white/[0.06] px-3.5 py-3">
                       <p className="text-xs uppercase tracking-[0.16em] text-slate-400">수강 유효기간</p>
@@ -1865,7 +1865,7 @@ export default function CourseRoomPage() {
                   <p className="text-sm font-black text-amber-950">인지행동기반 재발방지교육 이수 서류</p>
                   <p className="text-sm leading-6 text-amber-900">심화과정 수강권은 과정 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 출력할 수 있습니다.</p>
                   <Link href={"/certificate?courseId=" + encodeURIComponent(isCbtAdvancedCourse ? "dui-prevention-basic" : effectiveCourseId) + "&documentType=completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
-                    <span>{isCbtAdvancedCourse ? "음주운전 예방교육 수료증" : (courseDefinition?.certificateTitle || courseTitle) + " 수료증"}</span>
+                    <span>{isCbtAdvancedCourse ? "음주운전 재범방지교육 수료증" : (courseDefinition?.certificateTitle || courseTitle) + " 수료증"}</span>
                     <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
                   </Link>
                   <Link href={"/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg">

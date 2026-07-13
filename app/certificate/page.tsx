@@ -278,7 +278,7 @@ function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
     const course = getCourseDefinition(enrollment.courseId);
 
     if (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID) {
-      addDocument(getCourseCertificateTitle(defaultCourse.id) + " 수료증", "심화과정에 포함된 기본 예방교육 수료증", defaultCourse.id);
+      addDocument(getCourseCertificateTitle(defaultCourse.id) + " 수료증", "심화과정에 포함된 기본 재범방지교육 수료증", defaultCourse.id);
       addDocument("인지행동기반 재발방지교육 이수증", "심화과정 이수증", DUI_CBT_ADVANCED_COURSE_ID, "cbt-completion");
       addDocument("재범방지 교육 이수 상세 내역서", "음주운전 심화과정 교육이수 상세내역", DUI_CBT_ADVANCED_COURSE_ID, "cbt-detail");
       return;

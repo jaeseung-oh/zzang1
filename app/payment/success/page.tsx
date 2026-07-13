@@ -171,7 +171,7 @@ function LegacyPaymentSuccessContent() {
         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#f0cb85]">Payment</p>
         <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white">결제 완료 확인</h1>
         <p className="mt-4 text-sm leading-8 text-white/70">
-          서버에서 결제금액과 주문 정보를 검증한 뒤 결제내역과 수강권을 저장합니다. 결제 완료 즉시 음주운전 예방교육 수강권이 부여됩니다. 수강 즉시 수료증을 출력할 수 있습니다.
+          서버에서 결제금액과 주문 정보를 검증한 뒤 결제내역과 수강권을 저장합니다. 결제 완료 즉시 음주운전 재범방지교육 수강권이 부여됩니다. 수강 즉시 수료증을 출력할 수 있습니다.
         </p>
 
         <div className="mt-6 rounded-[1.5rem] border border-[#d3ad62]/20 bg-[#d3ad62]/10 p-4 text-sm leading-7 text-[#f7dfab]">

@@ -7,11 +7,11 @@ import { getPreventionDocumentsForCourse } from "@/lib/course/prevention-documen
 
 export const metadata: Metadata = {
   title: "교육과정 | ResetEdu 재발방지교육센터",
-  description: "사건 이후 예방교육, 재발방지 실천자료, 생활개선 계획, 양형자료 준비 참고자료를 과정별로 선택할 수 있습니다.",
+  description: "사건 이후 재범방지교육, 재발방지 실천자료, 생활개선 계획, 양형자료 준비 참고자료를 과정별로 선택할 수 있습니다.",
   alternates: { canonical: "/courses/" },
   openGraph: {
     title: "교육과정 | ResetEdu 재발방지교육센터",
-    description: "온라인 예방교육과 양형자료 준비를 위한 실천자료 과정을 확인하세요.",
+    description: "온라인 재범방지교육과 양형자료 준비를 위한 실천자료 과정을 확인하세요.",
     url: "https://resetedu.kr/courses/",
     siteName: "ResetEdu 재발방지교육센터",
     locale: "ko_KR",
@@ -35,9 +35,9 @@ function ProductCard({ course, product }: { course: CourseCategory; product: Ret
   const isAdvanced = product.id === course.advancedProductId || product.id.endsWith("advanced");
   const label = product.id === course.basicProductId ? "기본과정" : isAdvanced ? "심화과정" : product.title;
   const previousPrice = isAdvanced ? "129,000원" : "69,000원";
-  const description = isAdvanced ? "양형자료 준비를 위한 실천자료까지 함께 정리할 수 있는 심화 과정" : "예방교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정";
+  const description = isAdvanced ? "양형자료 준비를 위한 실천자료까지 함께 정리할 수 있는 심화 과정" : "재범방지교육 이수 및 기본 실천자료를 함께 정리할 수 있는 과정";
   const courseDocumentTitles = getPreventionDocumentsForCourse(product.courseId || course.basicProductId).map((document) => document.title);
-  const displayIncludes = ["온라인 예방교육", "교육 수료증 PDF 발급", ...courseDocumentTitles, ...(isAdvanced ? ["반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"] : []), "인쇄 및 PDF 저장"];
+  const displayIncludes = ["온라인 재범방지교육", "교육 수료증 PDF 발급", ...courseDocumentTitles, ...(isAdvanced ? ["반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"] : []), "인쇄 및 PDF 저장"];
   return (
     <Link href={getApplyHref(course, product.id)} className={isAdvanced ? "group flex min-h-full flex-col rounded-[1.25rem] border-2 border-[#173968] bg-white p-5 shadow-[0_18px_45px_rgba(23,57,104,0.12)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_65px_rgba(23,57,104,0.22)] focus:outline-none focus:ring-4 focus:ring-[#173968]/20" : "group flex min-h-full flex-col rounded-[1.25rem] border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#176b68] hover:shadow-[0_18px_45px_rgba(15,23,42,0.12)] focus:outline-none focus:ring-4 focus:ring-[#176b68]/20"} aria-label={course.title + " " + label + " 시작하기"}>
       <div className="flex items-start justify-between gap-3">
@@ -68,10 +68,10 @@ export default function CoursesPage() {
         <div className="mx-auto max-w-7xl">
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-slate-300">Curriculum</p>
           <h1 className="mt-4 text-3xl font-black leading-tight text-white sm:text-5xl">교육과정</h1>
-          <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-100 sm:text-lg">사건 이후 필요한 예방교육과 실천자료 준비 범위에 맞는 과정을 선택할 수 있습니다.</p>
+          <p className="mt-5 max-w-3xl text-base leading-relaxed text-slate-100 sm:text-lg">사건 이후 필요한 재범방지교육과 실천자료 준비 범위에 맞는 과정을 선택할 수 있습니다.</p>
           <p className="mt-3 max-w-3xl text-sm leading-relaxed text-slate-200 sm:text-base">기본과정은 49,000원, 심화과정은 99,000원이며 교육 이수 내용과 실천자료를 직접 확인·작성·출력할 수 있습니다.</p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link href="#all" className={buttonClass("darkPrimary", "lg", "w-full whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-[#10213f] sm:w-auto")}>예방교육 시작하기</Link>
+            <Link href="#all" className={buttonClass("darkPrimary", "lg", "w-full whitespace-nowrap rounded-full px-7 font-black focus:ring-offset-[#10213f] sm:w-auto")}>재범방지교육 시작하기</Link>
             <Link href="/prevention-documents" className={buttonClass("darkSecondary", "lg", "w-full whitespace-nowrap rounded-full px-7 font-bold focus:ring-offset-[#10213f] sm:w-auto")}>실천자료 둘러보기</Link>
           </div>
         </div>
