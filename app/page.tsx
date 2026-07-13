@@ -35,7 +35,7 @@ const serviceNotice = "본 과정은 자기성찰과 재범방지 실천을 위�
 const processFaqs = [
   ["결제하면 바로 들을 수 있나요?", "네. 결제가 정상적으로 완료되면 마이페이지의 내 강의실에서 바로 수강할 수 있습니다."],
   ["휴대폰으로도 수강할 수 있나요?", "PC와 모바일 모두 이용할 수 있습니다. 다만 수료증이나 작성자료를 편집하고 출력할 때는 PC 이용이 조금 더 편리할 수 있습니다."],
-  ["수료증은 언제 발급되나요?", "과정별 수료 기준을 충족하면 마이페이지에서 수료증을 확인하고 PDF로 저장할 수 있습니다."],
+  ["수료증은 언제 발급되나요?", "과정별 수료 기준을 충족하면 마이페이지에서 수료증을 즉시 발급하고 PDF로 저장하거나 출력할 수 있습니다."],
   ["교육을 들으면 감형이나 선처가 보장되나요?", "아닙니다. 본 과정은 자기성찰과 재범방지 실천을 위한 민간 온라인 교육입니다. 수료증과 제공자료가 특정한 수사 또는 재판 결과를 보장하지는 않습니다."],
 ] as const;
 
@@ -43,7 +43,7 @@ const useSteps = [
   ["과정 선택", "교육 내용과 제공자료를 확인합니다."],
   ["결제", "회원가입 후 원하는 과정을 결제합니다."],
   ["온라인 수강", "내 강의실에서 PC 또는 모바일로 교육을 수강합니다."],
-  ["자료 확인", "수료 후 수료증과 제공자료를 PDF로 저장할 수 있습니다."],
+  ["자료 확인", "수료 후 수료증과 제공자료를 PDF로 저장 및 즉시 출력할 수 있습니다."],
 ] as const;
 
 const courseCopy: Record<string, { purpose: string; composition: string }> = {
@@ -113,7 +113,7 @@ function DocumentDesk() {
     <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
       <div className="bg-[#e9edf1] p-4 sm:p-6">
         <div className="border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
-          <img src={primary.imageSrc} alt={primary.title + " 예시"} className="aspect-[4/3] w-full object-cover object-top" />
+          <img src={primary.imageSrc} alt={primary.title + " 예시"} className="aspect-[4/3] w-full bg-slate-50 object-contain" />
         </div>
         <div className="mt-4 flex items-center justify-between gap-3"><p className="text-sm font-black text-slate-950">{primary.title}</p><span className="border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-700">{primary.label}</span></div>
       </div>
@@ -160,10 +160,10 @@ export default function HomePage() {
                 <Link href="#courses" className={buttonClass("primary", "lg", "rounded-lg px-6 font-black shadow-none")}>교육과정 살펴보기</Link>
                 <Link href="#documents" className={buttonClass("secondary", "lg", "rounded-lg px-6 font-black shadow-none")}>제공자료 미리보기</Link>
               </div>
-              <p className="mt-5 text-sm font-bold leading-6 text-slate-600">온라인 수강 · 모바일 이용 · 수료 후 PDF 발급 · {basicPrice}부터</p>
+              <p className="mt-5 text-sm font-bold leading-6 text-slate-600">온라인 수강 · 모바일 이용 · 수료 즉시 수료증 발급 · {basicPrice}부터</p>
             </div>
             <div className="border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
-              <img src="/images/document-samples/basic-certificate-capture.jpg" alt="리셋에듀센터 수료증 미리보기" className="aspect-[4/3] w-full object-cover object-top" />
+              <img src="/images/document-samples/basic-certificate-capture.jpg" alt="리셋에듀센터 수료증 미리보기" className="aspect-[4/3] w-full bg-slate-50 object-contain" />
               <div className="mt-4 border-t border-slate-200 pt-4"><p className="text-sm font-black text-slate-950">교육 이수 기록과 작성자료를 함께 확인합니다</p><p className="mt-2 text-sm leading-6 text-slate-600">{serviceNotice}</p></div>
             </div>
           </div>
@@ -184,7 +184,7 @@ export default function HomePage() {
         </section>
 
         <section id="courses" className="bg-[#f7f4ee] px-4 py-14 sm:px-6 md:py-20 lg:px-8">
-          <div className="mx-auto max-w-7xl"><div className="grid gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]"><SectionTitle title="교육과정 선택" body="과정별 교육내용과 제공자료를 살펴본 뒤 필요한 과정을 선택합니다. 현재 메인에서는 운영 중인 과정만 안내합니다." /><div className="grid gap-x-8 md:grid-cols-2">{listedCourses.map((course) => <CourseCard key={course.slug} course={course} basicPrice={basicPrice} />)}</div></div></div>
+          <div className="mx-auto max-w-7xl"><div className="grid gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]"><SectionTitle title="교육과정 선택" body="과정별 교육내용과 제공자료를 살펴본 뒤 필요한 과정을 선택합니다." /><div className="grid gap-x-8 md:grid-cols-2">{listedCourses.map((course) => <CourseCard key={course.slug} course={course} basicPrice={basicPrice} />)}</div></div></div>
         </section>
 
         <section id="documents" className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="실제 제공자료 미리보기" body="수료증과 실천자료는 수강 후 마이페이지에서 확인합니다. 개인정보가 들어가는 부분은 실제 발급 시 수강자 정보에 맞춰 표시됩니다." className="max-w-3xl" /><DocumentDesk /></div></section>
@@ -196,7 +196,7 @@ export default function HomePage() {
           </div></div>
         </section>
 
-        <section id="process" className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div><SectionTitle title="이용절차" body="신청부터 자료 확인까지 한 번의 절차로 안내합니다." /><ol className="mt-7 space-y-5">{useSteps.map(([title, body], index) => <li key={title} className="grid grid-cols-[2.5rem_1fr] gap-4 border-t border-slate-200 pt-5"><span className="text-sm font-black text-[#176b68]">{index + 1}.</span><div><h3 className="font-black text-slate-950">{title}</h3><p className="mt-1 text-sm leading-6 text-slate-700">{body}</p></div></li>)}</ol></div><div><SectionTitle title="FAQ" body="결제 전 자주 확인하는 내용을 고객센터 안내에 가깝게 정리했습니다." /><div className="mt-7 divide-y divide-slate-200 border-y border-slate-200">{processFaqs.map(([question, answer]) => <article key={question} className="py-5"><h3 className="font-black leading-6 text-slate-950">{question}</h3><p className="mt-2 text-sm leading-7 text-slate-700">{answer}</p></article>)}</div></div></div></section>
+        <section id="process" className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div><SectionTitle title="이용절차" body="신청부터 자료 확인까지 한 번의 절차로 안내합니다." /><ol className="mt-7 space-y-5">{useSteps.map(([title, body], index) => <li key={title} className="grid grid-cols-[2.5rem_1fr] gap-4 border-t border-slate-200 pt-5"><span className="text-sm font-black text-[#176b68]">{index + 1}.</span><div><h3 className="font-black text-slate-950">{title}</h3><p className="mt-1 text-sm leading-6 text-slate-700">{body}</p></div></li>)}</ol></div><div><SectionTitle title="FAQ" /><div className="mt-7 divide-y divide-slate-200 border-y border-slate-200">{processFaqs.map(([question, answer]) => <article key={question} className="py-5"><h3 className="font-black leading-6 text-slate-950">{question}</h3><p className="mt-2 text-sm leading-7 text-slate-700">{answer}</p></article>)}</div></div></div></section>
 
         <section className="bg-[#f2eee6] px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.8fr)]"><div><SectionTitle title="리셋에듀센터는 이렇게 운영합니다" /><div className="mt-6 max-w-3xl space-y-5 text-[15px] leading-8 text-slate-700 sm:text-base"><p>리셋에듀센터는 보듬심리상담센터가 운영하는 민간 온라인 교육기관입니다.</p><p>교육생이 단순히 영상을 재생하고 수료증만 받는 것이 아니라, 교육내용을 이해하고 자신의 생활에 적용할 수 있도록 과정과 실천자료를 함께 구성하고 있습니다.</p><p>이용 중 어려움이 있거나 발급자료에 문제가 있는 경우 고객센터에서 직접 확인해 드립니다.</p></div><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href={advancedHref} className={buttonClass("primary", "lg", "rounded-lg px-6 font-black shadow-none")}>수강 신청하기</Link><Link href="/about#support" className={buttonClass("secondary", "lg", "rounded-lg px-6 font-black shadow-none")}>고객센터 확인</Link></div></div><dl className="border border-slate-300 bg-white p-5 sm:p-6">{operatorInfo.map(([label, value]) => <div key={label} className="grid gap-1 border-b border-slate-200 py-3 last:border-b-0 sm:grid-cols-[8.5rem_1fr]"><dt className="text-sm font-black text-slate-950">{label}</dt><dd className="text-sm leading-6 text-slate-700">{value}</dd></div>)}</dl></div></section>
       </main>
