@@ -113,7 +113,7 @@ function DocumentDesk() {
     <div className="mt-8 grid gap-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)] lg:items-start">
       <div className="bg-[#e9edf1] p-4 sm:p-6">
         <div className="border border-slate-200 bg-white p-3 shadow-[0_12px_30px_rgba(15,23,42,0.12)]">
-          <img src={primary.imageSrc} alt={primary.title + " 예시"} className="aspect-[4/3] w-full bg-slate-50 object-contain" />
+          <img src={primary.imageSrc} alt={primary.title + " 예시"} className="aspect-[1/1.18] w-full bg-slate-50 object-contain sm:aspect-[4/3]" />
         </div>
         <div className="mt-4 flex items-center justify-between gap-3"><p className="text-sm font-black text-slate-950">{primary.title}</p><span className="border border-slate-300 bg-white px-3 py-1 text-xs font-bold text-slate-700">{primary.label}</span></div>
       </div>
@@ -163,7 +163,7 @@ export default function HomePage() {
               <p className="mt-5 text-sm font-bold leading-6 text-slate-600">온라인 수강 · 모바일 이용 · 수료 즉시 수료증 발급 · {basicPrice}부터</p>
             </div>
             <div className="border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
-              <img src="/images/document-samples/basic-certificate-capture.jpg" alt="리셋에듀센터 수료증 미리보기" className="aspect-[4/3] w-full bg-slate-50 object-contain" />
+              <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋에듀센터 수료증 미리보기" className="aspect-[1/1.18] w-full bg-slate-50 object-contain sm:aspect-[4/3]" />
               <div className="mt-4 border-t border-slate-200 pt-4"><p className="text-sm font-black text-slate-950">교육 이수 기록과 작성자료를 함께 확인합니다</p><p className="mt-2 text-sm leading-6 text-slate-600">{serviceNotice}</p></div>
             </div>
           </div>
