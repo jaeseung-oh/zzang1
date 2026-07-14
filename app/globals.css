@@ -30,7 +30,7 @@ body {
     radial-gradient(circle at top, rgba(211, 173, 98, 0.16), transparent 26%),
     linear-gradient(180deg, #07111f 0%, #09111d 45%, #050a12 100%);
   color: var(--text);
-  font-family: "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  font-family: Pretendard, SUIT, "Noto Sans KR", "Apple SD Gothic Neo", system-ui, sans-serif;
   word-break: keep-all;
   overflow-wrap: break-word;
 }

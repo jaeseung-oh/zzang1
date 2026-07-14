@@ -143,30 +143,31 @@ export default function HomePage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd).replace(/</g, "\\u003c") }} />
       <main className="keep-korean min-h-screen bg-[#f7f4ee] text-slate-950">
-        <section className="bg-[#f2eee6] px-4 py-12 sm:px-6 md:py-18 lg:px-8">
-          <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.03fr)_minmax(340px,0.72fr)] lg:items-center">
-            <div>
-              <p className="inline-flex border border-red-200 bg-white px-3 py-1 text-sm font-black text-red-700 shadow-sm">양형자료 준비가 필요한 분을 위한 온라인 교육</p>
-              <h1 className="mt-5 max-w-4xl text-[2.35rem] font-black leading-[1.12] text-slate-950 sm:text-5xl lg:text-[4.25rem]">
-                <span className="font-serif text-red-700">양형자료</span>는<br />단순한 서류의 개수가 아닙니다
+        <section className="bg-[#f6f8fb] px-5 py-14 sm:px-6 md:py-20 lg:px-8 lg:py-24">
+          <div className="mx-auto grid max-w-[1200px] gap-10 lg:grid-cols-[minmax(0,660px)_minmax(300px,420px)] lg:items-center lg:justify-between">
+            <div className="max-w-[660px]">
+              <p className="text-[13px] font-semibold leading-[1.4] text-[#173968] sm:text-[15px]">양형자료 준비가 필요한 분을 위한 온라인 교육</p>
+              <h1 className="mt-4 text-[clamp(32px,9vw,40px)] font-[750] leading-[1.18] text-slate-950 sm:text-[42px] sm:leading-[1.16] lg:text-[clamp(44px,5vw,64px)] lg:leading-[1.12]">
+                양형자료는<br /><span className="text-[#173968]">단순한 서류의 개수가 아닙니다</span>
               </h1>
-              <div className="mt-6 max-w-3xl border-l-4 border-red-600 bg-white/70 px-5 py-5 shadow-[0_18px_38px_rgba(15,23,42,0.08)] sm:px-6">
-                <p className="text-lg font-black leading-8 text-slate-950 sm:text-2xl sm:leading-10">교육을 이수하고, 변화하려는 과정을 눈에 보이게 정리해야 합니다.</p>
-                <div className="mt-4 space-y-3 text-[15px] leading-7 text-slate-700 sm:text-base sm:leading-8">
-                  <p>교육 수료증과 재범방지 실천자료는 단순 첨부서류가 아니라, 교육 이수와 실천 노력을 함께 기록하는 자료입니다.</p>
-                  <p>리셋에듀센터는 행동 원인을 이해하고 같은 잘못을 반복하지 않기 위한 구체적인 실천계획까지 세울 수 있도록 교육과정을 구성했습니다.</p>
-                </div>
+              <p className="mt-6 max-w-[620px] text-[18px] font-semibold leading-[1.5] text-slate-900 sm:text-[22px]">
+                교육을 이수하고 변화하려는 과정을<br className="hidden sm:block" /> 구체적인 기록과 실천계획으로 남겨야 합니다.
+              </p>
+              <p className="mt-3.5 max-w-[640px] text-[15.5px] font-normal leading-[1.7] text-slate-700 sm:text-[17px] sm:leading-[1.75]">
+                리셋에듀센터는 행동 원인을 돌아보고, 같은 잘못을 반복하지 않기 위한 실천계획을 세울 수 있도록 온라인 재범방지교육과 수료자료를 제공합니다.
+              </p>
+              <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+                <Link href={basicHref} data-ga-event="hero_course_apply_click" data-ga-location="homepage_hero" data-ga-item-id={basic?.id || "dui-documents"} data-ga-item-name="바로 교육 신청하기" className="inline-flex min-h-[52px] w-full items-center justify-center rounded-lg border-2 border-[#173968] bg-[#173968] px-[26px] text-base font-bold text-white transition hover:bg-[#10213f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#173968]/25 focus-visible:ring-offset-2 sm:w-auto">바로 교육 신청하기</Link>
+                <Link href="#documents" data-ga-event="hero_material_preview_click" data-ga-location="homepage_hero" data-ga-item-id="documents" data-ga-item-name="제공자료 미리보기" className="inline-flex min-h-[52px] w-full items-center justify-center rounded-lg border-2 border-slate-300 bg-white px-6 text-[15px] font-semibold text-slate-950 transition hover:border-slate-500 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 focus-visible:ring-offset-2 sm:w-auto">제공자료 미리보기</Link>
               </div>
-              <p className="mt-6 text-base font-black leading-7 text-[#173968] sm:text-xl">온라인 재범방지교육부터 수료증과 실천자료 작성까지 한 번에 제공합니다.</p>
-              <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link href={basicHref} className={buttonClass("primary", "lg", "rounded-lg px-7 font-black shadow-[0_18px_36px_rgba(23,57,104,0.22)]")}>바로 교육 신청하기</Link>
-                <Link href="#documents" className={buttonClass("secondary", "lg", "rounded-lg px-6 font-black shadow-none")}>제공자료 미리보기</Link>
-              </div>
-              <p className="mt-5 text-sm font-black leading-6 text-slate-700">온라인 수강 · 모바일 이용 · 수료 즉시 수료증 발급 · <span className="text-red-700">{basicPrice}부터 시작</span></p>
+              <p className="mt-[18px] max-w-[640px] text-[13px] font-medium leading-[1.6] text-slate-600 sm:text-sm sm:leading-[1.5]">온라인 수강 · 모바일 이용<br className="sm:hidden" /> 수료증 PDF 발급 · {basicPrice}부터</p>
             </div>
-            <div className="border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
-              <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋에듀센터 수료증 미리보기" className="aspect-[1/1.18] w-full bg-slate-50 object-contain sm:aspect-[4/3]" />
-              <div className="mt-4 border-t border-slate-200 pt-4"><p className="text-sm font-black text-slate-950">교육 이수 기록과 작성자료를 함께 확인합니다</p></div>
+            <div className="mt-2 hidden lg:block" aria-label="수료증과 실천자료 예시 미리보기">
+              <div className="relative mx-auto h-[410px] max-w-[390px]">
+                <img src="/images/document-samples/prevention-plan-sample.jpg" alt="재범방지계획서 예시" className="absolute left-0 top-16 h-[290px] w-[205px] border border-slate-200 bg-white object-cover object-top shadow-sm" />
+                <img src="/images/document-samples/risk-response-plan-sample.jpg" alt="실천계획서 예시" className="absolute right-0 top-24 h-[270px] w-[190px] border border-slate-200 bg-white object-cover object-top shadow-sm" />
+                <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋에듀센터 수료증 예시" className="absolute left-1/2 top-0 h-[360px] w-[255px] -translate-x-1/2 border border-slate-200 bg-white object-contain shadow-[0_18px_38px_rgba(15,23,42,0.12)]" />
+              </div>
             </div>
           </div>
         </section>
@@ -176,6 +177,7 @@ export default function HomePage() {
             <div>
               <SectionTitle title="서류보다 먼저 달라져야 하는 것이 있습니다" />
               <div className="mt-6 max-w-3xl space-y-5 text-[15px] leading-8 text-slate-700 sm:text-base">
+                <p>교육 수료증과 재범방지 실천자료는 단순 첨부서류가 아니라, 교육 이수와 실천 노력을 함께 기록하는 자료입니다.</p>
                 <p>같은 문제가 반복되지 않으려면 자신이 어떤 상황에서 잘못된 판단을 했는지부터 돌아봐야 합니다.</p>
                 <p>리셋에듀센터의 교육은 잘못된 행동의 원인을 점검하고, 위험상황을 알아차리며, 실제 생활에서 지킬 수 있는 약속을 세우는 과정으로 구성되어 있습니다.</p>
                 <p>수료증은 교육이 끝났다는 기록입니다. 교육의 목적은 그 이후의 행동을 바꾸는 데 있습니다.</p>
