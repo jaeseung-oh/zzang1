@@ -68,7 +68,7 @@ const documentSamples = [
   { title: "재범방지계획서", imageSrc: "/images/document-samples/prevention-plan-sample.jpg" },
   { title: "실천계획서", imageSrc: "/images/document-samples/risk-response-plan-sample.jpg" },
   { title: "서약서", imageSrc: "/images/document-samples/sobriety-pledge-sample.jpg" },
-  { title: "이수 상세내역서", imageSrc: "/images/document-samples/course-detail-sample.svg" },
+  { title: "이수 상세내역서", imageSrc: "/images/%EA%B5%90%EC%9C%A1%EC%9D%B4%EC%88%98%EC%83%81%EC%84%B8%EB%82%B4%EC%97%AD%EC%84%9C.jpg" },
 ] as const;
 
 const operatorInfo = [
