@@ -46,19 +46,19 @@ const useSteps = [
 const courseCopy: Record<string, { purpose: string; composition: string }> = {
   dui: {
     purpose: "음주 상황과 운전을 분리하지 못했던 원인을 돌아보고, 다시 같은 선택을 하지 않기 위한 생활 규칙을 세우는 과정입니다.",
-    composition: "온라인 교육 1강과 수료 후 제공자료",
+    composition: "온라인 교육 및 수료증 등 제공자료 3종",
   },
   "violence-prevention": {
     purpose: "분노와 충동이 행동으로 이어지는 순간을 이해하고, 갈등 상황에서 멈추고 대처하는 방법을 연습합니다.",
-    composition: "온라인 교육 1강과 폭력예방 실천자료",
+    composition: "온라인 교육 및 수료증 등 제공자료 3종",
   },
   "gambling-relapse-prevention": {
     purpose: "도박 충동이 올라오는 상황을 살펴보고, 돈과 시간, 휴대폰 사용을 관리하는 기준을 정합니다.",
-    composition: "온라인 교육 1강과 도박예방 실천자료",
+    composition: "온라인 교육 및 수료증 등 제공자료 3종",
   },
   "sexual-offense-prevention": {
     purpose: "동의와 경계에 대한 이해를 다시 확인하고, 위험한 생각이나 행동을 멈추기 위한 기준을 배웁니다.",
-    composition: "온라인 교육 1강과 성범죄예방 실천자료",
+    composition: "온라인 교육 및 수료증 등 제공자료 3종",
   },
 };
 
