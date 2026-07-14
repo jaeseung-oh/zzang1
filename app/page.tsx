@@ -160,7 +160,7 @@ export default function HomePage() {
                 <Link href={basicHref} data-ga-event="hero_course_apply_click" data-ga-location="homepage_hero" data-ga-item-id={basic?.id || "dui-documents"} data-ga-item-name="바로 교육 신청하기" className="inline-flex min-h-[52px] w-full items-center justify-center rounded-lg border-2 border-[#173968] bg-[#173968] px-[26px] text-base font-bold !text-white transition hover:bg-[#10213f] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#173968]/25 focus-visible:ring-offset-2 sm:w-auto">바로 교육 신청하기</Link>
                 <Link href="#documents" data-ga-event="hero_material_preview_click" data-ga-location="homepage_hero" data-ga-item-id="documents" data-ga-item-name="제공자료 미리보기" className="inline-flex min-h-[52px] w-full items-center justify-center rounded-lg border-2 border-slate-300 bg-white px-6 text-[15px] font-semibold text-slate-950 transition hover:border-slate-500 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-slate-300 focus-visible:ring-offset-2 sm:w-auto">제공자료 미리보기</Link>
               </div>
-              <p className="mt-[18px] max-w-[640px] text-[13px] font-medium leading-[1.6] text-slate-600 sm:text-sm sm:leading-[1.5]">온라인 수강 · 모바일 이용<br className="sm:hidden" /> 수료증 PDF 발급 · {basicPrice}부터</p>
+              <p className="mt-[18px] max-w-[640px] text-[13px] font-medium leading-[1.6] text-slate-600 sm:text-sm sm:leading-[1.5]">온라인 수강 · 모바일 이용 · 수료증 PDF 발급<br className="sm:hidden" /> 기본 {basicPrice} · 심화 {advancedPrice}</p>
             </div>
             <div className="mt-2 hidden lg:block" aria-label="수료증과 실천자료 예시 미리보기">
               <div className="relative mx-auto h-[410px] max-w-[390px]">
