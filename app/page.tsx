@@ -146,18 +146,23 @@ export default function HomePage() {
         <section className="bg-[#f2eee6] px-4 py-12 sm:px-6 md:py-18 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1.03fr)_minmax(340px,0.72fr)] lg:items-center">
             <div>
-              <p className="text-sm font-bold text-[#176b68]">반성에서 생활의 변화까지</p>
-              <h1 className="mt-5 max-w-4xl text-[2.25rem] font-black leading-[1.16] text-slate-950 sm:text-5xl lg:text-[4rem]">양형자료는<br />단순한 서류의 개수가 아닙니다</h1>
-              <div className="mt-6 max-w-3xl space-y-4 text-[15px] leading-7 text-slate-700 sm:text-lg sm:leading-8">
-                <p>교육 수료증과 재범방지 실천자료는 교육을 이수하고 변화를 위해 노력한 과정을 기록하는 자료입니다.</p>
-                <p>리셋에듀센터는 서류를 형식적으로 갖추는 데 그치지 않고, 자신의 행동 원인을 이해하고 같은 잘못을 반복하지 않기 위한 구체적인 실천계획을 세울 수 있도록 교육과정을 구성했습니다.</p>
+              <p className="inline-flex border border-red-200 bg-white px-3 py-1 text-sm font-black text-red-700 shadow-sm">양형자료 준비가 필요한 분을 위한 온라인 교육</p>
+              <h1 className="mt-5 max-w-4xl text-[2.35rem] font-black leading-[1.12] text-slate-950 sm:text-5xl lg:text-[4.25rem]">
+                <span className="font-serif text-red-700">양형자료</span>는<br />단순한 서류의 개수가 아닙니다
+              </h1>
+              <div className="mt-6 max-w-3xl border-l-4 border-red-600 bg-white/70 px-5 py-5 shadow-[0_18px_38px_rgba(15,23,42,0.08)] sm:px-6">
+                <p className="text-lg font-black leading-8 text-slate-950 sm:text-2xl sm:leading-10">교육을 이수하고, 변화하려는 과정을 눈에 보이게 정리해야 합니다.</p>
+                <div className="mt-4 space-y-3 text-[15px] leading-7 text-slate-700 sm:text-base sm:leading-8">
+                  <p>교육 수료증과 재범방지 실천자료는 단순 첨부서류가 아니라, 교육 이수와 실천 노력을 함께 기록하는 자료입니다.</p>
+                  <p>리셋에듀센터는 행동 원인을 이해하고 같은 잘못을 반복하지 않기 위한 구체적인 실천계획까지 세울 수 있도록 교육과정을 구성했습니다.</p>
+                </div>
               </div>
-              <p className="mt-6 text-base font-black leading-7 text-slate-950 sm:text-lg">온라인 재범방지교육부터 수료증과 실천자료 작성까지 제공합니다.</p>
+              <p className="mt-6 text-base font-black leading-7 text-[#173968] sm:text-xl">온라인 재범방지교육부터 수료증과 실천자료 작성까지 한 번에 제공합니다.</p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row">
-                <Link href="#courses" className={buttonClass("primary", "lg", "rounded-lg px-6 font-black shadow-none")}>교육과정 살펴보기</Link>
+                <Link href={basicHref} className={buttonClass("primary", "lg", "rounded-lg px-7 font-black shadow-[0_18px_36px_rgba(23,57,104,0.22)]")}>바로 교육 신청하기</Link>
                 <Link href="#documents" className={buttonClass("secondary", "lg", "rounded-lg px-6 font-black shadow-none")}>제공자료 미리보기</Link>
               </div>
-              <p className="mt-5 text-sm font-bold leading-6 text-slate-600">온라인 수강 · 모바일 이용 · 수료 즉시 수료증 발급 · {basicPrice}부터</p>
+              <p className="mt-5 text-sm font-black leading-6 text-slate-700">온라인 수강 · 모바일 이용 · 수료 즉시 수료증 발급 · <span className="text-red-700">{basicPrice}부터 시작</span></p>
             </div>
             <div className="border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
               <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋에듀센터 수료증 미리보기" className="aspect-[1/1.18] w-full bg-slate-50 object-contain sm:aspect-[4/3]" />
