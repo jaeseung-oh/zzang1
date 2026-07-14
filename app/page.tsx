@@ -89,7 +89,7 @@ function SectionTitle({ title, body, className = "" }: { title: string; body?: s
   );
 }
 
-function CourseCard({ course, basicPrice }: { course: CourseCategory; basicPrice: string }) {
+function CourseCard({ course, basicPrice, advancedPrice }: { course: CourseCategory; basicPrice: string; advancedPrice: string }) {
   const copy = courseCopy[course.id] || { purpose: course.summary, composition: "온라인 교육과 제공자료" };
   return (
     <article className="border-t border-slate-300 py-6 md:px-2">
@@ -97,7 +97,7 @@ function CourseCard({ course, basicPrice }: { course: CourseCategory; basicPrice
       <p className="mt-3 text-[15px] leading-7 text-slate-700">{copy.purpose}</p>
       <dl className="mt-4 grid gap-2 text-sm leading-6 text-slate-700 sm:grid-cols-2">
         <div><dt className="font-bold text-slate-950">구성</dt><dd>{copy.composition}</dd></div>
-        <div><dt className="font-bold text-slate-950">기본과정</dt><dd>{basicPrice}</dd></div>
+        <div><dt className="font-bold text-slate-950">기본과정</dt><dd>{basicPrice}</dd><dt className="mt-2 font-bold text-slate-950">심화과정</dt><dd>{advancedPrice}</dd></div>
       </dl>
       <Link href={"/courses/" + course.slug} className="mt-5 inline-flex min-h-11 items-center border border-slate-400 bg-white px-4 text-sm font-black text-slate-950 transition hover:border-[#173968] hover:text-[#173968]">상세보기</Link>
     </article>
@@ -188,7 +188,7 @@ export default function HomePage() {
         </section>
 
         <section id="courses" className="bg-[#f7f4ee] px-4 py-14 sm:px-6 md:py-20 lg:px-8">
-          <div className="mx-auto max-w-7xl"><div className="grid gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]"><SectionTitle title="교육과정 선택" body="과정별 교육내용과 제공자료를 살펴본 뒤 필요한 과정을 선택합니다." /><div className="grid gap-x-8 md:grid-cols-2">{listedCourses.map((course) => <CourseCard key={course.slug} course={course} basicPrice={basicPrice} />)}</div></div></div>
+          <div className="mx-auto max-w-7xl"><div className="grid gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]"><SectionTitle title="교육과정 선택" body="과정별 교육내용과 제공자료를 살펴본 뒤 필요한 과정을 선택합니다." /><div className="grid gap-x-8 md:grid-cols-2">{listedCourses.map((course) => <CourseCard key={course.slug} course={course} basicPrice={basicPrice} advancedPrice={advancedPrice} />)}</div></div></div>
         </section>
 
         <section id="documents" className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="실제 제공자료 미리보기" body="수료증과 실천자료는 수강 후 마이페이지에서 확인합니다. 개인정보가 들어가는 부분은 실제 발급 시 수강자 정보에 맞춰 표시됩니다." className="max-w-3xl" /><DocumentDesk /></div></section>
