@@ -30,13 +30,10 @@ const organizationJsonLd = {
   },
 };
 
-const serviceNotice = "본 과정은 자기성찰과 재범방지 실천을 위한 민간 온라인 교육입니다. 수료증과 제공자료가 특정한 수사 또는 재판 결과를 보장하지는 않습니다.";
-
 const processFaqs = [
   ["결제하면 바로 들을 수 있나요?", "네. 결제가 정상적으로 완료되면 마이페이지의 내 강의실에서 바로 수강할 수 있습니다."],
   ["휴대폰으로도 수강할 수 있나요?", "PC와 모바일 모두 이용할 수 있습니다. 다만 수료증이나 작성자료를 편집하고 출력할 때는 PC 이용이 조금 더 편리할 수 있습니다."],
   ["수료증은 언제 발급되나요?", "과정별 수료 기준을 충족하면 마이페이지에서 수료증을 즉시 발급하고 PDF로 저장하거나 출력할 수 있습니다."],
-  ["교육을 들으면 감형이나 선처가 보장되나요?", "아닙니다. 본 과정은 자기성찰과 재범방지 실천을 위한 민간 온라인 교육입니다. 수료증과 제공자료가 특정한 수사 또는 재판 결과를 보장하지는 않습니다."],
 ] as const;
 
 const useSteps = [
@@ -164,7 +161,7 @@ export default function HomePage() {
             </div>
             <div className="border border-slate-200 bg-white p-4 shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
               <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋에듀센터 수료증 미리보기" className="aspect-[1/1.18] w-full bg-slate-50 object-contain sm:aspect-[4/3]" />
-              <div className="mt-4 border-t border-slate-200 pt-4"><p className="text-sm font-black text-slate-950">교육 이수 기록과 작성자료를 함께 확인합니다</p><p className="mt-2 text-sm leading-6 text-slate-600">{serviceNotice}</p></div>
+              <div className="mt-4 border-t border-slate-200 pt-4"><p className="text-sm font-black text-slate-950">교육 이수 기록과 작성자료를 함께 확인합니다</p></div>
             </div>
           </div>
         </section>
