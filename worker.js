@@ -161,6 +161,10 @@ async function handleRequest(request, env) {
             return handleAdminIntegrityRepair(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/admin/integrity/repair-all' && request.method === 'POST') {
+            return handleAdminIntegrityRepairAll(request, env, corsHeaders);
+        }
+
         if (url.pathname === '/api/admin/data-health' && request.method === 'GET') {
             return handleAdminDataHealth(request, env, corsHeaders);
         }
@@ -3129,49 +3133,71 @@ function getSafeIssueRepairAction(issue) {
     return null;
 }
 
-async function restoreEnrollmentFromPayment(env, issue, admin, request) {
-    const payment = await firestoreGetData(env, 'payments', issue.paymentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-    if (!payment) throw new Error('복구할 결제 문서를 찾을 수 없습니다.');
-    const uid = payment.uid || payment.userId || issue.uid;
-    const courseId = payment.courseId || issue.courseId;
-    const productId = payment.productId || resolveApplicationProductIdFromRecord(payment);
+function isPaidOperationalRecord(row) {
+    return ['paid', 'done', 'completed', 'approved', 'success'].includes(String(row.paymentStatus || row.status || row.orderStatus || '').toLowerCase());
+}
+
+function getPaidRecordKey(row) {
+    return row.paymentId || row.orderId || row.paymentKey || row.id || null;
+}
+
+function buildRestoredEnrollmentFromPaidRecord(row, admin, sourceCollection) {
+    const uid = row.uid || row.userId;
+    const courseId = row.courseId;
+    if (!uid || !courseId || !getCourseProduct(courseId)) return null;
+    const productId = row.productId || resolveApplicationProductIdFromRecord(row);
     const product = APPLICATION_PRODUCTS[productId] || getCourseProduct(courseId);
-    if (!uid || !courseId || !getCourseProduct(courseId)) throw new Error('userId/courseId가 명확하지 않아 자동 복구할 수 없습니다.');
-    const approvedAt = payment.approvedAt || payment.purchasedAt || payment.createdAt || new Date().toISOString();
+    const approvedAt = row.approvedAt || row.purchasedAt || row.orderedAt || row.paidAt || row.createdAt || new Date().toISOString();
     const purchasedAt = new Date(approvedAt);
-    const expiresAt = payment.expiresAt || new Date(purchasedAt.getTime() + (getCourseProduct(courseId).durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
-    const enrollmentId = uid + '_' + courseId;
+    const expiresAt = row.expiresAt || new Date(purchasedAt.getTime() + (getCourseProduct(courseId).durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const paymentKey = getPaidRecordKey(row);
     const nowIso = new Date().toISOString();
-    const record = {
+    const enrollmentId = uid + '_' + courseId;
+    return {
         enrollmentId, userId: uid, uid, courseId,
-        categoryId: payment.categoryId || product.categoryId || null,
-        productId: productId || payment.productId || null,
-        productTitle: payment.productTitle || product.title || null,
-        courseTitle: payment.courseTitle || product.courseTitle || getCourseProduct(courseId).courseTitle,
-        amount: payment.amount ?? null,
-        paymentId: payment.paymentId || payment.paymentKey || payment.id || issue.paymentId,
-        orderId: payment.orderId || payment.paymentId || issue.paymentId,
+        categoryId: row.categoryId || product.categoryId || null,
+        productId: productId || row.productId || null,
+        productTitle: row.productTitle || product.title || null,
+        courseTitle: row.courseTitle || product.courseTitle || getCourseProduct(courseId).courseTitle,
+        amount: row.amount ?? null,
+        paymentId: row.paymentId || row.paymentKey || row.id || paymentKey,
+        orderId: row.orderId || row.paymentId || row.id || paymentKey,
         sourceType: 'PAYMENT',
         paymentStatus: 'paid',
         status: 'active',
         isActive: true,
         enrollmentStatus: 'active',
         accessStatus: 'active',
-        startsAt: payment.startsAt || payment.purchasedAt || approvedAt,
-        purchasedAt: payment.purchasedAt || approvedAt,
+        startsAt: row.startsAt || row.purchasedAt || approvedAt,
+        accessStartsAt: row.startsAt || row.purchasedAt || approvedAt,
+        purchasedAt: row.purchasedAt || approvedAt,
         expiresAt,
+        accessEndsAt: expiresAt,
         progress: 0,
         completedLessons: 0,
         totalLessons: product.totalLessons || getCourseProduct(courseId).totalLessons,
-        recoveredFrom: 'admin_integrity_repair',
-        restoredByAdminId: admin.uid || null,
+        certificateIssued: Boolean(row.certificateIssued),
+        certificateIssuedAt: row.certificateIssuedAt || null,
+        recoveredFrom: sourceCollection || row.recordSource || 'paid_operational_record',
+        restoredByAdminId: admin?.uid || null,
         restoredAt: nowIso,
-        createdAt: payment.createdAt || nowIso,
+        createdAt: row.createdAt || nowIso,
         updatedAt: nowIso
     };
-    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), record);
-    await saveAdminAuditLog(env, request, admin, 'enrollment.restore.payment', 'enrollments', enrollmentId, null, record, '결제완료 수강권 자동 복구');
+}
+
+async function restoreEnrollmentFromPaidRecord(env, row, admin, request, sourceCollection) {
+    const record = buildRestoredEnrollmentFromPaidRecord(row, admin, sourceCollection);
+    if (!record) throw new Error('userId/courseId가 명확하지 않아 자동 복구할 수 없습니다.');
+    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', record.enrollmentId), record);
+    await saveAdminAuditLog(env, request, admin, 'enrollment.restore.payment', 'enrollments', record.enrollmentId, null, record, '결제완료 수강권 자동 복구');
     return record;
+}
+
+async function restoreEnrollmentFromPayment(env, issue, admin, request) {
+    const payment = await firestoreGetData(env, 'payments', issue.paymentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (!payment) throw new Error('복구할 결제 문서를 찾을 수 없습니다.');
+    return restoreEnrollmentFromPaidRecord(env, payment, admin, request, 'payments');
 }
 
 async function restoreManualEnrollment(env, issue, admin, request) {
@@ -3225,6 +3251,72 @@ async function handleAdminIntegrityRepair(request, env, corsHeaders) {
     } catch (error) {
         return json({ ok: false, message: error instanceof Error ? error.message : '복구 중 오류가 발생했습니다.', code: 'REPAIR_FAILED' }, 500, corsHeaders);
     }
+}
+
+async function handleAdminIntegrityRepairAll(request, env, corsHeaders) {
+    let admin;
+    try {
+        admin = await requireFirebaseAdmin(request, env);
+    } catch (error) {
+        return json({ message: error.message || '관리자 권한이 없습니다.', code: 'ADMIN_FORBIDDEN' }, error.status || 403, corsHeaders);
+    }
+    const body = await request.json().catch(() => null);
+    if (String(body?.confirm || '').trim() !== 'RESTORE_PAID_ENROLLMENTS') {
+        return json({ message: '복구 전 확인값 RESTORE_PAID_ENROLLMENTS가 필요합니다.', code: 'CONFIRMATION_REQUIRED' }, 400, corsHeaders);
+    }
+    const dryRun = body?.dryRun === true;
+    const rows = await loadOperationalCollections(env);
+    const enrollments = rows.enrollments;
+    const enrollmentByUserCourse = new Map(enrollments.map((row) => [(row.uid || row.userId) + '_' + row.courseId, row]));
+    const paidRecords = [
+        ...rows.orders.map((row) => ({ ...row, sourceCollection: 'orders' })),
+        ...rows.payments.map((row) => ({ ...row, sourceCollection: 'payments' })),
+        ...rows.purchases.map((row) => ({ ...row, sourceCollection: 'purchases' }))
+    ];
+    const seen = new Set();
+    const candidates = [];
+    const skipped = [];
+    for (const row of paidRecords) {
+        if (!isPaidOperationalRecord(row)) continue;
+        const uid = row.uid || row.userId;
+        const courseId = row.courseId;
+        const key = uid + '_' + courseId;
+        const paymentKey = getPaidRecordKey(row);
+        if (!uid || !courseId || !getCourseProduct(courseId)) {
+            skipped.push({ reason: 'MISSING_OR_UNKNOWN_COURSE', paymentId: paymentKey, uid, courseId, sourceCollection: row.sourceCollection });
+            continue;
+        }
+        if (seen.has(key)) continue;
+        seen.add(key);
+        if (isFirestoreEnrollmentActiveRecord(enrollmentByUserCourse.get(key))) continue;
+        const record = buildRestoredEnrollmentFromPaidRecord(row, admin, row.sourceCollection);
+        if (record) candidates.push({ row, record });
+    }
+    if (dryRun) {
+        return json({ ok: true, dryRun: true, candidateCount: candidates.length, candidates: candidates.map(({ record }) => ({ enrollmentId: record.enrollmentId, uid: record.uid, courseId: record.courseId, paymentId: record.paymentId, orderId: record.orderId, sourceCollection: record.recoveredFrom })), skipped }, 200, corsHeaders);
+    }
+    const restored = [];
+    const failed = [];
+    for (const item of candidates) {
+        try {
+            const saved = await restoreEnrollmentFromPaidRecord(env, item.row, admin, request, item.row.sourceCollection);
+            restored.push({ enrollmentId: saved.enrollmentId, uid: saved.uid, courseId: saved.courseId, paymentId: saved.paymentId, sourceCollection: item.row.sourceCollection });
+        } catch (error) {
+            failed.push({ paymentId: getPaidRecordKey(item.row), uid: item.row.uid || item.row.userId, courseId: item.row.courseId, message: error instanceof Error ? error.message : String(error) });
+        }
+    }
+    await firestorePatch(env, firestoreDocumentPath(env, 'adminAuditLogs', 'bulk_restore_paid_enrollments_' + Date.now()), {
+        actionType: 'ENROLLMENT_RESTORED',
+        adminId: admin.uid || null,
+        restoredCount: restored.length,
+        failedCount: failed.length,
+        skippedCount: skipped.length,
+        restored,
+        failed,
+        reason: '결제완료 문서 기준 누락 수강권 일괄 복구',
+        createdAt: new Date().toISOString()
+    }).catch((error) => console.error(error));
+    return json({ ok: failed.length === 0, restoredCount: restored.length, failedCount: failed.length, skippedCount: skipped.length, restored, failed, skipped }, failed.length ? 207 : 200, corsHeaders);
 }
 
 async function handleAdminIntegrityCheck(request, env, corsHeaders) {

@@ -814,6 +814,35 @@ function IntegrityView() {
       setLoading(false);
     }
   };
+  const repairAllPaidEnrollments = async () => {
+    const ok = window.confirm([
+      "결제 완료 기록은 있지만 수강권이 없는 회원들의 수강권을 일괄 복구합니다.",
+      "결제내역, 금액, 상품 ID는 변경하지 않습니다.",
+      "courseId가 명확한 결제 건만 enrollment를 생성합니다."
+    ].join("\n"));
+    if (!ok) return;
+    setRepairing("all");
+    setStatus("");
+    setError("");
+    try {
+      const user = await requireAuthenticatedUser();
+      const idToken = await user.getIdToken();
+      const response = await fetch(getBaseUrl() + "/api/admin/integrity/repair-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+        body: JSON.stringify({ confirm: "RESTORE_PAID_ENROLLMENTS" }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok && response.status !== 207) throw new Error(result?.message || "일괄 복구에 실패했습니다.");
+      setStatus("결제 수강권 복구 완료: 복구 " + (result.restoredCount || 0) + "건, 실패 " + (result.failedCount || 0) + "건, 보류 " + (result.skippedCount || 0) + "건");
+      await runCheck();
+    } catch (repairError) {
+      console.error(repairError);
+      setError(repairError instanceof Error ? repairError.message : "일괄 복구 중 오류가 발생했습니다.");
+    } finally {
+      setRepairing("");
+    }
+  };
   const repairIssue = async (issue: AnyRecord) => {
     const ok = window.confirm([
       "이 항목을 서버 복구 API로 처리하시겠습니까?",
@@ -849,7 +878,7 @@ function IntegrityView() {
   const issues = (payload?.issues || []).map((issue: AnyRecord, index: number) => ({ ...issue, id: issue.type + index }));
   const counts = payload?.counts || payload?.health?.counts || {};
   const metadata = payload?.metadata || payload?.health?.metadata || {};
-  return <section><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-3xl font-semibold tracking-[-0.04em]">수강권·결제 데이터 점검</h2><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void runHealth()} disabled={loading} className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-sm font-bold text-[#173968] disabled:bg-slate-100">Health check</button><button type="button" onClick={() => void runCheck()} disabled={loading} className="rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white disabled:bg-slate-300">{loading ? "점검 중" : "다시 점검"}</button></div></div><p className="mb-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">결제·수강권·진도·수료증 연결 상태를 서버 기준으로 확인합니다. 복구 버튼은 결제 완료 수강권 누락 또는 명확한 수동 수강권 상태 보정처럼 안전한 항목에만 표시됩니다.</p>{error ? <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">{error}</p> : null}{status ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{status}</p> : null}<div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><div className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">Firebase project</p><p className="mt-1 break-all text-sm font-black">{metadata.firebaseProjectId || "-"}</p></div>{[["회원", counts.users], ["결제", counts.payments], ["수강권", counts.enrollments], ["활성 수강권", counts.activeEnrollments]].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">{String(label)}</p><p className="mt-1 text-2xl font-black">{Number(value || 0)}</p></div>)}</div><DataTable rows={issues} columns={[{ key: "severity", label: "중요도" }, { key: "type", label: "유형" }, { key: "uid", label: "회원 ID" }, { key: "courseId", label: "과정" }, { key: "paymentId", label: "결제번호" }, { key: "enrollmentId", label: "수강권" }, { key: "reason", label: "사유" }, { key: "safeRepair", label: "복구", render: (issue) => issue.safeRepair ? <button type="button" onClick={() => void repairIssue(issue)} disabled={repairing === issue.id} className="rounded-full bg-emerald-800 px-3 py-1.5 text-xs font-bold text-white disabled:bg-slate-300">{repairing === issue.id ? "복구 중" : "복구"}</button> : <span className="text-slate-500">관리자 확인</span> }]} emptyText="확인 필요한 데이터가 없습니다." /></section>;
+  return <section><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-3xl font-semibold tracking-[-0.04em]">수강권·결제 데이터 점검</h2><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void repairAllPaidEnrollments()} disabled={loading || repairing === "all"} className="rounded-full border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-bold text-emerald-900 disabled:bg-slate-100">{repairing === "all" ? "복구 중" : "결제 수강권 전체 복구"}</button><button type="button" onClick={() => void runHealth()} disabled={loading} className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-sm font-bold text-[#173968] disabled:bg-slate-100">Health check</button><button type="button" onClick={() => void runCheck()} disabled={loading} className="rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white disabled:bg-slate-300">{loading ? "점검 중" : "다시 점검"}</button></div></div><p className="mb-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">결제·수강권·진도·수료증 연결 상태를 서버 기준으로 확인합니다. 복구 버튼은 결제 완료 수강권 누락 또는 명확한 수동 수강권 상태 보정처럼 안전한 항목에만 표시됩니다.</p>{error ? <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">{error}</p> : null}{status ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{status}</p> : null}<div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><div className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">Firebase project</p><p className="mt-1 break-all text-sm font-black">{metadata.firebaseProjectId || "-"}</p></div>{[["회원", counts.users], ["결제", counts.payments], ["수강권", counts.enrollments], ["활성 수강권", counts.activeEnrollments]].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">{String(label)}</p><p className="mt-1 text-2xl font-black">{Number(value || 0)}</p></div>)}</div><DataTable rows={issues} columns={[{ key: "severity", label: "중요도" }, { key: "type", label: "유형" }, { key: "uid", label: "회원 ID" }, { key: "courseId", label: "과정" }, { key: "paymentId", label: "결제번호" }, { key: "enrollmentId", label: "수강권" }, { key: "reason", label: "사유" }, { key: "safeRepair", label: "복구", render: (issue) => issue.safeRepair ? <button type="button" onClick={() => void repairIssue(issue)} disabled={repairing === issue.id} className="rounded-full bg-emerald-800 px-3 py-1.5 text-xs font-bold text-white disabled:bg-slate-300">{repairing === issue.id ? "복구 중" : "복구"}</button> : <span className="text-slate-500">관리자 확인</span> }]} emptyText="확인 필요한 데이터가 없습니다." /></section>;
 }
 function CoursesView() {
   const managedCourses = [

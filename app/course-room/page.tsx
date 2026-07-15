@@ -186,6 +186,10 @@ function formatProgressTime(currentSeconds: number, durationSeconds: number) {
   return formatDuration(currentSeconds) + " / " + formatDurationOrPending(durationSeconds);
 }
 
+function delayCourseAccessRetry(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
 function truncateText(value: string, maxLength: number) {
   if (value.length <= maxLength) {
     return value;
@@ -508,7 +512,21 @@ export default function CourseRoomPage() {
         const { db } = getFirebaseServices();
         const adminBypass = isSuperAdmin(user);
         setAdminPreview(adminBypass);
-        const enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
+
+        let enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
+        let enrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === effectiveCourseId);
+        let allowed = adminBypass || isEnrollmentActive(enrollment);
+
+        for (let attempt = 0; !allowed && !adminBypass && attempt < 3; attempt += 1) {
+          if (cancelled) return;
+          setStatusMessage("수강권 정보를 다시 확인하고 있습니다. 방금 지급된 수강권은 잠시 후 반영될 수 있습니다.");
+          await delayCourseAccessRetry(900 + attempt * 700);
+          if (cancelled) return;
+          enrollments = await getVerifiedUserEnrollments(user, null);
+          enrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === effectiveCourseId);
+          allowed = isEnrollmentActive(enrollment);
+        }
+
         if (!hasExplicitCourseId && !adminBypass) {
           const activeEnrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => isEnrollmentActive(item));
           if (activeEnrollment?.courseId && activeEnrollment.courseId !== effectiveCourseId) {
@@ -517,8 +535,6 @@ export default function CourseRoomPage() {
           }
         }
 
-        const enrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === effectiveCourseId);
-        const allowed = adminBypass || isEnrollmentActive(enrollment);
         const documentFormsAllowed = enrollments.some((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
         setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
 
@@ -527,11 +543,10 @@ export default function CourseRoomPage() {
           const expired = hasEnrollment && !isEnrollmentActive(enrollment);
           const message = expired
             ? "해당 강의의 수강기간이 유효하지 않아 수강할 수 없습니다. 관리자에게 수강권 상태를 확인해 주세요."
-            : "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.";
+            : "현재 계정에서 이용 가능한 수강권을 확인할 수 없습니다. 교육과정을 구매했거나 관리자에게 수강권을 받은 경우 잠시 후 다시 시도해 주세요.";
           setAccessBlockedMessage(message);
           setPlayerError(message);
           setAccessChecking(false);
-          router.replace(getCourseApplyHref(effectiveCourseId) + (getCourseApplyHref(effectiveCourseId).includes("?") ? "&notice=" : "?notice=") + encodeURIComponent(message));
           return;
         } else {
           setAccessBlockedMessage("");
