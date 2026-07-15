@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "cf:deploy": "wrangler deploy --config wrangler.worker.toml",
-    "cf:dev": "wrangler dev --config wrangler.worker.toml"
+    "cf:dev": "wrangler dev --config wrangler.worker.toml",
+    "test": "node --test test/*.test.mjs"
   },
   "dependencies": {
     "@portone/browser-sdk": "^0.1.8",

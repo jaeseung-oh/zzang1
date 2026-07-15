@@ -7,6 +7,8 @@ import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 
 export type EnrollmentStatus = "active" | "cancelled" | "expired" | "pending" | "refunded";
 
+const allowedEnrollmentSourceTypes = new Set(["PAYMENT", "MANUAL", "PROMOTION", "ADMIN_TEST", "EXTENSION"]);
+
 function maskFirestoreSegment(value: string) {
   if (!value) return "";
   if (value.length <= 8) return value.slice(0, 2) + "***";
@@ -97,8 +99,18 @@ function toMillis(value: unknown) {
   return null;
 }
 
+function normalizeEnrollmentSourceType(enrollment: EnrollmentRecord) {
+  const explicit = String(enrollment.sourceType || "").trim().toUpperCase();
+  if (explicit) return explicit;
+  if ((enrollment as EnrollmentRecord & { adminGranted?: boolean }).adminGranted === true || (enrollment.paymentId == null && enrollment.orderId == null && enrollment.paymentStatus == null)) return "MANUAL";
+  const paymentStatus = String(enrollment.paymentStatus || "").toLowerCase();
+  if (["paid", "done", "completed", "approved", "success"].includes(paymentStatus) || enrollment.paymentId || enrollment.orderId) return "PAYMENT";
+  return "";
+}
+
 export function isEnrollmentActive(enrollment: EnrollmentRecord | null | undefined) {
   if (!enrollment) return false;
+  if (!allowedEnrollmentSourceTypes.has(normalizeEnrollmentSourceType(enrollment))) return false;
   const paymentStatus = String(enrollment.paymentStatus || "").toLowerCase();
   const paidLike = ["paid", "done", "completed", "approved", "success"].includes(paymentStatus);
   const accessStatus = String(enrollment.enrollmentStatus ?? enrollment.accessStatus ?? enrollment.status ?? (enrollment.isActive === true || paidLike ? "active" : "")).toLowerCase();

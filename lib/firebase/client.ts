@@ -16,6 +16,9 @@ const defaultFirebaseConfig = {
 
 let firestoreInstance: Firestore | null = null;
 
+const productionFirebaseProjectId = "jaeseung-try-2-34973152-e44aa";
+const runtimeEnvironment = process.env.NEXT_PUBLIC_APP_ENV || process.env.NODE_ENV || "production";
+
 function getFirebaseConfig() {
   return {
     apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || defaultFirebaseConfig.apiKey,
@@ -37,6 +40,11 @@ function assertFirebaseConfig() {
 
   if (missing.length) {
     throw new Error(`Missing Firebase web config: ${missing.join(", ")}`);
+  }
+
+  const expectedProjectId = process.env.NEXT_PUBLIC_EXPECTED_FIREBASE_PROJECT_ID || productionFirebaseProjectId;
+  if (runtimeEnvironment === "production" && config.projectId !== expectedProjectId) {
+    throw new Error(`Firebase production project mismatch: expected ${expectedProjectId}, got ${config.projectId}`);
   }
 
   return config;

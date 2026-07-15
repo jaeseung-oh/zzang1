@@ -771,15 +771,19 @@ function RefundsView(ctx: any) { const rows: AnyRecord[] = ctx.data.enrollments.
 
 function IntegrityView() {
   const [loading, setLoading] = useState(false);
+  const [repairing, setRepairing] = useState("");
   const [error, setError] = useState("");
+  const [status, setStatus] = useState("");
   const [payload, setPayload] = useState<any>(null);
+  const getBaseUrl = () => paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "");
   const runCheck = async () => {
     setLoading(true);
     setError("");
+    setStatus("");
     try {
       const user = await requireAuthenticatedUser();
       const idToken = await user.getIdToken();
-      const baseUrl = paymentConfig.confirmUrl.replace(/\/api\/payments\/confirm$/, "");
+      const baseUrl = getBaseUrl();
       const response = await fetch(baseUrl + "/api/admin/integrity", { headers: { Authorization: "Bearer " + idToken } });
       const nextPayload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(nextPayload?.message || "데이터 점검에 실패했습니다.");
@@ -791,9 +795,61 @@ function IntegrityView() {
       setLoading(false);
     }
   };
+  const runHealth = async () => {
+    setLoading(true);
+    setError("");
+    setStatus("");
+    try {
+      const user = await requireAuthenticatedUser();
+      const idToken = await user.getIdToken();
+      const response = await fetch(getBaseUrl() + "/api/admin/data-health", { headers: { Authorization: "Bearer " + idToken } });
+      const nextPayload = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(nextPayload?.message || "데이터 health check에 실패했습니다.");
+      setPayload((current: any) => ({ ...(current || {}), health: nextPayload, counts: nextPayload.counts || current?.counts, metadata: nextPayload.metadata || current?.metadata }));
+      setStatus("운영 데이터 health check 스냅샷을 남겼습니다.");
+    } catch (healthError) {
+      console.error(healthError);
+      setError(healthError instanceof Error ? healthError.message : "데이터 health check 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const repairIssue = async (issue: AnyRecord) => {
+    const ok = window.confirm([
+      "이 항목을 서버 복구 API로 처리하시겠습니까?",
+      "회원: " + (issue.uid || "-"),
+      "과정: " + (issue.courseId || "-"),
+      "결제/수강권: " + (issue.paymentId || issue.enrollmentId || "-"),
+      "데이터는 삭제하지 않고 누락된 수강권 또는 수동 수강권 상태만 복구합니다."
+    ].join("\n"));
+    if (!ok) return;
+    setRepairing(issue.id);
+    setStatus("");
+    setError("");
+    try {
+      const user = await requireAuthenticatedUser();
+      const idToken = await user.getIdToken();
+      const response = await fetch(getBaseUrl() + "/api/admin/integrity/repair", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
+        body: JSON.stringify({ issue, confirm: "REPAIR" }),
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result?.message || "복구에 실패했습니다.");
+      setStatus("복구가 완료되었습니다. 다시 점검합니다.");
+      await runCheck();
+    } catch (repairError) {
+      console.error(repairError);
+      setError(repairError instanceof Error ? repairError.message : "복구 중 오류가 발생했습니다.");
+    } finally {
+      setRepairing("");
+    }
+  };
   useEffect(() => { void runCheck(); }, []);
-  const issues = payload?.issues || [];
-  return <section><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-3xl font-semibold tracking-[-0.04em]">데이터 점검</h2><button type="button" onClick={() => void runCheck()} disabled={loading} className="rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white disabled:bg-slate-300">{loading ? "점검 중" : "다시 점검"}</button></div><p className="mb-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">이 화면은 결제·수강권·수료증 연결 상태를 확인만 합니다. 관리자 확인 없이 운영 데이터를 자동 삭제하거나 덮어쓰지 않습니다.</p>{error ? <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">{error}</p> : null}{payload ? <div className="mb-4 grid gap-3 sm:grid-cols-3"><div className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">결제</p><p className="mt-1 text-2xl font-black">{payload.counts?.payments || 0}</p></div><div className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">수강권</p><p className="mt-1 text-2xl font-black">{payload.counts?.enrollments || 0}</p></div><div className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">확인 필요</p><p className="mt-1 text-2xl font-black">{issues.length}</p></div></div> : null}<DataTable rows={issues.map((issue: AnyRecord, index: number) => ({ ...issue, id: issue.type + index }))} columns={[{ key: "severity", label: "중요도" }, { key: "type", label: "유형" }, { key: "uid", label: "회원 ID" }, { key: "courseId", label: "과정" }, { key: "paymentId", label: "결제번호" }, { key: "enrollmentId", label: "수강권" }, { key: "certificateNo", label: "수료증번호" }]} emptyText="확인 필요한 데이터가 없습니다." /></section>;
+  const issues = (payload?.issues || []).map((issue: AnyRecord, index: number) => ({ ...issue, id: issue.type + index }));
+  const counts = payload?.counts || payload?.health?.counts || {};
+  const metadata = payload?.metadata || payload?.health?.metadata || {};
+  return <section><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><h2 className="text-3xl font-semibold tracking-[-0.04em]">수강권·결제 데이터 점검</h2><div className="flex flex-wrap gap-2"><button type="button" onClick={() => void runHealth()} disabled={loading} className="rounded-full border border-[#d7deea] bg-white px-5 py-3 text-sm font-bold text-[#173968] disabled:bg-slate-100">Health check</button><button type="button" onClick={() => void runCheck()} disabled={loading} className="rounded-full bg-[#173968] px-5 py-3 text-sm font-bold text-white disabled:bg-slate-300">{loading ? "점검 중" : "다시 점검"}</button></div></div><p className="mb-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">결제·수강권·진도·수료증 연결 상태를 서버 기준으로 확인합니다. 복구 버튼은 결제 완료 수강권 누락 또는 명확한 수동 수강권 상태 보정처럼 안전한 항목에만 표시됩니다.</p>{error ? <p className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm font-semibold text-rose-800">{error}</p> : null}{status ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-900">{status}</p> : null}<div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><div className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">Firebase project</p><p className="mt-1 break-all text-sm font-black">{metadata.firebaseProjectId || "-"}</p></div>{[["회원", counts.users], ["결제", counts.payments], ["수강권", counts.enrollments], ["활성 수강권", counts.activeEnrollments]].map(([label, value]) => <div key={String(label)} className="rounded-xl border border-[#d7deea] bg-white p-4"><p className="text-xs font-bold text-slate-500">{String(label)}</p><p className="mt-1 text-2xl font-black">{Number(value || 0)}</p></div>)}</div><DataTable rows={issues} columns={[{ key: "severity", label: "중요도" }, { key: "type", label: "유형" }, { key: "uid", label: "회원 ID" }, { key: "courseId", label: "과정" }, { key: "paymentId", label: "결제번호" }, { key: "enrollmentId", label: "수강권" }, { key: "reason", label: "사유" }, { key: "safeRepair", label: "복구", render: (issue) => issue.safeRepair ? <button type="button" onClick={() => void repairIssue(issue)} disabled={repairing === issue.id} className="rounded-full bg-emerald-800 px-3 py-1.5 text-xs font-bold text-white disabled:bg-slate-300">{repairing === issue.id ? "복구 중" : "복구"}</button> : <span className="text-slate-500">관리자 확인</span> }]} emptyText="확인 필요한 데이터가 없습니다." /></section>;
 }
 function CoursesView() {
   const managedCourses = [

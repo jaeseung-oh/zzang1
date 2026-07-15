@@ -12,6 +12,22 @@ const COURSE_STREAM_UIDS = new Set([
     'afa89d104a50e779ee12112f1ec59655'
 ]);
 
+const PRODUCTION_FIREBASE_PROJECT_ID = 'jaeseung-try-2-34973152-e44aa';
+const PROTECTED_FIRESTORE_COLLECTIONS = new Set([
+    'users',
+    'orders',
+    'payments',
+    'purchases',
+    'enrollments',
+    'courseProgress',
+    'certificates',
+    'adminLogs',
+    'adminAuditLogs',
+    'adminManualEnrollmentGrants',
+    'paymentLogs'
+]);
+const ALLOWED_ENROLLMENT_SOURCE_TYPES = new Set(['PAYMENT', 'MANUAL', 'PROMOTION', 'ADMIN_TEST', 'EXTENSION']);
+
 function getConfiguredCourseStreamUids(env) {
     return new Set([
         ...COURSE_STREAM_UIDS,
@@ -139,6 +155,14 @@ async function handleRequest(request, env) {
 
         if (url.pathname === '/api/admin/integrity' && request.method === 'GET') {
             return handleAdminIntegrityCheck(request, env, corsHeaders);
+        }
+
+        if (url.pathname === '/api/admin/integrity/repair' && request.method === 'POST') {
+            return handleAdminIntegrityRepair(request, env, corsHeaders);
+        }
+
+        if (url.pathname === '/api/admin/data-health' && request.method === 'GET') {
+            return handleAdminDataHealth(request, env, corsHeaders);
         }
 
         return json({ error: 'not_found' }, 404, corsHeaders);
@@ -647,6 +671,19 @@ function normalizeEnrollmentStatus(value) {
     return String(value || '').trim().toLowerCase();
 }
 
+function normalizeEnrollmentSourceType(enrollment = {}) {
+    const raw = String(enrollment.sourceType || enrollment.grantType || enrollment.issueType || '').trim().toUpperCase();
+    if (raw) return raw;
+    if (enrollment.adminGranted === true || enrollment.paymentStatus == null && enrollment.paymentId == null && enrollment.orderId == null) return 'MANUAL';
+    const paymentStatus = normalizeEnrollmentStatus(enrollment.paymentStatus || enrollment.paymentState || enrollment.status);
+    if (['paid', 'done', 'completed', 'approved', 'success'].includes(paymentStatus) || enrollment.paymentId || enrollment.orderId) return 'PAYMENT';
+    return '';
+}
+
+function isAllowedEnrollmentSourceType(enrollment) {
+    return ALLOWED_ENROLLMENT_SOURCE_TYPES.has(normalizeEnrollmentSourceType(enrollment));
+}
+
 function getEnrollmentRecordTime(value) {
     if (!value) return null;
     const time = value instanceof Date ? value.getTime() : new Date(value).getTime();
@@ -659,6 +696,7 @@ function getEnrollmentAccessDecision(enrollment, uid, courseId) {
     if (uid && ownerId && ownerId !== uid) return { allowed: false, reason: 'USER_MISMATCH' };
     if (courseId && enrollment.courseId && enrollment.courseId !== courseId) return { allowed: false, reason: 'COURSE_MISMATCH' };
     if (enrollment.deletedAt || enrollment.isDeleted === true || enrollment.deleted === true) return { allowed: false, reason: 'DELETED_ENROLLMENT' };
+    if (!isAllowedEnrollmentSourceType(enrollment)) return { allowed: false, reason: 'UNSUPPORTED_SOURCE_TYPE' };
 
     const paymentStatus = normalizeEnrollmentStatus(enrollment.paymentStatus || enrollment.paymentState);
     const paidLike = ['paid', 'done', 'completed', 'approved', 'success'].includes(paymentStatus);
@@ -735,8 +773,11 @@ async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canon
         orderId: source.orderId || source.id || null,
         purchasedAt: source.purchasedAt || source.approvedAt || source.orderedAt || source.createdAt || nowIso,
         expiresAt: source.expiresAt || null,
-        sourceType: source.sourceType || source.grantType || source.issueType || (source.adminGranted ? 'MANUAL' : 'PAYMENT'),
-        paymentStatus: source.paymentStatus || source.status || (source.adminGranted || source.sourceType === 'MANUAL' ? null : 'paid'),
+        sourceType: normalizeEnrollmentSourceType(source) || (source.adminGranted ? 'MANUAL' : 'PAYMENT'),
+        paymentStatus: source.adminGranted || normalizeEnrollmentSourceType(source) === 'MANUAL' ? null : (source.paymentStatus || source.status || 'paid'),
+        status: 'active',
+        isActive: true,
+        startsAt: source.startsAt || source.accessStartsAt || source.purchasedAt || source.approvedAt || source.createdAt || nowIso,
         accessStatus: source.accessStatus || source.enrollmentStatus || 'active',
         progress: Number(source.progress) || 0,
         completedLessons: Number(source.completedLessons) || 0,
@@ -799,7 +840,7 @@ async function getWorkerEnrollmentRecord(env, uid, courseId) {
         firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]),
         firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }])
     ]);
-    const matchesCourse = (row) => row.courseId === courseId || (!row.courseId && row.categoryId === 'dui');
+    const matchesCourse = (row) => row.courseId === courseId;
     const candidates = [canonical, nestedRecord, ...byUserId, ...byUid].filter((row) => row && matchesCourse(row));
     const activeEnrollment = candidates.find(isFirestoreEnrollmentActiveRecord);
     if (activeEnrollment) {
@@ -855,7 +896,7 @@ async function enrichWorkerEnrollmentEntitlement(env, uid, courseId, enrollment)
         const records = [...purchasesByUserId, ...purchasesByUid, ...paymentsByUserId, ...paymentsByUid]
             .filter((row) => {
                 const paid = ['paid', 'done', 'completed', 'approved', 'success'].includes(String(row.paymentStatus || row.status || '').toLowerCase());
-                const sameCourse = row.courseId === courseId || (!row.courseId && row.categoryId === 'dui');
+                const sameCourse = row.courseId === courseId;
                 return paid && sameCourse;
             })
             .sort((a, b) => {
@@ -1619,7 +1660,8 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
         enrollmentId, userId: uid, uid, courseId,
         courseTitle: DUI_COURSE_PRODUCT.courseTitle,
         paymentId, orderId,
-        purchasedAt: purchasedAt.toISOString(), expiresAt,
+        purchasedAt: purchasedAt.toISOString(), startsAt: purchasedAt.toISOString(), accessStartsAt: purchasedAt.toISOString(), expiresAt, accessEndsAt: expiresAt,
+        sourceType: 'PAYMENT', status: 'active', isActive: true, enrollmentStatus: 'active',
         paymentStatus: 'paid', accessStatus: 'active', progress: 0,
         completedLessons: 0, totalLessons: DUI_COURSE_PRODUCT.totalLessons,
         certificateIssued: false, certificateIssuedAt: null,
@@ -1644,7 +1686,7 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
         await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
         await firestorePatch(env, paymentKeyPath, { paymentKey, orderId, userId: uid, courseId, createdAt: nowIso });
-        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso, getCourseProduct(courseId)));
         await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'toss_confirm_completed', paymentId, orderId, uid, courseId, productId: 'basic', amount, approved, approvedAt, status: 'paid' })).catch((logError) => console.error(logError));
     } catch (error) {
         await savePaymentLog(env, orderId, {
@@ -2152,7 +2194,11 @@ async function ensureIncludedBasicEnrollment(env, uid, context) {
         orderId,
         purchasedAt,
         expiresAt,
+        sourceType: 'PAYMENT',
         paymentStatus: 'paid',
+        status: 'active',
+        isActive: true,
+        enrollmentStatus: 'active',
         accessStatus: 'active',
         progress: 0,
         completedLessons: 0,
@@ -2194,7 +2240,11 @@ async function ensureIncludedCbtEnrollment(env, uid, context = {}) {
         orderId: context.orderId || null,
         purchasedAt,
         expiresAt,
+        sourceType: 'PAYMENT',
         paymentStatus: 'paid',
+        status: 'active',
+        isActive: true,
+        enrollmentStatus: 'active',
         accessStatus: 'active',
         progress: 0,
         completedLessons: 0,
@@ -2334,7 +2384,8 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         categoryId, productId, productTitle: product.title, amount: product.amount,
         courseTitle: product.courseTitle,
         paymentId, orderId,
-        purchasedAt: purchasedAt.toISOString(), expiresAt,
+        purchasedAt: purchasedAt.toISOString(), startsAt: purchasedAt.toISOString(), accessStartsAt: purchasedAt.toISOString(), expiresAt, accessEndsAt: expiresAt,
+        sourceType: 'PAYMENT', status: 'active', isActive: true, enrollmentStatus: 'active',
         paymentStatus: 'paid', accessStatus: 'active', progress: 0,
         completedLessons: 0, totalLessons: product.totalLessons,
         certificateIssued: false, certificateIssuedAt: null,
@@ -2371,7 +2422,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         if (body.source === 'portone_webhook') await logWebhookStep(env, 'enrollment_created', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
         await firestorePatch(env, paymentKeyPath, { paymentKey: paymentId, paymentId, orderId, userId: uid, courseId, createdAt: nowIso });
-        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso, getCourseProduct(courseId)));
         await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: existingPaidSameUser ? 'portone_resync_completed' : 'portone_confirm_completed', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved, approvedAt, status: 'paid' })).catch((logError) => console.error(logError));
     } catch (error) {
         await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'firestore_save_failed', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved, approvedAt, status: 'paid_save_failed', error })).catch((logError) => console.error(logError));
@@ -2407,14 +2458,14 @@ async function confirmTossPayment(env, payload) {
     return data;
 }
 
-function buildRefundPolicyRecord(nowIso) {
+function buildRefundPolicyRecord(nowIso, product = DUI_COURSE_PRODUCT) {
     return {
-        courseId: DUI_COURSE_PRODUCT.courseId,
-        courseTitle: DUI_COURSE_PRODUCT.courseTitle,
-        totalAmount: DUI_COURSE_PRODUCT.price,
-        totalLessons: DUI_COURSE_PRODUCT.totalLessons,
-        pricePerLesson: DUI_COURSE_PRODUCT.pricePerLesson,
-        durationDays: DUI_COURSE_PRODUCT.durationDays,
+        courseId: product.courseId,
+        courseTitle: product.courseTitle,
+        totalAmount: product.price || product.amount || DUI_COURSE_PRODUCT.price,
+        totalLessons: product.totalLessons || DUI_COURSE_PRODUCT.totalLessons,
+        pricePerLesson: product.pricePerLesson || Math.ceil((product.price || product.amount || DUI_COURSE_PRODUCT.price) / Math.max(1, product.totalLessons || DUI_COURSE_PRODUCT.totalLessons)),
+        durationDays: product.durationDays || DUI_COURSE_PRODUCT.durationDays,
         refundRules: [
             '결제 후 강의를 전혀 수강하지 않은 경우 전액 환불',
             '일부 강의를 수강한 경우 미수강 강의 수에 해당하는 금액 환불',
@@ -2435,8 +2486,41 @@ function encodeFirestoreDocId(value) {
     return String(value).replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 120);
 }
 
+function getFirestoreProjectId(env) {
+    return env.FIREBASE_PROJECT_ID || env.GOOGLE_CLOUD_PROJECT || PRODUCTION_FIREBASE_PROJECT_ID;
+}
+
+function getRuntimeEnvironment(env) {
+    return String(env.APP_ENV || env.ENVIRONMENT || env.NODE_ENV || 'production').toLowerCase();
+}
+
+function assertProductionFirestoreProject(env, operation, collectionName = '') {
+    const projectId = getFirestoreProjectId(env);
+    const expectedProjectId = env.EXPECTED_FIREBASE_PROJECT_ID || PRODUCTION_FIREBASE_PROJECT_ID;
+    const runtimeEnvironment = getRuntimeEnvironment(env);
+    if (runtimeEnvironment === 'production' && projectId !== expectedProjectId) {
+        const error = new Error('Production Firestore project mismatch. Refusing ' + operation + ' on ' + projectId + '.');
+        error.status = 500;
+        error.code = 'FIREBASE_PROJECT_MISMATCH';
+        throw error;
+    }
+    if (PROTECTED_FIRESTORE_COLLECTIONS.has(collectionName) && env.ALLOW_PRODUCTION_DATA_WRITES === 'false') {
+        const error = new Error('Production Firestore writes are disabled by ALLOW_PRODUCTION_DATA_WRITES=false.');
+        error.status = 503;
+        error.code = 'PRODUCTION_WRITES_DISABLED';
+        throw error;
+    }
+}
+
+function getFirestoreCollectionFromDocumentPath(documentPath) {
+    const marker = '/documents/';
+    const index = String(documentPath || '').indexOf(marker);
+    if (index === -1) return '';
+    return String(documentPath).slice(index + marker.length).split('/')[0] || '';
+}
+
 function firestoreDocumentPath(env, collectionName, documentId) {
-    const projectId = env.FIREBASE_PROJECT_ID || env.GOOGLE_CLOUD_PROJECT || 'jaeseung-try-2-34973152-e44aa';
+    const projectId = getFirestoreProjectId(env);
     return `projects/${projectId}/databases/(default)/documents/${collectionName}/${documentId}`;
 }
 
@@ -2452,6 +2536,7 @@ async function firestoreGet(env, documentPath) {
 }
 
 async function firestorePatch(env, documentPath, data) {
+    assertProductionFirestoreProject(env, 'PATCH', getFirestoreCollectionFromDocumentPath(documentPath));
     const token = await getGoogleAccessToken(env);
     const response = await fetch(`https://firestore.googleapis.com/v1/${documentPath}`, {
         method: 'PATCH',
@@ -2845,7 +2930,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     try {
         await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), enrollmentRecord);
         await firestorePatch(env, firestoreDocumentPath(env, 'adminManualEnrollmentGrants', manualGrantId), grantAuditRecord);
-        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso));
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso, getCourseProduct(courseId)));
         await savePaymentLog(env, manualGrantId, {
             type: 'admin_manual_enrollment_granted',
             paymentId: null,
@@ -2866,7 +2951,12 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             createdAt: nowIso
         });
         const includedBaseEnrollment = await ensureManualIncludedBaseEnrollment(env, uid, product, enrollmentId, admin, note);
-        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, { ...enrollmentRecord, includedBaseEnrollment }, grantReason);
+        const savedEnrollment = await firestoreGetData(env, 'enrollments', enrollmentId);
+        const accessDecision = getEnrollmentAccessDecision(savedEnrollment, uid, courseId);
+        if (!accessDecision.allowed) {
+            throw new Error('수강권은 저장됐지만 강의 접근 검증에 실패했습니다: ' + accessDecision.reason);
+        }
+        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, { ...enrollmentRecord, includedBaseEnrollment, accessDecision }, grantReason);
     } catch (error) {
         await savePaymentLog(env, manualGrantId, {
             type: 'admin_manual_enrollment_failed',
@@ -2896,7 +2986,8 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         courseId,
         productId,
         expiresAt,
-        accessStatus
+        accessStatus,
+        accessVerified: true
     }, 200, corsHeaders);
 }
 
@@ -2957,6 +3048,185 @@ async function handleAdminEnrollmentUpdate(request, env, corsHeaders) {
     return json({ ok: true, enrollmentId, action, updated: patch, message: "수강권 변경사항이 저장되었습니다." }, 200, corsHeaders);
 }
 
+function getActiveEnrollmentCount(enrollments) {
+    return enrollments.filter((row) => isFirestoreEnrollmentActiveRecord(row)).length;
+}
+
+function getCollectionHealthCounts(rows) {
+    return {
+        users: rows.users.length,
+        orders: rows.orders.length,
+        payments: rows.payments.length,
+        purchases: rows.purchases.length,
+        enrollments: rows.enrollments.length,
+        activeEnrollments: getActiveEnrollmentCount(rows.enrollments),
+        courseProgress: rows.courseProgress.length,
+        certificates: rows.certificates.length
+    };
+}
+
+async function loadOperationalCollections(env) {
+    const [users, orders, payments, purchases, enrollments, courseProgress, certificates] = await Promise.all([
+        firestoreList(env, 'users').catch(() => []),
+        firestoreList(env, 'orders').catch(() => []),
+        firestoreList(env, 'payments').catch(() => []),
+        firestoreList(env, 'purchases').catch(() => []),
+        firestoreList(env, 'enrollments').catch(() => []),
+        firestoreList(env, 'courseProgress').catch(() => []),
+        firestoreList(env, 'certificates').catch(() => [])
+    ]);
+    return { users, orders, payments, purchases, enrollments, courseProgress, certificates };
+}
+
+function buildOperationalMetadata(env) {
+    return {
+        deploymentVersion: env.DEPLOYMENT_VERSION || env.CF_VERSION_METADATA?.id || null,
+        environment: getRuntimeEnvironment(env),
+        firebaseProjectId: getFirestoreProjectId(env),
+        expectedFirebaseProjectId: env.EXPECTED_FIREBASE_PROJECT_ID || PRODUCTION_FIREBASE_PROJECT_ID,
+        hostingEnvironment: env.HOSTING_ENVIRONMENT || 'cloudflare-workers',
+        buildTime: env.BUILD_TIME || null,
+        checkedAt: new Date().toISOString()
+    };
+}
+
+async function handleAdminDataHealth(request, env, corsHeaders) {
+    let admin;
+    try {
+        admin = await requireFirebaseAdmin(request, env);
+    } catch (error) {
+        return json({ message: error.message || '관리자 권한이 없습니다.', code: 'ADMIN_FORBIDDEN' }, error.status || 403, corsHeaders);
+    }
+    try {
+        assertProductionFirestoreProject(env, 'HEALTH_CHECK');
+        const rows = await loadOperationalCollections(env);
+        const metadata = buildOperationalMetadata(env);
+        const counts = getCollectionHealthCounts(rows);
+        const snapshotId = 'health_' + Date.now();
+        await firestorePatch(env, firestoreDocumentPath(env, 'adminAuditLogs', snapshotId), {
+            actionType: 'DATA_HEALTH_CHECK',
+            adminId: admin.uid || null,
+            counts,
+            ...metadata,
+            createdAt: metadata.checkedAt
+        }).catch((error) => console.error(error));
+        return json({ ok: true, metadata, counts }, 200, corsHeaders);
+    } catch (error) {
+        await firestorePatch(env, firestoreDocumentPath(env, 'adminAuditLogs', 'health_failed_' + Date.now()), {
+            actionType: 'DATA_HEALTH_CHECK_FAILED',
+            adminId: admin.uid || null,
+            message: error instanceof Error ? error.message : String(error),
+            ...buildOperationalMetadata(env),
+            createdAt: new Date().toISOString()
+        }).catch((logError) => console.error(logError));
+        return json({ ok: false, message: error instanceof Error ? error.message : '데이터 health check 실패', code: error.code || 'DATA_HEALTH_CHECK_FAILED' }, error.status || 500, corsHeaders);
+    }
+}
+
+function getSafeIssueRepairAction(issue) {
+    if (issue?.type === 'paid_without_enrollment' && issue.paymentId && issue.uid && issue.courseId && getCourseProduct(issue.courseId)) return 'RESTORE_PAYMENT_ENROLLMENT';
+    if (issue?.type === 'manual_inactive_or_denied' && issue.enrollmentId && issue.uid && issue.courseId && getCourseProduct(issue.courseId)) return 'RESTORE_MANUAL_ENROLLMENT';
+    return null;
+}
+
+async function restoreEnrollmentFromPayment(env, issue, admin, request) {
+    const payment = await firestoreGetData(env, 'payments', issue.paymentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (!payment) throw new Error('복구할 결제 문서를 찾을 수 없습니다.');
+    const uid = payment.uid || payment.userId || issue.uid;
+    const courseId = payment.courseId || issue.courseId;
+    const productId = payment.productId || resolveApplicationProductIdFromRecord(payment);
+    const product = APPLICATION_PRODUCTS[productId] || getCourseProduct(courseId);
+    if (!uid || !courseId || !getCourseProduct(courseId)) throw new Error('userId/courseId가 명확하지 않아 자동 복구할 수 없습니다.');
+    const approvedAt = payment.approvedAt || payment.purchasedAt || payment.createdAt || new Date().toISOString();
+    const purchasedAt = new Date(approvedAt);
+    const expiresAt = payment.expiresAt || new Date(purchasedAt.getTime() + (getCourseProduct(courseId).durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const enrollmentId = uid + '_' + courseId;
+    const nowIso = new Date().toISOString();
+    const record = {
+        enrollmentId, userId: uid, uid, courseId,
+        categoryId: payment.categoryId || product.categoryId || null,
+        productId: productId || payment.productId || null,
+        productTitle: payment.productTitle || product.title || null,
+        courseTitle: payment.courseTitle || product.courseTitle || getCourseProduct(courseId).courseTitle,
+        amount: payment.amount ?? null,
+        paymentId: payment.paymentId || payment.paymentKey || payment.id || issue.paymentId,
+        orderId: payment.orderId || payment.paymentId || issue.paymentId,
+        sourceType: 'PAYMENT',
+        paymentStatus: 'paid',
+        status: 'active',
+        isActive: true,
+        enrollmentStatus: 'active',
+        accessStatus: 'active',
+        startsAt: payment.startsAt || payment.purchasedAt || approvedAt,
+        purchasedAt: payment.purchasedAt || approvedAt,
+        expiresAt,
+        progress: 0,
+        completedLessons: 0,
+        totalLessons: product.totalLessons || getCourseProduct(courseId).totalLessons,
+        recoveredFrom: 'admin_integrity_repair',
+        restoredByAdminId: admin.uid || null,
+        restoredAt: nowIso,
+        createdAt: payment.createdAt || nowIso,
+        updatedAt: nowIso
+    };
+    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), record);
+    await saveAdminAuditLog(env, request, admin, 'enrollment.restore.payment', 'enrollments', enrollmentId, null, record, '결제완료 수강권 자동 복구');
+    return record;
+}
+
+async function restoreManualEnrollment(env, issue, admin, request) {
+    const enrollmentId = issue.enrollmentId || (issue.uid + '_' + issue.courseId);
+    const existing = await firestoreGetData(env, 'enrollments', enrollmentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
+    if (!existing) throw new Error('복구할 수동 수강권을 찾을 수 없습니다.');
+    if (!existing.courseId && !issue.courseId) throw new Error('courseId가 없어 자동 복구할 수 없습니다.');
+    const courseId = existing.courseId || issue.courseId;
+    const product = getCourseProduct(courseId);
+    if (!product) throw new Error('존재하지 않는 courseId는 자동 복구할 수 없습니다.');
+    const nowIso = new Date().toISOString();
+    const patch = {
+        courseId,
+        sourceType: 'MANUAL',
+        paymentId: null,
+        orderId: null,
+        paymentStatus: null,
+        status: 'active',
+        isActive: true,
+        enrollmentStatus: 'active',
+        accessStatus: 'active',
+        startsAt: existing.startsAt || existing.accessStartsAt || existing.grantedAt || existing.createdAt || nowIso,
+        expiresAt: existing.expiresAt || existing.accessEndsAt || new Date(Date.now() + product.durationDays * 24 * 60 * 60 * 1000).toISOString(),
+        restoredByAdminId: admin.uid || null,
+        restoredAt: nowIso,
+        updatedAt: nowIso
+    };
+    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), patch);
+    await saveAdminAuditLog(env, request, admin, 'enrollment.restore.manual', 'enrollments', enrollmentId, existing, patch, '수동 수강권 접근 복구');
+    return { ...existing, ...patch, enrollmentId };
+}
+
+async function handleAdminIntegrityRepair(request, env, corsHeaders) {
+    let admin;
+    try {
+        admin = await requireFirebaseAdmin(request, env);
+    } catch (error) {
+        return json({ message: error.message || '관리자 권한이 없습니다.', code: 'ADMIN_FORBIDDEN' }, error.status || 403, corsHeaders);
+    }
+    const body = await request.json().catch(() => null);
+    const issue = body?.issue || body;
+    const confirm = String(body?.confirm || '').trim();
+    const action = getSafeIssueRepairAction(issue);
+    if (!action) return json({ message: '이 항목은 자동 복구 대상이 아닙니다. courseId와 결제/수강권 정보를 관리자 확인 목록에서 점검해 주세요.', code: 'UNSAFE_REPAIR' }, 400, corsHeaders);
+    if (confirm !== 'REPAIR') return json({ message: '복구 전 확인값 REPAIR가 필요합니다.', code: 'CONFIRMATION_REQUIRED' }, 400, corsHeaders);
+    try {
+        const restored = action === 'RESTORE_PAYMENT_ENROLLMENT'
+            ? await restoreEnrollmentFromPayment(env, issue, admin, request)
+            : await restoreManualEnrollment(env, issue, admin, request);
+        return json({ ok: true, action, restored }, 200, corsHeaders);
+    } catch (error) {
+        return json({ ok: false, message: error instanceof Error ? error.message : '복구 중 오류가 발생했습니다.', code: 'REPAIR_FAILED' }, 500, corsHeaders);
+    }
+}
+
 async function handleAdminIntegrityCheck(request, env, corsHeaders) {
     let admin;
     try {
@@ -2964,40 +3234,65 @@ async function handleAdminIntegrityCheck(request, env, corsHeaders) {
     } catch (error) {
         return json({ message: error.message || "관리자 권한이 없습니다.", code: "ADMIN_FORBIDDEN" }, error.status || 403, corsHeaders);
     }
-    const [payments, enrollments, certificates] = await Promise.all([
-        firestoreList(env, "payments"),
-        firestoreList(env, "enrollments"),
-        firestoreList(env, "certificates").catch(() => [])
-    ]);
+    const rows = await loadOperationalCollections(env);
+    const { users, orders, payments, purchases, enrollments, courseProgress, certificates } = rows;
+    const allPaymentLikeRows = [...orders, ...payments, ...purchases];
     const enrollmentByPayment = new Map(enrollments.map((row) => [row.paymentId || row.orderId, row]));
     const enrollmentByUserCourse = new Map(enrollments.map((row) => [(row.uid || row.userId) + "_" + row.courseId, row]));
     const certificateByUserCourse = new Map(certificates.map((row) => [(row.uid || row.userId) + "_" + row.courseId, row]));
+    const progressByUserCourse = new Map(courseProgress.map((row) => [(row.uid || row.userId) + "_" + row.courseId, row]));
+    const courseIds = new Set(Object.keys(COURSE_PRODUCTS_BY_ID));
     const issues = [];
-    for (const payment of payments) {
-        const status = String(payment.paymentStatus || payment.status || "").toLowerCase();
-        const key = payment.paymentId || payment.orderId;
-        const userCourseKey = (payment.uid || payment.userId) + "_" + payment.courseId;
-        if (status === "paid" && !enrollmentByPayment.get(key) && !enrollmentByUserCourse.get(userCourseKey)) issues.push({ type: "paid_without_enrollment", severity: "high", paymentId: key, uid: payment.uid || payment.userId, courseId: payment.courseId });
-        if (["cancelled", "canceled", "refunded"].includes(status) && isFirestoreEnrollmentActiveRecord(enrollmentByPayment.get(key))) issues.push({ type: "cancelled_payment_active_enrollment", severity: "high", paymentId: key, uid: payment.uid || payment.userId, courseId: payment.courseId });
+
+    for (const payment of allPaymentLikeRows) {
+        const status = String(payment.paymentStatus || payment.status || payment.orderStatus || "").toLowerCase();
+        const key = payment.paymentId || payment.orderId || payment.id;
+        const uid = payment.uid || payment.userId;
+        const courseId = payment.courseId;
+        const userCourseKey = uid + "_" + courseId;
+        if (["paid", "done", "completed", "approved", "success"].includes(status) && uid && courseId && !enrollmentByPayment.get(key) && !enrollmentByUserCourse.get(userCourseKey)) {
+            issues.push({ type: "paid_without_enrollment", severity: "high", safeRepair: true, paymentId: key, uid, courseId, productId: payment.productId || null, amount: payment.amount ?? null });
+        }
+        if (["paid", "done", "completed", "approved", "success"].includes(status) && !courseId) issues.push({ type: "paid_record_missing_course_id", severity: "high", safeRepair: false, paymentId: key, uid, productId: payment.productId || null, amount: payment.amount ?? null });
+        if (["cancelled", "canceled", "refunded"].includes(status) && isFirestoreEnrollmentActiveRecord(enrollmentByPayment.get(key))) issues.push({ type: "cancelled_payment_active_enrollment", severity: "high", safeRepair: false, paymentId: key, uid, courseId });
     }
+
     for (const enrollment of enrollments) {
+        const uid = enrollment.uid || enrollment.userId;
         const key = enrollment.paymentId || enrollment.orderId;
         const product = APPLICATION_PRODUCTS[enrollment.productId];
-        if (!enrollment.courseId) issues.push({ type: "enrollment_missing_course_id", severity: "high", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted) });
-        if (enrollment.courseId && !getCourseProduct(enrollment.courseId)) issues.push({ type: "enrollment_unknown_course_id", severity: "high", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted) });
-        if (product && enrollment.courseId && product.courseId !== enrollment.courseId) issues.push({ type: "enrollment_product_course_mismatch", severity: "high", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId, expectedCourseId: product.courseId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted) });
-        if (enrollment.paymentStatus === "paid" && key && !payments.find((payment) => payment.paymentId === key || payment.orderId === key)) issues.push({ type: "enrollment_without_payment", severity: enrollment.adminGranted ? "info" : "medium", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId });
-        if ((Number(enrollment.progress || 0) >= 100 || Number(enrollment.completedLessons || 0) >= Number(enrollment.totalLessons || 0)) && !certificateByUserCourse.get((enrollment.uid || enrollment.userId) + "_" + enrollment.courseId)) issues.push({ type: "completed_without_certificate", severity: "medium", enrollmentId: enrollment.id, uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId });
+        const decision = getEnrollmentAccessDecision(enrollment, uid, enrollment.courseId);
+        const sourceType = normalizeEnrollmentSourceType(enrollment);
+        const enrollmentId = enrollment.enrollmentId || enrollment.id || (uid && enrollment.courseId ? uid + "_" + enrollment.courseId : enrollment.id);
+        if (!enrollment.courseId) issues.push({ type: "enrollment_missing_course_id", severity: "high", safeRepair: false, enrollmentId, uid, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted), sourceType });
+        if (enrollment.courseId && !courseIds.has(enrollment.courseId)) issues.push({ type: "enrollment_unknown_course_id", severity: "high", safeRepair: false, enrollmentId, uid, courseId: enrollment.courseId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted), sourceType });
+        if (product && enrollment.courseId && product.courseId !== enrollment.courseId) issues.push({ type: "enrollment_product_course_mismatch", severity: "high", safeRepair: false, enrollmentId, uid, courseId: enrollment.courseId, expectedCourseId: product.courseId, productId: enrollment.productId, adminGranted: Boolean(enrollment.adminGranted), sourceType });
+        if ((sourceType === "MANUAL" || enrollment.adminGranted) && !decision.allowed) issues.push({ type: "manual_inactive_or_denied", severity: "high", safeRepair: Boolean(enrollment.courseId && courseIds.has(enrollment.courseId)), enrollmentId, uid, courseId: enrollment.courseId, reason: decision.reason, sourceType });
+        if (sourceType === "PAYMENT" && key && !allPaymentLikeRows.find((payment) => payment.paymentId === key || payment.orderId === key || payment.id === key)) issues.push({ type: "payment_enrollment_without_payment", severity: "medium", safeRepair: false, enrollmentId, uid, courseId: enrollment.courseId, paymentId: key });
+        if (enrollment.deletedAt && isFirestoreEnrollmentActiveRecord(enrollment)) issues.push({ type: "deleted_marker_active_enrollment", severity: "high", safeRepair: false, enrollmentId, uid, courseId: enrollment.courseId });
+        if (enrollment.expiresAt && getEnrollmentRecordTime(enrollment.expiresAt) && getEnrollmentRecordTime(enrollment.expiresAt) < getEnrollmentRecordTime(enrollment.startsAt || enrollment.purchasedAt || enrollment.createdAt || 0)) issues.push({ type: "invalid_expiration_period", severity: "high", safeRepair: false, enrollmentId, uid, courseId: enrollment.courseId });
+        if (uid && enrollment.courseId && !decision.allowed && progressByUserCourse.has(uid + "_" + enrollment.courseId)) issues.push({ type: "progress_exists_but_access_denied", severity: "medium", safeRepair: false, enrollmentId, uid, courseId: enrollment.courseId, reason: decision.reason });
+        if ((Number(enrollment.progress || 0) >= 100 || Number(enrollment.completedLessons || 0) >= Number(enrollment.totalLessons || 0)) && !certificateByUserCourse.get(uid + "_" + enrollment.courseId)) issues.push({ type: "completed_without_certificate", severity: "medium", safeRepair: false, enrollmentId, uid, courseId: enrollment.courseId });
     }
+
+    const seenUserCourse = new Map();
+    for (const enrollment of enrollments) {
+        const key = (enrollment.uid || enrollment.userId) + "_" + enrollment.courseId;
+        if (!key.includes('undefined') && seenUserCourse.has(key)) issues.push({ type: "duplicate_enrollment", severity: "medium", safeRepair: false, enrollmentIds: [seenUserCourse.get(key), enrollment.id], uid: enrollment.uid || enrollment.userId, courseId: enrollment.courseId });
+        else seenUserCourse.set(key, enrollment.id || enrollment.enrollmentId);
+    }
+
     const certificateNos = new Map();
     for (const certificate of certificates) {
         const no = certificate.certificateNo || certificate.issueNumber;
         if (!no) continue;
-        if (certificateNos.has(no)) issues.push({ type: "duplicate_certificate_no", severity: "high", certificateNo: no, certificateIds: [certificateNos.get(no), certificate.id] });
+        if (certificateNos.has(no)) issues.push({ type: "duplicate_certificate_no", severity: "high", safeRepair: false, certificateNo: no, certificateIds: [certificateNos.get(no), certificate.id] });
         certificateNos.set(no, certificate.id);
     }
-    await saveAdminAuditLog(env, request, admin, "integrity.check", "admin", "integrity", null, { issueCount: issues.length }, "관리자 데이터 정합성 점검").catch((error) => console.error(error));
-    return json({ ok: true, checkedAt: new Date().toISOString(), counts: { payments: payments.length, enrollments: enrollments.length, certificates: certificates.length }, issues }, 200, corsHeaders);
+
+    const counts = getCollectionHealthCounts(rows);
+    await saveAdminAuditLog(env, request, admin, "integrity.check", "admin", "integrity", null, { issueCount: issues.length, counts }, "관리자 데이터 정합성 점검").catch((error) => console.error(error));
+    return json({ ok: true, checkedAt: new Date().toISOString(), metadata: buildOperationalMetadata(env), counts, issues }, 200, corsHeaders);
 }
 async function handleAdminCertificateIssue(request, env, corsHeaders) {
     let admin;
@@ -3150,7 +3445,7 @@ async function handleAdminPayments(request, env, corsHeaders) {
 }
 
 async function firestoreList(env, collectionName) {
-    const projectId = env.FIREBASE_PROJECT_ID || env.GOOGLE_CLOUD_PROJECT || 'jaeseung-try-2-34973152-e44aa';
+    const projectId = getFirestoreProjectId(env);
     const token = await getGoogleAccessToken(env);
     const response = await fetch(`https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionName}?pageSize=100`, {
         headers: { Authorization: `Bearer ${token}` }
@@ -3164,7 +3459,7 @@ async function firestoreList(env, collectionName) {
 }
 
 async function firestoreQuery(env, collectionName, filters) {
-    const projectId = env.FIREBASE_PROJECT_ID || env.GOOGLE_CLOUD_PROJECT || 'jaeseung-try-2-34973152-e44aa';
+    const projectId = getFirestoreProjectId(env);
     const token = await getGoogleAccessToken(env);
     const fieldFilters = filters.map(({ field, value }) => ({
         fieldFilter: {
@@ -3209,3 +3504,5 @@ function fromFirestoreValue(value) {
     if ('mapValue' in value) return fromFirestoreFields(value.mapValue.fields || {});
     return null;
 }
+
+export { getEnrollmentAccessDecision, isFirestoreEnrollmentActiveRecord, normalizeEnrollmentSourceType };
