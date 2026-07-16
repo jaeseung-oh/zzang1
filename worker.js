@@ -1144,60 +1144,74 @@ function buildEnrollmentApiRecord(enrollment, progress) {
 
 async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
     const uid = firebaseUser.uid;
-    const knownCourseIds = Object.keys(COURSE_PRODUCTS_BY_ID);
-    const directEntitlements = await Promise.all(
-        knownCourseIds.map((courseId) => checkCourseEntitlement(env, {
-            uid,
-            email: firebaseUser.email || null,
-            requestedCourseId: courseId,
-            canonicalCourseId: courseId,
-            requestedFeature: 'course_room_entry'
-        }).catch((error) => {
-            logEnrollmentWorkerEvent('enrollment_known_course_lookup_failed', {
-                uid: maskLogIdentifier(uid),
-                courseId,
-                message: error instanceof Error ? error.message : String(error)
-            });
-            return null;
-        }))
-    );
-    const [byUserId, byUid] = await Promise.all([
-        firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]).catch((error) => {
-            logEnrollmentWorkerEvent('enrollment_user_query_failed', { uid: maskLogIdentifier(uid), field: 'userId', message: error instanceof Error ? error.message : String(error) });
+    const normalizedEmail = String(firebaseUser.email || '').trim().toLowerCase();
+    const matchesIdentity = (row) => {
+        const rowUid = String(row?.uid || row?.userId || row?.firebaseUid || row?.customerUid || row?.buyerUid || '').trim();
+        const rowEmail = String(row?.userEmail || row?.email || row?.customerEmail || row?.buyerEmail || '').trim().toLowerCase();
+        return rowUid === uid || (normalizedEmail && rowEmail === normalizedEmail);
+    };
+
+    const [allEnrollments, allPurchases, allPayments, allOrders] = await Promise.all([
+        firestoreList(env, 'enrollments').catch((error) => {
+            logEnrollmentWorkerEvent('enrollment_full_list_failed', { uid: maskLogIdentifier(uid), message: error instanceof Error ? error.message : String(error) });
             return [];
         }),
-        firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }]).catch((error) => {
-            logEnrollmentWorkerEvent('enrollment_user_query_failed', { uid: maskLogIdentifier(uid), field: 'uid', message: error instanceof Error ? error.message : String(error) });
-            return [];
-        })
+        firestoreList(env, 'purchases').catch(() => []),
+        firestoreList(env, 'payments').catch(() => []),
+        firestoreList(env, 'orders').catch(() => [])
     ]);
 
     const byCourse = new Map();
     const addEnrollment = (enrollment) => {
         const courseId = resolveCanonicalCourseId(enrollment || {}) || enrollment?.canonicalCourseId || enrollment?.courseId;
         if (!courseId) return;
-        const normalized = { ...enrollment, courseId, canonicalCourseId: courseId };
-        if (!isFirestoreEnrollmentActiveRecord(normalized)) return;
+        const normalized = { ...enrollment, uid: enrollment.uid || enrollment.userId || uid, userId: enrollment.userId || enrollment.uid || uid, courseId, canonicalCourseId: courseId };
+        const decision = getEnrollmentAccessDecision(normalized, normalized.uid || normalized.userId, courseId);
+        if (!decision.allowed) return;
         const existing = byCourse.get(courseId);
-        if (!existing || normalized.recordSource === 'root_repaired' || normalized.recordSource === 'root') {
+        if (!existing || normalized.uid === uid || normalized.recordSource === 'root' || normalized.recordSource === 'root_repaired') {
             byCourse.set(courseId, normalized);
         }
     };
 
-    directEntitlements.forEach((entitlement) => {
-        if (entitlement?.allowed && entitlement.enrollment) addEnrollment(entitlement.enrollment);
-    });
-    [...byUserId, ...byUid].forEach(addEnrollment);
+    allEnrollments.filter(matchesIdentity).forEach(addEnrollment);
+
+    const paymentRows = [...allPurchases, ...allPayments, ...allOrders]
+        .filter(matchesIdentity)
+        .filter(isRestorablePaidOperationalRecord)
+        .sort((a, b) => new Date(b.approvedAt || b.purchasedAt || b.paidAt || b.createdAt || 0).getTime() - new Date(a.approvedAt || a.purchasedAt || a.paidAt || a.createdAt || 0).getTime());
+
+    for (const payment of paymentRows) {
+        const courseId = resolveCanonicalCourseId(payment) || payment.courseId;
+        if (!courseId || !getCourseProduct(courseId)) continue;
+        const current = byCourse.get(courseId);
+        if (current && getEnrollmentAccessDecision(current, current.uid || current.userId, courseId).allowed) continue;
+        const saved = await grantCourseAccess(env, {
+            ...payment,
+            uid,
+            userId: uid,
+            userEmail: firebaseUser.email || payment.userEmail || payment.email || payment.customerEmail || payment.buyerEmail || null,
+            canonicalCourseId: courseId,
+            courseId,
+            source: 'migration',
+            paymentId: payment.paymentId || payment.paymentKey || payment.id || null,
+            orderId: payment.orderId || payment.id || payment.paymentId || null,
+            recoveredFrom: payment.recordSource || 'dashboard_paid_record_scan'
+        }).catch((error) => {
+            logEnrollmentWorkerEvent('dashboard_payment_recovery_failed', { uid: maskLogIdentifier(uid), courseId, paymentId: payment.paymentId || payment.orderId || payment.id || null, message: error instanceof Error ? error.message : String(error) });
+            return null;
+        });
+        if (saved) addEnrollment({ ...saved, recordSource: 'dashboard_payment_recovery' });
+    }
 
     return Promise.all(Array.from(byCourse.values()).map(async (enrollment) => {
         const courseId = resolveCanonicalCourseId(enrollment) || enrollment.courseId;
-        const enriched = await enrichWorkerEnrollmentEntitlement(env, uid, courseId, { ...enrollment, courseId });
+        const enriched = await enrichWorkerEnrollmentEntitlement(env, uid, courseId, { ...enrollment, uid, userId: uid, courseId });
         const progressId = uid + '_' + courseId;
         const progress = await firestoreGetData(env, 'courseProgress', progressId).catch(() => null);
-        return buildEnrollmentApiRecord(enriched, progress);
+        return buildEnrollmentApiRecord({ ...enriched, uid, userId: uid, courseId }, progress);
     }));
 }
-
 async function handleCurrentUserEnrollments(request, env, corsHeaders) {
     const url = new URL(request.url);
     const requestedCourseId = (url.searchParams.get('courseId') || '').trim();
