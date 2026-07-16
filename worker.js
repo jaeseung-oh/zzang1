@@ -815,17 +815,27 @@ async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canon
     return { ...source, ...saved, id: repaired.enrollmentId, documentPath: canonicalPath, recordSource: 'root_repaired' };
 }
 
-async function getPaymentLikeRecordsForEntitlement(env, uid) {
+async function getPaymentLikeRecordsForEntitlement(env, uid, email = '') {
     const collections = ['purchases', 'payments', 'orders'];
-    const fields = ['uid', 'userId', 'firebaseUid', 'customerUid', 'buyerUid'];
-    const results = await Promise.all(collections.flatMap((collectionName) => fields.map((field) =>
-        firestoreQuery(env, collectionName, [{ field, value: uid }]).catch((error) => {
-            logEnrollmentWorkerEvent('entitlement_payment_query_failed', { collectionName, field, uid: maskLogIdentifier(uid), message: error instanceof Error ? error.message : String(error) });
+    const uidFields = ['uid', 'userId', 'firebaseUid', 'customerUid', 'buyerUid'];
+    const emailFields = ['email', 'userEmail', 'customerEmail', 'buyerEmail'];
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const querySpecs = collections.flatMap((collectionName) => [
+        ...uidFields.map((field) => ({ collectionName, field, value: uid, lookupType: 'uid' })),
+        ...emailFields.map((field) => ({ collectionName, field, value: normalizedEmail, lookupType: 'email' }))
+    ].filter((item) => item.value));
+    const results = await Promise.all(querySpecs.map(({ collectionName, field, value, lookupType }) =>
+        firestoreQuery(env, collectionName, [{ field, value }]).catch((error) => {
+            logEnrollmentWorkerEvent('entitlement_payment_query_failed', { collectionName, field, lookupType, uid: maskLogIdentifier(uid), email: normalizedEmail ? maskLogIdentifier(normalizedEmail) : null, message: error instanceof Error ? error.message : String(error) });
             return [];
         })
-    )));
+    ));
     const byPath = new Map();
-    results.flat().forEach((row) => byPath.set(row.documentPath || row.id, row));
+    results.flat().forEach((row) => {
+        const rowUid = String(row.uid || row.userId || row.firebaseUid || row.customerUid || row.buyerUid || '').trim();
+        const rowEmail = String(row.email || row.userEmail || row.customerEmail || row.buyerEmail || '').trim().toLowerCase();
+        if (rowUid === uid || (normalizedEmail && rowEmail === normalizedEmail)) byPath.set(row.documentPath || row.id, row);
+    });
     return Array.from(byPath.values());
 }
 
@@ -835,8 +845,8 @@ function isValidCompletedPaymentForEntitlement(row, canonicalCourseId) {
     return sameCourse && isRestorablePaidOperationalRecord(row);
 }
 
-async function getValidCompletedPaymentsForCourse(env, uid, canonicalCourseId) {
-    const rows = await getPaymentLikeRecordsForEntitlement(env, uid);
+async function getValidCompletedPaymentsForCourse(env, uid, canonicalCourseId, email = '') {
+    const rows = await getPaymentLikeRecordsForEntitlement(env, uid, email);
     return rows
         .filter((row) => isValidCompletedPaymentForEntitlement(row, canonicalCourseId))
         .sort((a, b) => new Date(b.approvedAt || b.purchasedAt || b.paidAt || b.createdAt || 0).getTime() - new Date(a.approvedAt || a.purchasedAt || a.paidAt || a.createdAt || 0).getTime());
@@ -864,11 +874,11 @@ async function checkCourseEntitlement(env, { uid, email, canonicalCourseId, requ
     };
 
     const [enrollment, validPayments] = await Promise.all([
-        getWorkerEnrollmentRecord(env, uid, normalizedCourseId).catch((error) => {
+        getWorkerEnrollmentRecord(env, uid, normalizedCourseId, email).catch((error) => {
             logEnrollmentWorkerEvent('entitlement_enrollment_lookup_failed', { ...baseLog, message: error instanceof Error ? error.message : String(error) });
             throw error;
         }),
-        getValidCompletedPaymentsForCourse(env, uid, normalizedCourseId)
+        getValidCompletedPaymentsForCourse(env, uid, normalizedCourseId, email)
     ]);
 
     const enrollmentDecision = getEnrollmentAccessDecision(enrollment, uid, normalizedCourseId);
@@ -967,7 +977,7 @@ async function userHasWorkerCourseAccess(env, user, courseId) {
     return decision.allowed;
 }
 
-async function getWorkerEnrollmentRecord(env, uid, courseId) {
+async function getWorkerEnrollmentRecord(env, uid, courseId, email = '') {
     const canonicalCourseId = resolveCanonicalCourseId({ courseId }) || courseId;
     const enrollmentId = uid + '_' + canonicalCourseId;
     const canonicalPath = firestoreDocumentPath(env, 'enrollments', enrollmentId);
@@ -991,12 +1001,20 @@ async function getWorkerEnrollmentRecord(env, uid, courseId) {
     }
 
     // Historical purchases may use a payment/order ID as the document ID.
-    const [byUserId, byUid] = await Promise.all([
+    const normalizedEmail = String(email || '').trim().toLowerCase();
+    const [byUserId, byUid, byUserEmail, byEmail] = await Promise.all([
         firestoreQuery(env, 'enrollments', [{ field: 'userId', value: uid }]),
-        firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }])
+        firestoreQuery(env, 'enrollments', [{ field: 'uid', value: uid }]),
+        normalizedEmail ? firestoreQuery(env, 'enrollments', [{ field: 'userEmail', value: normalizedEmail }]).catch(() => []) : [],
+        normalizedEmail ? firestoreQuery(env, 'enrollments', [{ field: 'email', value: normalizedEmail }]).catch(() => []) : []
     ]);
     const matchesCourse = (row) => (resolveCanonicalCourseId(row) || row.courseId) === canonicalCourseId;
-    const candidates = [canonical, nestedRecord, ...byUserId, ...byUid].filter((row) => row && matchesCourse(row));
+    const matchesCurrentIdentity = (row) => {
+        const rowUid = String(row?.uid || row?.userId || '').trim();
+        const rowEmail = String(row?.userEmail || row?.email || '').trim().toLowerCase();
+        return rowUid === uid || (normalizedEmail && rowEmail === normalizedEmail);
+    };
+    const candidates = [canonical, nestedRecord, ...byUserId, ...byUid, ...byUserEmail, ...byEmail].filter((row) => row && matchesCourse(row) && matchesCurrentIdentity(row));
     const activeEnrollment = candidates.find(isFirestoreEnrollmentActiveRecord);
     if (activeEnrollment) {
         return repairCanonicalWorkerEnrollment(env, uid, canonicalCourseId, activeEnrollment, canonicalPath).catch((error) => {
@@ -1869,9 +1887,9 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const user = await firestoreGetData(env, 'users', uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
     if (!user) return json({ message: '회원 정보를 확인할 수 없습니다.', code: 'USER_NOT_FOUND' }, 400, corsHeaders);
 
-    let enrollment = await getWorkerEnrollmentRecord(env, uid, courseId);
+    let enrollment = await getWorkerEnrollmentRecord(env, uid, courseId, firebaseUser.email || null);
     if (!isFirestoreEnrollmentActiveRecord(enrollment) && courseId === DUI_COURSE_PRODUCT.courseId) {
-        const advancedEnrollment = await getWorkerEnrollmentRecord(env, uid, CBT_COURSE_PRODUCT.courseId).catch(() => null);
+        const advancedEnrollment = await getWorkerEnrollmentRecord(env, uid, CBT_COURSE_PRODUCT.courseId, firebaseUser.email || null).catch(() => null);
         if (isFirestoreEnrollmentActiveRecord(advancedEnrollment)) {
             enrollment = advancedEnrollment;
         }
@@ -3899,7 +3917,7 @@ async function handleAdminCertificateIssue(request, env, corsHeaders) {
     const user = await firestoreGetData(env, 'users', uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
     if (!user) return json({ message: '회원 정보를 확인할 수 없습니다.', code: 'USER_NOT_FOUND' }, 400, corsHeaders);
 
-    const enrollment = await getWorkerEnrollmentRecord(env, uid, courseId).catch(() => null);
+    const enrollment = await getWorkerEnrollmentRecord(env, uid, courseId, user.email || null).catch(() => null);
     if (!isFirestoreEnrollmentActiveRecord(enrollment)) {
         return json({ message: '활성 수강권이 없습니다. 먼저 관리자 페이지에서 수강권을 직접 부여해 주세요.', code: 'ENROLLMENT_NOT_ACTIVE' }, 400, corsHeaders);
     }
