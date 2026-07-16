@@ -577,7 +577,6 @@ export default function CourseRoomPage() {
         } else {
           setAccessBlockedMessage("");
         }
-        setAccessChecking(false);
         const progressSnapshot = await getDoc(doc(db, "courseProgress", user.uid + "_" + effectiveCourseId));
         const remote = progressSnapshot.exists() ? (progressSnapshot.data() as ProgressRecord) : null;
         const local = readLocalSnapshot(effectiveCourseId);
@@ -598,6 +597,7 @@ export default function CourseRoomPage() {
             ? "이전 학습 기록을 불러왔습니다. 원하는 강의를 선택해 이어서 수강할 수 있습니다."
             : "실명이 확인되었습니다. 온라인 교육실에서 진도와 전체 누적 수강률을 저장할 수 있습니다."
         );
+        setAccessChecking(false);
       } catch (sessionError) {
         console.error(sessionError);
         if (!cancelled) {
@@ -872,7 +872,7 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [uid, selectedModule, accessBlockedMessage, accessChecking]);
+  }, [uid, selectedModule, selectedModuleId, effectiveCourseId, accessBlockedMessage, accessChecking]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Stream) {
