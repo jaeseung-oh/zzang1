@@ -543,13 +543,16 @@ export default function CourseRoomPage() {
         if (!allowed) {
           const hasEnrollment = Boolean(enrollment);
           const expired = hasEnrollment && !isEnrollmentActive(enrollment);
-          const message = expired
-            ? "해당 강의의 수강기간이 유효하지 않아 수강할 수 없습니다. 관리자에게 수강권 상태를 확인해 주세요."
-            : "현재 계정에서 이용 가능한 수강권을 확인할 수 없습니다. 교육과정을 구매했거나 관리자에게 수강권을 받은 경우 잠시 후 다시 시도해 주세요.";
-          setAccessBlockedMessage(message);
-          setPlayerError(message);
-          setAccessChecking(false);
-          return;
+          if (expired) {
+            const message = "해당 강의의 수강기간이 유효하지 않아 수강할 수 없습니다. 관리자에게 수강권 상태를 확인해 주세요.";
+            setAccessBlockedMessage(message);
+            setPlayerError(message);
+            setAccessChecking(false);
+            return;
+          }
+          setAccessBlockedMessage("");
+          setPlayerError("");
+          setStatusMessage("수강권 목록 반영이 지연되어 서버 영상 권한을 직접 확인합니다.");
         } else {
           setAccessBlockedMessage("");
         }
