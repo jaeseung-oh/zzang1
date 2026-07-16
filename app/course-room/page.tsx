@@ -400,6 +400,7 @@ export default function CourseRoomPage() {
   const [videoProvider, setVideoProvider] = useState<"storage" | "cloudflare-stream">("storage");
   const [videoExpiresAt, setVideoExpiresAt] = useState<number | null>(null);
   const [isVideoLoading, setIsVideoLoading] = useState(false);
+  const [videoLoadRetryTick, setVideoLoadRetryTick] = useState(0);
   const [streamSdkReady, setStreamSdkReady] = useState(false);
   const [accessBlockedMessage, setAccessBlockedMessage] = useState("");
   const [accessChecking, setAccessChecking] = useState(true);
@@ -872,7 +873,23 @@ export default function CourseRoomPage() {
     return () => {
       cancelled = true;
     };
-  }, [uid, selectedModule, selectedModuleId, effectiveCourseId, accessBlockedMessage, accessChecking]);
+  }, [uid, selectedModule, selectedModuleId, effectiveCourseId, accessBlockedMessage, accessChecking, videoLoadRetryTick]);
+
+  useEffect(() => {
+    if (accessChecking || accessBlockedMessage || videoUrl || isVideoLoading || playerError) {
+      return;
+    }
+    if (!uid || !selectedModule) {
+      return;
+    }
+
+    const retryTimer = window.setTimeout(() => {
+      setStatusMessage("영상 요청이 지연되어 다시 시도합니다.");
+      setVideoLoadRetryTick((value) => value + 1);
+    }, 1200);
+
+    return () => window.clearTimeout(retryTimer);
+  }, [accessChecking, accessBlockedMessage, videoUrl, isVideoLoading, playerError, uid, selectedModule, selectedModuleId]);
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.Stream) {
