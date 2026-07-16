@@ -1376,7 +1376,26 @@ async function handleStreamToken(request, env, corsHeaders) {
 
     const accessDecision = await getWorkerCourseAccessDecision(env, firebaseUser, courseId, '/api/stream/token');
     if (!accessDecision.allowed) {
-        return json({ error: 'enrollment_required', code: accessDecision.deniedReason || 'NO_ENROLLMENT', message: '유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.' }, 403, corsHeaders);
+        const dashboardEnrollments = await getWorkerAllActiveEnrollmentRecords(env, firebaseUser).catch((error) => {
+            logEnrollmentWorkerEvent('stream_dashboard_entitlement_fallback_failed', {
+                authUid: maskLogIdentifier(firebaseUser.uid),
+                authEmail: firebaseUser.email || null,
+                courseId,
+                message: error instanceof Error ? error.message : String(error)
+            });
+            return [];
+        });
+        const dashboardEnrollment = dashboardEnrollments.find((enrollment) => (resolveCanonicalCourseId(enrollment) || enrollment.courseId) === courseId && isFirestoreEnrollmentActiveRecord(enrollment));
+        if (!dashboardEnrollment) {
+            return json({ error: 'enrollment_required', code: accessDecision.deniedReason || 'NO_ENROLLMENT', message: '유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.' }, 403, corsHeaders);
+        }
+        logEnrollmentWorkerEvent('stream_access_allowed_by_dashboard_entitlement', {
+            authUid: maskLogIdentifier(firebaseUser.uid),
+            authEmail: firebaseUser.email || null,
+            courseId,
+            enrollmentId: dashboardEnrollment.enrollmentId || dashboardEnrollment.id || null,
+            previousDeniedReason: accessDecision.deniedReason || 'NO_ENROLLMENT'
+        });
     }
 
     const response = await fetch(
