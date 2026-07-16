@@ -1,0 +1,8 @@
+/course-room
+  Cache-Control: private, no-store, no-cache, must-revalidate
+
+/course-room/
+  Cache-Control: private, no-store, no-cache, must-revalidate
+
+/course-room/*
+  Cache-Control: private, no-store, no-cache, must-revalidate

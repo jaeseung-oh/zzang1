@@ -223,11 +223,32 @@ async function resolveCloudflareStreamUrl(uid: string, courseId: string) {
   return data.videoUrl;
 }
 
-function formatVideoLoadError(error: unknown) {
+function isVideoPermissionError(error: unknown) {
   const code = String((error as { code?: unknown })?.code || "").toLowerCase();
-  const message = error instanceof Error ? error.message : "강의 영상을 불러오지 못했습니다.";
+  const message = error instanceof Error ? error.message : "";
   const permissionCodes = ["enrollment_required", "permission-denied", "no_enrollment", "expired", "inactive_enrollment", "not_started"];
-  if (permissionCodes.some((item) => code.includes(item)) || message.includes("유효한 수강권") || message.includes("수강권") || message.includes("수강기간")) {
+  return permissionCodes.some((item) => code.includes(item)) || message.includes("유효한 수강권") || message.includes("수강권") || message.includes("수강기간");
+}
+
+async function resolveCloudflareStreamUrlWithRetry(uid: string, courseId: string) {
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return await resolveCloudflareStreamUrl(uid, courseId);
+    } catch (error) {
+      lastError = error;
+      if (!isVideoPermissionError(error) || attempt === 2) {
+        throw error;
+      }
+      await delayCourseAccessRetry(900 + attempt * 800);
+    }
+  }
+  throw lastError;
+}
+
+function formatVideoLoadError(error: unknown) {
+  const message = error instanceof Error ? error.message : "강의 영상을 불러오지 못했습니다.";
+  if (isVideoPermissionError(error)) {
     return message || "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.";
   }
   return message ? `강의 영상 URL 발급 실패: ${message}` : "수강 권한은 확인되었으나 강의 영상을 불러오지 못했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";
@@ -793,7 +814,7 @@ export default function CourseRoomPage() {
             return;
           }
 
-          const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, effectiveCourseId);
+          const streamUrl = await resolveCloudflareStreamUrlWithRetry(selectedModule.cloudflareStreamUid, effectiveCourseId);
 
           if (cancelled) {
             return;
@@ -969,7 +990,7 @@ export default function CourseRoomPage() {
       const refresh = async () => {
         try {
           if (selectedModule.cloudflareStreamUid) {
-            const streamUrl = await resolveCloudflareStreamUrl(selectedModule.cloudflareStreamUid, effectiveCourseId);
+            const streamUrl = await resolveCloudflareStreamUrlWithRetry(selectedModule.cloudflareStreamUid, effectiveCourseId);
             setVideoProvider("cloudflare-stream");
             setVideoUrl(streamUrl);
             setVideoExpiresAt(Date.now() + 1000 * 60 * 55);
@@ -1611,7 +1632,7 @@ export default function CourseRoomPage() {
                         )
                       ) : (
                         <div className="flex h-full items-center justify-center px-8 text-center text-sm leading-7 text-slate-300">
-                          {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : playerError || "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다."}
+                          {isVideoLoading ? "선택한 강의 영상을 불러오는 중입니다..." : playerError || "강의 영상을 준비하고 있습니다."}
                         </div>
                       )}
                     </div>
