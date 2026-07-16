@@ -68,13 +68,32 @@ service cloud.firestore {
     function allowedClientCourseProgressKeys() {
       return [
         "userId",
+        "uid",
         "courseId",
+        "courseTitle",
+        "caseType",
         "totalLessons",
+        "completedLessons",
         "overallProgressRate",
         "lastLessonId",
         "lastLessonTime",
+        "watchedSeconds",
+        "durationSeconds",
+        "completionRate",
+        "remainingSeconds",
+        "lastPlaybackPositionSeconds",
+        "completedModuleCount",
+        "totalModuleCount",
+        "moduleProgress",
+        "isCompleted",
+        "legalDisclaimerAccepted",
+        "legalNoticeAcceptedAt",
+        "legalNoticeAcceptedDate",
+        "userReviewAccepted",
         "updatedAt",
-        "updatedAtServer"
+        "updatedAtServer",
+        "createdAt",
+        "completedAt"
       ];
     }
 
@@ -169,32 +188,30 @@ service cloud.firestore {
       allow write: if false;
     }
 
-    function isCourseProgressConsentWrite() {
+    function isCourseProgressOwnerWrite() {
       return isSignedIn()
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.legalDisclaimerAccepted == true
-        && request.resource.data.keys().hasOnly(["uid", "courseId", "courseTitle", "caseType", "legalDisclaimerAccepted", "legalNoticeAcceptedAt", "legalNoticeAcceptedDate", "updatedAt"]);
+        && request.resource.data.keys().hasOnly(allowedClientCourseProgressKeys());
     }
 
-    function isCourseProgressConsentOnlyUpdate() {
+    function isCourseProgressOwnerUpdate() {
       return isSignedIn()
         && resource.data.uid == request.auth.uid
         && request.resource.data.uid == request.auth.uid
-        && request.resource.data.legalDisclaimerAccepted == true
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["uid", "courseId", "courseTitle", "caseType", "legalDisclaimerAccepted", "legalNoticeAcceptedAt", "legalNoticeAcceptedDate", "updatedAt"]);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(allowedClientCourseProgressKeys());
     }
 
     match /courseProgress/{progressId} {
       allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
-      allow create: if isCourseProgressConsentWrite();
-      allow update: if isCourseProgressConsentOnlyUpdate();
+      allow create: if isCourseProgressOwnerWrite();
+      allow update: if isCourseProgressOwnerUpdate();
       allow delete: if false;
     }
 
     match /certificates/{certificateId} {
       allow read: if isAdmin() || (isSignedIn()
         && resource.data.uid == request.auth.uid
-        && resource.data.documentType in ["completion", "cbt-completion"]);
+        && resource.data.documentType in ["completion", "course-certificate", "cbt-completion", "cbt-detail", "attendance"]);
       allow update: if isAdminMemoOnlyUpdate();
       allow create, delete: if false;
     }

@@ -33,6 +33,79 @@ const DUI_CERTIFICATE_ISSUER = {
   issuerEmail: process.env.CERTIFICATE_ISSUER_EMAIL || "",
 };
 
+const COURSE_ID_ALIASES: Record<string, string> = {
+  dui: DUI_COURSE_ID,
+  basic: DUI_COURSE_ID,
+  "dui-documents": DUI_COURSE_ID,
+  "dui-prevention": DUI_COURSE_ID,
+  "dui-prevention-basic": DUI_COURSE_ID,
+  "rapid-sentencing-prep": DUI_COURSE_ID,
+  cbt: "dui-cbt-advanced",
+  advanced: "dui-cbt-advanced",
+  "dui-cbt": "dui-cbt-advanced",
+  "dui-cbt-advanced": "dui-cbt-advanced",
+  "violence-prevention": "violence-basic",
+  violence: "violence-basic",
+  "violence-basic": "violence-basic",
+  "violence-advanced": "violence-advanced",
+  "gambling-relapse-prevention": "gambling-basic",
+  gambling: "gambling-basic",
+  "gambling-basic": "gambling-basic",
+  "gambling-advanced": "gambling-advanced",
+  "sexual-offense-prevention": "sexual-offense-basic",
+  "sexual-offense": "sexual-offense-basic",
+  sexual: "sexual-offense-basic",
+  "sexual-offense-basic": "sexual-offense-basic",
+  "sexual-offense-advanced": "sexual-offense-advanced",
+  "drug-rehab-prevention": "drug-basic",
+  drug: "drug-basic",
+  "drug-basic": "drug-basic",
+  "drug-advanced": "drug-advanced",
+};
+
+function resolveCanonicalCourseId(input: Record<string, any> | string | null | undefined) {
+  const row = typeof input === "string" ? { courseId: input } : input || {};
+  const candidates = [
+    row.canonicalCourseId,
+    row.courseId,
+    row.productId,
+    row.paymentProductId,
+    row.itemId,
+    row.lectureId,
+    row.slug,
+    row.categoryId,
+    row.productName,
+    row.productTitle,
+    row.courseName,
+    row.courseTitle,
+    row.orderName,
+  ].map((value) => String(value || "").trim()).filter(Boolean);
+  for (const candidate of candidates) {
+    if (COURSE_ID_ALIASES[candidate]) return COURSE_ID_ALIASES[candidate];
+    const lowered = candidate.toLowerCase();
+    if (COURSE_ID_ALIASES[lowered]) return COURSE_ID_ALIASES[lowered];
+  }
+  return "";
+}
+
+function isCompletedPaymentRecord(data: Record<string, any>) {
+  const status = normalizeEnrollmentStatus(data.paymentStatus ?? data.status ?? data.orderStatus ?? data.rawResponse?.status);
+  return ["paid", "done", "completed", "success", "approved", "payment_completed"].includes(status)
+    || String(data.rawResponse?.status || "").toUpperCase() === "PAID"
+    || String(data.status || "").toUpperCase() === "DONE";
+}
+
+function isCancelledOrRefundedPaymentRecord(data: Record<string, any>) {
+  const status = normalizeEnrollmentStatus(data.paymentStatus ?? data.status ?? data.orderStatus ?? data.cancelStatus);
+  if (["cancelled", "canceled", "refunded", "failed", "pending", "cancelled_paid", "cancelled_partial"].includes(status)) return true;
+  const providerStatus = String(data.rawResponse?.status || data.status || "").toUpperCase();
+  if (["CANCELLED", "FAILED", "PENDING", "READY"].includes(providerStatus)) return true;
+  const total = Number(data.rawResponse?.amount?.total ?? data.amount ?? data.totalAmount ?? 0);
+  const cancelled = Number(data.rawResponse?.amount?.cancel ?? data.cancelAmount ?? data.refundAmount ?? 0);
+  return total > 0 && cancelled >= total;
+}
+
+
 function parsePurchaseExpiry(value: unknown) {
   if (!value) {
     return null;
@@ -299,31 +372,43 @@ async function getCertificateIdentity(uid: string, options?: { lockIfMissing?: b
   };
 }
 
-async function getPaidPurchase(uid: string, courseId: string) {
-  const snapshot = await db
-    .collection("purchases")
-    .where("uid", "==", uid)
-    .where("courseId", "==", courseId)
-    .where("paymentStatus", "==", "paid")
-    .limit(20)
-    .get();
-
-  if (snapshot.empty) {
-    throw new HttpsError("failed-precondition", "결제 완료 이력이 확인되지 않아 수강 완료를 저장할 수 없습니다.");
+async function queryPaymentLikeDocuments(uid: string) {
+  const collections = ["purchases", "payments", "orders"];
+  const snapshots = await Promise.all(collections.flatMap((collectionName) => [
+    db.collection(collectionName).where("uid", "==", uid).limit(100).get().catch(() => null),
+    db.collection(collectionName).where("userId", "==", uid).limit(100).get().catch(() => null),
+    db.collection(collectionName).where("firebaseUid", "==", uid).limit(100).get().catch(() => null),
+    db.collection(collectionName).where("customerUid", "==", uid).limit(100).get().catch(() => null),
+    db.collection(collectionName).where("buyerUid", "==", uid).limit(100).get().catch(() => null),
+  ]));
+  const byPath = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+  for (const snapshot of snapshots) {
+    snapshot?.docs.forEach((doc) => byPath.set(doc.ref.path, doc));
   }
+  return Array.from(byPath.values());
+}
 
-  const now = Date.now();
-  const activePurchase = snapshot.docs.find((doc) => {
-    const expiresAt = parsePurchaseExpiry(doc.data().expiresAt);
-    return expiresAt === null || expiresAt >= now;
+async function getPaidPaymentForCourse(uid: string, courseId: string) {
+  const canonicalCourseId = resolveCanonicalCourseId(courseId) || courseId;
+  const docs = await queryPaymentLikeDocuments(uid);
+  const matches = docs.filter((doc) => {
+    const data = doc.data();
+    return (resolveCanonicalCourseId(data) || data.courseId) === canonicalCourseId
+      && isCompletedPaymentRecord(data)
+      && !isCancelledOrRefundedPaymentRecord(data);
+  }).sort((a, b) => {
+    const dateOf = (doc: FirebaseFirestore.QueryDocumentSnapshot) => parseTimestampToDate(doc.data().purchasedAt ?? doc.data().approvedAt ?? doc.data().paidAt ?? doc.data().createdAt)?.getTime() || 0;
+    return dateOf(b) - dateOf(a);
   });
 
-  if (!activePurchase) {
-    throw new HttpsError("failed-precondition", "해당 강의의 수강기간은 결제일로부터 90일이며, 현재 수강기간이 만료되어 수강할 수 없습니다.");
-  }
-
-  return activePurchase;
+  const now = Date.now();
+  const active = matches.find((doc) => {
+    const expiresAt = parsePurchaseExpiry(doc.data().expiresAt ?? doc.data().accessEndsAt);
+    return expiresAt === null || expiresAt >= now;
+  });
+  return active || null;
 }
+
 
 
 function parseTimestampToDate(value: unknown) {
@@ -428,58 +513,119 @@ async function getActiveEnrollment(uid: string, courseId: string) {
 }
 
 
-async function hasVerifiedCourseAccess(uid: string, courseId: string) {
+async function repairEnrollmentFromPayment(uid: string, courseId: string, paymentDoc: FirebaseFirestore.QueryDocumentSnapshot) {
+  const canonicalCourseId = resolveCanonicalCourseId(courseId) || courseId;
+  const payment = paymentDoc.data();
+  const enrollmentId = uid + "_" + canonicalCourseId;
+  const enrollmentRef = db.collection("enrollments").doc(enrollmentId);
+  const existing = await enrollmentRef.get();
+  const existingData = existing.data() || {};
+  const startsAt = existingData.startsAt ?? existingData.accessStartsAt ?? payment.purchasedAt ?? payment.approvedAt ?? payment.paidAt ?? payment.createdAt ?? FieldValue.serverTimestamp();
+  const expiresAt = existingData.expiresAt ?? existingData.accessEndsAt ?? payment.expiresAt ?? null;
+  const record = {
+    enrollmentId,
+    uid,
+    userId: uid,
+    canonicalCourseId,
+    courseId: canonicalCourseId,
+    productId: existingData.productId ?? payment.productId ?? null,
+    productTitle: existingData.productTitle ?? payment.productTitle ?? payment.productName ?? null,
+    courseTitle: existingData.courseTitle ?? payment.courseTitle ?? payment.courseName ?? DUI_COURSE_TITLE,
+    amount: existingData.amount ?? payment.amount ?? payment.totalAmount ?? payment.requestedAmount ?? null,
+    paymentId: existingData.paymentId ?? payment.paymentId ?? payment.paymentKey ?? paymentDoc.id,
+    orderId: existingData.orderId ?? payment.orderId ?? paymentDoc.id,
+    paymentStatus: "paid",
+    source: existingData.source ?? "payment",
+    sourceType: existingData.sourceType ?? "PAYMENT",
+    status: "active",
+    isActive: true,
+    enrollmentStatus: "active",
+    accessStatus: "active",
+    startsAt,
+    accessStartsAt: existingData.accessStartsAt ?? startsAt,
+    purchasedAt: existingData.purchasedAt ?? payment.purchasedAt ?? payment.approvedAt ?? startsAt,
+    expiresAt,
+    accessEndsAt: existingData.accessEndsAt ?? expiresAt,
+    progress: existingData.progress ?? 0,
+    completedLessons: existingData.completedLessons ?? 0,
+    totalLessons: existingData.totalLessons ?? DUI_TOTAL_LESSONS,
+    certificateIssued: Boolean(existingData.certificateIssued),
+    certificateIssuedAt: existingData.certificateIssuedAt ?? null,
+    certificateId: existingData.certificateId ?? null,
+    certificateNo: existingData.certificateNo ?? null,
+    recoveredFrom: existing.exists ? existingData.recoveredFrom ?? null : "paid_payment_entitlement",
+    updatedAt: FieldValue.serverTimestamp(),
+    createdAt: existingData.createdAt ?? FieldValue.serverTimestamp(),
+  };
+  await enrollmentRef.set(record, { merge: true });
+  const repaired = await enrollmentRef.get();
+  return { ref: enrollmentRef, id: enrollmentId, data: repaired.data() ?? record };
+}
+
+async function checkCourseEntitlement(uid: string, courseId: string, requestedFeature: string) {
+  const canonicalCourseId = resolveCanonicalCourseId(courseId) || courseId;
   const [userDoc, userRecord] = await Promise.all([
     db.collection("users").doc(uid).get().catch(() => null),
     getAuth().getUser(uid).catch(() => null),
   ]);
-
   const email = String(userRecord?.email ?? "").toLowerCase();
   const role = userDoc?.exists ? userDoc.data()?.role : null;
   if (userRecord?.customClaims?.admin === true || role === "admin" || email === "cfv47@naver.com") {
-    return true;
+    return { allowed: true, allowedBy: "admin", canonicalCourseId, enrollment: null, paymentDoc: null };
   }
 
-  const [rootEnrollment, nestedEnrollment] = await Promise.all([
-    db.collection("enrollments").doc(uid + "_" + courseId).get(),
-    db.collection("users").doc(uid).collection("enrollments").doc(courseId).get(),
+  const [rootEnrollment, nestedEnrollment, paidPayment] = await Promise.all([
+    db.collection("enrollments").doc(uid + "_" + canonicalCourseId).get(),
+    db.collection("users").doc(uid).collection("enrollments").doc(canonicalCourseId).get(),
+    getPaidPaymentForCourse(uid, canonicalCourseId),
   ]);
+  const rootDecision = getEnrollmentAccessDecision(rootEnrollment.data(), uid, canonicalCourseId);
+  const nestedDecision = getEnrollmentAccessDecision(nestedEnrollment.data(), uid, canonicalCourseId);
+  const manualGrantCount = [rootEnrollment.data(), nestedEnrollment.data()].filter((row) => row && (row.sourceType === "MANUAL" || row.source === "manual" || row.adminGranted === true)).length;
 
-  const rootDecision = getEnrollmentAccessDecision(rootEnrollment.data(), uid, courseId);
-  if (rootDecision.allowed) {
-    logEnrollmentAccessDecision("hasVerifiedCourseAccess:root", uid, courseId, rootEnrollment.data(), rootDecision);
-    return true;
+  let allowed = false;
+  let allowedBy = "";
+  let enrollment = rootDecision.allowed ? { ref: rootEnrollment.ref, id: rootEnrollment.id, data: rootEnrollment.data() ?? {} } : nestedDecision.allowed ? { ref: nestedEnrollment.ref, id: nestedEnrollment.id, data: nestedEnrollment.data() ?? {} } : null;
+  if (paidPayment) {
+    enrollment = await repairEnrollmentFromPayment(uid, canonicalCourseId, paidPayment);
+    allowed = true;
+    allowedBy = rootDecision.allowed || nestedDecision.allowed ? "payment" : "payment_auto_recovery";
+  } else if (rootDecision.allowed || nestedDecision.allowed) {
+    allowed = true;
+    allowedBy = manualGrantCount > 0 ? "manual" : "enrollment";
   }
-  const nestedDecision = getEnrollmentAccessDecision(nestedEnrollment.data(), uid, courseId);
-  logEnrollmentAccessDecision("hasVerifiedCourseAccess:nested", uid, courseId, nestedEnrollment.data(), nestedDecision);
-  return nestedDecision.allowed;
+
+  console.info("[entitlements:functions]", {
+    event: "check_course_entitlement",
+    authUid: uid,
+    authEmail: userRecord?.email ?? null,
+    requestedFeature,
+    requestedCourseId: courseId,
+    canonicalCourseId,
+    firebaseProjectId: process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || null,
+    paymentQueryCount: paidPayment ? 1 : 0,
+    validPaymentCount: paidPayment ? 1 : 0,
+    enrollmentQueryCount: Number(rootEnrollment.exists) + Number(nestedEnrollment.exists),
+    validEnrollmentCount: Number(rootDecision.allowed) + Number(nestedDecision.allowed),
+    manualGrantCount,
+    matchedPaymentIds: paidPayment ? [paidPayment.id] : [],
+    matchedEnrollmentIds: enrollment ? [enrollment.id] : [],
+    allowed,
+    allowedBy: allowedBy || null,
+    denialReason: allowed ? null : paidPayment ? "PAYMENT_FOUND_ACCESS_REPAIR_FAILED" : "NO_ACCESS",
+  });
+
+  return { allowed, allowedBy, canonicalCourseId, enrollment, paymentDoc: paidPayment };
+}
+
+async function hasVerifiedCourseAccess(uid: string, courseId: string) {
+  return (await checkCourseEntitlement(uid, courseId, "video_play")).allowed;
 }
 
 async function getLatestPaidPurchaseForCertificate(uid: string, courseId: string) {
-  const snapshot = await db
-    .collection("purchases")
-    .where("uid", "==", uid)
-    .where("courseId", "==", courseId)
-    .where("paymentStatus", "==", "paid")
-    .limit(20)
-    .get();
-
-  if (snapshot.empty) {
-    throw new HttpsError("failed-precondition", "정상 결제된 교육과정이 확인되지 않습니다.");
-  }
-
-  const now = Date.now();
-  const activePurchase = snapshot.docs.find((doc) => {
-    const data = doc.data();
-    const expiresAt = parseTimestampToDate(data.expiresAt);
-    return (data.accessStatus ?? "active") === "active" && (!expiresAt || expiresAt.getTime() >= now);
-  });
-
-  if (!activePurchase) {
-    throw new HttpsError("failed-precondition", "수강기간이 만료되어 수료증을 발급받을 수 없습니다.");
-  }
-
-  return activePurchase;
+  const paid = await getPaidPaymentForCourse(uid, courseId);
+  if (!paid) throw new HttpsError("failed-precondition", "정상 결제된 교육과정이 확인되지 않습니다.");
+  return paid;
 }
 
 async function issueDuiCertificate(uid: string, courseId: string) {
@@ -848,16 +994,17 @@ export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (r
   const completedModuleCount = Object.values(moduleProgress).filter((item) => item.isCompleted).length;
   const totalModuleCount = Object.keys(moduleProgress).length;
   const isCompleted = totalModuleCount > 0 ? completedModuleCount === totalModuleCount : data.isCompleted || completionRate >= 95;
-  const purchaseSnapshot = isCompleted ? await getPaidPurchase(uid, data.courseId).catch(() => null) : null;
-  const activeEnrollment = isCompleted ? await getActiveEnrollment(uid, data.courseId).catch(() => null) : null;
-  if (purchaseSnapshot) {
+  const entitlement = await checkCourseEntitlement(uid, data.courseId, "progress_write");
+  const purchaseSnapshot = entitlement.paymentDoc;
+  const activeEnrollment = entitlement.enrollment;
+  if (entitlement.allowed) {
     await getCertificateIdentity(uid, {
       lockIfMissing: true,
-      purchaseId: activeEnrollment?.id ?? purchaseSnapshot.id,
+      purchaseId: activeEnrollment?.id ?? purchaseSnapshot?.id ?? progressId,
       lockSource: "completion",
     });
   }
-  const certificateEligible = isCompleted && Boolean(purchaseSnapshot) && Boolean(activeEnrollment) && Boolean(data.legalAccepted) && Boolean(data.userReviewAccepted);
+  const certificateEligible = isCompleted && entitlement.allowed && Boolean(data.legalAccepted) && Boolean(data.userReviewAccepted);
 
   await db.collection("courseProgress").doc(progressId).set(
     {

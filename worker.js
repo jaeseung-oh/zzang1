@@ -801,55 +801,151 @@ async function repairCanonicalWorkerEnrollment(env, uid, courseId, source, canon
     return { ...source, ...saved, id: repaired.enrollmentId, documentPath: canonicalPath, recordSource: 'root_repaired' };
 }
 
+async function getPaymentLikeRecordsForEntitlement(env, uid) {
+    const collections = ['purchases', 'payments', 'orders'];
+    const fields = ['uid', 'userId', 'firebaseUid', 'customerUid', 'buyerUid'];
+    const results = await Promise.all(collections.flatMap((collectionName) => fields.map((field) =>
+        firestoreQuery(env, collectionName, [{ field, value: uid }]).catch((error) => {
+            logEnrollmentWorkerEvent('entitlement_payment_query_failed', { collectionName, field, uid: maskLogIdentifier(uid), message: error instanceof Error ? error.message : String(error) });
+            return [];
+        })
+    )));
+    const byPath = new Map();
+    results.flat().forEach((row) => byPath.set(row.documentPath || row.id, row));
+    return Array.from(byPath.values());
+}
+
+function isValidCompletedPaymentForEntitlement(row, canonicalCourseId) {
+    if (!row) return false;
+    const sameCourse = (resolveCanonicalCourseId(row) || row.courseId) === canonicalCourseId;
+    return sameCourse && isRestorablePaidOperationalRecord(row);
+}
+
+async function getValidCompletedPaymentsForCourse(env, uid, canonicalCourseId) {
+    const rows = await getPaymentLikeRecordsForEntitlement(env, uid);
+    return rows
+        .filter((row) => isValidCompletedPaymentForEntitlement(row, canonicalCourseId))
+        .sort((a, b) => new Date(b.approvedAt || b.purchasedAt || b.paidAt || b.createdAt || 0).getTime() - new Date(a.approvedAt || a.purchasedAt || a.paidAt || a.createdAt || 0).getTime());
+}
+
+function getAllowedByForEnrollment(enrollment) {
+    const sourceType = normalizeEnrollmentSourceType(enrollment || {});
+    if (sourceType === 'MANUAL') return 'manual';
+    return 'enrollment';
+}
+
+async function checkCourseEntitlement(env, { uid, email, canonicalCourseId, requestedCourseId, requestedFeature }) {
+    const normalizedCourseId = resolveCanonicalCourseId({ courseId: canonicalCourseId || requestedCourseId }) || canonicalCourseId || requestedCourseId;
+    const firebaseProjectId = getFirestoreProjectId(env);
+    const baseLog = {
+        authUid: uid || null,
+        authEmail: email || null,
+        requestedFeature,
+        requestedCourseId: requestedCourseId || normalizedCourseId,
+        canonicalCourseId: normalizedCourseId,
+        firebaseProjectId,
+        enrollmentCollection: 'enrollments',
+        enrollmentDocumentId: uid && normalizedCourseId ? uid + '_' + normalizedCourseId : null,
+        now: new Date().toISOString()
+    };
+
+    const [enrollment, validPayments] = await Promise.all([
+        getWorkerEnrollmentRecord(env, uid, normalizedCourseId).catch((error) => {
+            logEnrollmentWorkerEvent('entitlement_enrollment_lookup_failed', { ...baseLog, message: error instanceof Error ? error.message : String(error) });
+            throw error;
+        }),
+        getValidCompletedPaymentsForCourse(env, uid, normalizedCourseId)
+    ]);
+
+    const enrollmentDecision = getEnrollmentAccessDecision(enrollment, uid, normalizedCourseId);
+    let finalEnrollment = enrollment;
+    let allowed = false;
+    let allowedBy = null;
+    let denialReason = 'NO_ACCESS';
+
+    if (validPayments.length > 0) {
+        const sourcePayment = validPayments[0];
+        const wasAllowed = enrollmentDecision.allowed;
+        if (!wasAllowed) {
+            finalEnrollment = await grantCourseAccess(env, {
+                ...sourcePayment,
+                uid,
+                userId: uid,
+                userEmail: email || sourcePayment.userEmail || sourcePayment.email || sourcePayment.customerEmail || null,
+                canonicalCourseId: normalizedCourseId,
+                courseId: normalizedCourseId,
+                source: 'migration',
+                paymentId: sourcePayment.paymentId || sourcePayment.paymentKey || sourcePayment.id || null,
+                orderId: sourcePayment.orderId || sourcePayment.id || sourcePayment.paymentId || null,
+                recoveredFrom: sourcePayment.recordSource || 'trusted_payment_record',
+            }).catch((error) => {
+                logEnrollmentWorkerEvent('entitlement_payment_auto_recovery_failed', { ...baseLog, paymentId: sourcePayment.paymentId || sourcePayment.orderId || sourcePayment.id || null, message: error instanceof Error ? error.message : String(error) });
+                throw error;
+            });
+        }
+        allowed = true;
+        allowedBy = wasAllowed ? 'payment' : 'payment_auto_recovery';
+        denialReason = null;
+    } else if (enrollmentDecision.allowed) {
+        allowed = true;
+        allowedBy = getAllowedByForEnrollment(enrollment);
+        denialReason = null;
+    } else {
+        denialReason = enrollment ? enrollmentDecision.reason : 'NO_ACCESS';
+    }
+
+    const sourceType = normalizeEnrollmentSourceType(finalEnrollment || enrollment || {});
+    const matchedEnrollments = finalEnrollment || enrollment ? [{
+        id: (finalEnrollment || enrollment).id || (finalEnrollment || enrollment).enrollmentId || baseLog.enrollmentDocumentId,
+        uid: (finalEnrollment || enrollment).uid || null,
+        userId: (finalEnrollment || enrollment).userId || null,
+        email: (finalEnrollment || enrollment).userEmail || (finalEnrollment || enrollment).email || null,
+        courseId: (finalEnrollment || enrollment).courseId || null,
+        canonicalCourseId: (finalEnrollment || enrollment).canonicalCourseId || (finalEnrollment || enrollment).courseId || null,
+        status: (finalEnrollment || enrollment).status || null,
+        accessStatus: (finalEnrollment || enrollment).accessStatus || (finalEnrollment || enrollment).enrollmentStatus || null,
+        source: (finalEnrollment || enrollment).source || (finalEnrollment || enrollment).sourceType || sourceType || null,
+        startsAt: (finalEnrollment || enrollment).startsAt || (finalEnrollment || enrollment).accessStartsAt || null,
+        expiresAt: (finalEnrollment || enrollment).expiresAt || (finalEnrollment || enrollment).accessEndsAt || null
+    }] : [];
+
+    logEnrollmentWorkerEvent('check_course_entitlement', {
+        ...baseLog,
+        paymentQueryCount: validPayments.length,
+        validPaymentCount: validPayments.length,
+        enrollmentQueryCount: enrollment ? 1 : 0,
+        validEnrollmentCount: enrollmentDecision.allowed ? 1 : 0,
+        manualGrantCount: sourceType === 'MANUAL' ? 1 : 0,
+        matchedPaymentIds: validPayments.map((row) => row.paymentId || row.orderId || row.id).filter(Boolean),
+        matchedEnrollmentIds: matchedEnrollments.map((row) => row.id).filter(Boolean),
+        matchedEnrollments,
+        allowed,
+        allowedBy,
+        denialReason
+    });
+
+    return { allowed, allowedBy, deniedReason: denialReason, enrollment: finalEnrollment || enrollment, canonicalCourseId: normalizedCourseId, validPayments };
+}
+
 async function getWorkerCourseAccessDecision(env, user, courseId, requestPath = 'unknown') {
     const requestedCourseId = String(courseId || '').trim();
     const canonicalCourseId = resolveCanonicalCourseId({ courseId: requestedCourseId }) || requestedCourseId;
-    const baseLog = {
-        authUid: user?.uid || null,
-        authEmail: user?.email || null,
-        requestedCourseId,
-        canonicalCourseId,
-        firebaseProjectId: getFirestoreProjectId(env),
-        enrollmentCollection: 'enrollments',
-        enrollmentDocumentId: user?.uid && canonicalCourseId ? user.uid + '_' + canonicalCourseId : null,
-        now: new Date().toISOString(),
-        requestPath
-    };
     if (isWorkerAdminUser(user, env)) {
         const decision = { allowed: true, reason: 'ADMIN_BYPASS' };
         logEnrollmentAccessDecision(requestPath, user?.uid || '', canonicalCourseId, null, decision);
-        logEnrollmentWorkerEvent('check_course_access', { ...baseLog, matchedEnrollmentCount: 0, matchedEnrollments: [], matchedPaymentCount: 0, manualGrantCount: 0, allowed: true, denialReason: null });
-        return { allowed: true, enrollment: null, adminBypass: true, deniedReason: null, canonicalCourseId };
+        logEnrollmentWorkerEvent('check_course_entitlement', { authUid: user?.uid || null, authEmail: user?.email || null, requestedFeature: requestPath, requestedCourseId, canonicalCourseId, firebaseProjectId: getFirestoreProjectId(env), paymentQueryCount: 0, validPaymentCount: 0, enrollmentQueryCount: 0, validEnrollmentCount: 0, manualGrantCount: 0, matchedPaymentIds: [], matchedEnrollmentIds: [], allowed: true, allowedBy: 'admin', denialReason: null });
+        return { allowed: true, enrollment: null, adminBypass: true, deniedReason: null, canonicalCourseId, allowedBy: 'admin' };
     }
-    const enrollment = await getWorkerEnrollmentRecord(env, user.uid, canonicalCourseId);
-    const decision = getEnrollmentAccessDecision(enrollment, user.uid, canonicalCourseId);
-    logEnrollmentAccessDecision(requestPath, user.uid, canonicalCourseId, enrollment, decision);
-    const sourceType = normalizeEnrollmentSourceType(enrollment || {});
-    logEnrollmentWorkerEvent('check_course_access', {
-        ...baseLog,
-        matchedEnrollmentCount: enrollment ? 1 : 0,
-        matchedEnrollments: enrollment ? [{
-            id: enrollment.id || enrollment.enrollmentId || baseLog.enrollmentDocumentId,
-            uid: enrollment.uid || null,
-            userId: enrollment.userId || null,
-            email: enrollment.userEmail || enrollment.email || null,
-            courseId: enrollment.courseId || null,
-            canonicalCourseId: enrollment.canonicalCourseId || enrollment.courseId || null,
-            status: enrollment.status || null,
-            accessStatus: enrollment.accessStatus || enrollment.enrollmentStatus || null,
-            source: enrollment.source || enrollment.sourceType || sourceType || null,
-            startsAt: enrollment.startsAt || enrollment.accessStartsAt || null,
-            expiresAt: enrollment.expiresAt || enrollment.accessEndsAt || null
-        }] : [],
-        matchedPaymentCount: enrollment?.paymentId || enrollment?.orderId ? 1 : 0,
-        manualGrantCount: sourceType === 'MANUAL' ? 1 : 0,
-        startsAt: enrollment?.startsAt || enrollment?.accessStartsAt || null,
-        expiresAt: enrollment?.expiresAt || enrollment?.accessEndsAt || null,
-        status: enrollment?.status || enrollment?.accessStatus || enrollment?.enrollmentStatus || null,
-        allowed: decision.allowed,
-        denialReason: decision.allowed ? null : decision.reason
+    const entitlement = await checkCourseEntitlement(env, {
+        uid: user.uid,
+        email: user.email || null,
+        requestedCourseId,
+        canonicalCourseId,
+        requestedFeature: requestPath === '/api/stream/token' ? 'video_play' : requestPath
     });
-    return { allowed: decision.allowed, enrollment, adminBypass: false, deniedReason: decision.allowed ? null : decision.reason, canonicalCourseId };
+    const decision = { allowed: entitlement.allowed, reason: entitlement.deniedReason || 'OK' };
+    logEnrollmentAccessDecision(requestPath, user.uid, canonicalCourseId, entitlement.enrollment, decision);
+    return { allowed: entitlement.allowed, enrollment: entitlement.enrollment, adminBypass: false, deniedReason: entitlement.deniedReason, canonicalCourseId, allowedBy: entitlement.allowedBy };
 }
 
 async function userHasWorkerCourseAccess(env, user, courseId) {
