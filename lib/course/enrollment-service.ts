@@ -7,7 +7,7 @@ import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 
 export type EnrollmentStatus = "active" | "cancelled" | "expired" | "pending" | "refunded";
 
-const allowedEnrollmentSourceTypes = new Set(["PAYMENT", "MANUAL", "PROMOTION", "ADMIN_TEST", "EXTENSION"]);
+const allowedEnrollmentSourceTypes = new Set(["PAYMENT", "MANUAL", "MIGRATION", "PROMOTION", "ADMIN_TEST", "EXTENSION"]);
 
 function maskFirestoreSegment(value: string) {
   if (!value) return "";
@@ -62,7 +62,35 @@ export type EnrollmentRecord = {
 };
 
 export const OPERATING_COURSE_ID = defaultCourse.id;
-export const APPLICATION_TO_COURSE_ID: Record<string, string> = { dui: defaultCourse.id, cbt: DUI_CBT_ADVANCED_COURSE_ID, "violence-prevention": "violence-basic", "gambling-relapse-prevention": "gambling-basic", "sexual-offense-prevention": "sexual-offense-basic", "drug-rehab-prevention": "drug-basic" };
+export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
+  dui: defaultCourse.id,
+  basic: defaultCourse.id,
+  "dui-documents": defaultCourse.id,
+  "dui-prevention": defaultCourse.id,
+  "dui-prevention-basic": defaultCourse.id,
+  "rapid-sentencing-prep": defaultCourse.id,
+  cbt: DUI_CBT_ADVANCED_COURSE_ID,
+  advanced: DUI_CBT_ADVANCED_COURSE_ID,
+  "dui-cbt": DUI_CBT_ADVANCED_COURSE_ID,
+  "dui-cbt-advanced": DUI_CBT_ADVANCED_COURSE_ID,
+  "violence-prevention": "violence-basic",
+  violence: "violence-basic",
+  "violence-basic": "violence-basic",
+  "violence-advanced": "violence-advanced",
+  "gambling-relapse-prevention": "gambling-basic",
+  gambling: "gambling-basic",
+  "gambling-basic": "gambling-basic",
+  "gambling-advanced": "gambling-advanced",
+  "sexual-offense-prevention": "sexual-offense-basic",
+  "sexual-offense": "sexual-offense-basic",
+  sexual: "sexual-offense-basic",
+  "sexual-offense-basic": "sexual-offense-basic",
+  "sexual-offense-advanced": "sexual-offense-advanced",
+  "drug-rehab-prevention": "drug-basic",
+  drug: "drug-basic",
+  "drug-basic": "drug-basic",
+  "drug-advanced": "drug-advanced",
+};
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {
   if (!courseIdOrCategory || courseIdOrCategory === "dui") return defaultCourse.id;

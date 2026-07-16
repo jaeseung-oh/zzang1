@@ -1,4 +1,4 @@
-import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
+import { doc, getDoc, increment, serverTimestamp, setDoc } from "firebase/firestore";
 import { getFirebaseServices } from "@/lib/firebase/client";
 
 export type CertificateIdentity = {
@@ -17,6 +17,9 @@ export type StoredUserProfile = {
   email: string | null;
   isEmailVerified?: boolean;
   emailVerifiedAt?: unknown;
+  verificationEmailLastSentAt?: unknown;
+  verificationEmailSendCount?: number;
+  verificationEmailLastError?: string | null;
   phoneNumber: string | null;
   provider: string;
   providerLabel: string;
@@ -180,26 +183,51 @@ export async function upsertUserProfile(input: UpsertUserProfileInput) {
   assertValidDateOfBirth(input.dateOfBirth ?? null);
 
   const { db } = getFirebaseServices();
-  await setDoc(
-    doc(db, "users", input.uid),
-    {
-      fullName: realName,
-      realName,
-      dateOfBirth: input.dateOfBirth,
-      birthDate: input.dateOfBirth,
-      email: input.email ?? null,
-      isEmailVerified: input.isEmailVerified ?? false,
-      emailVerifiedAt: input.isEmailVerified ? serverTimestamp() : null,
-      phoneNumber: input.phoneNumber ?? null,
-      provider: input.provider ?? "password",
-      providerLabel: input.providerLabel ?? "이메일 회원",
-      nickname: input.nickname ?? null,
-      termsAccepted: input.termsAccepted ?? false,
-      privacyAccepted: input.privacyAccepted ?? false,
-      sensitiveInfoAccepted: input.sensitiveInfoAccepted ?? false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
-  );
+  const userRef = doc(db, "users", input.uid);
+  const existingSnapshot = await getDoc(userRef);
+  const payload: Record<string, unknown> = {
+    fullName: realName,
+    realName,
+    dateOfBirth: input.dateOfBirth,
+    birthDate: input.dateOfBirth,
+    email: input.email ?? null,
+    phoneNumber: input.phoneNumber ?? null,
+    provider: input.provider ?? "password",
+    providerLabel: input.providerLabel ?? "이메일 회원",
+    nickname: input.nickname ?? null,
+    termsAccepted: input.termsAccepted ?? false,
+    privacyAccepted: input.privacyAccepted ?? false,
+    sensitiveInfoAccepted: input.sensitiveInfoAccepted ?? false,
+    updatedAt: serverTimestamp(),
+  };
+
+  if (input.isEmailVerified === true) {
+    payload.isEmailVerified = true;
+    payload.emailVerifiedAt = serverTimestamp();
+  } else if (input.isEmailVerified === false) {
+    payload.isEmailVerified = false;
+  }
+
+  if (!existingSnapshot.exists()) {
+    payload.createdAt = serverTimestamp();
+  }
+
+  await setDoc(userRef, payload, { merge: true });
+}
+
+export async function recordVerificationEmailAttempt(uid: string, result: { ok: boolean; errorCode?: string | null; errorMessage?: string | null }) {
+  const { db } = getFirebaseServices();
+  const payload: Record<string, unknown> = {
+    updatedAt: serverTimestamp(),
+  };
+
+  if (result.ok) {
+    payload.verificationEmailLastSentAt = serverTimestamp();
+    payload.verificationEmailSendCount = increment(1);
+    payload.verificationEmailLastError = null;
+  } else {
+    payload.verificationEmailLastError = [result.errorCode, result.errorMessage].filter(Boolean).join(": ") || "unknown";
+  }
+
+  await setDoc(doc(db, "users", uid), payload, { merge: true });
 }

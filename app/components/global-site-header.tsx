@@ -78,15 +78,18 @@ export default function GlobalSiteHeader() {
       </div>
 
       {mobileMenuOpen ? (
-        <div className="fixed inset-x-0 top-[61px] z-[80] min-h-[calc(100dvh-61px)] bg-white px-4 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] lg:hidden">
-          <nav aria-label="모바일 메뉴" className="mx-auto grid max-w-md gap-2 text-lg font-black text-slate-950">
+        <div className="fixed inset-x-0 top-[61px] z-[80] max-h-[calc(100dvh-61px)] overflow-y-auto bg-white px-4 py-5 shadow-[0_24px_70px_rgba(15,23,42,0.18)] lg:hidden">
+          <div className="mx-auto mb-4 max-w-md rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <AuthNav variant="panel" onNavigate={closeAllMenus} />
+          </div>
+          <nav aria-label="모바일 메뉴" className="mx-auto grid max-w-md gap-2 text-base font-black text-slate-950 sm:text-lg">
             {mobileMenuItems.map((item) => (
-              <Link key={item.href + item.label} href={item.href} onClick={closeAllMenus} className="flex min-h-14 items-center rounded-2xl border border-slate-200 bg-slate-50 px-4 transition hover:border-[#173968] hover:bg-white focus:outline-none focus:ring-4 focus:ring-[#173968]/20">
+              <Link key={item.href + item.label} href={item.href} onClick={closeAllMenus} className="flex min-h-[52px] items-center rounded-2xl border border-slate-200 bg-white px-4 py-3 transition hover:border-[#173968] hover:bg-slate-50 focus:outline-none focus:ring-4 focus:ring-[#173968]/20">
                 {item.label}
               </Link>
             ))}
           </nav>
-          <div className="mx-auto mt-5 max-w-md rounded-2xl bg-[#f8fafc] p-4 text-sm leading-6 text-slate-700">
+          <div className="mx-auto mt-4 max-w-md rounded-2xl bg-[#f8fafc] p-4 text-sm leading-6 text-slate-700">
             교육 이수와 실천자료 준비를 한 흐름으로 진행합니다.
           </div>
         </div>

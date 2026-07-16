@@ -12,7 +12,7 @@ import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 import { buttonClass } from "@/app/components/ui/button-styles";
-import { getVerifiedUserEnrollments, isEnrollmentActive } from "@/lib/course/enrollment-service";
+import { getVerifiedUserEnrollments, isEnrollmentActive, resolveCourseId } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { getPreventionDocumentsApplyHref, getPreventionDocumentsForCourse, hasPreventionDocumentsAccess, preventionDocumentCategoryLabels } from "@/lib/course/prevention-documents";
 import { trackCourseComplete, trackCourseStart } from "@/lib/analytics/ga";
@@ -343,12 +343,13 @@ export default function CourseRoomPage() {
     if (typeof window === "undefined") return "";
     return new URLSearchParams(window.location.search).get("courseId") || "";
   });
+  const canonicalRequestedCourseId = resolveCourseId(requestedCourseId || null);
   const courseIdError = !requestedCourseId
     ? "해당 수강권에 연결된 교육과정 정보를 확인할 수 없습니다."
-    : !isKnownCourseId(requestedCourseId)
+    : !isKnownCourseId(canonicalRequestedCourseId)
       ? "지원하지 않는 교육과정입니다. 관리자에게 수강권의 과정 ID를 확인해 주세요."
       : "";
-  const effectiveCourseId = courseIdError ? defaultCourse.id : requestedCourseId;
+  const effectiveCourseId = courseIdError ? defaultCourse.id : canonicalRequestedCourseId;
   const isCbtAdvancedCourse = effectiveCourseId === DUI_CBT_ADVANCED_COURSE_ID;
   const isAdvancedCourse = isCbtAdvancedCourse || getCourseDefinition(effectiveCourseId)?.level === "advanced";
   const courseDefinition = getCourseDefinition(effectiveCourseId);
