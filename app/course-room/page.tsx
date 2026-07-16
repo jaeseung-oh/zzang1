@@ -589,6 +589,31 @@ function CourseRoomPageContent() {
 
         setModuleProgress(mergedProgress);
         setSelectedModuleId(initialModuleId);
+        const initialModule = courseModules.find((module) => module.id === initialModuleId) ?? courseModules[0];
+        if (initialModule?.cloudflareStreamUid) {
+          try {
+            setIsVideoLoading(true);
+            setPlayerError("");
+            setPlayerReady(false);
+            setVideoProvider("cloudflare-stream");
+            const streamUrl = await resolveCloudflareStreamUrlWithRetry(initialModule.cloudflareStreamUid, effectiveCourseId);
+            if (cancelled) return;
+            setVideoUrl(streamUrl);
+            setVideoExpiresAt(Date.now() + 1000 * 60 * 55);
+          } catch (initialVideoError) {
+            console.error(initialVideoError);
+            if (cancelled) return;
+            const message = formatVideoLoadError(initialVideoError);
+            setPlayerError(message);
+            setStatusMessage(message);
+            setVideoProvider("storage");
+            setVideoUrl("");
+          } finally {
+            if (!cancelled) {
+              setIsVideoLoading(false);
+            }
+          }
+        }
         setCaseType(remote?.caseType ?? local?.caseType ?? "dui");
         setLegalAccepted(isLegalAcceptedToday(remote, local));
         setReviewAccepted(Boolean(remote?.userReviewAccepted ?? local?.reviewAccepted ?? false));
