@@ -206,10 +206,11 @@ async function resolveCloudflareStreamUrl(uid: string, courseId: string) {
   }
 
   const user = await requireAuthenticatedUser();
-  const idToken = await user.getIdToken();
-  const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}&courseId=${encodeURIComponent(courseId)}`, {
+  const idToken = await user.getIdToken(true);
+  const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}&courseId=${encodeURIComponent(courseId)}&t=${Date.now()}`, {
     method: "GET",
-    headers: { Authorization: "Bearer " + idToken },
+    headers: { Authorization: "Bearer " + idToken, "Cache-Control": "no-store" },
+    cache: "no-store",
   });
 
   const data = (await response.json().catch(() => ({}))) as { videoUrl?: string; message?: string; error?: string; code?: string };
@@ -229,7 +230,7 @@ function formatVideoLoadError(error: unknown) {
   if (permissionCodes.some((item) => code.includes(item)) || message.includes("유효한 수강권") || message.includes("수강권") || message.includes("수강기간")) {
     return message || "유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.";
   }
-  return "수강 권한은 확인되었으나 강의 영상을 불러오지 못했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";
+  return message ? `강의 영상 URL 발급 실패: ${message}` : "수강 권한은 확인되었으나 강의 영상을 불러오지 못했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";
 }
 function buildEmptyModuleProgress(modules = defaultCourse.modules) {
   return Object.fromEntries(
