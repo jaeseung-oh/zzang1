@@ -881,14 +881,42 @@ async function checkCourseEntitlement(env, { uid, email, canonicalCourseId, requ
         getValidCompletedPaymentsForCourse(env, uid, normalizedCourseId, email)
     ]);
 
-    const enrollmentDecision = getEnrollmentAccessDecision(enrollment, uid, normalizedCourseId);
+    let enrollmentDecision = getEnrollmentAccessDecision(enrollment, uid, normalizedCourseId);
     let finalEnrollment = enrollment;
+    let scannedPayments = [];
+    if (!enrollmentDecision.allowed && validPayments.length === 0) {
+        const normalizedEmail = String(email || '').trim().toLowerCase();
+        const matchesIdentity = (row) => {
+            const rowUid = String(row?.uid || row?.userId || row?.firebaseUid || row?.customerUid || row?.buyerUid || '').trim();
+            const rowEmail = String(row?.userEmail || row?.email || row?.customerEmail || row?.buyerEmail || '').trim().toLowerCase();
+            return rowUid === uid || (normalizedEmail && rowEmail === normalizedEmail);
+        };
+        const [allEnrollments, allPurchases, allPayments, allOrders] = await Promise.all([
+            firestoreList(env, 'enrollments').catch(() => []),
+            firestoreList(env, 'purchases').catch(() => []),
+            firestoreList(env, 'payments').catch(() => []),
+            firestoreList(env, 'orders').catch(() => [])
+        ]);
+        const scannedEnrollment = allEnrollments
+            .filter(matchesIdentity)
+            .map((row) => ({ ...row, courseId: resolveCanonicalCourseId(row) || row.courseId, canonicalCourseId: resolveCanonicalCourseId(row) || row.canonicalCourseId || row.courseId }))
+            .find((row) => (row.courseId === normalizedCourseId) && getEnrollmentAccessDecision(row, row.uid || row.userId || uid, normalizedCourseId).allowed);
+        if (scannedEnrollment) {
+            finalEnrollment = await repairCanonicalWorkerEnrollment(env, uid, normalizedCourseId, scannedEnrollment, firestoreDocumentPath(env, 'enrollments', uid + '_' + normalizedCourseId)).catch(() => ({ ...scannedEnrollment, uid, userId: uid }));
+            enrollmentDecision = getEnrollmentAccessDecision(finalEnrollment, uid, normalizedCourseId);
+        }
+        scannedPayments = [...allPurchases, ...allPayments, ...allOrders]
+            .filter(matchesIdentity)
+            .filter((row) => isValidCompletedPaymentForEntitlement(row, normalizedCourseId))
+            .sort((a, b) => new Date(b.approvedAt || b.purchasedAt || b.paidAt || b.createdAt || 0).getTime() - new Date(a.approvedAt || a.purchasedAt || a.paidAt || a.createdAt || 0).getTime());
+    }
+    const entitlementPayments = validPayments.length > 0 ? validPayments : scannedPayments;
     let allowed = false;
     let allowedBy = null;
     let denialReason = 'NO_ACCESS';
 
-    if (validPayments.length > 0) {
-        const sourcePayment = validPayments[0];
+    if (entitlementPayments.length > 0) {
+        const sourcePayment = entitlementPayments[0];
         const wasAllowed = enrollmentDecision.allowed;
         if (!wasAllowed) {
             finalEnrollment = await grantCourseAccess(env, {
@@ -935,12 +963,12 @@ async function checkCourseEntitlement(env, { uid, email, canonicalCourseId, requ
 
     logEnrollmentWorkerEvent('check_course_entitlement', {
         ...baseLog,
-        paymentQueryCount: validPayments.length,
-        validPaymentCount: validPayments.length,
+        paymentQueryCount: entitlementPayments.length,
+        validPaymentCount: entitlementPayments.length,
         enrollmentQueryCount: enrollment ? 1 : 0,
         validEnrollmentCount: enrollmentDecision.allowed ? 1 : 0,
         manualGrantCount: sourceType === 'MANUAL' ? 1 : 0,
-        matchedPaymentIds: validPayments.map((row) => row.paymentId || row.orderId || row.id).filter(Boolean),
+        matchedPaymentIds: entitlementPayments.map((row) => row.paymentId || row.orderId || row.id).filter(Boolean),
         matchedEnrollmentIds: matchedEnrollments.map((row) => row.id).filter(Boolean),
         matchedEnrollments,
         allowed,
@@ -948,7 +976,7 @@ async function checkCourseEntitlement(env, { uid, email, canonicalCourseId, requ
         denialReason
     });
 
-    return { allowed, allowedBy, deniedReason: denialReason, enrollment: finalEnrollment || enrollment, canonicalCourseId: normalizedCourseId, validPayments };
+    return { allowed, allowedBy, deniedReason: denialReason, enrollment: finalEnrollment || enrollment, canonicalCourseId: normalizedCourseId, validPayments: entitlementPayments };
 }
 
 async function getWorkerCourseAccessDecision(env, user, courseId, requestPath = 'unknown') {
