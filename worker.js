@@ -1170,6 +1170,50 @@ function buildEnrollmentApiRecord(enrollment, progress) {
     };
 }
 
+async function hasOperationalCourseEntitlement(env, firebaseUser, courseId) {
+    const uid = firebaseUser.uid;
+    const normalizedEmail = String(firebaseUser.email || '').trim().toLowerCase();
+    const matchesIdentity = (row) => {
+        const rowUid = String(row?.uid || row?.userId || row?.firebaseUid || row?.customerUid || row?.buyerUid || '').trim();
+        const rowEmail = String(row?.userEmail || row?.email || row?.customerEmail || row?.buyerEmail || '').trim().toLowerCase();
+        return rowUid === uid || (normalizedEmail && rowEmail === normalizedEmail);
+    };
+    const matchesCourse = (row) => (resolveCanonicalCourseId(row) || row?.canonicalCourseId || row?.courseId) === courseId;
+    const [enrollments, purchases, payments, orders] = await Promise.all([
+        firestoreList(env, 'enrollments').catch(() => []),
+        firestoreList(env, 'purchases').catch(() => []),
+        firestoreList(env, 'payments').catch(() => []),
+        firestoreList(env, 'orders').catch(() => [])
+    ]);
+    const enrollment = enrollments
+        .filter(matchesIdentity)
+        .map((row) => ({ ...row, courseId: resolveCanonicalCourseId(row) || row.courseId, canonicalCourseId: resolveCanonicalCourseId(row) || row.canonicalCourseId || row.courseId }))
+        .find((row) => matchesCourse(row) && getEnrollmentAccessDecision(row, row.uid || row.userId || uid, courseId).allowed);
+    if (enrollment) {
+        if ((enrollment.uid || enrollment.userId) !== uid) {
+            await repairCanonicalWorkerEnrollment(env, uid, courseId, enrollment, firestoreDocumentPath(env, 'enrollments', uid + '_' + courseId)).catch(() => null);
+        }
+        return { allowed: true, allowedBy: 'enrollment', enrollment };
+    }
+    const payment = [...purchases, ...payments, ...orders]
+        .filter(matchesIdentity)
+        .find((row) => matchesCourse(row) && isRestorablePaidOperationalRecord(row));
+    if (!payment) return { allowed: false, deniedReason: 'NO_ACCESS' };
+    const saved = await grantCourseAccess(env, {
+        ...payment,
+        uid,
+        userId: uid,
+        userEmail: firebaseUser.email || payment.userEmail || payment.email || payment.customerEmail || payment.buyerEmail || null,
+        canonicalCourseId: courseId,
+        courseId,
+        source: 'migration',
+        paymentId: payment.paymentId || payment.paymentKey || payment.id || null,
+        orderId: payment.orderId || payment.id || payment.paymentId || null,
+        recoveredFrom: payment.recordSource || 'stream_paid_record_scan'
+    }).catch(() => null);
+    return { allowed: true, allowedBy: saved ? 'payment_auto_recovery' : 'payment', enrollment: saved || null };
+}
+
 async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
     const uid = firebaseUser.uid;
     const normalizedEmail = String(firebaseUser.email || '').trim().toLowerCase();
@@ -1374,29 +1418,25 @@ async function handleStreamToken(request, env, corsHeaders) {
         return json({ error: 'invalid_course', message: '지원하지 않는 교육과정입니다.' }, 400, corsHeaders);
     }
 
-    const accessDecision = await getWorkerCourseAccessDecision(env, firebaseUser, courseId, '/api/stream/token');
-    if (!accessDecision.allowed) {
-        const dashboardEnrollments = await getWorkerAllActiveEnrollmentRecords(env, firebaseUser).catch((error) => {
-            logEnrollmentWorkerEvent('stream_dashboard_entitlement_fallback_failed', {
-                authUid: maskLogIdentifier(firebaseUser.uid),
-                authEmail: firebaseUser.email || null,
-                courseId,
-                message: error instanceof Error ? error.message : String(error)
-            });
-            return [];
-        });
-        const dashboardEnrollment = dashboardEnrollments.find((enrollment) => (resolveCanonicalCourseId(enrollment) || enrollment.courseId) === courseId && isFirestoreEnrollmentActiveRecord(enrollment));
-        if (!dashboardEnrollment) {
-            return json({ error: 'enrollment_required', code: accessDecision.deniedReason || 'NO_ENROLLMENT', message: '유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.' }, 403, corsHeaders);
-        }
-        logEnrollmentWorkerEvent('stream_access_allowed_by_dashboard_entitlement', {
+    const accessDecision = await hasOperationalCourseEntitlement(env, firebaseUser, courseId).catch((error) => {
+        logEnrollmentWorkerEvent('stream_operational_entitlement_failed', {
             authUid: maskLogIdentifier(firebaseUser.uid),
             authEmail: firebaseUser.email || null,
             courseId,
-            enrollmentId: dashboardEnrollment.enrollmentId || dashboardEnrollment.id || null,
-            previousDeniedReason: accessDecision.deniedReason || 'NO_ENROLLMENT'
+            message: error instanceof Error ? error.message : String(error)
         });
+        return { allowed: false, deniedReason: 'ENTITLEMENT_LOOKUP_FAILED' };
+    });
+    if (!accessDecision.allowed) {
+        return json({ error: 'enrollment_required', code: accessDecision.deniedReason || 'NO_ENROLLMENT', message: '유효한 수강권이 없어 강의 영상을 이용할 수 없습니다.' }, 403, corsHeaders);
     }
+    logEnrollmentWorkerEvent('stream_access_allowed', {
+        authUid: maskLogIdentifier(firebaseUser.uid),
+        authEmail: firebaseUser.email || null,
+        courseId,
+        allowedBy: accessDecision.allowedBy || 'operational_entitlement',
+        enrollmentId: accessDecision.enrollment?.enrollmentId || accessDecision.enrollment?.id || null
+    });
 
     const response = await fetch(
         `https://api.cloudflare.com/client/v4/accounts/${env.CLOUDFLARE_STREAM_ACCOUNT_ID}/stream/${uid}/token`,
