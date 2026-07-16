@@ -4,8 +4,8 @@ import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { httpsCallable } from "firebase/functions";
 import Link from "next/link";
 import Script from "next/script";
-import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules, isKnownCourseId } from "@/lib/course/catalog";
 import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
@@ -358,19 +358,15 @@ function getModuleState(item: ModuleProgressState | undefined, active: boolean) 
   };
 }
 
-export default function CourseRoomPage() {
+function CourseRoomPageContent() {
   const router = useRouter();
-  const [hasExplicitCourseId] = useState(() => typeof window !== "undefined" && Boolean(new URLSearchParams(window.location.search).get("courseId")));
-  const [requestedCourseId] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return new URLSearchParams(window.location.search).get("courseId") || "";
-  });
+  const searchParams = useSearchParams();
+  const requestedCourseId = searchParams.get("courseId") || "";
+  const hasExplicitCourseId = Boolean(requestedCourseId);
   const canonicalRequestedCourseId = resolveCourseId(requestedCourseId || null);
-  const courseIdError = !requestedCourseId
-    ? "해당 수강권에 연결된 교육과정 정보를 확인할 수 없습니다."
-    : !isKnownCourseId(canonicalRequestedCourseId)
-      ? "지원하지 않는 교육과정입니다. 관리자에게 수강권의 과정 ID를 확인해 주세요."
-      : "";
+  const courseIdError = requestedCourseId && !isKnownCourseId(canonicalRequestedCourseId)
+    ? "지원하지 않는 교육과정입니다. 관리자에게 수강권의 과정 ID를 확인해 주세요."
+    : "";
   const effectiveCourseId = courseIdError ? defaultCourse.id : canonicalRequestedCourseId;
   const isCbtAdvancedCourse = effectiveCourseId === DUI_CBT_ADVANCED_COURSE_ID;
   const isAdvancedCourse = isCbtAdvancedCourse || getCourseDefinition(effectiveCourseId)?.level === "advanced";
@@ -507,6 +503,11 @@ export default function CourseRoomPage() {
 
     const load = async () => {
       try {
+        setAccessChecking(true);
+        setAccessBlockedMessage("");
+        setPlayerError("");
+        setVideoUrl("");
+
         if (courseIdError) {
           setError(courseIdError);
           setStatusMessage(courseIdError);
@@ -1955,5 +1956,21 @@ export default function CourseRoomPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+function CourseRoomFallback() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-[#07111f] px-4 text-white">
+      <p className="rounded-xl border border-white/15 bg-white/10 px-5 py-4 text-sm font-semibold shadow-[0_18px_48px_rgba(0,0,0,0.24)]">수강권 정보를 먼저 확인하고 있습니다.</p>
+    </main>
+  );
+}
+
+export default function CourseRoomPage() {
+  return (
+    <Suspense fallback={<CourseRoomFallback />}>
+      <CourseRoomPageContent />
+    </Suspense>
   );
 }
