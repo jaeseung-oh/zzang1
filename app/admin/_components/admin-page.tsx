@@ -365,9 +365,19 @@ function AdminContent({ view }: { view: AdminView }) {
       setEmail(user.email || "");
       setUid(user.uid);
       const { db } = getFirebaseServices();
+      const profileSnapshot = await getDoc(doc(db, "users", user.uid)).catch(() => null);
+      const role = String(profileSnapshot?.data()?.role || profileSnapshot?.data()?.adminRole || "").toLowerCase();
+      if (!isAdminEmail(user.email) && !["admin", "superadmin", "operator", "viewer"].includes(role)) throw new Error("관리자 권한이 없습니다.");
       const names = ["users", "payments", "enrollments", "certificates", "courseProgress", "refundPolicies"] as const;
-      const snapshots = await Promise.all(names.map((name) => getDocs(collection(db, name)).catch(() => null)));
-      const next = Object.fromEntries(names.map((name, index) => [name === "courseProgress" ? "progress" : name, snapshots[index]?.docs.map((doc) => ({ id: doc.id, ...doc.data() })) ?? []])) as AdminDataset;
+      const snapshots = await Promise.all(names.map(async (name) => {
+        try {
+          return await getDocs(collection(db, name));
+        } catch (error) {
+          const errorLike = error as { code?: string; message?: string };
+          throw new Error(name + " 컬렉션 조회 실패: " + (errorLike.code || errorLike.message || "unknown"));
+        }
+      }));
+      const next = Object.fromEntries(names.map((name, index) => [name === "courseProgress" ? "progress" : name, snapshots[index].docs.map((doc) => ({ id: doc.id, ...doc.data() }))])) as AdminDataset;
       setData(next);
     } catch (loadError) {
       console.error(loadError);

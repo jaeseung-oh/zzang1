@@ -1,4 +1,4 @@
-export const defaultAdminEmails = ["cfv47@naver.com"];
+export const defaultAdminEmails = ["cfv47@naver.com", "cfv470@gmail.com"];
 
 export function getAdminEmails() {
   const raw = process.env.NEXT_PUBLIC_ADMIN_EMAILS || process.env.ADMIN_EMAILS || defaultAdminEmails.join(",");
