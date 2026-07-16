@@ -213,7 +213,7 @@ function buildCorsHeaders(request, env) {
         headers.set('Vary', 'Origin');
     }
 
-    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-admin-key');
+    headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cache-Control, Pragma, x-admin-key');
     headers.set('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
     return headers;
 }
