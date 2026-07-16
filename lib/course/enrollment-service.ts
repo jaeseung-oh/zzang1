@@ -128,14 +128,18 @@ function toMillis(value: unknown) {
 }
 
 function normalizeEnrollmentSourceType(enrollment: EnrollmentRecord) {
-  const explicit = String(enrollment.sourceType || "").trim().toUpperCase();
+  const rawSource = (enrollment as EnrollmentRecord & { source?: string; grantType?: string; issueType?: string }).source;
+  const grantType = (enrollment as EnrollmentRecord & { grantType?: string; issueType?: string }).grantType;
+  const issueType = (enrollment as EnrollmentRecord & { issueType?: string }).issueType;
+  const explicit = String(enrollment.sourceType || grantType || issueType || rawSource || "").trim().toUpperCase();
+  if (explicit === "MANUAL_GRANT" || explicit === "ADMIN_MANUAL") return "MANUAL";
+  if (explicit === "PAYMENT_AUTO_RECOVERY") return "MIGRATION";
   if (explicit) return explicit;
   if ((enrollment as EnrollmentRecord & { adminGranted?: boolean }).adminGranted === true || (enrollment.paymentId == null && enrollment.orderId == null && enrollment.paymentStatus == null)) return "MANUAL";
   const paymentStatus = String(enrollment.paymentStatus || "").toLowerCase();
   if (["paid", "done", "completed", "approved", "success"].includes(paymentStatus) || enrollment.paymentId || enrollment.orderId) return "PAYMENT";
   return "";
 }
-
 export function isEnrollmentActive(enrollment: EnrollmentRecord | null | undefined) {
   if (!enrollment) return false;
   if (!allowedEnrollmentSourceTypes.has(normalizeEnrollmentSourceType(enrollment))) return false;

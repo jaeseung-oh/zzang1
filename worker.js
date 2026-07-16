@@ -677,7 +677,9 @@ function normalizeEnrollmentStatus(value) {
 }
 
 function normalizeEnrollmentSourceType(enrollment = {}) {
-    const raw = String(enrollment.sourceType || enrollment.grantType || enrollment.issueType || '').trim().toUpperCase();
+    const raw = String(enrollment.sourceType || enrollment.grantType || enrollment.issueType || enrollment.source || '').trim().toUpperCase();
+    if (raw === 'MANUAL_GRANT' || raw === 'ADMIN_MANUAL') return 'MANUAL';
+    if (raw === 'PAYMENT_AUTO_RECOVERY') return 'MIGRATION';
     if (raw) return raw;
     if (enrollment.adminGranted === true || enrollment.paymentStatus == null && enrollment.paymentId == null && enrollment.orderId == null) return 'MANUAL';
     const paymentStatus = normalizeEnrollmentStatus(enrollment.paymentStatus || enrollment.paymentState || enrollment.status);
@@ -699,7 +701,19 @@ function getEnrollmentAccessDecision(enrollment, uid, courseId) {
     if (!enrollment) return { allowed: false, reason: 'NO_ENROLLMENT' };
     const ownerId = enrollment.userId || enrollment.uid || '';
     if (uid && ownerId && ownerId !== uid) return { allowed: false, reason: 'USER_MISMATCH' };
-    if (courseId && enrollment.courseId && enrollment.courseId !== courseId) return { allowed: false, reason: 'COURSE_MISMATCH' };
+    const enrollmentCourseId = resolveCanonicalCourseId({
+        canonicalCourseId: enrollment.canonicalCourseId,
+        courseId: enrollment.courseId,
+        productId: enrollment.productId,
+        paymentProductId: enrollment.paymentProductId,
+        lectureId: enrollment.lectureId,
+        slug: enrollment.slug,
+        categoryId: enrollment.categoryId,
+        productTitle: enrollment.productTitle,
+        courseTitle: enrollment.courseTitle,
+        orderName: enrollment.orderName
+    }) || enrollment.canonicalCourseId || enrollment.courseId || '';
+    if (courseId && enrollmentCourseId && enrollmentCourseId !== courseId) return { allowed: false, reason: 'COURSE_MISMATCH' };
     if (enrollment.deletedAt || enrollment.isDeleted === true || enrollment.deleted === true) return { allowed: false, reason: 'DELETED_ENROLLMENT' };
     if (!isAllowedEnrollmentSourceType(enrollment)) return { allowed: false, reason: 'UNSUPPORTED_SOURCE_TYPE' };
 
@@ -1113,8 +1127,14 @@ function buildEnrollmentApiRecord(enrollment, progress) {
 async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
     const uid = firebaseUser.uid;
     const knownCourseIds = Object.keys(COURSE_PRODUCTS_BY_ID);
-    const directEnrollments = await Promise.all(
-        knownCourseIds.map((courseId) => getWorkerEnrollmentRecord(env, uid, courseId).catch((error) => {
+    const directEntitlements = await Promise.all(
+        knownCourseIds.map((courseId) => checkCourseEntitlement(env, {
+            uid,
+            email: firebaseUser.email || null,
+            requestedCourseId: courseId,
+            canonicalCourseId: courseId,
+            requestedFeature: 'course_room_entry'
+        }).catch((error) => {
             logEnrollmentWorkerEvent('enrollment_known_course_lookup_failed', {
                 uid: maskLogIdentifier(uid),
                 courseId,
@@ -1135,18 +1155,25 @@ async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
     ]);
 
     const byCourse = new Map();
-    [...directEnrollments, ...byUserId, ...byUid]
-        .filter((enrollment) => enrollment?.courseId && isFirestoreEnrollmentActiveRecord(enrollment))
-        .forEach((enrollment) => {
-            const existing = byCourse.get(enrollment.courseId);
-            if (!existing || enrollment.recordSource === 'root_repaired' || enrollment.recordSource === 'root') {
-                byCourse.set(enrollment.courseId, enrollment);
-            }
-        });
+    const addEnrollment = (enrollment) => {
+        const courseId = resolveCanonicalCourseId(enrollment || {}) || enrollment?.canonicalCourseId || enrollment?.courseId;
+        if (!courseId) return;
+        const normalized = { ...enrollment, courseId, canonicalCourseId: courseId };
+        if (!isFirestoreEnrollmentActiveRecord(normalized)) return;
+        const existing = byCourse.get(courseId);
+        if (!existing || normalized.recordSource === 'root_repaired' || normalized.recordSource === 'root') {
+            byCourse.set(courseId, normalized);
+        }
+    };
+
+    directEntitlements.forEach((entitlement) => {
+        if (entitlement?.allowed && entitlement.enrollment) addEnrollment(entitlement.enrollment);
+    });
+    [...byUserId, ...byUid].forEach(addEnrollment);
 
     return Promise.all(Array.from(byCourse.values()).map(async (enrollment) => {
-        const courseId = enrollment.courseId;
-        const enriched = await enrichWorkerEnrollmentEntitlement(env, uid, courseId, enrollment);
+        const courseId = resolveCanonicalCourseId(enrollment) || enrollment.courseId;
+        const enriched = await enrichWorkerEnrollmentEntitlement(env, uid, courseId, { ...enrollment, courseId });
         const progressId = uid + '_' + courseId;
         const progress = await firestoreGetData(env, 'courseProgress', progressId).catch(() => null);
         return buildEnrollmentApiRecord(enriched, progress);
