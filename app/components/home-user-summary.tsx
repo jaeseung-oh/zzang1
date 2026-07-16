@@ -112,7 +112,7 @@ export default function HomeUserSummary({ currentUser }: HomeUserSummaryProps) {
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <Link href="/course-room" className={buttonClass("darkPrimary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#07111f]")}>
+        <Link href="/course-room/?v=202607161010" className={buttonClass("darkPrimary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#07111f]")}>
           최근 강의 이어서 보기
         </Link>
         <Link href="/certificate" className={buttonClass("darkSecondary", "md", "rounded-full px-5 font-bold focus:ring-offset-[#07111f]")}>

@@ -106,7 +106,7 @@ export default function GlobalUserStatus() {
               <p className="mt-1.5 truncate text-sm font-bold text-[#10213f]">{displayName}님 환영합니다</p>
             </div>
             <div className="space-y-2.5 p-3">
-              <Link href="/course-room" onClick={() => setIsMenuOpen(false)} className={buttonClass("primary", "sm", "min-h-11 justify-start rounded-xl px-3.5 font-bold")}>
+              <Link href="/course-room/?v=202607161010" onClick={() => setIsMenuOpen(false)} className={buttonClass("primary", "sm", "min-h-11 justify-start rounded-xl px-3.5 font-bold")}>
                 내 강의실
               </Link>
               <Link href="/login" onClick={() => setIsMenuOpen(false)} className={buttonClass("primary", "sm", "min-h-11 justify-start rounded-xl px-3.5 font-bold")}>

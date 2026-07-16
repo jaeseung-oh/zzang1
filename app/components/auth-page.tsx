@@ -1120,7 +1120,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                       내 수강현황 보기
                     </Link>
                     <Link
-                      href="/course-room"
+                      href="/course-room/?v=202607161010"
                       className="inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#10213f] bg-[linear-gradient(135deg,#10213f_0%,#284b84_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_12px_24px_rgba(16,33,63,0.18)] transition hover:-translate-y-0.5 hover:brightness-105"
                     >
                       내 강의실 열기

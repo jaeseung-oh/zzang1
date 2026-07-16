@@ -982,7 +982,7 @@ function CertificatePageContent() {
           <section className="no-print rounded-[1.25rem] border border-rose-200 bg-rose-50 p-5 text-sm leading-7 text-rose-800">
             <p>{error}</p>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Link href="/course-room" className={buttonClass("secondary", "sm", "rounded-full px-4 font-semibold")}>수강실로 이동</Link>
+              <Link href="/course-room/?v=202607161010" className={buttonClass("secondary", "sm", "rounded-full px-4 font-semibold")}>수강실로 이동</Link>
               <Link href="/dashboard" className={buttonClass("secondary", "sm", "rounded-full px-4 font-semibold")}>마이페이지</Link>
             </div>
           </section>

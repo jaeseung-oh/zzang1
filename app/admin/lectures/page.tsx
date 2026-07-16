@@ -146,7 +146,7 @@ export default function AdminLecturesPage() {
               </span>
               <span className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-xs font-semibold text-slate-700">{adminEmail}</span>
               <Link
-                href="/course-room"
+                href="/course-room/?v=202607161010"
                 className="rounded-full bg-[#0f2a57] px-4 py-2 text-xs font-semibold text-white transition hover:bg-[#173968]"
               >
                 실제 강의실 열기

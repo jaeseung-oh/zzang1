@@ -215,7 +215,7 @@ function LegacyPaymentSuccessContent() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href="/course-room" className={buttonClass("darkPrimary", "md", "rounded-full px-6 focus:ring-offset-[#0d1828]")}>
+                <Link href="/course-room/?v=202607161010" className={buttonClass("darkPrimary", "md", "rounded-full px-6 focus:ring-offset-[#0d1828]")}>
                   수강실로 이동
                 </Link>
                 {result.receipt?.url ? (
@@ -379,7 +379,7 @@ function PortOnePaymentSuccessContent() {
           ) : null}
         </div>
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/course-room" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>내 강의실로 이동</Link>
+          <Link href="/course-room/?v=202607161010" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>내 강의실로 이동</Link>
           <Link href="/courses/apply/?category=dui" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>결제 페이지로 이동</Link>
         </div>
       </div>

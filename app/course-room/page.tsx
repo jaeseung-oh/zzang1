@@ -555,7 +555,7 @@ function CourseRoomPageContent() {
         if (!hasExplicitCourseId && !adminBypass) {
           const activeEnrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => isEnrollmentActive(item));
           if (activeEnrollment?.courseId && activeEnrollment.courseId !== effectiveCourseId) {
-            router.replace("/course-room?courseId=" + encodeURIComponent(activeEnrollment.courseId));
+            router.replace("/course-room/?v=202607161010&courseId=" + encodeURIComponent(activeEnrollment.courseId));
             return;
           }
         }
