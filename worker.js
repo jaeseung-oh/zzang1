@@ -3596,6 +3596,10 @@ async function handleAdminEnrollmentUpdate(request, env, corsHeaders) {
     const nowIso = new Date().toISOString();
     let patch = { updatedAt: nowIso, updatedBy: admin.email || admin.uid, adminUpdateReason: reason };
 
+    if (action === "resetProgress") {
+        return json({ message: "진도 초기화는 운영 데이터 보호 정책상 비활성화되어 있습니다.", code: "PROGRESS_RESET_DISABLED" }, 400, corsHeaders);
+    }
+
     if (action === "extend") {
         const baseTime = before.expiresAt ? new Date(before.expiresAt).getTime() : Date.now();
         const extensionDays = Number(body?.extensionDays || 0);
@@ -3611,11 +3615,6 @@ async function handleAdminEnrollmentUpdate(request, env, corsHeaders) {
             completionRate: 100, completedModuleCount: product.totalLessons, totalModuleCount: product.totalLessons,
             isCompleted: true, completedAt: patch.completedAt, updatedAt: nowIso, adminUpdated: true
         });
-    } else if (action === "resetProgress") {
-        const certificate = await firestoreGetData(env, "certificates", enrollmentId).catch((error) => error.status === 404 ? null : Promise.reject(error));
-        if (certificate?.certificateNo && !body?.force) return json({ message: "발급된 수료증이 있어 진도 초기화를 중단했습니다. 먼저 수료증 상태를 확인하세요.", code: "CERTIFICATE_EXISTS" }, 409, corsHeaders);
-        patch = { ...patch, progress: 0, completedLessons: 0, completedAt: null, progressResetBy: admin.email || admin.uid, progressResetAt: nowIso };
-        await firestorePatch(env, firestoreDocumentPath(env, "courseProgress", enrollmentId), { completionRate: 0, completedModuleCount: 0, isCompleted: false, completedAt: null, updatedAt: nowIso, adminUpdated: true });
     } else {
         return json({ message: "지원하지 않는 작업입니다.", code: "INVALID_ACTION" }, 400, corsHeaders);
     }

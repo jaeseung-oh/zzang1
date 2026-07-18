@@ -27,22 +27,23 @@ type AdminDataset = {
   certificates: AnyRecord[];
   progress: AnyRecord[];
   refundPolicies: AnyRecord[];
+  adminLogs: AnyRecord[];
 };
 
-const menu: Array<{ view: AdminMenuView; label: string; href: string }> = [
-  { view: "dashboard", label: "대시보드", href: "/admin/dashboard" },
-  { view: "users", label: "회원 관리", href: "/admin/users" },
-  { view: "payments", label: "결제 관리", href: "/admin/payments" },
-  { view: "enrollments", label: "수강권 관리", href: "/admin/enrollments" },
-  { view: "certificates", label: "회원 문서 발급", href: "/admin/certificates" },
-  { view: "refunds", label: "환불 관리", href: "/admin/refunds" },
-  { view: "courses", label: "강의 관리", href: "/admin/courses" },
-  { view: "integrity", label: "데이터 점검", href: "/admin/integrity" },
-  { view: "lectures", label: "강의 영상 확인", href: "/admin/lectures" },
-  { view: "settings", label: "시스템 설정", href: "/admin/settings" },
+const menu: Array<{ view: AdminMenuView; label: string; href: string; group: string }> = [
+  { view: "dashboard", label: "대시보드", href: "/admin/dashboard", group: "대시보드" },
+  { view: "users", label: "회원관리 CRM", href: "/admin/users", group: "회원관리" },
+  { view: "payments", label: "결제관리", href: "/admin/payments", group: "결제관리" },
+  { view: "enrollments", label: "수강권관리", href: "/admin/enrollments", group: "수강권관리" },
+  { view: "certificates", label: "문서관리", href: "/admin/certificates", group: "문서관리" },
+  { view: "refunds", label: "환불·고객관리", href: "/admin/refunds", group: "고객관리" },
+  { view: "courses", label: "교육관리", href: "/admin/courses", group: "교육관리" },
+  { view: "integrity", label: "데이터 불일치", href: "/admin/integrity", group: "점검" },
+  { view: "lectures", label: "강의 영상 확인", href: "/admin/lectures", group: "교육관리" },
+  { view: "settings", label: "설정", href: "/admin/settings", group: "설정" },
 ];
 
-const emptyData: AdminDataset = { users: [], payments: [], enrollments: [], certificates: [], progress: [], refundPolicies: [] };
+const emptyData: AdminDataset = { users: [], payments: [], enrollments: [], certificates: [], progress: [], refundPolicies: [], adminLogs: [] };
 type AdminGrantProduct = {
   id: string;
   title: string;
@@ -126,6 +127,128 @@ function getUserName(user?: AnyRecord) {
 
 function getBirthDate(user?: AnyRecord) {
   return user?.dateOfBirth || user?.birthDate || user?.certificateIdentity?.dateOfBirth || "미입력";
+}
+
+function getUid(row?: AnyRecord | null) {
+  return String(row?.uid || row?.userId || row?.id || "");
+}
+
+function verifiedValue(value: any, empty = "기록 없음") {
+  if (value === undefined || value === null || value === "") return empty;
+  return value;
+}
+
+function isPaidRecord(row?: AnyRecord | null) {
+  const status = String(row?.paymentStatus || row?.status || "").toLowerCase();
+  return ["paid", "completed", "complete", "success", "approved"].includes(status);
+}
+
+function isFailedPayment(row?: AnyRecord | null) {
+  const status = String(row?.paymentStatus || row?.status || "").toLowerCase();
+  return ["failed", "fail", "error", "verification_failed", "verify_failed"].includes(status) || Boolean(row?.errorCode || row?.errorMessage);
+}
+
+function isRefundRecord(row?: AnyRecord | null) {
+  const status = String(row?.refundStatus || row?.paymentStatus || row?.status || "").toLowerCase();
+  return status.includes("refund") || status === "cancelled" || status === "canceled" || Boolean(row?.refundedAt || row?.refundRequestedAt);
+}
+
+function isActiveEnrollment(row?: AnyRecord | null) {
+  const accessStatus = String(row?.accessStatus || row?.enrollmentStatus || row?.status || "").toLowerCase();
+  if (["cancelled", "canceled", "revoked", "suspended", "expired", "refunded"].includes(accessStatus)) return false;
+  const left = daysLeft(row?.expiresAt);
+  return accessStatus === "active" || accessStatus === "paid" || accessStatus === "manual" || accessStatus === "granted" || Boolean(row?.active) || left === null || left >= 0;
+}
+
+function getCourseLevelText(row?: AnyRecord | null) {
+  const raw = String(row?.planId || row?.courseLevel || row?.level || row?.productId || row?.courseId || "").toLowerCase();
+  if (raw.includes("premium") || raw.includes("advanced") || raw.includes("cbt") || raw.includes("심화")) return "심화과정";
+  if (raw.includes("basic") || raw.includes("기본")) return "기본과정";
+  return "확인되지 않음";
+}
+
+function getMemberStatus(user: AnyRecord) {
+  const status = String(user.status || user.memberStatus || "").toLowerCase();
+  if (status.includes("withdraw") || status.includes("deleted") || status.includes("탈퇴")) return "탈퇴";
+  if (status.includes("dormant") || status.includes("휴면")) return "휴면";
+  if (status.includes("suspend") || status.includes("ban") || status.includes("정지")) return "이용정지";
+  if (user.emailVerified === false || user.emailVerifiedAt === null) return "이메일 미인증";
+  return "정상";
+}
+
+function getPaymentState(payments: AnyRecord[]) {
+  if (payments.some(isRefundRecord)) return "환불요청/완료";
+  if (payments.some(isPaidRecord)) return "결제완료";
+  if (payments.some(isFailedPayment)) return "결제실패";
+  return payments.length ? "결제대기" : "기록 없음";
+}
+
+function getEntitlementState(enrollments: AnyRecord[]) {
+  if (!enrollments.length) return "미발급";
+  if (enrollments.some(isActiveEnrollment)) return "활성";
+  if (enrollments.some((row) => { const left = daysLeft(row.expiresAt); return left !== null && left >= 0 && left <= 14; })) return "만료예정";
+  if (enrollments.some((row) => { const left = daysLeft(row.expiresAt); return left !== null && left < 0; })) return "만료";
+  return "관리자 확인 필요";
+}
+
+function getLearningState(enrollments: AnyRecord[], progressRows: AnyRecord[]) {
+  const progressRate = Math.max(0, ...enrollments.map((row) => Number(row.progress || 0)), ...progressRows.map((row) => Number(row.completionRate || 0)));
+  const last = Math.max(0, ...progressRows.map((row) => toDate(row.updatedAt || row.lastWatchedAt)?.getTime() || 0), ...enrollments.map((row) => toDate(row.updatedAt || row.lastWatchedAt)?.getTime() || 0));
+  if (progressRate >= 100 || enrollments.some((row) => row.completedAt)) return "교육완료";
+  if (progressRate > 0) return last && last < Date.now() - 14 * 24 * 60 * 60 * 1000 ? "진도정체" : "수강중";
+  return "미수강";
+}
+
+function getCompletionState(enrollments: AnyRecord[], certificates: AnyRecord[]) {
+  if (certificates.length || enrollments.some((row) => row.certificateIssued || row.certificateNo)) return "수료완료";
+  if (enrollments.some((row) => row.completedAt || Number(row.progress || 0) >= 100)) return "수료조건충족";
+  return "미수료";
+}
+
+function getDocumentState(certificates: AnyRecord[], enrollments: AnyRecord[]) {
+  if (certificates.length) return "발급완료";
+  if (enrollments.some((row) => row.completedAt || Number(row.progress || 0) >= 100)) return "발급대기";
+  return "미작성";
+}
+
+function getUserCrmBundle(uid: string, data: AdminDataset) {
+  const payments = data.payments.filter((row) => getUid(row) === uid);
+  const enrollments = data.enrollments.filter((row) => getUid(row) === uid);
+  const progressRows = data.progress.filter((row) => getUid(row) === uid);
+  const certificates = data.certificates.filter((row) => getUid(row) === uid);
+  const logs = data.adminLogs.filter((row) => row.targetId === uid || row.uid === uid || row.userId === uid);
+  const courseTitle = enrollments[0]?.courseTitle || payments[0]?.courseTitle || payments[0]?.productName || "확인되지 않음";
+  const primaryAccess = enrollments[0] || payments[0] || {};
+  const issues: string[] = [];
+  if (payments.some(isPaidRecord) && !enrollments.some(isActiveEnrollment)) issues.push("결제완료 + 수강권 없음");
+  if (enrollments.some(isActiveEnrollment) && !payments.some(isPaidRecord) && !enrollments.some((row) => row.manualGrant || row.grantReason === "ADMIN_MANUAL" || row.grantReason === "RESTORE")) issues.push("결제 없는 수강권");
+  if (payments.some(isFailedPayment) && enrollments.some(isActiveEnrollment)) issues.push("결제 실패 + 수강권 활성");
+  if (payments.some(isRefundRecord) && enrollments.some(isActiveEnrollment)) issues.push("환불/취소 + 수강권 활성");
+  const activeKeys = new Set(enrollments.filter(isActiveEnrollment).map((row) => String(row.courseId || "") + ":" + String(row.productId || "") + ":" + String(row.planId || "")));
+  if (activeKeys.size < enrollments.filter(isActiveEnrollment).length) issues.push("동일 UID 중복 활성 수강권");
+  return { payments, enrollments, progressRows, certificates, logs, courseTitle, courseLevel: getCourseLevelText(primaryAccess), issues };
+}
+
+function buildMemberTimeline(selected: AnyRecord, bundle: ReturnType<typeof getUserCrmBundle>) {
+  const items: Array<{ id: string; at: any; label: string; detail: string }> = [];
+  const push = (id: string, at: any, label: string, detail: string) => { if (toDate(at)) items.push({ id, at, label, detail }); };
+  push("user-created", selected.createdAt, "회원가입", selected.email || selected.id);
+  push("email-verified", selected.emailVerifiedAt, "이메일 인증", "실제 인증시각 기록 기준");
+  push("last-login", selected.lastLoginAt, "로그인", "최근 로그인 기록");
+  bundle.payments.forEach((row) => {
+    push("payment-created-" + row.id, row.createdAt || row.orderedAt, "결제 시도", row.orderId || row.paymentId || row.id);
+    if (isPaidRecord(row)) push("payment-paid-" + row.id, row.approvedAt || row.paidAt || row.updatedAt, "결제 성공", formatKrw(Number(row.amount || 0)));
+    if (isFailedPayment(row)) push("payment-failed-" + row.id, row.failedAt || row.updatedAt || row.createdAt, "결제 실패", row.errorMessage || row.errorCode || row.id);
+    if (isRefundRecord(row)) push("payment-refund-" + row.id, row.refundedAt || row.refundRequestedAt || row.updatedAt, "환불/취소", row.refundStatus || row.status || "환불 관련 기록");
+  });
+  bundle.enrollments.forEach((row) => {
+    push("enrollment-" + row.id, row.createdAt || row.purchasedAt || row.grantedAt, "수강권 생성", row.courseTitle || row.courseId || row.id);
+    push("enrollment-completed-" + row.id, row.completedAt, "수료 처리", row.courseTitle || row.courseId || row.id);
+  });
+  bundle.progressRows.forEach((row) => push("progress-" + row.id, row.updatedAt || row.lastWatchedAt, "강의 진도 저장", row.courseTitle || row.courseId || row.id));
+  bundle.certificates.forEach((row) => push("certificate-" + row.id, row.issuedAt || row.createdAt, "문서 발급", row.certificateNo || row.documentType || row.id));
+  bundle.logs.forEach((row) => push("admin-log-" + row.id, row.createdAt, "관리자 활동", row.description || row.action || row.id));
+  return items.sort((a, b) => (toDate(b.at)?.getTime() || 0) - (toDate(a.at)?.getTime() || 0));
 }
 
 function getCompletedLessons(enrollment?: AnyRecord, progress?: AnyRecord) {
@@ -259,7 +382,7 @@ function AdminFrame({ children, email, view }: { children: React.ReactNode; emai
           <p className="mt-2 text-xs leading-6 text-slate-500">사이트 운영에 필요한 회원, 결제, 수강권, 수료증 정보를 관리할 수 있습니다.</p>
           <nav className="mt-5 grid gap-2 sm:grid-cols-2 lg:grid-cols-1">
             {menu.map((item) => (
-              <Link key={item.view} href={item.href} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${view === item.view ? "bg-[#173968] text-white" : "bg-[#f8fafc] text-slate-700 hover:bg-[#eef4ff]"}`}>{item.label}</Link>
+              <Link key={item.view} href={item.href} className={`rounded-xl px-4 py-3 text-sm font-semibold transition ${view === item.view ? "bg-[#173968] text-white" : "bg-[#f8fafc] text-slate-700 hover:bg-[#eef4ff]"}`}><span className="block text-[11px] font-bold text-current opacity-70">{item.group}</span><span className="mt-0.5 block">{item.label}</span></Link>
             ))}
           </nav>
         </aside>
@@ -368,7 +491,7 @@ function AdminContent({ view }: { view: AdminView }) {
       const profileSnapshot = await getDoc(doc(db, "users", user.uid)).catch(() => null);
       const role = String(profileSnapshot?.data()?.role || profileSnapshot?.data()?.adminRole || "").toLowerCase();
       if (!isAdminEmail(user.email) && !["admin", "superadmin", "operator", "viewer"].includes(role)) throw new Error("관리자 권한이 없습니다.");
-      const names = ["users", "payments", "enrollments", "certificates", "courseProgress", "refundPolicies"] as const;
+      const names = ["users", "payments", "enrollments", "certificates", "courseProgress", "refundPolicies", "adminLogs"] as const;
       const snapshots = await Promise.all(names.map(async (name) => {
         try {
           return await getDocs(collection(db, name));
@@ -465,15 +588,52 @@ function DashboardView({ data, maps, refresh }: any) {
 
 function UsersView(ctx: any) {
   const rows: AnyRecord[] = ctx.data.users.map((user: AnyRecord) => {
-    const enrollments = ctx.data.enrollments.filter((e: AnyRecord) => (e.uid || e.userId) === user.id);
-    const certificates = ctx.data.certificates.filter((c: AnyRecord) => (c.uid || c.userId) === user.id);
-    return { ...user, userId: user.id, userName: getUserName(user), birthDateText: getBirthDate(user), enrollmentCount: enrollments.length, paid: enrollments.some((e: AnyRecord) => e.paymentStatus === "paid"), certificateIssued: certificates.length > 0, admin: isAdminEmail(user.email) };
-  }).filter((row: AnyRecord) => textIncludes(row, ["userId", "userName", "email", "phoneNumber"], ctx.search));
+    const uid = getUid(user);
+    const bundle = getUserCrmBundle(uid, ctx.data);
+    const progressRate = Math.max(0, ...bundle.enrollments.map((row: AnyRecord) => Number(row.progress || 0)), ...bundle.progressRows.map((row: AnyRecord) => Number(row.completionRate || 0)));
+    const tags = [bundle.courseTitle, bundle.courseLevel, ...bundle.issues.length ? ["데이터확인필요"] : []].filter((item) => item && item !== "확인되지 않음");
+    return {
+      ...user,
+      userId: uid,
+      userName: getUserName(user),
+      birthDateText: getBirthDate(user),
+      memberStatus: getMemberStatus(user),
+      paymentState: getPaymentState(bundle.payments),
+      entitlementState: getEntitlementState(bundle.enrollments),
+      learningState: getLearningState(bundle.enrollments, bundle.progressRows),
+      completionState: getCompletionState(bundle.enrollments, bundle.certificates),
+      documentState: getDocumentState(bundle.certificates, bundle.enrollments),
+      refundState: bundle.payments.some(isRefundRecord) ? "환불요청/완료" : "해당없음",
+      courseTitle: bundle.courseTitle,
+      courseLevel: bundle.courseLevel,
+      progressRate,
+      enrollmentCount: bundle.enrollments.length,
+      certificateIssued: bundle.certificates.length > 0,
+      issueCount: bundle.issues.length,
+      tags: tags.join(", "),
+      admin: isAdminEmail(user.email),
+    };
+  }).filter((row: AnyRecord) => textIncludes(row, ["userId", "userName", "email", "phoneNumber", "courseTitle", "tags"], ctx.search)).filter((row: AnyRecord) => filterUserCrm(row, ctx.filter));
   const sorted = rows.sort((a: AnyRecord, b: AnyRecord) => (toDate(b.createdAt)?.getTime() || 0) - (toDate(a.createdAt)?.getTime() || 0));
   const pager = usePagination(sorted);
   const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId);
   useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]);
-  return <section><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-users.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "userId", label: "사용자 ID" }, { key: "userName", label: "성명" }, { key: "email", label: "이메일" }, { key: "birthDateText", label: "생년월일" }, { key: "phoneNumber", label: "휴대전화" }, { key: "createdAt", label: "가입일", render: (r) => formatDate(r.createdAt) }, { key: "lastLoginAt", label: "최근 로그인", render: (r) => formatDate(r.lastLoginAt) }, { key: "enrollmentCount", label: "수강권" }, { key: "paid", label: "결제", render: (r) => r.paid ? "결제 있음" : "없음" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "admin", label: "관리자", render: (r) => r.admin ? "관리자" : "일반" }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <UserDetail selected={selected} ctx={ctx} /> : null}</section>;
+  return <section><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체 회원", "신규 가입", "이메일 미인증", "결제 대기", "결제 완료", "수강 중", "진도 정체", "수료 대기", "문서 발급 대기", "환불 회원", "탈퇴·휴면 회원", "데이터확인필요"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-users-crm.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "userId", label: "UID" }, { key: "userName", label: "성명", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">{r.userName}</button> }, { key: "email", label: "이메일", render: (r) => verifiedValue(r.email) }, { key: "phoneNumber", label: "휴대전화", render: (r) => verifiedValue(r.phoneNumber) }, { key: "createdAt", label: "가입일", render: (r) => formatDate(r.createdAt) }, { key: "memberStatus", label: "회원상태" }, { key: "paymentState", label: "결제상태" }, { key: "entitlementState", label: "수강권상태" }, { key: "learningState", label: "수강상태" }, { key: "completionState", label: "수료상태" }, { key: "documentState", label: "문서상태" }, { key: "courseTitle", label: "현재 과정" }, { key: "courseLevel", label: "과정등급" }, { key: "progressRate", label: "진도율", render: (r) => r.progressRate + "%" }, { key: "tags", label: "태그", render: (r) => r.tags || "기록 없음" }, { key: "issueCount", label: "불일치", render: (r) => r.issueCount ? "관리자 확인 필요 " + r.issueCount + "건" : "없음" }]} /><Pagination {...pager} />{selected ? <UserDetail selected={selected} ctx={ctx} /> : null}</section>;
+}
+
+function filterUserCrm(row: AnyRecord, filter: string) {
+  if (filter === "신규 가입") return inLastDays(row.createdAt, 7);
+  if (filter === "이메일 미인증") return row.memberStatus === "이메일 미인증";
+  if (filter === "결제 대기") return row.paymentState === "결제대기";
+  if (filter === "결제 완료") return row.paymentState === "결제완료";
+  if (filter === "수강 중") return row.learningState === "수강중";
+  if (filter === "진도 정체") return row.learningState === "진도정체";
+  if (filter === "수료 대기") return row.completionState === "수료조건충족";
+  if (filter === "문서 발급 대기") return row.documentState === "발급대기";
+  if (filter === "환불 회원") return row.refundState !== "해당없음";
+  if (filter === "탈퇴·휴면 회원") return ["탈퇴", "휴면"].includes(row.memberStatus);
+  if (filter === "데이터확인필요") return row.issueCount > 0;
+  return true;
 }
 
 function AdminDocumentLinks({ uid, certificateId, courseId }: { uid: string; certificateId?: string; courseId?: string }) {
@@ -482,12 +642,40 @@ function AdminDocumentLinks({ uid, certificateId, courseId }: { uid: string; cer
   return <div className="flex flex-wrap gap-x-3 gap-y-2">{certificateId ? <Link href={`/certificate?certificateId=${encodeURIComponent(certificateId)}`} className="font-semibold text-[#173968] underline">수료증</Link> : <span className="text-slate-500">수료증 발급 전</span>}{documentLinks}</div>;
 }
 
+function CrmMiniTable({ title, rows, columns, emptyText = "기록 없음" }: { title: string; rows: AnyRecord[]; columns: Array<{ key: string; label: string; render?: (row: AnyRecord) => React.ReactNode }>; emptyText?: string }) {
+  return <section className="rounded-[1.25rem] border border-[#d7deea] bg-white p-4"><h4 className="text-lg font-bold text-slate-950">{title}</h4><div className="mt-3"><DataTable rows={rows} columns={columns} emptyText={emptyText} /></div></section>;
+}
+
 function UserDetail({ selected, ctx }: any) {
-  const payments = ctx.data.payments.filter((p: AnyRecord) => (p.uid || p.userId) === selected.id);
-  const enrollments = ctx.data.enrollments.filter((e: AnyRecord) => (e.uid || e.userId) === selected.id);
-  const certificates = ctx.data.certificates.filter((c: AnyRecord) => (c.uid || c.userId) === selected.id);
-  const refund = enrollments[0] ? getRefundInfo({ enrollment: enrollments[0], payment: payments[0], progress: ctx.maps.progressByUserCourse.get(`${selected.id}_${enrollments[0].courseId}`), certificate: certificates[0] }) : null;
-  return <DetailPanel title="회원 상세" memoTarget="users" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("users", selected.id, ctx.memo)} rows={[["성명", selected.userName], ["이메일", selected.email || "미입력"], ["생년월일", selected.birthDateText], ["결제내역", `${payments.length}건`], ["수강권", `${enrollments.length}건`], ["수료증", certificates[0] ? <Link href={`/certificate?certificateId=${encodeURIComponent(certificates[0].id)}`} className="text-[#173968] underline">보기</Link> : "미발급"], ["출력 서류", <div className="space-y-2">{enrollments.length ? enrollments.map((enrollment: AnyRecord) => <div key={enrollment.id || enrollment.courseId}><p className="text-xs font-bold text-slate-500">{enrollment.courseTitle || enrollment.courseId}</p><AdminDocumentLinks uid={selected.id} certificateId={certificates.find((certificate: AnyRecord) => certificate.courseId === enrollment.courseId)?.id || certificates[0]?.id} courseId={enrollment.courseId} /></div>) : <AdminDocumentLinks uid={selected.id} certificateId={certificates[0]?.id} />}</div>], ["예상 환불", refund ? `${formatKrw(refund.refundAmount)} / ${refund.reason}` : "계산 불가"]]} />;
+  const [activeTab, setActiveTab] = useState("basic");
+  const bundle = getUserCrmBundle(selected.id, ctx.data);
+  const timeline = buildMemberTimeline(selected, bundle);
+  const progressRate = Math.max(0, ...bundle.enrollments.map((row: AnyRecord) => Number(row.progress || 0)), ...bundle.progressRows.map((row: AnyRecord) => Number(row.completionRate || 0)));
+  const tabs = [
+    ["basic", "기본정보"], ["payments", "결제내역"], ["entitlements", "수강권"], ["progress", "수강진도"], ["submissions", "제출자료"], ["documents", "발급문서"], ["support", "문의·고객응대"], ["memo", "관리자 메모"], ["timeline", "활동 타임라인"], ["privacy", "개인정보 처리이력"],
+  ];
+  return <section className="mt-5 space-y-4 rounded-[1.5rem] border border-[#d7deea] bg-[#f8fafc] p-4">
+    <div className="rounded-[1.25rem] border border-[#d7deea] bg-white p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div><p className="text-xs font-bold uppercase tracking-[0.18em] text-[#274690]">UID 기준 통합 회원 상세</p><h3 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-slate-950">{selected.userName}</h3><p className="mt-2 text-sm leading-6 text-slate-600">확인 가능한 운영 데이터만 표시합니다. 기록이 없거나 충돌하는 항목은 자동 보정하지 않고 관리자 확인 대상으로 남깁니다.</p></div>
+        {bundle.issues.length ? <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-bold text-amber-950">관리자 확인 필요: {bundle.issues.join(", ")}</div> : <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-bold text-emerald-950">탐지된 불일치 없음</div>}
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        {[ ["회원번호", verifiedValue(selected.memberNo || selected.memberNumber)], ["UID", selected.id], ["이메일", verifiedValue(selected.email)], ["휴대전화", verifiedValue(selected.phoneNumber)], ["생년월일", selected.birthDateText || "기록 없음"], ["가입일", formatDate(selected.createdAt)], ["최근 로그인", formatDate(selected.lastLoginAt)], ["회원상태", getMemberStatus(selected)], ["현재 과정", bundle.courseTitle], ["과정등급", bundle.courseLevel], ["결제상태", getPaymentState(bundle.payments)], ["수강권상태", getEntitlementState(bundle.enrollments)], ["전체 진도율", progressRate + "%"], ["수료상태", getCompletionState(bundle.enrollments, bundle.certificates)], ["담당 관리자", verifiedValue(selected.managerEmail || selected.managerName, "관리자 확인 필요")], ["태그", selected.tags?.length ? selected.tags.join(", ") : "기록 없음"] ].map(([label, value]) => <div key={label} className="rounded-xl border border-[#e5ebf3] bg-[#f8fafc] p-3"><p className="text-[11px] font-bold text-slate-500">{label}</p><p className="mt-1 break-words text-sm font-semibold text-slate-950">{value}</p></div>)}
+      </div>
+    </div>
+    <div className="flex flex-wrap gap-2">{tabs.map(([id, label]) => <button key={id} type="button" onClick={() => setActiveTab(id)} className={`rounded-full px-4 py-2 text-sm font-bold transition ${activeTab === id ? "bg-[#173968] text-white" : "border border-[#d7deea] bg-white text-slate-700"}`}>{label}</button>)}</div>
+    {activeTab === "basic" ? <DetailPanel title="기본정보" rows={[["UID", selected.id], ["이름", selected.userName], ["이메일", verifiedValue(selected.email)], ["휴대전화번호", verifiedValue(selected.phoneNumber)], ["생년월일", selected.birthDateText || "기록 없음"], ["이메일 인증 여부", selected.emailVerified === true || selected.emailVerifiedAt ? "인증" : selected.emailVerified === false ? "미인증" : "확인되지 않음"], ["가입일", formatDate(selected.createdAt)], ["최근 로그인", formatDate(selected.lastLoginAt)], ["회원상태", getMemberStatus(selected)]]} /> : null}
+    {activeTab === "payments" ? <CrmMiniTable title="결제내역" rows={bundle.payments} columns={[{ key: "orderId", label: "주문번호", render: (r) => verifiedValue(r.orderId) }, { key: "paymentId", label: "paymentId", render: (r) => verifiedValue(r.paymentId || r.paymentKey) }, { key: "productId", label: "productId", render: (r) => verifiedValue(r.productId) }, { key: "planId", label: "planId", render: (r) => verifiedValue(r.planId) }, { key: "courseId", label: "canonicalCourseId", render: (r) => verifiedValue(r.canonicalCourseId || r.courseId) }, { key: "amount", label: "결제금액", render: (r) => formatKrw(Number(r.amount || 0)) }, { key: "method", label: "결제수단", render: (r) => verifiedValue(r.method || r.payMethod) }, { key: "status", label: "결제상태", render: (r) => r.paymentStatus || r.status || "확인되지 않음" }, { key: "approvedAt", label: "승인일", render: (r) => formatDate(r.approvedAt || r.paidAt) }]} /> : null}
+    {activeTab === "entitlements" ? <CrmMiniTable title="수강권" rows={bundle.enrollments} columns={[{ key: "id", label: "entitlementId" }, { key: "courseId", label: "canonicalCourseId", render: (r) => verifiedValue(r.canonicalCourseId || r.courseId) }, { key: "productId", label: "productId", render: (r) => verifiedValue(r.productId) }, { key: "planId", label: "planId", render: (r) => getCourseLevelText(r) }, { key: "createdAt", label: "부여일", render: (r) => formatDate(r.grantedAt || r.createdAt || r.purchasedAt) }, { key: "expiresAt", label: "종료일", render: (r) => formatDate(r.expiresAt) }, { key: "accessStatus", label: "활성 여부", render: (r) => isActiveEnrollment(r) ? "활성" : (r.accessStatus || r.status || "확인되지 않음") }, { key: "grantReason", label: "부여 사유", render: (r) => verifiedValue(r.grantReason || r.reason, "원본 데이터 누락") }]} /> : null}
+    {activeTab === "progress" ? <CrmMiniTable title="수강진도" rows={bundle.progressRows} columns={[{ key: "courseId", label: "과정" }, { key: "completionRate", label: "전체 진도율", render: (r) => Number(r.completionRate || 0) + "%" }, { key: "completedModuleCount", label: "완료 강의" }, { key: "lastPosition", label: "최근 재생 위치", render: (r) => verifiedValue(r.lastPosition || r.lastPlaybackPosition) }, { key: "updatedAt", label: "최근 수강일", render: (r) => formatDate(r.updatedAt || r.lastWatchedAt) }]} /> : null}
+    {activeTab === "submissions" ? <section className="rounded-[1.25rem] border border-[#d7deea] bg-white p-5"><h4 className="text-lg font-bold">제출자료</h4><p className="mt-2 text-sm font-semibold text-slate-700">기록 없음</p><p className="mt-1 text-sm leading-6 text-slate-500">현재 연결된 운영 컬렉션에서 제출자료 원본을 확인할 수 없습니다. 확인되지 않은 자료를 임의 생성하거나 완료 처리하지 않습니다.</p></section> : null}
+    {activeTab === "documents" ? <CrmMiniTable title="발급문서" rows={bundle.certificates} columns={[{ key: "certificateNo", label: "발급번호", render: (r) => verifiedValue(r.certificateNo || r.issueNumber) }, { key: "documentType", label: "문서종류", render: (r) => getAdminCertificateDocumentType(r.courseId, r.documentType) }, { key: "courseId", label: "과정명", render: (r) => verifiedValue(r.courseTitle || r.courseId) }, { key: "issuedAt", label: "최초 발급일", render: (r) => formatDate(r.issuedAt || r.createdAt) }, { key: "view", label: "문서", render: (r) => <Link href={getCertificateViewHref(r.id)} className="font-semibold text-[#173968] underline">보기/인쇄</Link> }]} /> : null}
+    {activeTab === "support" ? <section className="rounded-[1.25rem] border border-[#d7deea] bg-white p-5"><h4 className="text-lg font-bold">문의·고객응대</h4><p className="mt-2 text-sm font-semibold text-slate-700">기록 없음</p><p className="mt-1 text-sm leading-6 text-slate-500">현재 관리자 화면에 연결된 고객문의 원본 컬렉션이 없습니다. 이번 운영 범위 밖의 기능은 추가하지 않았습니다.</p></section> : null}
+    {activeTab === "memo" ? <DetailPanel title="관리자 메모" memoTarget="users" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("users", selected.id, ctx.memo)} rows={[["구분", "내부 운영메모"], ["주의", "관리자 메모는 사실확인 자료가 아니라 내부 업무기록입니다."], ["현재 메모", ctx.memo || "기록 없음"]]} /> : null}
+    {activeTab === "timeline" ? <CrmMiniTable title="활동 타임라인" rows={timeline.map((item) => ({ ...item, id: item.id }))} columns={[{ key: "at", label: "일시", render: (r) => formatDate(r.at) }, { key: "label", label: "활동" }, { key: "detail", label: "확인된 원본" }]} /> : null}
+    {activeTab === "privacy" ? <CrmMiniTable title="개인정보 처리이력" rows={bundle.logs.filter((row: AnyRecord) => String(row.action || "").includes("privacy") || String(row.action || "").includes("profile") || String(row.action || "").includes("download"))} columns={[{ key: "createdAt", label: "일시", render: (r) => formatDate(r.createdAt) }, { key: "adminEmail", label: "처리 관리자", render: (r) => verifiedValue(r.adminEmail) }, { key: "action", label: "처리 종류" }, { key: "description", label: "내용", render: (r) => verifiedValue(r.description) }]} /> : null}
+  </section>;
 }
 
 function PaymentsView(ctx: any) {
@@ -501,10 +689,10 @@ function PaymentsView(ctx: any) {
   const pager = usePagination(sorted);
   const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId);
   useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]);
-  return <section><PaymentResyncPanel onRefresh={ctx.refresh} /><ManualEnrollmentGrantPanel users={ctx.data.users} onRefresh={ctx.refresh} /><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체", "결제완료", "결제실패", "결제취소", "환불완료", "오늘 결제", "이번 달 결제"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-payments.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "orderId", label: "주문번호" }, { key: "paymentId", label: "결제번호" }, { key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "상품명" }, { key: "amount", label: "결제금액", align: "right", render: (r) => formatKrw(Number(r.amount || 0)) }, { key: "method", label: "결제수단" }, { key: "paymentStatus", label: "상태", render: (r) => r.paymentStatus || r.status || "-" }, { key: "createdAt", label: "결제일시", render: (r) => formatDate(r.createdAt || r.orderedAt) }, { key: "approvedAt", label: "승인일시", render: (r) => formatDate(r.approvedAt) }, { key: "enrollmentGranted", label: "수강권", render: (r) => r.enrollmentGranted ? "부여" : "없음" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <PaymentDetail selected={selected} ctx={ctx} /> : null}</section>;
+  return <section><PaymentResyncPanel onRefresh={ctx.refresh} /><ManualEnrollmentGrantPanel users={ctx.data.users} onRefresh={ctx.refresh} /><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체 결제", "결제 성공", "결제 실패", "결제 취소", "환불 요청", "환불 완료", "결제 검증 오류", "결제·수강권 불일치", "오늘 결제", "이번 달 결제"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-payments.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "orderId", label: "주문번호" }, { key: "paymentId", label: "결제번호" }, { key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "상품명" }, { key: "amount", label: "결제금액", align: "right", render: (r) => formatKrw(Number(r.amount || 0)) }, { key: "method", label: "결제수단" }, { key: "paymentStatus", label: "상태", render: (r) => r.paymentStatus || r.status || "-" }, { key: "createdAt", label: "결제일시", render: (r) => formatDate(r.createdAt || r.orderedAt) }, { key: "approvedAt", label: "승인일시", render: (r) => formatDate(r.approvedAt) }, { key: "enrollmentGranted", label: "수강권", render: (r) => r.enrollmentGranted ? "부여" : "없음" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <PaymentDetail selected={selected} ctx={ctx} /> : null}</section>;
 }
 
-function filterPayment(row: AnyRecord, filter: string) { const status = row.paymentStatus || row.status; if (filter === "결제완료") return status === "paid"; if (filter === "결제실패") return status === "failed"; if (filter === "결제취소") return status === "canceled" || status === "cancelled"; if (filter === "환불완료") return status === "refunded"; if (filter === "오늘 결제") return isToday(row.approvedAt || row.createdAt); if (filter === "이번 달 결제") return isThisMonth(row.approvedAt || row.createdAt); return true; }
+function filterPayment(row: AnyRecord, filter: string) { const status = String(row.paymentStatus || row.status || "").toLowerCase(); if (filter === "결제 성공") return isPaidRecord(row); if (filter === "결제 실패") return isFailedPayment(row); if (filter === "결제 취소") return status === "canceled" || status === "cancelled"; if (filter === "환불 요청") return Boolean(row.refundRequestedAt) || String(row.refundStatus || "").includes("request"); if (filter === "환불 완료") return status === "refunded" || String(row.refundStatus || "").includes("complete"); if (filter === "결제 검증 오류") return Boolean(row.verificationError || row.errorCode || row.errorMessage); if (filter === "결제·수강권 불일치") return isPaidRecord(row) && !row.enrollmentGranted; if (filter === "오늘 결제") return isToday(row.approvedAt || row.createdAt); if (filter === "이번 달 결제") return isThisMonth(row.approvedAt || row.createdAt); return true; }
 function PaymentResyncPanel({ onRefresh }: { onRefresh: () => void }) {
   const [paymentId, setPaymentId] = useState("");
   const [uid, setUid] = useState("");
@@ -610,9 +798,9 @@ function PaymentDetail({ selected, ctx }: any) { const enrollment = ctx.data.enr
 function EnrollmentsView(ctx: any) {
   const rows: AnyRecord[] = ctx.data.enrollments.map((e: AnyRecord) => { const user = ctx.maps.userById.get(e.uid || e.userId); const progress = ctx.maps.progressByUserCourse.get(`${e.uid || e.userId}_${e.courseId}`); const certificate = ctx.maps.certificateByUserCourse.get(`${e.uid || e.userId}_${e.courseId}`); const refund = getRefundInfo({ enrollment: e, progress, certificate, payment: ctx.maps.paymentByOrder.get(e.orderId || e.paymentId) }); const left = daysLeft(e.expiresAt); return { ...e, userName: getUserName(user), email: user?.email || "", progressRate: getProgressRate(e, progress), completedLessons: getCompletedLessons(e, progress), leftDays: left, expired: left !== null && left < 0, certificateIssued: Boolean(e.certificateIssued || certificate?.certificateNo), refundAmount: refund.refundAmount, refundable: refund.refundable, refundReason: refund.reason }; }).filter((row: AnyRecord) => textIncludes(row, ["id", "userName", "email", "courseTitle"], ctx.search)).filter((row: AnyRecord) => filterEnrollment(row, ctx.filter));
   const sorted = rows.sort((a: AnyRecord, b: AnyRecord) => (toDate(b.purchasedAt || b.createdAt)?.getTime() || 0) - (toDate(a.purchasedAt || a.createdAt)?.getTime() || 0)); const pager = usePagination(sorted); const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId); useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]);
-  return <section><ManualEnrollmentGrantPanel users={ctx.data.users} onRefresh={ctx.refresh} /><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체", "수강 중 active", "수강 완료 completed", "수강기간 만료 expired", "수료증 발급 완료", "수료증 미발급", "환불 가능", "환불 불가"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-enrollments.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "id", label: "수강권 ID" }, { key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "과정명" }, { key: "purchasedAt", label: "결제일", render: (r) => formatDate(r.purchasedAt) }, { key: "createdAt", label: "시작일", render: (r) => formatDate(r.createdAt || r.purchasedAt) }, { key: "expiresAt", label: "만료일", render: (r) => formatDate(r.expiresAt) }, { key: "leftDays", label: "남은 수강일", render: (r) => r.leftDays === null ? "-" : `${r.leftDays}일` }, { key: "accessStatus", label: "상태" }, { key: "progressRate", label: "진행률", render: (r) => `${r.progressRate}%` }, { key: "completedLessons", label: "완료/전체", render: (r) => `${r.completedLessons}/${r.totalLessons || 5}` }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "refundAmount", label: "환불예상", align: "right", render: (r) => formatKrw(r.refundAmount) }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <EnrollmentDetail selected={selected} ctx={ctx} /> : null}</section>;
+  return <section><ManualEnrollmentGrantPanel users={ctx.data.users} onRefresh={ctx.refresh} /><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체 수강권", "활성 수강권", "만료 예정", "수동 부여", "수강권 복구", "결제 없는 수강권", "결제 후 미발급 수강권", "수료증 발급 완료", "수료증 미발급", "환불 가능", "환불 불가"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-enrollments.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "id", label: "수강권 ID" }, { key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "과정명" }, { key: "purchasedAt", label: "결제일", render: (r) => formatDate(r.purchasedAt) }, { key: "createdAt", label: "시작일", render: (r) => formatDate(r.createdAt || r.purchasedAt) }, { key: "expiresAt", label: "만료일", render: (r) => formatDate(r.expiresAt) }, { key: "leftDays", label: "남은 수강일", render: (r) => r.leftDays === null ? "-" : `${r.leftDays}일` }, { key: "accessStatus", label: "상태" }, { key: "progressRate", label: "진행률", render: (r) => `${r.progressRate}%` }, { key: "completedLessons", label: "완료/전체", render: (r) => `${r.completedLessons}/${r.totalLessons || 5}` }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "refundAmount", label: "환불예상", align: "right", render: (r) => formatKrw(r.refundAmount) }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <EnrollmentDetail selected={selected} ctx={ctx} /> : null}</section>;
 }
-function filterEnrollment(row: AnyRecord, filter: string) { if (filter === "수강 중 active") return row.accessStatus === "active" && !row.expired; if (filter === "수강 완료 completed") return row.completedLessons >= 5 || row.progressRate >= 100; if (filter === "수강기간 만료 expired") return row.expired; if (filter === "수료증 발급 완료") return row.certificateIssued; if (filter === "수료증 미발급") return !row.certificateIssued; if (filter === "환불 가능") return row.refundable; if (filter === "환불 불가") return !row.refundable; return true; }
+function filterEnrollment(row: AnyRecord, filter: string) { if (filter === "활성 수강권") return isActiveEnrollment(row) && !row.expired; if (filter === "만료 예정") return row.leftDays !== null && row.leftDays >= 0 && row.leftDays <= 14; if (filter === "수동 부여") return row.manualGrant || row.grantReason === "ADMIN_MANUAL"; if (filter === "수강권 복구") return row.grantReason === "RESTORE" || row.restoredAt; if (filter === "결제 없는 수강권") return isActiveEnrollment(row) && !(row.orderId || row.paymentId); if (filter === "결제 후 미발급 수강권") return false; if (filter === "수료증 발급 완료") return row.certificateIssued; if (filter === "수료증 미발급") return !row.certificateIssued; if (filter === "환불 가능") return row.refundable; if (filter === "환불 불가") return !row.refundable; return true; }
 function EnrollmentActionPanel({ selected, onRefresh }: { selected: AnyRecord; onRefresh: () => void }) {
   const [reason, setReason] = useState("운영 관리자 처리");
   const [extensionDays, setExtensionDays] = useState(30);
@@ -643,7 +831,7 @@ function EnrollmentActionPanel({ selected, onRefresh }: { selected: AnyRecord; o
       setSubmitting("");
     }
   };
-  return <section className="mt-5 rounded-[1.5rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)]"><h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">수강권 작업</h3><div className="mt-4 grid gap-3 md:grid-cols-[1fr_140px]"><label className="text-sm font-semibold text-slate-700">처리 사유<input value={reason} onChange={(event) => setReason(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#d7deea] px-3 text-base outline-none focus:border-[#173968]" /></label><label className="text-sm font-semibold text-slate-700">연장일<input type="number" min={1} value={extensionDays} onChange={(event) => setExtensionDays(Number(event.target.value) || 30)} className="mt-2 min-h-11 w-full rounded-xl border border-[#d7deea] px-3 text-base outline-none focus:border-[#173968]" /></label></div><div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4"><button type="button" onClick={() => void runAction("extend")} disabled={Boolean(submitting)} className="min-h-11 rounded-xl bg-[#173968] px-4 py-2 text-sm font-bold text-white disabled:bg-slate-300">{submitting === "extend" ? "처리 중" : "수강기간 연장"}</button><button type="button" onClick={() => void runAction("complete")} disabled={Boolean(submitting)} className="min-h-11 rounded-xl bg-emerald-800 px-4 py-2 text-sm font-bold text-white disabled:bg-slate-300">{submitting === "complete" ? "처리 중" : "수료 처리"}</button><button type="button" onClick={() => void runAction("resetProgress")} disabled={Boolean(submitting)} className="min-h-11 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-950 disabled:bg-slate-100">{submitting === "resetProgress" ? "처리 중" : "진도 초기화"}</button><button type="button" onClick={() => void runAction("revoke")} disabled={Boolean(submitting)} className="min-h-11 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-800 disabled:bg-slate-100">{submitting === "revoke" ? "처리 중" : "수강권 회수"}</button></div>{status ? <p className="mt-3 rounded-xl border border-[#d7deea] bg-[#f8fafc] p-3 text-sm font-semibold text-slate-800">{status}</p> : null}</section>;
+  return <section className="mt-5 rounded-[1.5rem] border border-[#d7deea] bg-white p-5 shadow-[0_18px_48px_rgba(15,23,42,0.08)]"><h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">수강권 작업</h3><div className="mt-4 grid gap-3 md:grid-cols-[1fr_140px]"><label className="text-sm font-semibold text-slate-700">처리 사유<input value={reason} onChange={(event) => setReason(event.target.value)} className="mt-2 min-h-11 w-full rounded-xl border border-[#d7deea] px-3 text-base outline-none focus:border-[#173968]" /></label><label className="text-sm font-semibold text-slate-700">연장일<input type="number" min={1} value={extensionDays} onChange={(event) => setExtensionDays(Number(event.target.value) || 30)} className="mt-2 min-h-11 w-full rounded-xl border border-[#d7deea] px-3 text-base outline-none focus:border-[#173968]" /></label></div><div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-3"><button type="button" onClick={() => void runAction("extend")} disabled={Boolean(submitting)} className="min-h-11 rounded-xl bg-[#173968] px-4 py-2 text-sm font-bold text-white disabled:bg-slate-300">{submitting === "extend" ? "처리 중" : "수강기간 연장"}</button><button type="button" onClick={() => void runAction("complete")} disabled={Boolean(submitting)} className="min-h-11 rounded-xl bg-emerald-800 px-4 py-2 text-sm font-bold text-white disabled:bg-slate-300">{submitting === "complete" ? "처리 중" : "수료 처리"}</button><button type="button" onClick={() => void runAction("revoke")} disabled={Boolean(submitting)} className="min-h-11 rounded-xl border border-rose-200 bg-rose-50 px-4 py-2 text-sm font-bold text-rose-800 disabled:bg-slate-100">{submitting === "revoke" ? "처리 중" : "수강권 회수"}</button></div>{status ? <p className="mt-3 rounded-xl border border-[#d7deea] bg-[#f8fafc] p-3 text-sm font-semibold text-slate-800">{status}</p> : null}</section>;
 }
 function EnrollmentDetail({ selected, ctx }: any) {
   const uid = selected.uid || selected.userId;
@@ -774,7 +962,7 @@ function CertificatesView(ctx: any) {
   const pager = usePagination(sorted);
   const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId);
   useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]);
-  return <section><ManualCertificateIssuePanel onRefresh={ctx.refresh} /><div className="mb-4 flex flex-wrap gap-2"><Link href="/certificate?adminPreview=attendance" className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#10213f] hover:text-white">수강확인증 샘플 보기</Link><Link href="/certificate?adminPreview=completion" className="rounded-full border-2 border-[#173968] bg-white px-4 py-2 text-sm font-semibold text-[#173968] transition hover:bg-slate-100 hover:text-[#10213f]">수료증 샘플 보기</Link><Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion&adminPreview=completion" className="rounded-full border-2 border-emerald-800 bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-950 hover:text-white">29만원 심화 이수증 샘플 보기</Link></div>{issueStatus ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950">{issueStatus}</p> : null}<AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-certificates.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "certificateNoText", label: "발급번호" }, { key: "documentTypeText", label: "서류 종류" }, { key: "userName", label: "사용자명" }, { key: "birthDateText", label: "생년월일" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "교육과정명" }, { key: "completedAt", label: "수료/수강일", render: (r) => formatDate(r.completedAt) }, { key: "issuedAt", label: "발급일", render: (r) => formatDate(r.issuedAt) }, { key: "issueStatusText", label: "상태" }, { key: "view", label: "서류", render: (r) => r.source === "certificate" ? <div className="flex flex-wrap gap-2"><Link href={getCertificateViewHref(r.id)} target="_blank" className="font-semibold text-[#173968] underline">보기/인쇄</Link><Link href={getCertificateViewHref(r.id, "pdf")} target="_blank" className="font-semibold text-emerald-700 underline">PDF 저장</Link></div> : <button type="button" onClick={() => void issueFromRow(r)} disabled={issuingId === r.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === r.id ? "발급 중" : "관리자 발급"}</button> }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">상세</button> }]} /><Pagination {...pager} />{selected ? <DetailPanel title="수강증/수료증 상세" memoTarget={selected.source === "certificate" ? "certificates" : "enrollments"} memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo(selected.source === "certificate" ? "certificates" : "enrollments", selected.id, ctx.memo)} rows={[["발급번호", selected.certificateNoText], ["서류 종류", selected.documentTypeText], ["수강자", `${selected.userName} / ${selected.birthDateText}`], ["이메일", selected.email || "-"], ["미리보기", selected.source === "certificate" ? <div className="flex flex-wrap gap-2"><Link href={getCertificateViewHref(selected.id)} target="_blank" className="text-[#173968] underline">서류 보기 및 인쇄</Link><Link href={getCertificateViewHref(selected.id, "pdf")} target="_blank" className="text-emerald-700 underline">PDF 저장</Link></div> : <button type="button" onClick={() => void issueFromRow(selected)} disabled={issuingId === selected.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === selected.id ? "발급 중" : "관리자 발급 및 저장"}</button>], ["결제정보", selected.orderId || "결제정보 없음"], ["환불", selected.source === "certificate" ? "교육 이수 관련 서류가 발급되어 환불이 불가합니다." : "서류 발급 전 환불규정에 따라 계산됩니다."]]} /> : null}</section>;
+  return <section><ManualCertificateIssuePanel onRefresh={ctx.refresh} /><div className="mb-4 flex flex-wrap gap-2"><Link href="/certificate?adminPreview=attendance" className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#10213f] hover:text-white">수강확인증 샘플 보기</Link><Link href="/certificate?adminPreview=completion" className="rounded-full border-2 border-[#173968] bg-white px-4 py-2 text-sm font-semibold text-[#173968] transition hover:bg-slate-100 hover:text-[#10213f]">수료증 샘플 보기</Link><Link href="/certificate?courseId=dui-cbt-advanced&documentType=cbt-completion&adminPreview=completion" className="rounded-full border-2 border-emerald-800 bg-emerald-800 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-950 hover:text-white">심화과정 이수증 샘플 보기</Link></div>{issueStatus ? <p className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-950">{issueStatus}</p> : null}<AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-certificates.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "certificateNoText", label: "발급번호" }, { key: "documentTypeText", label: "서류 종류" }, { key: "userName", label: "사용자명" }, { key: "birthDateText", label: "생년월일" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "교육과정명" }, { key: "completedAt", label: "수료/수강일", render: (r) => formatDate(r.completedAt) }, { key: "issuedAt", label: "발급일", render: (r) => formatDate(r.issuedAt) }, { key: "issueStatusText", label: "상태" }, { key: "view", label: "서류", render: (r) => r.source === "certificate" ? <div className="flex flex-wrap gap-2"><Link href={getCertificateViewHref(r.id)} target="_blank" className="font-semibold text-[#173968] underline">보기/인쇄</Link><Link href={getCertificateViewHref(r.id, "pdf")} target="_blank" className="font-semibold text-emerald-700 underline">PDF 저장</Link></div> : <button type="button" onClick={() => void issueFromRow(r)} disabled={issuingId === r.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-3 py-1.5 text-xs font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === r.id ? "발급 중" : "관리자 발급"}</button> }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">상세</button> }]} /><Pagination {...pager} />{selected ? <DetailPanel title="수강증/수료증 상세" memoTarget={selected.source === "certificate" ? "certificates" : "enrollments"} memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo(selected.source === "certificate" ? "certificates" : "enrollments", selected.id, ctx.memo)} rows={[["발급번호", selected.certificateNoText], ["서류 종류", selected.documentTypeText], ["수강자", `${selected.userName} / ${selected.birthDateText}`], ["이메일", selected.email || "-"], ["미리보기", selected.source === "certificate" ? <div className="flex flex-wrap gap-2"><Link href={getCertificateViewHref(selected.id)} target="_blank" className="text-[#173968] underline">서류 보기 및 인쇄</Link><Link href={getCertificateViewHref(selected.id, "pdf")} target="_blank" className="text-emerald-700 underline">PDF 저장</Link></div> : <button type="button" onClick={() => void issueFromRow(selected)} disabled={issuingId === selected.id} className="rounded-full border-2 border-[#173968] bg-[#173968] px-4 py-2 text-sm font-bold text-white transition hover:bg-[#10213f] hover:text-white disabled:border-gray-300 disabled:bg-gray-300 disabled:text-gray-800">{issuingId === selected.id ? "발급 중" : "관리자 발급 및 저장"}</button>], ["결제정보", selected.orderId || "결제정보 없음"], ["환불", selected.source === "certificate" ? "교육 이수 관련 서류가 발급되어 환불이 불가합니다." : "서류 발급 전 환불규정에 따라 계산됩니다."]]} /> : null}</section>;
 }
 
 function RefundsView(ctx: any) { const rows: AnyRecord[] = ctx.data.enrollments.map((e: AnyRecord) => { const user = ctx.maps.userById.get(e.uid || e.userId); const payment = ctx.maps.paymentByOrder.get(e.orderId || e.paymentId); const progress = ctx.maps.progressByUserCourse.get(`${e.uid || e.userId}_${e.courseId}`); const certificate = ctx.maps.certificateByUserCourse.get(`${e.uid || e.userId}_${e.courseId}`); const refund = getRefundInfo({ enrollment: e, payment, progress, certificate }); const left = daysLeft(e.expiresAt); return { ...e, userName: getUserName(user), email: user?.email || "", amount: Number(payment?.amount || duiPreventionCourseProduct.price), completedLessons: getCompletedLessons(e, progress), unusedLessons: refund.unusedLessons, refundAmount: refund.refundAmount, refundable: refund.refundable, reason: refund.reason, certificateIssued: Boolean(e.certificateIssued || certificate?.certificateNo), expired: left !== null && left < 0, paymentStatus: payment?.paymentStatus || e.paymentStatus }; }).filter((row: AnyRecord) => textIncludes(row, ["userName", "email", "courseTitle"], ctx.search)); const sorted = rows.sort((a: AnyRecord, b: AnyRecord) => b.refundAmount - a.refundAmount); const pager = usePagination(sorted); const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId); useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]); return <section><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-refunds.csv", sorted)} /><p className="mb-4 rounded-[1.25rem] border border-[#d7deea] bg-white p-4 text-sm text-slate-600">실제 환불 처리는 PG사 관리자 페이지 또는 환불 API 연동 후 가능합니다.</p><DataTable rows={pager.paged} columns={[{ key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "상품명" }, { key: "amount", label: "결제금액", render: (r) => formatKrw(r.amount) }, { key: "completedLessons", label: "수강 강의" }, { key: "unusedLessons", label: "미수강 강의" }, { key: "refundAmount", label: "예상 환불", render: (r) => formatKrw(r.refundAmount) }, { key: "refundable", label: "가능 여부", render: (r) => r.refundable ? "가능" : "불가" }, { key: "reason", label: "사유" }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "expired", label: "만료", render: (r) => r.expired ? "만료" : "유효" }, { key: "purchasedAt", label: "결제일", render: (r) => formatDate(r.purchasedAt) }, { key: "expiresAt", label: "만료일", render: (r) => formatDate(r.expiresAt) }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <DetailPanel title="환불 상세" memoTarget="enrollments" memo={ctx.memo} setMemo={ctx.setMemo} onSaveMemo={() => ctx.saveMemo("enrollments", selected.id, ctx.memo)} rows={[["refundable", String(selected.refundable)], ["refundAmount", formatKrw(selected.refundAmount)], ["unusedLessons", selected.unusedLessons], ["reason", selected.reason], ["안내", "실제 환불 처리는 PG사 관리자 페이지 또는 환불 API 연동 후 가능합니다."]]} /> : null}</section>; }
@@ -941,7 +1129,7 @@ function SettingsView() {
         </div>
         {/* TODO: 추후 직인 이미지 교체 업로드 기능을 관리자 전용으로 추가할 수 있습니다. */}
       </section>
-      <p className="mt-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">PAYMENT_SECRET_KEY, PG Secret Key, Firebase private key, 서버 비밀키, API Secret은 관리자 화면에 표시하지 않습니다. 향후 Firebase Custom Claims 또는 admin role 필드로 확장할 수 있습니다.</p>
+      <p className="mt-4 rounded-[1.25rem] border border-amber-200 bg-amber-50 p-4 text-sm leading-7 text-amber-900">PAYMENT_SECRET_KEY, PG Secret Key, Firebase private key, 서버 비밀키, API Secret은 관리자 화면에 표시하지 않습니다. 관리자 권한은 현재 설정된 관리자 이메일과 사용자 role 필드 기준으로 확인합니다.</p>
     </section>
   );
 }
