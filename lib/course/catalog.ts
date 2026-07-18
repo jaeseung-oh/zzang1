@@ -159,7 +159,7 @@ const preventionStreamUids = {
   gambling: process.env.NEXT_PUBLIC_STREAM_UID_GAMBLING_RELAPSE_PREVENTION || "",
   sexualOffense: process.env.NEXT_PUBLIC_STREAM_UID_SEXUAL_OFFENSE_PREVENTION || "",
   drug: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
-  drugAddiction: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION || process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
+  drugAddiction: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION || process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "9e7a8bca74cc08b48622a4dcf8df070f",
 };
 
 type PreventionCategorySeed = {
