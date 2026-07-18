@@ -372,7 +372,7 @@ export default function DashboardPage() {
               </Link>
               <Link href={primaryDocumentHref} className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-base font-black text-[#ffdd00]">02</span>
-                <span className="min-w-0"><span className="block text-xl font-black leading-tight">서류 인쇄하기</span><span className="mt-1 block text-sm font-bold text-slate-800">재발방지 서식 열기</span></span>
+                <span className="min-w-0"><span className="block text-xl font-black leading-tight">서류 인쇄하기</span><span className="mt-1 block text-sm font-bold text-slate-800">재발방지 작성자료 열기</span></span>
               </Link>
             </div>
           </div>
@@ -570,12 +570,12 @@ export default function DashboardPage() {
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
               <div className="mb-6 rounded-2xl border-4 border-[#facc15] bg-white p-5 shadow-[0_22px_54px_rgba(250,204,21,0.26)]">
                 <p className="text-xl font-black text-slate-950">서류 인쇄하기</p>
-                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 서식을 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요." : "수강권을 선택하면 과정별 서식 3종을 이용할 수 있습니다."}</p>
+                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 작성자료를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요." : "수강권을 선택하면 과정별 작성자료 3종을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
                   {dashboardDocumentEntries.map(({ document, enrollment }) => (
                     <Link key={(enrollment.courseId || defaultCourse.id) + document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       <span><span className="block text-xs font-bold text-slate-700">{enrollment.courseTitle || defaultCourse.title}</span>{document.title}</span>
-                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">서식 · 인쇄</span>
+                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">작성자료 · 인쇄</span>
                     </Link>
                   ))}
                 </div>

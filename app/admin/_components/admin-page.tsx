@@ -445,10 +445,10 @@ function DashboardView({ data, maps, refresh }: any) {
       <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#274690]">Document Preview</p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-slate-950">참고서식 미리보기</h2>
-          <p className="mt-2 text-sm leading-7 text-slate-600">기본과정 구매자에게 제공되는 서식의 인쇄 및 PDF 저장 화면을 관리자 권한으로 확인합니다.</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-[-0.04em] text-slate-950">작성자료 미리보기</h2>
+          <p className="mt-2 text-sm leading-7 text-slate-600">기본과정 구매자에게 제공되는 작성자료의 인쇄 및 PDF 저장 화면을 관리자 권한으로 확인합니다.</p>
         </div>
-        <Link href="/course-room/?v=202607161010" className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold text-[#173968]">수강실 서식 영역 확인</Link>
+        <Link href="/course-room/?v=202607161010" className="rounded-full border border-[#d7deea] bg-white px-4 py-2 text-sm font-semibold text-[#173968]">수강실 작성자료 영역 확인</Link>
       </div>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {preventionDocuments.map((document) => (
@@ -456,7 +456,7 @@ function DashboardView({ data, maps, refresh }: any) {
             <p className="text-xs font-bold text-[#274690]">{preventionDocumentCategoryLabels[document.category]}</p>
             <p className="mt-1 text-base font-bold text-slate-950">{document.title}</p>
             <p className="mt-2 text-sm leading-6 text-slate-600">{document.description}</p>
-            <p className="mt-4 text-sm font-semibold text-[#173968]">서식 보기 · 인쇄/PDF 확인</p>
+            <p className="mt-4 text-sm font-semibold text-[#173968]">작성자료 보기 · 인쇄/PDF 확인</p>
           </Link>
         ))}
       </div>

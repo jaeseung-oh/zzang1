@@ -45,7 +45,7 @@ export const courseCatalog: CourseDefinition[] = [
     accessValidMonths: 3,
     accessValidLabel: `결제일로부터 ${duiPreventionCourseProduct.durationDays}일`,
     caseTypes: ["음주운전"],
-    outputs: ["음주운전 재범방지교육 수료증", "재발방지계획서 서식", "음주예방실천계획서 서식", "음주운전 재발방지 서약서 서식"],
+    outputs: ["음주운전 재범방지교육 수료증", "재발방지계획서", "음주예방실천계획서", "음주운전 재발방지 서약서"],
     modules: [
       {
         id: "dui-lesson-1",
@@ -185,7 +185,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "폭력범죄",
     streamUid: preventionStreamUids.violence,
     sourceFileName: "폭력방지교육_vrew_내보내기.mp4",
-    documentTitles: ["폭력범죄 재범방지계획서 서식", "폭력예방 실천계획서 서식", "폭력범죄 재범방지 서약서 서식"],
+    documentTitles: ["폭력범죄 재범방지계획서", "폭력예방 실천계획서", "폭력범죄 재범방지 서약서"],
   },
   {
     categoryId: "gambling-relapse-prevention",
@@ -195,7 +195,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "도박중독",
     streamUid: preventionStreamUids.gambling,
     sourceFileName: "도박중독재범방지_vrew_내보내기.mp4",
-    documentTitles: ["도박중독 재발방지계획서 서식", "도박예방 실천계획서 서식", "도박중독 재발방지 서약서 서식"],
+    documentTitles: ["도박중독 재발방지계획서", "도박예방 실천계획서", "도박중독 재발방지 서약서"],
   },
   {
     categoryId: "sexual-offense-prevention",
@@ -205,7 +205,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "성범죄",
     streamUid: preventionStreamUids.sexualOffense,
     sourceFileName: "성폭력재벙예방교육_vrew_내보내기.mp4",
-    documentTitles: ["성범죄 재범방지계획서 서식", "성범죄예방 실천계획서 서식", "성범죄 재범방지 서약서 서식"],
+    documentTitles: ["성범죄 재범방지계획서", "성범죄예방 실천계획서", "성범죄 재범방지 서약서"],
   },
   {
     categoryId: "drug-rehab-prevention",
@@ -218,7 +218,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "마약중독",
     streamUid: preventionStreamUids.drugAddiction,
     sourceFileName: "마약중독.mp4",
-    documentTitles: ["마약범죄 재범방지계획서 서식", "마약범죄 재범방지서약서 서식", "마약범죄 재범방지실천계획서 서식"],
+    documentTitles: ["마약범죄 재범방지계획서", "마약범죄 재범방지서약서", "마약범죄 재범방지실천계획서"],
   },
 ];
 

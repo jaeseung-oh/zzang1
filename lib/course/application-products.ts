@@ -43,9 +43,9 @@ export const basicApplicationProduct: ApplicationProduct = {
   includes: [
     "온라인 재범방지교육",
     "교육 수료증 PDF 발급",
-    "재발방지계획서 서식",
-    "음주예방실천계획서 서식",
-    "음주운전 재발방지 서약서 서식",
+    "재발방지계획서",
+    "음주예방실천계획서",
+    "음주운전 재발방지 서약서",
   ],
 };
 
@@ -59,10 +59,10 @@ export const duiDocumentsApplicationProduct: ApplicationProduct = {
     "온라인 재범방지교육 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
-    "반성문 작성 서식",
-    "재발방지계획서 서식",
-    "음주예방실천계획서 서식",
-    "음주운전 재발방지 서약서 서식",
+    "반성문 작성자료",
+    "재발방지계획서",
+    "음주예방실천계획서",
+    "음주운전 재발방지 서약서",
   ],
 };
 
@@ -77,10 +77,10 @@ export const duiCbtAdvancedApplicationProduct: ApplicationProduct = {
     "온라인 재범방지교육 수강",
     "진도율 확인",
     "수강 즉시 수료증 출력",
-    "반성문 작성 서식",
-    "재발방지계획서 서식",
-    "음주예방실천계획서 서식",
-    "음주운전 재발방지 서약서 서식",
+    "반성문 작성자료",
+    "재발방지계획서",
+    "음주예방실천계획서",
+    "음주운전 재발방지 서약서",
     "인지행동기반 재발방지 교육 수강",
     "인지행동기반 재발방지교육 이수증 출력",
     "재범방지 교육 이수 상세 내역서 출력",
@@ -96,7 +96,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_BASIC,
     badge: "가장 부담 없이 시작",
     description: "폭력범죄 재범방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "폭력범죄 재범방지계획서 서식", "폭력예방 실천계획서 서식", "폭력범죄 재범방지 서약서 서식", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "폭력범죄 재범방지계획서", "폭력예방 실천계획서", "폭력범죄 재범방지 서약서", "인쇄 및 PDF 저장"],
   }],
   ["violence-advanced", {
     id: "violence-advanced",
@@ -105,7 +105,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
     description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "폭력범죄 재범방지계획서 서식", "폭력예방 실천계획서 서식", "폭력범죄 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "폭력범죄 재범방지계획서", "폭력예방 실천계획서", "폭력범죄 재범방지 서약서", "반성문 작성자료", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
   ["gambling-basic", {
     id: "gambling-basic",
@@ -114,7 +114,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_BASIC,
     badge: "가장 부담 없이 시작",
     description: "도박중독 재발방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "도박중독 재발방지계획서 서식", "도박예방 실천계획서 서식", "도박중독 재발방지 서약서 서식", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "도박중독 재발방지계획서", "도박예방 실천계획서", "도박중독 재발방지 서약서", "인쇄 및 PDF 저장"],
   }],
   ["gambling-advanced", {
     id: "gambling-advanced",
@@ -123,7 +123,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
     description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "도박중독 재발방지계획서 서식", "도박예방 실천계획서 서식", "도박중독 재발방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "도박중독 재발방지계획서", "도박예방 실천계획서", "도박중독 재발방지 서약서", "반성문 작성자료", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
   ["sexual-offense-basic", {
     id: "sexual-offense-basic",
@@ -132,7 +132,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_BASIC,
     badge: "가장 부담 없이 시작",
     description: "성범죄 재범방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "성범죄 재범방지계획서 서식", "성범죄예방 실천계획서 서식", "성범죄 재범방지 서약서 서식", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "성범죄 재범방지계획서", "성범죄예방 실천계획서", "성범죄 재범방지 서약서", "인쇄 및 PDF 저장"],
   }],
   ["sexual-offense-advanced", {
     id: "sexual-offense-advanced",
@@ -141,7 +141,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
     description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "성범죄 재범방지계획서 서식", "성범죄예방 실천계획서 서식", "성범죄 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "성범죄 재범방지계획서", "성범죄예방 실천계획서", "성범죄 재범방지 서약서", "반성문 작성자료", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
   ["drug-basic", {
     id: "drug-basic",
@@ -150,7 +150,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_BASIC,
     badge: "가장 부담 없이 시작",
     description: "마약류중독 재범방지교육 1강과 수료증을 제공하는 기본 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "마약류중독 재범방지계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재범방지 서약서 서식", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "마약류중독 재범방지계획서", "마약류 재활 실천계획서", "마약류중독 재범방지 서약서", "인쇄 및 PDF 저장"],
   }],
   ["drug-advanced", {
     id: "drug-advanced",
@@ -159,7 +159,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.PREVENTION_ADVANCED,
     badge: "가장 많이 선택하는 과정",
     description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
-    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "마약류중독 재범방지계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
+    includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "마약류중독 재범방지계획서", "마약류 재활 실천계획서", "마약류중독 재범방지 서약서", "반성문 작성자료", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
   ["drug-addiction-basic", {
     id: "drug-addiction-basic",
@@ -169,8 +169,8 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     title: "마약중독 재범방지교육 기본과정",
     price: APPLICATION_PRICES.DRUG_ADDICTION_BASIC,
     badge: "기본과정",
-    description: "마약류 사용의 위험성과 재사용 유발요인을 점검하고 마약범죄 재범방지 3종 서식을 정리하는 과정입니다.",
-    includes: ["마약중독 재범방지교육 영상", "온라인 강의실", "이어보기와 진도 저장", "마약중독 재범방지교육 기본과정 수료증", "마약범죄 재범방지계획서 서식", "마약범죄 재범방지서약서 서식", "마약범죄 재범방지실천계획서 서식"],
+    description: "마약류 사용의 위험성과 재사용 유발요인을 점검하고 마약범죄 재범방지 3종 작성자료를 정리하는 과정입니다.",
+    includes: ["마약중독 재범방지교육 영상", "온라인 강의실", "이어보기와 진도 저장", "마약중독 재범방지교육 기본과정 수료증", "마약범죄 재범방지계획서", "마약범죄 재범방지서약서", "마약범죄 재범방지실천계획서"],
   }],
   ["drug-addiction-premium", {
     id: "drug-addiction-premium",
@@ -180,8 +180,8 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     title: "마약중독 재범방지교육 심화과정",
     price: APPLICATION_PRICES.DRUG_ADDICTION_PREMIUM,
     badge: "심화과정",
-    description: "기본과정의 3종 서식에 인지행동 기반 심화교육과 이수 확인 자료를 더한 독립 상품입니다.",
-    includes: ["마약중독 재범방지교육 영상", "마약범죄 재범방지계획서 서식", "마약범죄 재범방지서약서 서식", "마약범죄 재범방지실천계획서 서식", "추가 인지행동 기반 심화교육", "마약중독 재범방지교육 심화과정 수료증", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
+    description: "기본과정의 3종 작성자료에 인지행동 기반 심화교육과 이수 확인 자료를 더한 독립 상품입니다.",
+    includes: ["마약중독 재범방지교육 영상", "마약범죄 재범방지계획서", "마약범죄 재범방지서약서", "마약범죄 재범방지실천계획서", "추가 인지행동 기반 심화교육", "마약중독 재범방지교육 심화과정 수료증", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
   }],
 ]);
 
@@ -254,7 +254,7 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
 ];
 
 export const applicationNoticeText =
-  "기본과정은 온라인 재범방지교육, 수료증, 과정별 3종 서식을 제공합니다. 심화과정은 같은 3종 서식에 반성문 작성 서식, 인지행동기반 재발방지교육 이수증, 상세 내역서 출력 구성을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
+  "기본과정은 온라인 재범방지교육, 수료증, 과정별 3종 작성자료를 제공합니다. 심화과정은 같은 3종 작성자료에 반성문 작성자료, 인지행동기반 재발방지교육 이수증, 상세 내역서 출력 구성을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
 
 export function formatApplicationKrw(value: number) {
   return value.toLocaleString("ko-KR") + "원";
