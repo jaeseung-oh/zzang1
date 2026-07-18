@@ -218,7 +218,7 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     caseType: "마약중독",
     streamUid: preventionStreamUids.drugAddiction,
     sourceFileName: "마약중독.mp4",
-    documentTitles: ["반성문 작성 가이드", "자기성찰 자료", "재발방지 실천 안내"],
+    documentTitles: ["마약범죄 재범방지계획서 서식", "마약범죄 재범방지서약서 서식", "마약범죄 재범방지실천계획서 서식"],
   },
 ];
 
@@ -281,9 +281,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       durationMinutes: baseModule.minutes + CBT_COMPLETION_MODULE.minutes,
       priceKrw: 99000,
       priceLabel: formatKrw(99000),
-      outputs: seed.advancedProductId === "drug-addiction-premium"
-        ? [seed.title + " 심화과정 수료증", ...seed.documentTitles, "재발방지계획서", "실천서약서", "고위험 상황 대처계획서", "마약 사용 유발요인 점검표", "갈망 대처계획", "재사용 위험상황 분석표", "보호요인 및 지지체계 점검표", "자기성찰문", "일상 회복계획", "재발방지 실천일지", "월간 자기점검표", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"]
-        : [seed.title + " 수료증", ...seed.documentTitles, "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
+      outputs: [seed.title + " 수료증", ...seed.documentTitles, "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
       modules: [baseModule, CBT_COMPLETION_MODULE],
       documents: [
         { type: "course-certificate" as const, title: seed.title + " 수료증" },
