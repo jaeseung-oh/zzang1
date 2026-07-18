@@ -193,13 +193,19 @@ function inlineComputedStyles(source: Element, target: Element) {
 }
 
 async function loadCanvasImage(src: string) {
-  return await new Promise<HTMLImageElement | null>((resolve) => {
-    const image = new Image();
-    image.crossOrigin = "anonymous";
-    image.onload = () => resolve(image);
-    image.onerror = () => resolve(null);
-    image.src = new URL(src, window.location.href).toString();
-  });
+  try {
+    const response = await fetch(new URL(src, window.location.href).toString(), { credentials: "same-origin", cache: "no-store" });
+    if (!response.ok) return null;
+    const dataUrl = await blobToDataUrl(await response.blob());
+    return await new Promise<HTMLImageElement | null>((resolve) => {
+      const image = new Image();
+      image.onload = () => resolve(image);
+      image.onerror = () => resolve(null);
+      image.src = dataUrl;
+    });
+  } catch {
+    return null;
+  }
 }
 
 function drawWrappedText(context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
@@ -362,12 +368,16 @@ function getDetailDocumentContext(courseId: string) {
       courseTitle: "마약중독 재범방지교육 심화과정",
       body: "위 사람은 본 기관에서 운영하는 「마약중독 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
-        "마약중독 재범방지교육: 마약류 사용의 위험성, 재사용 유발요인, 사건 이후 생활관리 필요성 점검",
-        "마약범죄 재범방지 3종 서식 작성: 재범방지계획서, 재범방지서약서, 재범방지실천계획서 작성 기준 정리",
-        "인지행동치료 1강: 자동사고, 합리화, 갈망과 고위험 상황을 구분하고 재사용으로 이어지는 사고 흐름 점검",
-        "인지행동치료 2강: 대체 행동, 도움 요청, 접근 차단, 생활 루틴을 포함한 재범방지 실천계획 수립",
-        "재범방지 실행 기준: 관련자 접촉, 구매·보관·사용 가능 상황, 충동 발생 시 즉시 중단 행동을 구체화",
-        "회복 유지 기준: 상담·치료 연계, 가족 또는 지지자 공유, 정기 자기점검을 통한 재사용 위험 관리",
+        "마약류 재범방지의 핵심 가치인 책임, 회복, 재활을 중심으로 중독 문제를 인정하고 치료와 변화를 실천하는 태도 형성",
+        "마약류의 범위: 마약, 향정신성의약품, 대마의 구분과 투약·소지·매수·매도·알선·제조·수출입 및 처방약 오남용의 법적 위험 이해",
+        "중독의 발생 과정: 호기심, 주변 권유, 스트레스, 불면, 우울·불안이 합리화와 반복 사용, 갈망, 의존으로 이어지는 구조 학습",
+        "반복 사용에 따른 전전두엽의 판단·충동조절 저하, 보상회로 변화, 스트레스 반응과 약물 관련 기억이 갈망에 미치는 영향 이해",
+        "과다복용, 감염, 신경계·심혈관계 손상, 불면, 우울, 환각·피해망상과 가족관계·직업·경제생활의 장기적 피해 점검",
+        "수면 부족, 스트레스, 사회적 고립, 위험 지인과 장소, 휴대전화 연락, 약물 검색과 금전 사용 등 재사용 위험상황을 차단하는 환경 설계",
+        "STOP 4단계를 활용해 갈망 상황에서 행동을 즉시 멈추고 호흡하며 감정과 생각을 관찰한 뒤 대체행동을 선택하고 안전한 사람에게 도움 요청",
+        "인지행동기반 재범방지교육 1: 약물 사용을 정당화하는 자동사고, 합리화 문장, 갈망 유발 생각을 찾아 사실 중심의 대안사고로 바꾸는 연습",
+        "인지행동기반 재범방지교육 2: 고위험 상황에서 감정·생각·행동의 연결고리를 기록하고 회피, 지연, 도움 요청, 환경 차단 등 재사용 방지 행동계획 수립",
+        "치료·재활 및 재발방지 실천: 의료기관과 전문 지원기관 연계, 위험 연락처·동선 차단, 도움 요청자 지정, 주간 실천목표와 단약 유지계획 수립",
       ],
     };
   }
@@ -810,25 +820,18 @@ function CertificatePageContent() {
     setError("");
     try {
       trackEvent("certificate_download", { method: "pdf", document_type: isCompletionCertificate ? "completion" : "attendance" });
-      const safeDate = formatCompactDate(issuedAt);
-      const safeName = sanitizeFilePart(certificate.userName || profileName || "회원");
-      const safeCourse = sanitizeFilePart(displayedCourseTitle);
-      const safeDocument = sanitizeFilePart(documentTitle);
-      const image = await renderCertificatePdfImage();
-      const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
-      const url = URL.createObjectURL(pdfBlob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `${safeName}_${safeCourse}_${safeDocument}_${safeDate}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+      const previousTitle = document.title;
+      const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
+      document.title = documentTitle + "_" + safeNo;
+      window.setTimeout(() => window.print(), 0);
+      window.setTimeout(() => {
+        document.title = previousTitle;
+        setPdfSaving(false);
+      }, 1200);
     } catch (downloadError) {
       console.error(downloadError);
-      setError(downloadError instanceof Error ? downloadError.message : "PDF 파일 저장 중 오류가 발생했습니다.");
-    } finally {
       setPdfSaving(false);
+      setError(downloadError instanceof Error ? downloadError.message : "PDF 저장 화면을 열지 못했습니다.");
     }
   };
 
