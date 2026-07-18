@@ -706,112 +706,119 @@ function CertificatePageContent() {
 
   const renderCertificatePdfImage = async () => {
     if (!certificate) throw new Error("저장할 수료증 정보가 없습니다.");
-    const width = 1240;
-    const height = 1754;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("PDF 생성을 위한 캔버스를 준비하지 못했습니다.");
+    const source = certificatePaperRef.current;
+    if (!source) throw new Error("PDF로 저장할 문서 영역을 찾지 못했습니다.");
 
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, width, height);
-    context.strokeStyle = "#d9c08a";
-    context.lineWidth = 16;
-    context.strokeRect(64, 64, width - 128, height - 128);
-    context.lineWidth = 4;
-    context.strokeRect(94, 94, width - 188, height - 188);
+    const sandbox = document.createElement("div");
+    sandbox.setAttribute("aria-hidden", "true");
+    sandbox.style.position = "fixed";
+    sandbox.style.left = "-10000px";
+    sandbox.style.top = "0";
+    sandbox.style.width = "210mm";
+    sandbox.style.background = "#ffffff";
+    sandbox.style.pointerEvents = "none";
 
-    const watermark = await loadCanvasImage(centerLogoPath);
-    if (watermark) {
-      context.save();
-      context.globalAlpha = 0.055;
-      context.drawImage(watermark, width / 2 - 300, height / 2 - 300, 600, 600);
-      context.restore();
-    }
+    const style = document.createElement("style");
+    style.textContent = `
+      .certificate-pdf-render {
+        width: 210mm !important;
+        max-width: 210mm !important;
+        min-height: 0 !important;
+        height: 297mm !important;
+        margin: 0 !important;
+        padding: 8mm !important;
+        box-shadow: none !important;
+        border-radius: 0 !important;
+        background: #fff !important;
+        overflow: hidden !important;
+      }
+      .certificate-pdf-render .certificate-inner {
+        height: 281mm !important;
+        min-height: 281mm !important;
+        padding: 8mm 10mm !important;
+        border-width: 2px !important;
+        overflow: hidden !important;
+      }
+      .certificate-pdf-render .certificate-watermark {
+        width: 112mm !important;
+        height: 112mm !important;
+        opacity: 0.055 !important;
+        display: block !important;
+      }
+      .certificate-pdf-render .certificate-title {
+        margin-top: 10mm !important;
+        font-size: 39px !important;
+        line-height: 1.18 !important;
+      }
+      .certificate-pdf-render .certificate-no { margin-top: 0 !important; font-size: 12px !important; }
+      .certificate-pdf-render .certificate-person { margin-top: 11mm !important; padding: 5mm !important; font-size: 19px !important; line-height: 1.7 !important; }
+      .certificate-pdf-render .certificate-identity-value { font-size: 19px !important; }
+      .certificate-pdf-render .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
+      .certificate-pdf-render .certificate-body { margin-top: 11mm !important; font-size: 17.5px !important; line-height: 1.75 !important; }
+      .certificate-pdf-render .certificate-table { margin-top: 10mm !important; font-size: 14px !important; }
+      .certificate-pdf-render .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
+      .certificate-pdf-render .certificate-table-cell { padding: 2.6mm 3.2mm !important; line-height: 1.5 !important; }
+      .certificate-pdf-render.certificate-detail-document .certificate-inner { padding: 7mm 9mm !important; }
+      .certificate-pdf-render.certificate-detail-document .certificate-title { margin-top: 4mm !important; font-size: 33px !important; line-height: 1.18 !important; }
+      .certificate-pdf-render .certificate-detail { margin-top: 5mm !important; font-size: 12.2px !important; line-height: 1.48 !important; }
+      .certificate-pdf-render .certificate-detail-hero { padding: 3mm 3.5mm !important; margin-top: 5mm !important; }
+      .certificate-pdf-render .certificate-detail-section { margin-top: 3.2mm !important; }
+      .certificate-pdf-render .certificate-detail-title { font-size: 13.2px !important; margin-bottom: 1.4mm !important; line-height: 1.35 !important; }
+      .certificate-pdf-render .certificate-detail-title span { width: 6mm !important; height: 6mm !important; font-size: 10px !important; }
+      .certificate-pdf-render .certificate-detail-grid { grid-template-columns: 31mm minmax(0, 1fr) !important; }
+      .certificate-pdf-render .certificate-detail-cell { padding: 1.8mm 2.4mm !important; line-height: 1.45 !important; }
+      .certificate-pdf-render .certificate-detail-list { gap: 0.85mm !important; padding: 3mm 3.5mm !important; }
+      .certificate-pdf-render .certificate-detail-confirm { margin-top: 2.8mm !important; padding: 2.8mm 3.2mm !important; }
+      .certificate-pdf-render .certificate-sign { padding-top: 8mm !important; }
+      .certificate-pdf-render.certificate-detail-document .certificate-sign { padding-top: 5mm !important; }
+      .certificate-pdf-render .certificate-issuer { margin-top: 6mm !important; font-size: 27px !important; }
+      .certificate-pdf-render.certificate-detail-document .certificate-issuer { margin-top: 4mm !important; font-size: 25px !important; }
+      .certificate-pdf-render .certificate-seal, .certificate-pdf-render .seal-stamp { width: 30mm !important; height: 30mm !important; display: block !important; }
+      .certificate-pdf-render.certificate-detail-document .certificate-seal, .certificate-pdf-render.certificate-detail-document .seal-stamp { width: 27mm !important; height: 27mm !important; }
+    `;
 
-    context.textAlign = "center";
-    context.fillStyle = "#111827";
-    context.font = "700 30px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    if (documentEnglishTitle) context.fillText(documentEnglishTitle, width / 2, 220);
-    context.font = "800 70px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText(documentHeading.replace(/\s+/g, " "), width / 2, documentEnglishTitle ? 330 : 260);
+    const rendered = source.cloneNode(true) as HTMLElement;
+    rendered.classList.add("certificate-pdf-render");
+    sandbox.appendChild(style);
+    sandbox.appendChild(rendered);
+    document.body.appendChild(sandbox);
 
-    context.textAlign = "left";
-    context.fillStyle = "#475569";
-    context.font = "600 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText("발급번호: " + certificateNo, 150, 155);
+    try {
+      await inlineImages(rendered);
+      await document.fonts?.ready;
+      const width = Math.ceil(rendered.getBoundingClientRect().width);
+      const height = Math.ceil(rendered.getBoundingClientRect().height);
+      const serializedClone = rendered.cloneNode(true) as HTMLElement;
+      inlineComputedStyles(rendered, serializedClone);
+      serializedClone.setAttribute("xmlns", "http://www.w3.org/1999/xhtml");
 
-    if (isDetailDocument) {
-      let y = 430;
-      context.fillStyle = "#111827";
-      context.font = "700 28px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("1. 교육 이수자 정보", 150, y);
-      context.font = "600 25px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      y += 58;
-      context.fillText("성명: " + (certificate.userName || profileName), 180, y);
-      y += 42;
-      context.fillText("생년월일: " + formatBirthDate(certificate.birthDate), 180, y);
-      y += 78;
-      context.font = "700 28px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("2. 교육과정 정보", 150, y);
-      context.font = "600 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      y += 56;
-      context.fillText("교육과정명: " + detailContext.courseTitle, 180, y);
-      y += 42;
-      context.fillText("수료조건: 전체 교육과정 수강 완료", 180, y);
-      y += 42;
-      context.fillText("수료일자: " + detailCompletedAt, 180, y);
-      y += 76;
-      context.font = "700 28px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("3. 주요 교육내용", 150, y);
-      context.font = "500 21px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      y += 48;
-      detailEducationItems.forEach((item) => {
-        y = drawWrappedText(context, "- " + item, 180, y, 890, 32) + 8;
+      const markup = new XMLSerializer().serializeToString(serializedClone);
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><foreignObject width="100%" height="100%">${markup}</foreignObject></svg>`;
+      const svgUrl = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml;charset=utf-8" }));
+      const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const element = new Image();
+        element.onload = () => resolve(element);
+        element.onerror = () => reject(new Error("PDF 문서 이미지를 생성하지 못했습니다."));
+        element.src = svgUrl;
       });
-      y += 30;
-      context.font = "700 25px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      drawWrappedText(context, "위 사람은 온라인 동영상 강의를 성실히 수강하고 전체 교육과정을 이수하였음을 확인합니다.", 180, y, 880, 36);
-    } else {
-      context.fillStyle = "#111827";
-      context.font = "700 34px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("성명: " + (certificate.userName || profileName), 250, 520);
-      context.fillText("생년월일: " + formatBirthDate(certificate.birthDate), 250, 585);
-      context.fillStyle = "#1f2937";
-      context.font = "500 31px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      drawWrappedText(context, documentBody, 210, 730, 820, 58);
-      context.strokeStyle = "#d9c08a";
-      context.lineWidth = 2;
-      const tableX = 190;
-      const tableY = 1010;
-      const rowHeight = 74;
-      const labelWidth = 240;
-      certificateRows.forEach(([label, value], index) => {
-        const y = tableY + index * rowHeight;
-        context.fillStyle = "#fbf4e4";
-        context.fillRect(tableX, y, labelWidth, rowHeight);
-        context.strokeRect(tableX, y, 860, rowHeight);
-        context.fillStyle = "#5f4514";
-        context.font = "700 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-        context.fillText(String(label), tableX + 28, y + 47);
-        context.fillStyle = "#111827";
-        context.font = "600 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-        context.fillText(String(value), tableX + labelWidth + 28, y + 47);
-      });
+
+      const scale = 2;
+      const canvas = document.createElement("canvas");
+      canvas.width = width * scale;
+      canvas.height = height * scale;
+      const context = canvas.getContext("2d");
+      if (!context) throw new Error("PDF 생성을 위한 캔버스를 준비하지 못했습니다.");
+      context.fillStyle = "#ffffff";
+      context.fillRect(0, 0, canvas.width, canvas.height);
+      context.scale(scale, scale);
+      context.drawImage(image, 0, 0, width, height);
+      URL.revokeObjectURL(svgUrl);
+
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.95));
+      return { bytes: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height };
+    } finally {
+      sandbox.remove();
     }
-
-    context.textAlign = "center";
-    context.fillStyle = "#111827";
-    context.font = "600 27px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText(formatKoreanDate(issuedAt), width / 2, 1440);
-    context.font = "800 48px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText(issuerName, width / 2 - 55, 1548);
-    const seal = await loadCanvasImage(sealStampPath);
-    if (seal) context.drawImage(seal, width / 2 + 125, 1480, 145, 145);
-
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.95));
-    return { bytes: new Uint8Array(await blob.arrayBuffer()), width, height };
   };
 
   const savePdfFile = async () => {
@@ -820,18 +827,25 @@ function CertificatePageContent() {
     setError("");
     try {
       trackEvent("certificate_download", { method: "pdf", document_type: isCompletionCertificate ? "completion" : "attendance" });
-      const previousTitle = document.title;
-      const safeNo = certificateNo.replace(/[^0-9A-Za-z가-힣_-]/g, "_");
-      document.title = documentTitle + "_" + safeNo;
-      window.setTimeout(() => window.print(), 0);
-      window.setTimeout(() => {
-        document.title = previousTitle;
-        setPdfSaving(false);
-      }, 1200);
+      const safeDate = formatCompactDate(issuedAt);
+      const safeName = sanitizeFilePart(certificate.userName || profileName || "회원");
+      const safeCourse = sanitizeFilePart(displayedCourseTitle);
+      const safeDocument = sanitizeFilePart(documentTitle);
+      const image = await renderCertificatePdfImage();
+      const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
+      const url = URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${safeName}_${safeCourse}_${safeDocument}_${safeDate}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
     } catch (downloadError) {
       console.error(downloadError);
+      setError(downloadError instanceof Error ? downloadError.message : "PDF 파일 저장 중 오류가 발생했습니다.");
+    } finally {
       setPdfSaving(false);
-      setError(downloadError instanceof Error ? downloadError.message : "PDF 저장 화면을 열지 못했습니다.");
     }
   };
 
