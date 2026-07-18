@@ -22,6 +22,9 @@ const COURSE_ACCESS_VALID_DAYS = 90;
 const COURSE_PRICE_KRW: Record<string, number> = {
   "dui-prevention-basic": 59000,
   "rapid-sentencing-prep": 59000,
+  "drug-addiction-basic": 49000,
+  "drug-addiction-premium": 99000,
+  "drug-addiction-relapse-prevention": 49000,
 };
 const DUI_COURSE_ID = "dui-prevention-basic";
 const DUI_COURSE_TITLE = "음주운전 재범방지교육";
@@ -61,6 +64,12 @@ const COURSE_ID_ALIASES: Record<string, string> = {
   drug: "drug-basic",
   "drug-basic": "drug-basic",
   "drug-advanced": "drug-advanced",
+  "drug-addiction-relapse-prevention": "drug-addiction-relapse-prevention",
+  "drug-addiction-basic": "drug-addiction-relapse-prevention",
+  "drug-addiction-premium": "drug-addiction-relapse-prevention",
+  "마약중독 재범방지교육": "drug-addiction-relapse-prevention",
+  "마약중독 재범방지교육 기본과정": "drug-addiction-relapse-prevention",
+  "마약중독 재범방지교육 심화과정": "drug-addiction-relapse-prevention",
 };
 
 function resolveCanonicalCourseId(input: Record<string, any> | string | null | undefined) {

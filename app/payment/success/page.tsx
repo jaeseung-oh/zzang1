@@ -31,7 +31,7 @@ const disclaimer =
 const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.";
 
 const CARD_APPROVAL_DELAY_MESSAGE =
-  "안녕하세요. ResetEdu 재발방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n문제가 계속되면 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
+  "안녕하세요. 리셋 재범방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n문제가 계속되면 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
 
 async function waitForRetry(attempt: number) {
   await new Promise((resolve) => window.setTimeout(resolve, 900 * attempt));

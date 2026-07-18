@@ -34,7 +34,8 @@ function getConfiguredCourseStreamUids(env) {
         env.STREAM_UID_VIOLENCE_PREVENTION,
         env.STREAM_UID_GAMBLING_RELAPSE_PREVENTION,
         env.STREAM_UID_SEXUAL_OFFENSE_PREVENTION,
-        env.STREAM_UID_DRUG_REHAB_PREVENTION
+        env.STREAM_UID_DRUG_REHAB_PREVENTION,
+        env.STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION
     ].filter(Boolean));
 }
 
@@ -1144,7 +1145,9 @@ function buildEnrollmentApiRecord(enrollment, progress) {
         enrollmentId,
         userId: enrollment.userId || enrollment.uid,
         uid: enrollment.uid || enrollment.userId,
-        courseId: enrollment.courseId,
+        courseId: product.productId && isDrugAddictionCanonicalCourse(enrollment.courseId) ? product.productId : enrollment.courseId,
+        canonicalCourseId: enrollment.canonicalCourseId || enrollment.courseId,
+        planId: enrollment.planId || product.planId || null,
         courseTitle: enrollment.courseTitle || product.courseTitle || DUI_COURSE_PRODUCT.courseTitle,
         categoryId: enrollment.categoryId || product.categoryId,
         productId: enrollment.productId || product.productId,
@@ -1665,7 +1668,8 @@ const NEW_PREVENTION_COURSE_PRODUCTS = {
     'sexual-offense-basic': { courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', certificateTitle: '성범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '성범죄 재범방지교육 기본과정', certificateAvailable: true },
     'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'drug-basic': { courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', certificateTitle: '마약류중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약류중독 재범방지교육 기본과정', certificateAvailable: true },
-    'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', certificateTitle: '마약류중독 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '마약류중독 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true }
+    'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', certificateTitle: '마약류중독 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '마약류중독 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'drug-addiction-relapse-prevention': { courseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육', certificateTitle: '마약중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약중독 재범방지교육', certificateAvailable: true }
 };
 
 const COURSE_PRODUCTS_BY_ID = {
@@ -1699,7 +1703,13 @@ const COURSE_ID_ALIASES = {
     'sexual-offense': 'sexual-offense-basic',
     sexual: 'sexual-offense-basic',
     'drug-rehab-prevention': 'drug-basic',
-    drug: 'drug-basic'
+    drug: 'drug-basic',
+    'drug-addiction-relapse-prevention': 'drug-addiction-relapse-prevention',
+    'drug-addiction-basic': 'drug-addiction-relapse-prevention',
+    'drug-addiction-premium': 'drug-addiction-relapse-prevention',
+    '마약중독 재범방지교육': 'drug-addiction-relapse-prevention',
+    '마약중독 재범방지교육 기본과정': 'drug-addiction-relapse-prevention',
+    '마약중독 재범방지교육 심화과정': 'drug-addiction-relapse-prevention'
 };
 
 function resolveCanonicalCourseId(input = {}) {
@@ -1717,6 +1727,7 @@ function resolveCanonicalCourseId(input = {}) {
     ].map((value) => String(value || '').trim()).filter(Boolean);
     for (const candidate of candidates) {
         if (getCourseProduct(candidate)) return candidate;
+        if (APPLICATION_PRODUCTS[candidate]?.canonicalCourseId) return APPLICATION_PRODUCTS[candidate].canonicalCourseId;
         if (APPLICATION_PRODUCTS[candidate]?.courseId) return APPLICATION_PRODUCTS[candidate].courseId;
         if (COURSE_ID_ALIASES[candidate]) return COURSE_ID_ALIASES[candidate];
         const lowered = candidate.toLowerCase();
@@ -1758,7 +1769,15 @@ function getEnrollmentDuplicateDebug({ currentUid, currentEmail, requestedProduc
     };
 }
 
-function getActiveDuplicateEnrollmentDecision(enrollment, currentUid, canonicalCourseId) {
+function isDrugAddictionCanonicalCourse(courseId) {
+    return courseId === 'drug-addiction-relapse-prevention';
+}
+
+function isDrugAddictionPremiumProduct(productId) {
+    return productId === 'drug-addiction-premium';
+}
+
+function getActiveDuplicateEnrollmentDecision(enrollment, currentUid, canonicalCourseId, requestedProductId = '') {
     if (!enrollment) return { blocked: false, reason: 'NO_MATCHED_ENROLLMENT' };
     const enrollmentUid = String(enrollment.uid || enrollment.userId || '').trim();
     if (!enrollmentUid) return { blocked: false, reason: 'MATCHED_ENROLLMENT_UID_MISSING' };
@@ -1783,6 +1802,13 @@ function getActiveDuplicateEnrollmentDecision(enrollment, currentUid, canonicalC
     if (!expiresAt) return { blocked: false, reason: 'EXPIRES_AT_MISSING' };
     if (expiresAt <= Date.now()) return { blocked: false, reason: 'EXPIRED' };
 
+    if (isDrugAddictionCanonicalCourse(canonicalCourseId)) {
+        const existingProductId = String(enrollment.productId || '').trim();
+        if (existingProductId === requestedProductId) return { blocked: true, reason: 'SAME_UID_SAME_COURSE_SAME_PRODUCT_ACTIVE_NOT_EXPIRED' };
+        if (isDrugAddictionPremiumProduct(existingProductId)) return { blocked: true, reason: 'PREMIUM_ALREADY_INCLUDES_BASIC' };
+        if (isDrugAddictionPremiumProduct(requestedProductId)) return { blocked: false, reason: 'BASIC_TO_PREMIUM_INDEPENDENT_PURCHASE_ALLOWED' };
+    }
+
     return { blocked: true, reason: 'SAME_UID_SAME_COURSE_ACTIVE_NOT_EXPIRED' };
 }
 
@@ -1790,7 +1816,7 @@ async function checkActiveEnrollmentDuplicate(env, { uid, email, productId, requ
     const enrollmentId = uid + '_' + canonicalCourseId;
     const raw = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
     const enrollment = raw ? fromFirestoreFields(raw.fields || {}) : null;
-    const decision = getActiveDuplicateEnrollmentDecision(enrollment, uid, canonicalCourseId);
+    const decision = getActiveDuplicateEnrollmentDecision(enrollment, uid, canonicalCourseId, productId);
     const debug = getEnrollmentDuplicateDebug({
         currentUid: uid,
         currentEmail: email || null,
@@ -1844,6 +1870,7 @@ async function grantCourseAccess(env, input) {
         courseId: canonicalCourseId,
         categoryId: input.categoryId || product.categoryId || existing.categoryId || null,
         productId: product.productId || productId || existing.productId || null,
+        planId: input.planId || product.planId || existing.planId || null,
         productTitle: input.productTitle || product.title || existing.productTitle || null,
         courseTitle: input.courseTitle || product.courseTitle || courseProduct.courseTitle,
         amount: input.amount ?? existing.amount ?? product.amount ?? null,
@@ -1923,7 +1950,9 @@ const APPLICATION_PRODUCTS = {
     'sexual-offense-basic': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-basic', title: '성범죄 재범방지교육 기본과정', amount: 49000, courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', totalLessons: 1 },
     'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 99000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
     'drug-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-basic', title: '마약류중독 재범방지교육 기본과정', amount: 49000, courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', totalLessons: 1 },
-    'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
+    'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'drug-addiction-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-basic', planId: 'basic', title: '마약중독 재범방지교육 기본과정', amount: 49000, courseId: 'drug-addiction-basic', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 기본과정', totalLessons: 1 },
+    'drug-addiction-premium': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-premium', planId: 'premium', title: '마약중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-addiction-premium', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
 };
 
 
@@ -1972,7 +2001,9 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const body = await request.json().catch(() => ({}));
     const courseId = body.courseId || DUI_COURSE_PRODUCT.courseId;
     const requestedDocumentType = String(body.documentType || "").trim();
-    const product = getCourseProduct(courseId);
+    const canonicalCourseId = resolveCanonicalCourseId({ courseId: body.courseId || DUI_COURSE_PRODUCT.courseId }) || courseId;
+    const enrollmentProduct = body.productId ? getApplicationProductForPayment(String(body.productId)) : null;
+    const product = enrollmentProduct || getCourseProduct(canonicalCourseId);
     if (!product) {
         return json({ message: '지원하지 않는 교육과정입니다.', code: 'INVALID_COURSE' }, 400, corsHeaders);
     }
@@ -1988,7 +2019,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const user = await firestoreGetData(env, 'users', uid).catch((error) => error.status === 404 ? null : Promise.reject(error));
     if (!user) return json({ message: '회원 정보를 확인할 수 없습니다.', code: 'USER_NOT_FOUND' }, 400, corsHeaders);
 
-    let enrollment = await getWorkerEnrollmentRecord(env, uid, courseId, firebaseUser.email || null);
+    let enrollment = await getWorkerEnrollmentRecord(env, uid, canonicalCourseId, firebaseUser.email || null);
     if (!isFirestoreEnrollmentActiveRecord(enrollment) && courseId === DUI_COURSE_PRODUCT.courseId) {
         const advancedEnrollment = await getWorkerEnrollmentRecord(env, uid, CBT_COURSE_PRODUCT.courseId, firebaseUser.email || null).catch(() => null);
         if (isFirestoreEnrollmentActiveRecord(advancedEnrollment)) {
@@ -2004,7 +2035,7 @@ async function handleCertificateIssue(request, env, corsHeaders) {
         return json({ message: '수강기간이 만료되어 수료증을 발급받을 수 없습니다.', code: 'ACCESS_EXPIRED' }, 400, corsHeaders);
     }
 
-    const progressId = `${uid}_${courseId}`;
+    const progressId = `${uid}_${canonicalCourseId}`;
     const progress = await firestoreGetData(env, 'courseProgress', progressId).catch((error) => error.status === 404 ? null : Promise.reject(error));
     const completedLessons = product.totalLessons;
     const progressRate = 100;
@@ -2157,7 +2188,7 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
     const product = APPLICATION_PRODUCTS.basic;
     const approvedAt = approved.approvedAt || new Date().toISOString();
     const purchasedAt = new Date(approvedAt);
-    const expiresAt = new Date(purchasedAt.getTime() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(purchasedAt.getTime() + (getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();
     const paymentId = approved.paymentKey || paymentKey;
 
@@ -2188,7 +2219,7 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
         paymentProvider: 'toss-payments', amount: DUI_COURSE_PRODUCT.price,
         method: approved.method || null, receiptUrl: approved.receipt?.url || null,
         orderedAt: approvedAt, approvedAt, purchasedAt: purchasedAt.toISOString(), expiresAt,
-        accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
+        accessValidDays: getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
         totalLessons: DUI_COURSE_PRODUCT.totalLessons, completedLessons: 0,
         certificateIssued: false,
         legalDisclaimerAccepted: Boolean(body.legalDisclaimerAccepted),
@@ -2198,10 +2229,10 @@ async function handlePaymentConfirm(request, env, corsHeaders) {
 
     try {
         await firestorePatch(env, orderDocPath, paymentRecord);
-        await grantCourseAccess(env, { ...enrollmentRecord, canonicalCourseId: courseId, source: 'payment', paymentId, orderId });
+        await grantCourseAccess(env, { ...enrollmentRecord, canonicalCourseId, source: 'payment', paymentId, orderId, planId: product.planId || null });
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
         await firestorePatch(env, paymentKeyPath, { paymentKey, orderId, userId: uid, courseId, createdAt: nowIso });
-        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso, getCourseProduct(courseId)));
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', canonicalCourseId), buildRefundPolicyRecord(nowIso, getCourseProduct(canonicalCourseId)));
         await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'toss_confirm_completed', paymentId, orderId, uid, courseId, productId: 'basic', amount, approved, approvedAt, status: 'paid' })).catch((logError) => console.error(logError));
     } catch (error) {
         await savePaymentLog(env, orderId, {
@@ -2338,7 +2369,7 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
         return json({ message: '주문 생성 정보가 올바르지 않습니다.', code: 'INVALID_ORDER' }, 400, corsHeaders);
     }
 
-    const canonicalCourseId = resolveCanonicalCourseId({ courseId, productId, categoryId }) || courseId;
+    const canonicalCourseId = product.canonicalCourseId || resolveCanonicalCourseId({ courseId, productId, categoryId }) || courseId;
     const duplicate = await checkActiveEnrollmentDuplicate(env, {
         uid,
         email: firebaseUser.email,
@@ -2814,7 +2845,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         return json({ message: '요청 금액이 상품 금액과 일치하지 않습니다.', code: 'PAYMENT_AMOUNT_MISMATCH' }, 400, corsHeaders);
     }
 
-    const canonicalCourseId = resolveCanonicalCourseId({ courseId, productId, categoryId }) || courseId;
+    const canonicalCourseId = product.canonicalCourseId || resolveCanonicalCourseId({ courseId, productId, categoryId }) || courseId;
     const orderId = paymentId;
     const orderDocPath = firestoreDocumentPath(env, 'payments', orderId);
     let existingPaidSameUser = false;
@@ -2830,7 +2861,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
             existingPaidSameUser = true;
             const existingEnrollment = await firestoreGet(env, firestoreDocumentPath(env, 'enrollments', enrollmentId)).catch((error) => error.status === 404 ? null : Promise.reject(error));
             const enrollment = existingEnrollment ? fromFirestoreFields(existingEnrollment.fields || {}) : null;
-            const idempotentDecision = getActiveDuplicateEnrollmentDecision(enrollment, uid, canonicalCourseId);
+            const idempotentDecision = getActiveDuplicateEnrollmentDecision(enrollment, uid, canonicalCourseId, productId);
             if (idempotentDecision.blocked) {
                 await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'portone_confirm_idempotent', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved: existing, status: 'paid' })).catch((logError) => console.error(logError));
                 return json({
@@ -2906,14 +2937,14 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
 
     const approvedAt = getPortOnePaidAt(approved);
     const purchasedAt = new Date(approvedAt);
-    const expiresAt = new Date(purchasedAt.getTime() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = new Date(purchasedAt.getTime() + (getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     const nowIso = new Date().toISOString();
     const receiptUrl = getPortOneReceiptUrl(approved);
     const method = getPortOnePaymentMethod(approved);
 
     const paymentRecord = {
-        paymentId, orderId, paymentKey: paymentId, userId: uid, uid, courseId,
-        categoryId, productId, productTitle: product.title,
+        paymentId, orderId, paymentKey: paymentId, userId: uid, uid, courseId, canonicalCourseId,
+        categoryId, productId, planId: product.planId || null, productTitle: product.title,
         courseTitle: product.courseTitle,
         orderName: product.courseTitle,
         amount: product.amount,
@@ -2926,8 +2957,8 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         approvedAt, createdAt: nowIso, updatedAt: nowIso, rawResponse: approved
     };
     const enrollmentRecord = {
-        enrollmentId, userId: uid, uid, courseId,
-        categoryId, productId, productTitle: product.title, amount: product.amount,
+        enrollmentId, userId: uid, uid, courseId: canonicalCourseId, canonicalCourseId,
+        categoryId, productId, planId: product.planId || null, productTitle: product.title, amount: product.amount,
         courseTitle: product.courseTitle,
         paymentId, orderId,
         purchasedAt: purchasedAt.toISOString(), startsAt: purchasedAt.toISOString(), accessStartsAt: purchasedAt.toISOString(), expiresAt, accessEndsAt: expiresAt,
@@ -2938,8 +2969,8 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         createdAt: nowIso, updatedAt: nowIso
     };
     const purchaseRecord = {
-        uid, userId: uid, courseId, courseTitle: product.courseTitle,
-        categoryId, productId, productTitle: product.title,
+        uid, userId: uid, courseId, canonicalCourseId, courseTitle: product.courseTitle,
+        categoryId, productId, planId: product.planId || null, productTitle: product.title,
         orderId, paymentKey: paymentId, paymentStatus: 'paid', accessStatus: 'active',
         paymentProvider: 'portone-kcp-v2', amount: product.amount,
         method, receiptUrl,
@@ -2947,7 +2978,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         kcpResponseCode: getPortOneResponseCode(approved),
         kcpResponseMessage: getPortOneResponseMessage(approved),
         orderedAt: approvedAt, approvedAt, purchasedAt: purchasedAt.toISOString(), expiresAt,
-        accessValidDays: getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
+        accessValidDays: getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays, accessValidMonths: 3,
         totalLessons: product.totalLessons, completedLessons: 0,
         certificateIssued: false,
         legalDisclaimerAccepted: Boolean(body.legalDisclaimerAccepted),
@@ -2958,7 +2989,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
     try {
         await firestorePatch(env, orderDocPath, paymentRecord);
         if (body.source === 'portone_webhook') await logWebhookStep(env, 'payment_record_saved', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
-        await grantCourseAccess(env, { ...enrollmentRecord, canonicalCourseId: courseId, source: 'payment', paymentId, orderId });
+        await grantCourseAccess(env, { ...enrollmentRecord, canonicalCourseId, source: 'payment', paymentId, orderId, planId: product.planId || null });
         if (productId === 'dui-cbt-advanced') {
             await ensureIncludedBasicEnrollment(env, uid, { paymentId, orderId, purchasedAt: purchasedAt.toISOString(), expiresAt, method, receiptUrl, categoryId, source: body.source || 'portone_confirm' });
         }
@@ -2967,8 +2998,8 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         }
         if (body.source === 'portone_webhook') await logWebhookStep(env, 'enrollment_created', { paymentId, orderId, userId: uid, uid, webhookType: 'Transaction.Paid' });
         await firestorePatch(env, firestoreDocumentPath(env, 'purchases', orderId), purchaseRecord);
-        await firestorePatch(env, paymentKeyPath, { paymentKey: paymentId, paymentId, orderId, userId: uid, courseId, createdAt: nowIso });
-        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso, getCourseProduct(courseId)));
+        await firestorePatch(env, paymentKeyPath, { paymentKey: paymentId, paymentId, orderId, userId: uid, courseId, canonicalCourseId, productId, planId: product.planId || null, createdAt: nowIso });
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', canonicalCourseId), buildRefundPolicyRecord(nowIso, getCourseProduct(canonicalCourseId)));
         await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: existingPaidSameUser ? 'portone_resync_completed' : 'portone_confirm_completed', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved, approvedAt, status: 'paid' })).catch((logError) => console.error(logError));
     } catch (error) {
         await savePaymentLog(env, orderId, buildPaymentLogRecord({ type: 'firestore_save_failed', paymentId, orderId, uid, courseId, productId, amount: product.amount, approved, approvedAt, status: 'paid_save_failed', error })).catch((logError) => console.error(logError));
@@ -3389,7 +3420,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             const duplicateResolution = String(body?.duplicateResolution || 'keep').trim();
             if (duplicateResolution === 'extend') {
                 const nowIso = new Date().toISOString();
-                const extensionDays = Number(body?.extensionDays || getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
+                const extensionDays = Number(body?.extensionDays || getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
                 const extensionBase = existingExpiresAt > Date.now() ? existingExpiresAt : Date.now();
                 const expiresAt = new Date(extensionBase + Math.max(1, extensionDays) * 24 * 60 * 60 * 1000).toISOString();
                 const patch = { expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장' };
@@ -3403,7 +3434,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
 
     const nowIso = new Date().toISOString();
     const startsAt = requestedStartsAt || nowIso;
-    const expiresAt = requestedExpiresAt || new Date(new Date(startsAt).getTime() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = requestedExpiresAt || new Date(new Date(startsAt).getTime() + (getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     if (!Number.isFinite(new Date(startsAt).getTime()) || !Number.isFinite(new Date(expiresAt).getTime()) || new Date(expiresAt).getTime() <= new Date(startsAt).getTime()) {
         return json({ message: '수강 시작일 또는 종료일이 올바르지 않습니다.', code: 'INVALID_ACCESS_PERIOD' }, 400, corsHeaders);
     }

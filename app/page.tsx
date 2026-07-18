@@ -5,14 +5,14 @@ import { formatApplicationKrw } from "@/lib/course/application-products";
 import { getApplyHref, getMainProductPair, platformCourseCategories, type CourseCategory } from "@/lib/course/platform-courses";
 
 export const metadata: Metadata = {
-  title: "리셋에듀센터 | 온라인 재범방지교육과 수료자료",
-  description: "보듬심리상담센터가 운영하는 민간 온라인 교육기관입니다. 재범방지교육 수강, 수료증, 재범방지계획서와 실천자료를 확인할 수 있습니다.",
+  title: "리셋 재범방지교육센터",
+  description: "음주운전, 폭력범죄, 성범죄, 도박중독, 마약중독 재범방지 온라인 교육을 제공하는 리셋 재범방지교육센터입니다.",
   alternates: { canonical: "/" },
   openGraph: {
-    title: "리셋에듀센터 | 온라인 재범방지교육과 수료자료",
-    description: "교육을 듣고, 자신의 생활을 돌아보고, 다시 지킬 약속을 적어보는 온라인 재범방지교육입니다.",
+    title: "리셋 재범방지교육센터",
+    description: "음주운전, 폭력범죄, 성범죄, 도박중독, 마약중독 재범방지 온라인 교육",
     url: "https://resetedu.kr/",
-    siteName: "리셋에듀센터",
+    siteName: "리셋 재범방지교육센터",
     locale: "ko_KR",
     type: "website",
   },
@@ -21,8 +21,8 @@ export const metadata: Metadata = {
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  name: "리셋에듀센터",
-  alternateName: "ResetEdu",
+  name: "리셋 재범방지교육센터",
+  alternateName: "리셋 재범방지교육센터",
   url: "https://resetedu.kr/",
   parentOrganization: {
     "@type": "Organization",
@@ -131,7 +131,7 @@ function DocumentDesk() {
 }
 
 export default function HomePage() {
-  const listedCourses = platformCourseCategories.filter((course) => course.id !== "drug-rehab-prevention");
+  const listedCourses = platformCourseCategories;
   const duiCourse = listedCourses.find((course) => course.id === "dui") || listedCourses[0];
   const { basic, advanced } = getMainProductPair(duiCourse);
   const basicHref = getApplyHref(duiCourse, basic?.id);
@@ -154,7 +154,7 @@ export default function HomePage() {
                 교육을 이수하고 변화하려는 과정을<br className="hidden sm:block" /> 구체적인 기록과 실천계획으로 남겨야 합니다.
               </p>
               <p className="mt-3.5 max-w-[640px] text-[15.5px] font-normal leading-[1.7] text-slate-700 sm:text-[17px] sm:leading-[1.75]">
-                리셋에듀센터는 행동 원인을 돌아보고, 같은 잘못을 반복하지 않기 위한 실천계획을 세울 수 있도록 온라인 재범방지교육과 수료자료를 제공합니다.
+                리셋 재범방지교육센터는 행동 원인을 돌아보고, 같은 잘못을 반복하지 않기 위한 실천계획을 세울 수 있도록 온라인 재범방지교육과 수료자료를 제공합니다.
               </p>
               <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
                 <Link href={basicHref} data-ga-event="hero_course_apply_click" data-ga-location="homepage_hero" data-ga-item-id={basic?.id || "dui-documents"} data-ga-item-name="바로 교육 신청하기" className="inline-flex min-h-[52px] w-full items-center justify-center rounded-lg border-2 border-[#173968] bg-[#173968] px-[26px] text-base font-bold !text-white transition hover:bg-[#10213f] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#173968]/25 focus-visible:ring-offset-2 sm:w-auto">바로 교육 신청하기</Link>
@@ -166,7 +166,7 @@ export default function HomePage() {
               <div className="relative mx-auto h-[410px] max-w-[390px]">
                 <img src="/images/document-samples/prevention-plan-sample.jpg" alt="재범방지계획서 예시" className="absolute left-0 top-16 h-[290px] w-[205px] border border-slate-200 bg-white object-cover object-top shadow-sm" />
                 <img src="/images/document-samples/risk-response-plan-sample.jpg" alt="실천계획서 예시" className="absolute right-0 top-24 h-[270px] w-[190px] border border-slate-200 bg-white object-cover object-top shadow-sm" />
-                <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋에듀센터 수료증 예시" className="absolute left-1/2 top-0 h-[360px] w-[255px] -translate-x-1/2 border border-slate-200 bg-white object-contain shadow-[0_18px_38px_rgba(15,23,42,0.12)]" />
+                <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋 재범방지교육센터 수료증 예시" className="absolute left-1/2 top-0 h-[360px] w-[255px] -translate-x-1/2 border border-slate-200 bg-white object-contain shadow-[0_18px_38px_rgba(15,23,42,0.12)]" />
               </div>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function HomePage() {
               <div className="mt-6 max-w-3xl space-y-5 text-[15px] leading-8 text-slate-700 sm:text-base">
                 <p>교육 수료증과 재범방지 실천자료는 단순 첨부서류가 아니라, 교육 이수와 실천 노력을 함께 기록하는 자료입니다.</p>
                 <p>같은 문제가 반복되지 않으려면 자신이 어떤 상황에서 잘못된 판단을 했는지부터 돌아봐야 합니다.</p>
-                <p>리셋에듀센터의 교육은 잘못된 행동의 원인을 점검하고, 위험상황을 알아차리며, 실제 생활에서 지킬 수 있는 약속을 세우는 과정으로 구성되어 있습니다.</p>
+                <p>리셋 재범방지교육센터의 교육은 잘못된 행동의 원인을 점검하고, 위험상황을 알아차리며, 실제 생활에서 지킬 수 있는 약속을 세우는 과정으로 구성되어 있습니다.</p>
                 <p>수료증은 교육이 끝났다는 기록입니다. 교육의 목적은 그 이후의 행동을 바꾸는 데 있습니다.</p>
               </div>
             </div>
@@ -202,7 +202,7 @@ export default function HomePage() {
 
         <section id="process" className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]"><div><SectionTitle title="이용절차" body="신청부터 자료 확인까지 한 번의 절차로 안내합니다." /><ol className="mt-7 space-y-5">{useSteps.map(([title, body], index) => <li key={title} className="grid grid-cols-[2.5rem_1fr] gap-4 border-t border-slate-200 pt-5"><span className="text-sm font-black text-[#176b68]">{index + 1}.</span><div><h3 className="font-black text-slate-950">{title}</h3><p className="mt-1 text-sm leading-6 text-slate-700">{body}</p></div></li>)}</ol></div><div><SectionTitle title="FAQ" /><div className="mt-7 divide-y divide-slate-200 border-y border-slate-200">{processFaqs.map(([question, answer]) => <article key={question} className="py-5"><h3 className="font-black leading-6 text-slate-950">{question}</h3><p className="mt-2 text-sm leading-7 text-slate-700">{answer}</p></article>)}</div></div></div></section>
 
-        <section className="bg-[#f2eee6] px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.8fr)]"><div><SectionTitle title="리셋에듀센터는 이렇게 운영합니다" /><div className="mt-6 max-w-3xl space-y-5 text-[15px] leading-8 text-slate-700 sm:text-base"><p>리셋에듀센터는 보듬심리상담센터가 운영하는 민간 온라인 교육기관입니다.</p><p>교육생이 단순히 영상을 재생하고 수료증만 받는 것이 아니라, 교육내용을 이해하고 자신의 생활에 적용할 수 있도록 과정과 실천자료를 함께 구성하고 있습니다.</p><p>이용 중 어려움이 있거나 발급자료에 문제가 있는 경우 고객센터에서 직접 확인해 드립니다.</p></div><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href={advancedHref} className={buttonClass("primary", "lg", "rounded-lg px-6 font-black shadow-none")}>수강 신청하기</Link><Link href="/about#support" className={buttonClass("secondary", "lg", "rounded-lg px-6 font-black shadow-none")}>고객센터 확인</Link></div></div><dl className="border border-slate-300 bg-white p-5 sm:p-6">{operatorInfo.map(([label, value]) => <div key={label} className="grid gap-1 border-b border-slate-200 py-3 last:border-b-0 sm:grid-cols-[8.5rem_1fr]"><dt className="text-sm font-black text-slate-950">{label}</dt><dd className="text-sm leading-6 text-slate-700">{value}</dd></div>)}</dl></div></section>
+        <section className="bg-[#f2eee6] px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.8fr)]"><div><SectionTitle title="리셋 재범방지교육센터는 이렇게 운영합니다" /><div className="mt-6 max-w-3xl space-y-5 text-[15px] leading-8 text-slate-700 sm:text-base"><p>리셋 재범방지교육센터는 보듬심리상담센터가 운영하는 민간 온라인 교육기관입니다.</p><p>교육생이 단순히 영상을 재생하고 수료증만 받는 것이 아니라, 교육내용을 이해하고 자신의 생활에 적용할 수 있도록 과정과 실천자료를 함께 구성하고 있습니다.</p><p>이용 중 어려움이 있거나 발급자료에 문제가 있는 경우 고객센터에서 직접 확인해 드립니다.</p></div><div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href={advancedHref} className={buttonClass("primary", "lg", "rounded-lg px-6 font-black shadow-none")}>수강 신청하기</Link><Link href="/about#support" className={buttonClass("secondary", "lg", "rounded-lg px-6 font-black shadow-none")}>고객센터 확인</Link></div></div><dl className="border border-slate-300 bg-white p-5 sm:p-6">{operatorInfo.map(([label, value]) => <div key={label} className="grid gap-1 border-b border-slate-200 py-3 last:border-b-0 sm:grid-cols-[8.5rem_1fr]"><dt className="text-sm font-black text-slate-950">{label}</dt><dd className="text-sm leading-6 text-slate-700">{value}</dd></div>)}</dl></div></section>
       </main>
     </>
   );

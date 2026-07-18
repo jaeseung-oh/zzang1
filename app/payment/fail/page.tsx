@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import PaymentFailContent from "./payment-fail-content";
 
 export const metadata: Metadata = {
-  title: "결제 실패 | ResetEdu 재발방지교육센터",
+  title: "결제 실패 | 리셋 재범방지교육센터",
   description: "결제 실패 안내 페이지",
 };
 

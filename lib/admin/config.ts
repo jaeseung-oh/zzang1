@@ -14,9 +14,9 @@ export function isAdminEmail(email?: string | null) {
 }
 
 export const adminSettings = {
-  siteName: process.env.NEXT_PUBLIC_SITE_NAME || "ResetEdu 재발방지교육센터",
-  operatorName: process.env.NEXT_PUBLIC_OPERATOR_NAME || "ResetEdu 재발방지교육센터",
-  businessName: process.env.NEXT_PUBLIC_BUSINESS_NAME || "ResetEdu 재발방지교육센터",
+  siteName: process.env.NEXT_PUBLIC_SITE_NAME || "리셋 재범방지교육센터",
+  operatorName: process.env.NEXT_PUBLIC_OPERATOR_NAME || "리셋 재범방지교육센터",
+  businessName: process.env.NEXT_PUBLIC_BUSINESS_NAME || "보듬심리상담센터",
   representativeName: process.env.NEXT_PUBLIC_REPRESENTATIVE_NAME || "미설정",
   supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "미설정",
   supportPhone: process.env.NEXT_PUBLIC_SUPPORT_PHONE || "미설정",

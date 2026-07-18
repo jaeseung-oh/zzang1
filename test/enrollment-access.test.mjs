@@ -6,10 +6,10 @@ import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../worker.js', import.meta.url), 'utf8')
   .replace('export default {', 'const __defaultExport = {')
   .replace(/export \{ getEnrollmentAccessDecision, isFirestoreEnrollmentActiveRecord, normalizeEnrollmentSourceType \};\s*$/, '')
-  + '\nglobalThis.__exports = { getEnrollmentAccessDecision, isFirestoreEnrollmentActiveRecord, normalizeEnrollmentSourceType };';
+  + '\nglobalThis.__exports = { getEnrollmentAccessDecision, getActiveDuplicateEnrollmentDecision, isFirestoreEnrollmentActiveRecord, normalizeEnrollmentSourceType, resolveCanonicalCourseId };';
 const context = { console, crypto: { subtle: {} }, TextEncoder, TextDecoder, URL, URLSearchParams, Date, Promise, Set, Map, Object, String, Number, Boolean, Array, Math, RegExp, Error };
 vm.runInNewContext(source, context, { filename: 'worker.js' });
-const { getEnrollmentAccessDecision, isFirestoreEnrollmentActiveRecord } = context.__exports;
+const { getEnrollmentAccessDecision, getActiveDuplicateEnrollmentDecision, isFirestoreEnrollmentActiveRecord, resolveCanonicalCourseId } = context.__exports;
 
 const base = {
   userId: 'user_1',
@@ -53,4 +53,37 @@ test('inactive enrollment is denied', () => {
   const decision = getEnrollmentAccessDecision(enrollment, 'user_1', 'dui-prevention-basic');
   assert.equal(decision.allowed, false);
   assert.equal(decision.reason, 'INACTIVE_ENROLLMENT');
+});
+
+
+test('drug product aliases resolve to the shared canonical course', () => {
+  assert.equal(resolveCanonicalCourseId({ productId: 'drug-addiction-basic' }), 'drug-addiction-relapse-prevention');
+  assert.equal(resolveCanonicalCourseId({ productId: 'drug-addiction-premium' }), 'drug-addiction-relapse-prevention');
+});
+
+test('drug basic enrollment blocks only same product and allows independent premium purchase', () => {
+  const enrollment = {
+    ...base,
+    courseId: 'drug-addiction-relapse-prevention',
+    canonicalCourseId: 'drug-addiction-relapse-prevention',
+    productId: 'drug-addiction-basic',
+    sourceType: 'PAYMENT',
+    paymentStatus: 'paid'
+  };
+  assert.equal(getActiveDuplicateEnrollmentDecision(enrollment, 'user_1', 'drug-addiction-relapse-prevention', 'drug-addiction-basic').blocked, true);
+  assert.equal(getActiveDuplicateEnrollmentDecision(enrollment, 'user_1', 'drug-addiction-relapse-prevention', 'drug-addiction-premium').blocked, false);
+});
+
+test('drug premium enrollment blocks basic because premium includes basic content', () => {
+  const enrollment = {
+    ...base,
+    courseId: 'drug-addiction-relapse-prevention',
+    canonicalCourseId: 'drug-addiction-relapse-prevention',
+    productId: 'drug-addiction-premium',
+    sourceType: 'PAYMENT',
+    paymentStatus: 'paid'
+  };
+  const decision = getActiveDuplicateEnrollmentDecision(enrollment, 'user_1', 'drug-addiction-relapse-prevention', 'drug-addiction-basic');
+  assert.equal(decision.blocked, true);
+  assert.equal(decision.reason, 'PREMIUM_ALREADY_INCLUDES_BASIC');
 });

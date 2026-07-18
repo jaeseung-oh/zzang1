@@ -929,7 +929,7 @@ function SettingsView() {
         <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div>
             <h3 className="text-xl font-semibold tracking-[-0.03em] text-slate-950">직인 설정</h3>
-            <p className="mt-2 text-sm leading-7 text-slate-600">수료증에 표시되는 ResetEdu 재발방지교육센터 직인입니다.</p>
+            <p className="mt-2 text-sm leading-7 text-slate-600">수료증에 표시되는 리셋 재범방지교육센터 직인입니다.</p>
             <p className="mt-2 text-xs leading-6 text-slate-500">직인은 수료증 미리보기, 인쇄, PDF 저장 화면에 동일하게 표시됩니다.</p>
           </div>
           <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">

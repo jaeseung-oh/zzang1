@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "개인정보처리방침 | ResetEdu 재발방지교육센터",
-  description: "ResetEdu 재발방지교육센터 개인정보처리방침 안내",
+  title: "개인정보처리방침 | 리셋 재범방지교육센터",
+  description: "리셋 재범방지교육센터 개인정보처리방침 안내",
   alternates: { canonical: "/privacy-policy/" },
 };
 
@@ -18,7 +18,7 @@ export default function PrivacyPolicyPage() {
           <section><h2 className="text-lg font-bold text-slate-950">이용 목적</h2><p className="mt-2">회원 식별, 교육 서비스 제공, 수료 확인, 고객 응대, 환불 처리, 법령상 의무 이행을 위해 개인정보를 이용합니다.</p></section>
           <section><h2 className="text-lg font-bold text-slate-950">보유 기간</h2><p className="mt-2">관련 법령 및 서비스 운영 목적 범위 내에서 필요한 기간 동안 보관하며, 보유 목적 달성 시 지체 없이 파기합니다.</p></section>
           <section><h2 className="text-lg font-bold text-slate-950">제3자 제공 및 처리위탁</h2><p className="mt-2">회사는 원칙적으로 이용자의 개인정보를 외부에 판매하지 않습니다. 다만 결제 처리, 인증, 클라우드 인프라, 저장소 운영 등 서비스 제공에 필요한 범위에서 관련 수탁사 또는 서비스 제공자에게 처리 업무를 위탁할 수 있으며, 구체적인 항목은 실제 운영 구조에 맞춰 별도로 고지합니다.</p></section>
-          <section><h2 className="text-lg font-bold text-slate-950">이용자 권리</h2><p className="mt-2">이용자는 자신의 개인정보에 대해 열람, 정정, 삭제, 처리정지 등을 요청할 수 있으며, 관련 문의는 ResetEdu 재발방지교육센터 고객센터 010-7617-8619로 접수할 수 있습니다.</p></section>
+          <section><h2 className="text-lg font-bold text-slate-950">이용자 권리</h2><p className="mt-2">이용자는 자신의 개인정보에 대해 열람, 정정, 삭제, 처리정지 등을 요청할 수 있으며, 관련 문의는 리셋 재범방지교육센터 고객센터 010-7617-8619로 접수할 수 있습니다.</p></section>
           <section><h2 className="text-lg font-bold text-slate-950">개인정보 보호책임자 및 문의</h2><p className="mt-2">개인정보 보호책임자 및 민원처리 담당자는 대표자 홍경자이며, 문의 연락처는 010-7617-8619입니다.</p></section>
         </div>
       </div>

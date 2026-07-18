@@ -17,6 +17,8 @@ export type CourseDefinition = {
   id: string;
   categoryId?: string;
   productId?: string;
+  canonicalCourseId?: string;
+  planId?: "basic" | "premium" | "advanced";
   level?: "basic" | "advanced";
   title: string;
   certificateTitle?: string;
@@ -157,11 +159,15 @@ const preventionStreamUids = {
   gambling: process.env.NEXT_PUBLIC_STREAM_UID_GAMBLING_RELAPSE_PREVENTION || "",
   sexualOffense: process.env.NEXT_PUBLIC_STREAM_UID_SEXUAL_OFFENSE_PREVENTION || "",
   drug: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
+  drugAddiction: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION || process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
 };
 
 type PreventionCategorySeed = {
   categoryId: string;
   productPrefix: string;
+  basicProductId?: string;
+  advancedProductId?: string;
+  canonicalCourseId?: string;
   baseLessonId: string;
   title: string;
   caseType: string;
@@ -203,13 +209,16 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
   },
   {
     categoryId: "drug-rehab-prevention",
-    productPrefix: "drug",
-    baseLessonId: "drug-rehab-prevention-lesson-1",
-    title: "마약류중독 재범방지교육",
-    caseType: "마약류",
-    streamUid: preventionStreamUids.drug,
-    sourceFileName: "마약류중독재활예방교육.mp4",
-    documentTitles: ["마약류중독 재범방지계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재범방지 서약서 서식"],
+    productPrefix: "drug-addiction",
+    basicProductId: "drug-addiction-basic",
+    advancedProductId: "drug-addiction-premium",
+    canonicalCourseId: "drug-addiction-relapse-prevention",
+    baseLessonId: "drug-addiction-relapse-prevention-lesson-1",
+    title: "마약중독 재범방지교육",
+    caseType: "마약중독",
+    streamUid: preventionStreamUids.drugAddiction,
+    sourceFileName: "마약중독.mp4",
+    documentTitles: ["반성문 작성 가이드", "자기성찰 자료", "재발방지 실천 안내"],
   },
 ];
 
@@ -236,8 +245,11 @@ function buildPreventionModule(seed: PreventionCategorySeed): CourseModule {
 
 export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategorySeeds.flatMap((seed) => {
   const baseModule = buildPreventionModule(seed);
+  const basicProductId = seed.basicProductId || seed.productPrefix + "-basic";
+  const advancedProductId = seed.advancedProductId || seed.productPrefix + "-advanced";
   const common = {
     categoryId: seed.categoryId,
+    canonicalCourseId: seed.canonicalCourseId,
     certificateTitle: seed.title,
     subtitle: seed.title + " 온라인 교육과 수료증 발급 과정입니다.",
     accessValidMonths: 3,
@@ -247,8 +259,9 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
   return [
     {
       ...common,
-      id: seed.productPrefix + "-basic",
-      productId: seed.productPrefix + "-basic",
+      id: basicProductId,
+      productId: basicProductId,
+      planId: "basic" as const,
       level: "basic" as const,
       title: seed.title + " 기본과정",
       durationMinutes: baseModule.minutes,
@@ -260,19 +273,22 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
     },
     {
       ...common,
-      id: seed.productPrefix + "-advanced",
-      productId: seed.productPrefix + "-advanced",
+      id: advancedProductId,
+      productId: advancedProductId,
+      planId: seed.advancedProductId === "drug-addiction-premium" ? "premium" as const : "advanced" as const,
       level: "advanced" as const,
       title: seed.title + " 심화과정",
       durationMinutes: baseModule.minutes + CBT_COMPLETION_MODULE.minutes,
       priceKrw: 99000,
       priceLabel: formatKrw(99000),
-      outputs: [seed.title + " 수료증", ...seed.documentTitles, "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
+      outputs: seed.advancedProductId === "drug-addiction-premium"
+        ? [seed.title + " 심화과정 수료증", ...seed.documentTitles, "재발방지계획서", "실천서약서", "고위험 상황 대처계획서", "마약 사용 유발요인 점검표", "갈망 대처계획", "재사용 위험상황 분석표", "보호요인 및 지지체계 점검표", "자기성찰문", "일상 회복계획", "재발방지 실천일지", "월간 자기점검표", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"]
+        : [seed.title + " 수료증", ...seed.documentTitles, "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
       modules: [baseModule, CBT_COMPLETION_MODULE],
       documents: [
         { type: "course-certificate" as const, title: seed.title + " 수료증" },
-        { type: "cbt-completion" as const, title: "인지행동기반 재발방지교육 이수증", courseId: seed.productPrefix + "-advanced" },
-        { type: "cbt-detail" as const, title: "재범방지 교육 이수 상세 내역서", courseId: seed.productPrefix + "-advanced" },
+        { type: "cbt-completion" as const, title: "인지행동기반 재발방지교육 이수증", courseId: advancedProductId },
+        { type: "cbt-detail" as const, title: "재범방지 교육 이수 상세 내역서", courseId: advancedProductId },
       ],
     },
   ];

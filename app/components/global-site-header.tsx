@@ -67,9 +67,9 @@ export default function GlobalSiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/95 text-slate-950 shadow-sm backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-2 sm:px-6 lg:hidden">
-        <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeAllMenus}>
-          <img src={centerLogoPath} alt="ResetEdu 로고" className="h-9 w-9 shrink-0 object-contain" />
-          <span className="min-w-0 truncate text-[15px] font-black leading-tight text-[#173968]">ResetEdu</span>
+        <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-label="리셋 재범방지교육센터 홈" onClick={closeAllMenus}>
+          <img src={centerLogoPath} alt="리셋 재범방지교육센터 로고" className="h-9 w-9 shrink-0 object-contain" />
+          <span className="min-w-0 truncate text-[15px] font-black leading-tight text-[#173968]">리셋 재범방지교육센터</span>
         </Link>
         <Link href="/courses/apply?category=dui" className={buttonClass("warning", "sm", "min-h-10 rounded-full px-3 text-xs font-black !text-black hover:!text-black")}>수강 신청</Link>
         <button type="button" aria-label={mobileMenuOpen ? "모바일 메뉴 닫기" : "모바일 메뉴 열기"} aria-expanded={mobileMenuOpen} onClick={() => setMobileMenuOpen((open) => !open)} className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-slate-950 shadow-sm">
@@ -97,10 +97,10 @@ export default function GlobalSiteHeader() {
 
       <div className="mx-auto hidden max-w-7xl flex-col gap-2 px-6 py-3 lg:flex lg:flex-row lg:flex-nowrap lg:items-center lg:justify-between lg:px-8">
         <div className="flex min-w-0 items-center justify-between gap-2">
-          <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-label="ResetEdu 재발방지교육센터 홈" onClick={closeCourseMenu}>
-            <img src={centerLogoPath} alt="ResetEdu 로고" className="h-11 w-11 shrink-0 object-contain" />
+          <Link href="/" className="flex min-w-0 flex-1 items-center gap-2 text-left" aria-label="리셋 재범방지교육센터 홈" onClick={closeCourseMenu}>
+            <img src={centerLogoPath} alt="리셋 재범방지교육센터 로고" className="h-11 w-11 shrink-0 object-contain" />
             <span className="flex min-w-0 flex-1 flex-col">
-              <span className="truncate text-xl font-black leading-tight text-[#173968]">ResetEdu 재발방지교육센터</span>
+              <span className="truncate text-xl font-black leading-tight text-[#173968]">리셋 재범방지교육센터</span>
               <span className="text-xs font-bold leading-tight text-slate-500">Prevention Education Center</span>
             </span>
           </Link>

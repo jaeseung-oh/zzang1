@@ -17,9 +17,9 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://resetedu.kr"),
-  title: "ResetEdu 재발방지교육센터 | 온라인 재범방지교육과 실천자료 관리",
-  description: "사건 이후 필요한 온라인 재범방지교육, 교육 수료증, 재발방지계획서, 생활개선계획과 양형자료 준비 참고자료를 확인하세요.",
-  openGraph: { title: "ResetEdu 재발방지교육센터 | 온라인 재범방지교육과 실천자료 관리", description: "온라인 재범방지교육부터 양형자료 준비를 위한 실천자료까지 한곳에서 확인하세요.", url: "https://resetedu.kr", siteName: "ResetEdu 재발방지교육센터", locale: "ko_KR", type: "website" },
+  title: "리셋 재범방지교육센터 | 온라인 재범방지교육",
+  description: "음주운전, 폭력범죄, 성범죄, 도박중독, 마약중독 재범방지 온라인 교육을 제공하는 리셋 재범방지교육센터입니다.",
+  openGraph: { title: "리셋 재범방지교육센터 | 온라인 재범방지교육과 실천자료 관리", description: "음주운전, 폭력범죄, 성범죄, 도박중독, 마약중독 재범방지 온라인 교육", url: "https://resetedu.kr", siteName: "리셋 재범방지교육센터", locale: "ko_KR", type: "website" },
   other: {
     "naver-site-verification": "bc88a8e10a9a6ca9a188bcdf4a6d351d34c6bfdb",
   },

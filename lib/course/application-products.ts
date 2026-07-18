@@ -4,6 +4,8 @@ export const APPLICATION_PRICES = {
   DUI_CBT_ADVANCED: 99000,
   PREVENTION_BASIC: 49000,
   PREVENTION_ADVANCED: 99000,
+  DRUG_ADDICTION_BASIC: 49000,
+  DRUG_ADDICTION_PREMIUM: 99000,
 } as const;
 
 export type ApplicationProduct = {
@@ -14,6 +16,8 @@ export type ApplicationProduct = {
   includes: string[];
   badge?: string;
   courseId?: string;
+  canonicalCourseId?: string;
+  planId?: "basic" | "premium" | "advanced";
 };
 
 export type ApplicationIconName = "car" | "fileSearch" | "dice" | "alert" | "shieldCheck";
@@ -157,6 +161,28 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     description: "재범방지교육과 자기성찰 실천자료를 함께 정리하는 심화 과정입니다.",
     includes: ["온라인 재범방지교육", "교육 수료증 PDF 발급", "마약류중독 재범방지계획서 서식", "마약류 재활 실천계획서 서식", "마약류중독 재범방지 서약서 서식", "반성문 작성 서식", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서", "인쇄 및 PDF 저장"],
   }],
+  ["drug-addiction-basic", {
+    id: "drug-addiction-basic",
+    courseId: "drug-addiction-basic",
+    canonicalCourseId: "drug-addiction-relapse-prevention",
+    planId: "basic",
+    title: "마약중독 재범방지교육 기본과정",
+    price: APPLICATION_PRICES.DRUG_ADDICTION_BASIC,
+    badge: "기본과정",
+    description: "마약류 사용의 위험성과 재사용 유발요인을 점검하고 기본 재발방지 실천자료를 정리하는 과정입니다.",
+    includes: ["마약중독 재범방지교육 영상", "온라인 강의실", "이어보기와 진도 저장", "마약중독 재범방지교육 기본과정 수료증", "교육 상세내역서", "반성문 작성 가이드", "자기성찰 자료", "재발방지 실천 안내"],
+  }],
+  ["drug-addiction-premium", {
+    id: "drug-addiction-premium",
+    courseId: "drug-addiction-premium",
+    canonicalCourseId: "drug-addiction-relapse-prevention",
+    planId: "premium",
+    title: "마약중독 재범방지교육 심화과정",
+    price: APPLICATION_PRICES.DRUG_ADDICTION_PREMIUM,
+    badge: "심화자료 포함",
+    description: "기본과정에 추가 인지행동 기반 심화교육과 심화 전용 재발방지 자료를 더한 독립 상품입니다.",
+    includes: ["마약중독 재범방지교육 영상", "기본과정 제공자료 전체", "추가 인지행동 기반 심화교육", "마약중독 재범방지교육 심화과정 수료증", "교육 상세내역서", "재발방지계획서", "실천서약서", "고위험 상황 대처계획서", "마약 사용 유발요인 점검표", "갈망 대처계획", "재사용 위험상황 분석표", "보호요인 및 지지체계 점검표", "자기성찰문", "일상 회복계획", "재발방지 실천일지", "월간 자기점검표"],
+  }],
 ]);
 
 function getNewPreventionProducts(basicId: string, advancedId: string) {
@@ -217,14 +243,13 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
   },
   {
     id: "drug-rehab-prevention",
-    title: "마약류중독 재범방지교육",
-    description: "마약류 문제와 재활·재발방지 계획을 다루는 교육 과정은 준비중입니다.",
-    summary: "영상 준비중",
+    title: "마약중독 재범방지교육",
+    description: "마약류 사용의 위험성을 이해하고, 재사용을 유발하는 상황과 사고방식을 점검하여 구체적인 재발방지 실천계획을 수립하는 온라인 교육과정입니다.",
+    summary: "기본과정 49,000원, 심화과정 99,000원",
     icon: "alert",
-    status: "comingSoon",
-    comingSoonText: "마약류중독 재범방지교육 영상 준비 후 신청을 열 예정입니다.",
-    products: [],
-    defaultProductId: "drug-basic",
+    status: "available",
+    products: getNewPreventionProducts("drug-addiction-basic", "drug-addiction-premium"),
+    defaultProductId: "drug-addiction-basic",
   },
 ];
 

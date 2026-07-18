@@ -6,14 +6,14 @@ import { getApplyHref, getPlatformCourseProducts, platformCourseCategories, type
 import { getPreventionDocumentsForCourse } from "@/lib/course/prevention-documents";
 
 export const metadata: Metadata = {
-  title: "교육과정 | ResetEdu 재발방지교육센터",
+  title: "교육과정 | 리셋 재범방지교육센터",
   description: "사건 이후 재범방지교육, 재발방지 실천자료, 생활개선 계획, 실천자료 정리를 과정별로 선택할 수 있습니다.",
   alternates: { canonical: "/courses/" },
   openGraph: {
-    title: "교육과정 | ResetEdu 재발방지교육센터",
+    title: "교육과정 | 리셋 재범방지교육센터",
     description: "온라인 재범방지교육과 자기성찰 중심 실천자료 과정을 확인하세요.",
     url: "https://resetedu.kr/courses/",
-    siteName: "ResetEdu 재발방지교육센터",
+    siteName: "리셋 재범방지교육센터",
     locale: "ko_KR",
     type: "website",
   },
@@ -25,6 +25,7 @@ const filters = [
   ["폭력범죄", "#violence-prevention"],
   ["도박중독", "#gambling-relapse-prevention"],
   ["성범죄", "#sexual-offense-prevention"],
+  ["마약중독", "#drug-rehab-prevention"],
 ] as const;
 
 function Icon({ className = "h-5 w-5" }: { className?: string }) {

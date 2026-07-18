@@ -1415,7 +1415,7 @@ function CourseRoomPageContent() {
           <div className="grid gap-6 px-4 py-6 sm:px-8 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end lg:px-10 lg:py-9">
             <div>
               <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.28em] text-[#c8d7f6]">
-                <span>ResetEdu Prevention Education Center</span>
+                <span>리셋 재범방지교육센터</span>
                 <span className="rounded-full border border-white/12 bg-white/6 px-3 py-1 text-[11px] text-[#f0d59c]">온라인 학습실</span>
                 {adminPreview ? <span className="rounded-full border border-slate-300/30 bg-slate-950 px-3 py-1 text-[11px] text-white">관리자 접근</span> : null}
               </div>

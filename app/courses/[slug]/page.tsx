@@ -64,12 +64,12 @@ function ProductComparison({ course }: { course: CourseCategory }) {
 export async function generateMetadata({ params }: CourseIntroPageProps): Promise<Metadata> {
   const { slug } = await params;
   const course = getPlatformCourseBySlug(slug);
-  if (!course) return { title: "교육과정 | ResetEdu 재발방지교육센터" };
+  if (!course) return { title: "교육과정 | 리셋 재범방지교육센터" };
   return {
     title: course.seo.title,
     description: course.seo.description,
     alternates: { canonical: "/courses/" + course.slug + "/" },
-    openGraph: { title: course.seo.title, description: course.seo.description, url: "https://resetedu.kr/courses/" + course.slug + "/", siteName: "ResetEdu 재발방지교육센터", locale: "ko_KR", type: "website" },
+    openGraph: { title: course.seo.title, description: course.seo.description, url: "https://resetedu.kr/courses/" + course.slug + "/", siteName: "리셋 재범방지교육센터", locale: "ko_KR", type: "website" },
   };
 }
 

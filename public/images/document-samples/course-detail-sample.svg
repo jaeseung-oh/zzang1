@@ -34,7 +34,7 @@
     <g opacity="0.72">
     <circle cx="690" cy="1090" r="50" fill="none" stroke="#b91c1c" stroke-width="10"/>
     <circle cx="690" cy="1090" r="33" fill="none" stroke="#b91c1c" stroke-width="3" opacity="0.7"/>
-    <text x="690" y="1085" text-anchor="middle" font-family="Arial, 'Noto Sans KR', sans-serif" font-size="18" font-weight="900" fill="#b91c1c">리셋에듀센터</text>
+    <text x="690" y="1085" text-anchor="middle" font-family="Arial, 'Noto Sans KR', sans-serif" font-size="18" font-weight="900" fill="#b91c1c">리셋 재범방지교육센터</text>
     <text x="690" y="1115" text-anchor="middle" font-family="Arial, 'Noto Sans KR', sans-serif" font-size="18" font-weight="900" fill="#b91c1c">직인</text>
   </g>
     <text x="450" y="1180" text-anchor="middle" font-family="Arial, 'Noto Sans KR', sans-serif" font-size="23" font-weight="900" fill="#64748b">예시 문서 · 개인정보 마스킹 샘플</text>
