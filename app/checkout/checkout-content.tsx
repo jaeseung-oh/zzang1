@@ -102,6 +102,7 @@ export default function CheckoutContent() {
   const selectedProduct = getApplicationProduct(selectedCategoryId, selectedProductId) || defaultCheckoutProduct;
   const selectedCourseId = selectedProduct.courseId || duiPreventionCourseProduct.courseId;
   const selectedEntitlementCourseId = selectedProduct.canonicalCourseId || selectedCourseId;
+  const allowPaymentWhenPrecheckUnavailable = selectedProduct.canonicalCourseId === "drug-addiction-relapse-prevention";
   const selectedCourseDefinition = getCourseDefinition(selectedEntitlementCourseId) || getCourseDefinition(selectedCourseId);
   const selectedCourseTitle = selectedProduct.canonicalCourseId ? selectedProduct.title : selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedPaymentOrderName = selectedProduct.id === "dui-cbt-advanced" ? "인지행동기반 재발방지교육 심화과정" : selectedCourseTitle;
@@ -152,8 +153,14 @@ export default function CheckoutContent() {
         } catch (enrollmentError) {
           if (cancelled) return;
           console.error("Verified enrollment lookup failed before checkout", enrollmentError);
-          setEnrollmentCheckFailed(true);
-          setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
+          if (allowPaymentWhenPrecheckUnavailable) {
+            setActiveEnrollment(null);
+            setEnrollmentCheckFailed(false);
+            setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
+          } else {
+            setEnrollmentCheckFailed(true);
+            setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
+          }
         }
         setPaymentId(createPaymentId(user.uid));
         setProfileReady(Boolean(realName && birthDate));
@@ -181,7 +188,7 @@ export default function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, [router, selectedCourseId, selectedEntitlementCourseId, selectedCategoryId]);
+  }, [router, selectedCourseId, selectedEntitlementCourseId, selectedCategoryId, allowPaymentWhenPrecheckUnavailable]);
 
   const handleRequestPayment = async () => {
     let verifiedUid = customerUid;
@@ -206,9 +213,16 @@ export default function CheckoutContent() {
         setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
       } catch (enrollmentError) {
         console.error("Verified enrollment lookup failed immediately before payment", enrollmentError);
-        setEnrollmentCheckFailed(true);
-        setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
-        return;
+        if (allowPaymentWhenPrecheckUnavailable) {
+          enrollment = null;
+          setActiveEnrollment(null);
+          setEnrollmentCheckFailed(false);
+          setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
+        } else {
+          setEnrollmentCheckFailed(true);
+          setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
+          return;
+        }
       }
       if (isEnrollmentActive(enrollment)) {
         setActiveEnrollment(enrollment);
