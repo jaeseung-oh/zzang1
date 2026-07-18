@@ -21,6 +21,7 @@ const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617
 
 const CARD_APPROVAL_DELAY_MESSAGE =
   "안녕하세요. 리셋 재범방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n문제가 계속되면 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
+const ENROLLMENT_LOOKUP_FAILURE_MESSAGE = "기존 결제 내역을 확인하지 못해 중복 결제 방지를 위해 결제를 중단했습니다. 잠시 후 다시 시도해 주세요.";
 
 type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>;
 type CheckoutPaymentMethod = "card" | "kakaopay";
@@ -100,8 +101,9 @@ export default function CheckoutContent() {
   const selectedCategory = getApplicationCategory(selectedCategoryId) || getApplicationCategory("dui");
   const selectedProduct = getApplicationProduct(selectedCategoryId, selectedProductId) || defaultCheckoutProduct;
   const selectedCourseId = selectedProduct.courseId || duiPreventionCourseProduct.courseId;
-  const selectedCourseDefinition = getCourseDefinition(selectedCourseId);
-  const selectedCourseTitle = selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
+  const selectedEntitlementCourseId = selectedProduct.canonicalCourseId || selectedCourseId;
+  const selectedCourseDefinition = getCourseDefinition(selectedEntitlementCourseId) || getCourseDefinition(selectedCourseId);
+  const selectedCourseTitle = selectedProduct.canonicalCourseId ? selectedProduct.title : selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedPaymentOrderName = selectedProduct.id === "dui-cbt-advanced" ? "인지행동기반 재발방지교육 심화과정" : selectedCourseTitle;
   const selectedTotalLessons = selectedCourseDefinition?.modules.length || (selectedProduct.courseId ? 5 : 3);
   const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : selectedProduct.id === "dui-documents" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : "수료증 · 기본 서식");
@@ -142,15 +144,16 @@ export default function CheckoutContent() {
         setBuyerEmail(user.email || profile?.email || "");
         setBuyerPhone(profile?.phoneNumber || "");
         try {
-          const enrollments = await getVerifiedUserEnrollments(user, selectedCourseId);
+          const enrollments = await getVerifiedUserEnrollments(user, selectedEntitlementCourseId);
           if (cancelled) return;
-          setActiveEnrollment(enrollments.find((row) => row.courseId === selectedCourseId) ?? null);
+          setActiveEnrollment(enrollments.find((row) => row.courseId === selectedEntitlementCourseId) ?? null);
           setEnrollmentCheckFailed(false);
+          setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
         } catch (enrollmentError) {
           if (cancelled) return;
           console.error("Verified enrollment lookup failed before checkout", enrollmentError);
           setEnrollmentCheckFailed(true);
-          setError("기존 결제 내역을 확인하지 못해 중복 결제 방지를 위해 결제를 중단했습니다. 잠시 후 다시 시도해 주세요.");
+          setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
         }
         setPaymentId(createPaymentId(user.uid));
         setProfileReady(Boolean(realName && birthDate));
@@ -178,7 +181,7 @@ export default function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, [router, selectedCourseId, selectedCategoryId]);
+  }, [router, selectedCourseId, selectedEntitlementCourseId, selectedCategoryId]);
 
   const handleRequestPayment = async () => {
     let verifiedUid = customerUid;
@@ -197,13 +200,14 @@ export default function CheckoutContent() {
       }
       let enrollment: EnrollmentRecord | null = null;
       try {
-        const enrollments = await getVerifiedUserEnrollments(user, selectedCourseId);
-        enrollment = enrollments.find((row) => row.courseId === selectedCourseId) ?? null;
+        const enrollments = await getVerifiedUserEnrollments(user, selectedEntitlementCourseId);
+        enrollment = enrollments.find((row) => row.courseId === selectedEntitlementCourseId) ?? null;
         setEnrollmentCheckFailed(false);
+        setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
       } catch (enrollmentError) {
         console.error("Verified enrollment lookup failed immediately before payment", enrollmentError);
         setEnrollmentCheckFailed(true);
-        setError("기존 결제 내역을 확인하지 못해 중복 결제 방지를 위해 결제를 중단했습니다. 잠시 후 다시 시도해 주세요.");
+        setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
         return;
       }
       if (isEnrollmentActive(enrollment)) {

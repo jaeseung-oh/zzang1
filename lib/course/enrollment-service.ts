@@ -86,10 +86,13 @@ export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
   sexual: "sexual-offense-basic",
   "sexual-offense-basic": "sexual-offense-basic",
   "sexual-offense-advanced": "sexual-offense-advanced",
-  "drug-rehab-prevention": "drug-basic",
+  "drug-rehab-prevention": "drug-addiction-relapse-prevention",
   drug: "drug-basic",
   "drug-basic": "drug-basic",
   "drug-advanced": "drug-advanced",
+  "drug-addiction-relapse-prevention": "drug-addiction-relapse-prevention",
+  "drug-addiction-basic": "drug-addiction-relapse-prevention",
+  "drug-addiction-premium": "drug-addiction-relapse-prevention",
 };
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {
