@@ -1,5 +1,5 @@
 import { doc, getDoc, getDocs, serverTimestamp, setDoc, collection } from "firebase/firestore";
-import { defaultCourse } from "@/lib/course/catalog";
+import { defaultCourse, getCourseModules } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 
 export interface LessonProgress {
@@ -74,10 +74,11 @@ export function calculateCourseProgress(
   lessonProgressList: LessonProgress[],
   options?: { totalLessons?: number; lastLessonId?: string; lastLessonTime?: number }
 ): CourseProgress {
-  const totalLessons = options?.totalLessons ?? defaultCourse.modules.length;
+  const courseModules = getCourseModules(courseId);
+  const totalLessons = options?.totalLessons ?? courseModules.length;
   const completedLessons = lessonProgressList.filter((item) => item.completed).length;
   const progressByLesson = new Map(lessonProgressList.map((item) => [item.lessonId, item.progressRate]));
-  const sum = defaultCourse.modules.reduce((acc, module) => acc + (progressByLesson.get(module.id) ?? 0), 0);
+  const sum = courseModules.reduce((acc, module) => acc + (progressByLesson.get(module.id) ?? 0), 0);
   const overallProgressRate = totalLessons > 0 ? Math.floor(sum / totalLessons) : 0;
   const latest = lessonProgressList
     .slice()
@@ -195,14 +196,14 @@ export async function updateCourseProgress(userId: string, courseId: string, opt
     const snapshot = await getDocs(collection(db, "users", userId, "courseProgress", courseId, "lessons"));
     snapshot.docs.forEach((item) => lessonProgressList.push(item.data() as LessonProgress));
   } catch {
-    for (const module of defaultCourse.modules) {
+    for (const module of getCourseModules(courseId)) {
       const local = getLocalLessonProgress(userId, courseId, module.id);
       if (local) lessonProgressList.push(local);
     }
   }
 
   const progress = calculateCourseProgress(userId, courseId, lessonProgressList, {
-    totalLessons: defaultCourse.modules.length,
+    totalLessons: getCourseModules(courseId).length,
     lastLessonId: options?.lastLessonId,
     lastLessonTime: options?.lastLessonTime,
   });

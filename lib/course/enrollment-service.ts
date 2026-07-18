@@ -36,6 +36,7 @@ export type EnrollmentRecord = {
   userId: string;
   uid?: string;
   courseId: string;
+  canonicalCourseId?: string;
   courseTitle: string;
   productId?: string;
   productTitle?: string;
@@ -86,13 +87,13 @@ export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
   sexual: "sexual-offense-basic",
   "sexual-offense-basic": "sexual-offense-basic",
   "sexual-offense-advanced": "sexual-offense-advanced",
-  "drug-rehab-prevention": "drug-addiction-relapse-prevention",
+  "drug-rehab-prevention": "drug-addiction-basic",
   drug: "drug-basic",
   "drug-basic": "drug-basic",
   "drug-advanced": "drug-advanced",
   "drug-addiction-relapse-prevention": "drug-addiction-relapse-prevention",
-  "drug-addiction-basic": "drug-addiction-relapse-prevention",
-  "drug-addiction-premium": "drug-addiction-relapse-prevention",
+  "drug-addiction-basic": "drug-addiction-basic",
+  "drug-addiction-premium": "drug-addiction-premium",
 };
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {
@@ -220,9 +221,12 @@ export async function getUserEnrollments(userId: string) {
 
   const addEnrollment = (row: EnrollmentRecord | null | undefined) => {
     if (!row?.courseId) return;
-    const existing = byCourse.get(row.courseId);
+    const key = row.productId === "drug-addiction-basic" || row.productId === "drug-addiction-premium"
+      ? row.courseId + ":" + row.productId
+      : row.courseId;
+    const existing = byCourse.get(key);
     if (!existing || isEnrollmentActive(row) || !isEnrollmentActive(existing)) {
-      byCourse.set(row.courseId, row);
+      byCourse.set(key, row);
     }
   };
 

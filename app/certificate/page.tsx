@@ -231,6 +231,13 @@ function getCertificateHref(courseId: string, documentType = "completion", mode?
   return "/certificate?" + params.toString();
 }
 
+function getEnrollmentDocumentCourseId(enrollment: EnrollmentRecord) {
+  if (enrollment.productId === "drug-addiction-basic" || enrollment.productId === "drug-addiction-premium") return enrollment.productId;
+  if (getCourseDefinition(enrollment.courseId)) return enrollment.courseId;
+  if (enrollment.canonicalCourseId === "drug-addiction-relapse-prevention" && (enrollment.productId === "drug-addiction-basic" || enrollment.productId === "drug-addiction-premium")) return enrollment.productId;
+  return enrollment.courseId;
+}
+
 function buildAdminCertificatePreviewEnrollments(): EnrollmentRecord[] {
   const now = new Date();
   const expiresAt = new Date(now);
@@ -275,9 +282,10 @@ function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
 
   enrollments.forEach((enrollment) => {
     if (!enrollment.courseId) return;
-    const course = getCourseDefinition(enrollment.courseId);
+    const documentCourseId = getEnrollmentDocumentCourseId(enrollment);
+    const course = getCourseDefinition(documentCourseId);
 
-    if (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID) {
+    if (documentCourseId === DUI_CBT_ADVANCED_COURSE_ID) {
       addDocument(getCourseCertificateTitle(defaultCourse.id) + " 수료증", "심화과정에 포함된 기본 재범방지교육 수료증", defaultCourse.id);
       addDocument("인지행동기반 재발방지교육 이수증", "심화과정 이수증", DUI_CBT_ADVANCED_COURSE_ID, "cbt-completion");
       addDocument("재범방지 교육 이수 상세 내역서", "음주운전 심화과정 교육이수 상세내역", DUI_CBT_ADVANCED_COURSE_ID, "cbt-detail");
@@ -287,15 +295,15 @@ function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
     if (course?.documents?.length) {
       course.documents.forEach((document) => {
         if (document.type === "cbt-completion" || document.type === "cbt-detail") {
-          addDocument(document.title, course.title, document.courseId || enrollment.courseId, document.type);
+          addDocument(document.title, course.title, document.courseId || documentCourseId, document.type);
         } else {
-          addDocument(document.title, course.title, document.courseId || enrollment.courseId);
+          addDocument(document.title, course.title, document.courseId || documentCourseId);
         }
       });
       return;
     }
 
-    addDocument(getCourseCertificateTitle(enrollment.courseId) + " 수료증", enrollment.courseTitle || course?.title || "결제 수강권", enrollment.courseId);
+    addDocument(getCourseCertificateTitle(documentCourseId) + " 수료증", enrollment.courseTitle || course?.title || "결제 수강권", documentCourseId);
   });
 
   return Array.from(documents.values());
@@ -303,10 +311,11 @@ function getCertificateDocumentLinks(enrollments: EnrollmentRecord[]) {
 
 function hasCertificateDocumentAccess(enrollments: EnrollmentRecord[], courseId: string) {
   return enrollments.some((enrollment) => {
-    if (enrollment.courseId === courseId) return true;
-    const course = getCourseDefinition(enrollment.courseId);
+    const documentCourseId = getEnrollmentDocumentCourseId(enrollment);
+    if (documentCourseId === courseId || enrollment.courseId === courseId || enrollment.canonicalCourseId === courseId) return true;
+    const course = getCourseDefinition(documentCourseId);
     if (courseId === DUI_CBT_ADVANCED_COURSE_ID && course?.level === "advanced") return true;
-    if (courseId === defaultCourse.id && enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID) return true;
+    if (courseId === defaultCourse.id && documentCourseId === DUI_CBT_ADVANCED_COURSE_ID) return true;
     return false;
   });
 }
@@ -344,6 +353,21 @@ function getDetailDocumentContext(courseId: string) {
         "회복의 네 가지 축: 접근 차단, 대체 행동, 관계 공개, 전문 도움을 통한 생활 구조 변경",
         "STOP 방법과 10분 버티기, 회복 파트너 연락, 산책, 차단 확인 등 충동 지연 행동 학습",
         "돈의 통로 차단, 휴대폰·관계 환경 정리, 피해 회복, 7일 재범방지 실행계획 작성",
+      ],
+    };
+  }
+
+  if (normalized.includes("drug-addiction") || normalized.includes("drug")) {
+    return {
+      courseTitle: "마약중독 재범방지교육 심화과정",
+      body: "위 사람은 본 기관에서 운영하는 「마약중독 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      items: [
+        "마약중독 재범방지교육: 마약류 사용의 위험성, 재사용 유발요인, 사건 이후 생활관리 필요성 점검",
+        "마약범죄 재범방지 3종 서식 작성: 재범방지계획서, 재범방지서약서, 재범방지실천계획서 작성 기준 정리",
+        "인지행동치료 1강: 자동사고, 합리화, 갈망과 고위험 상황을 구분하고 재사용으로 이어지는 사고 흐름 점검",
+        "인지행동치료 2강: 대체 행동, 도움 요청, 접근 차단, 생활 루틴을 포함한 재범방지 실천계획 수립",
+        "재범방지 실행 기준: 관련자 접촉, 구매·보관·사용 가능 상황, 충동 발생 시 즉시 중단 행동을 구체화",
+        "회복 유지 기준: 상담·치료 연계, 가족 또는 지지자 공유, 정기 자기점검을 통한 재사용 위험 관리",
       ],
     };
   }
@@ -585,7 +609,7 @@ function CertificatePageContent() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${idToken}`,
         },
-        body: JSON.stringify({ courseId: requestedCourseId, documentType: requestedDocumentType || undefined }),
+        body: JSON.stringify({ courseId: requestedCourseId, productId: getCourseDefinition(requestedCourseId)?.productId || undefined, documentType: requestedDocumentType || undefined }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) {

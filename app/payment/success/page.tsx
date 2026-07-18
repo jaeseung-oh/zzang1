@@ -19,6 +19,8 @@ type ConfirmResponse = {
   approvedAt?: string;
   expiresAt?: string;
   courseTitle?: string;
+  courseId?: string;
+  productId?: string;
   accessStatus?: string;
   receipt?: {
     url?: string;
@@ -81,6 +83,11 @@ function LegacyPaymentSuccessContent() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ConfirmResponse | null>(null);
+  const resultProductId = result?.productId || searchParams.get("productId") || "";
+  const courseRoomCourseId = resultProductId === "drug-addiction-basic" || resultProductId === "drug-addiction-premium"
+    ? resultProductId
+    : result?.courseId || searchParams.get("courseId") || "";
+  const courseRoomHref = "/course-room/?v=202607181430" + (courseRoomCourseId ? "&courseId=" + encodeURIComponent(courseRoomCourseId) : "");
 
   useEffect(() => {
     const paymentKey = searchParams.get("paymentKey");
@@ -215,7 +222,7 @@ function LegacyPaymentSuccessContent() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3">
-                <Link href="/course-room/?v=202607161010" className={buttonClass("darkPrimary", "md", "rounded-full px-6 focus:ring-offset-[#0d1828]")}>
+                <Link href={courseRoomHref} className={buttonClass("darkPrimary", "md", "rounded-full px-6 focus:ring-offset-[#0d1828]")}>
                   수강실로 이동
                 </Link>
                 {result.receipt?.url ? (
@@ -241,6 +248,11 @@ function PortOnePaymentSuccessContent() {
   const [loading, setLoading] = useState(!code && !message);
   const [error, setError] = useState("");
   const [result, setResult] = useState<ConfirmResponse | null>(null);
+  const resultProductId = result?.productId || searchParams.get("productId") || "";
+  const courseRoomCourseId = resultProductId === "drug-addiction-basic" || resultProductId === "drug-addiction-premium"
+    ? resultProductId
+    : result?.courseId || searchParams.get("courseId") || "";
+  const courseRoomHref = "/course-room/?v=202607181430" + (courseRoomCourseId ? "&courseId=" + encodeURIComponent(courseRoomCourseId) : "");
 
   useEffect(() => {
     if (code || message) {
@@ -379,7 +391,7 @@ function PortOnePaymentSuccessContent() {
           ) : null}
         </div>
         <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Link href="/course-room/?v=202607161010" className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>내 강의실로 이동</Link>
+          <Link href={courseRoomHref} className={buttonClass("primary", "md", "rounded-full px-6 font-bold")}>내 강의실로 이동</Link>
           <Link href="/courses/apply/?category=dui" className={buttonClass("secondary", "md", "rounded-full px-6 font-bold")}>결제 페이지로 이동</Link>
         </div>
       </div>

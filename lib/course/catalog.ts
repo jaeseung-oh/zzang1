@@ -148,11 +148,11 @@ export const duiBasicModules = defaultCourse.modules.slice(0, 3);
 export const duiCbtAdvancedModules = defaultCourse.modules.slice(3, 5);
 
 
-export const CBT_COMPLETION_MODULE: CourseModule = {
-  ...duiCbtAdvancedModules[0],
-  title: "인지행동 개선교육",
+export const CBT_COMPLETION_MODULES: CourseModule[] = duiCbtAdvancedModules.map((module, index) => ({
+  ...module,
+  title: "인지행동치료 " + (index + 1) + "강",
   sourceCourseId: DUI_CBT_ADVANCED_COURSE_ID,
-};
+}));
 
 const preventionStreamUids = {
   violence: process.env.NEXT_PUBLIC_STREAM_UID_VIOLENCE_PREVENTION || "",
@@ -278,11 +278,11 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       planId: seed.advancedProductId === "drug-addiction-premium" ? "premium" as const : "advanced" as const,
       level: "advanced" as const,
       title: seed.title + " 심화과정",
-      durationMinutes: baseModule.minutes + CBT_COMPLETION_MODULE.minutes,
+      durationMinutes: baseModule.minutes + CBT_COMPLETION_MODULES.reduce((total, module) => total + module.minutes, 0),
       priceKrw: 99000,
       priceLabel: formatKrw(99000),
       outputs: [seed.title + " 수료증", ...seed.documentTitles, "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
-      modules: [baseModule, CBT_COMPLETION_MODULE],
+      modules: [baseModule, ...CBT_COMPLETION_MODULES],
       documents: [
         { type: "course-certificate" as const, title: seed.title + " 수료증" },
         { type: "cbt-completion" as const, title: "인지행동기반 재발방지교육 이수증", courseId: advancedProductId },

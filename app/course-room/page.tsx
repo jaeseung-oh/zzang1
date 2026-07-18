@@ -12,7 +12,7 @@ import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
 import { buttonClass } from "@/app/components/ui/button-styles";
-import { getVerifiedUserEnrollments, isEnrollmentActive, resolveCourseId } from "@/lib/course/enrollment-service";
+import { getVerifiedUserEnrollments, isEnrollmentActive, resolveCourseId, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { getPreventionDocumentsApplyHref, getPreventionDocumentsForCourse, hasPreventionDocumentsAccess, preventionDocumentCategoryLabels } from "@/lib/course/prevention-documents";
 import { trackCourseComplete, trackCourseStart } from "@/lib/analytics/ga";
@@ -246,6 +246,32 @@ async function resolveCloudflareStreamUrlWithRetry(uid: string, courseId: string
   throw lastError;
 }
 
+function getEnrollmentRecordMillis(enrollment: EnrollmentRecord | null | undefined) {
+  const value = enrollment?.purchasedAt ?? enrollment?.startsAt ?? enrollment?.createdAt;
+  if (!value) return 0;
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : 0;
+  if (typeof value === "string") {
+    const parsed = new Date(value).getTime();
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
+  if (typeof value === "object" && value !== null && "seconds" in value && typeof (value as { seconds?: unknown }).seconds === "number") {
+    return (value as { seconds: number }).seconds * 1000;
+  }
+  return 0;
+}
+
+function getCourseRoomCourseIdFromEnrollment(enrollment: EnrollmentRecord | null | undefined) {
+  const productId = String(enrollment?.productId || "");
+  if (productId === "drug-addiction-basic" || productId === "drug-addiction-premium") return productId;
+  return enrollment?.courseId || enrollment?.canonicalCourseId || "";
+}
+
+function chooseMostRecentActiveEnrollment(enrollments: EnrollmentRecord[]) {
+  return enrollments
+    .filter(isEnrollmentActive)
+    .sort((a, b) => getEnrollmentRecordMillis(b) - getEnrollmentRecordMillis(a))[0] || null;
+}
+
 function formatVideoLoadError(error: unknown) {
   const message = error instanceof Error ? error.message : "강의 영상을 불러오지 못했습니다.";
   if (isVideoPermissionError(error)) {
@@ -364,7 +390,8 @@ function CourseRoomPageContent() {
   const requestedCourseId = searchParams.get("courseId") || "";
   const hasExplicitCourseId = Boolean(requestedCourseId);
   const canonicalRequestedCourseId = resolveCourseId(requestedCourseId || null);
-  const courseIdError = requestedCourseId && !isKnownCourseId(canonicalRequestedCourseId)
+  const isCanonicalDrugCourseRequest = canonicalRequestedCourseId === "drug-addiction-relapse-prevention";
+  const courseIdError = requestedCourseId && !isKnownCourseId(canonicalRequestedCourseId) && !isCanonicalDrugCourseRequest
     ? "지원하지 않는 교육과정입니다. 관리자에게 수강권의 과정 ID를 확인해 주세요."
     : "";
   const effectiveCourseId = courseIdError ? defaultCourse.id : canonicalRequestedCourseId;
@@ -539,7 +566,30 @@ function CourseRoomPageContent() {
         setAdminPreview(adminBypass);
 
         let enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
-        let enrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === effectiveCourseId);
+        const matchesEffectiveCourse = (item: EnrollmentRecord) => {
+          const acceptedCourseIds = new Set([effectiveCourseId, courseDefinition?.canonicalCourseId].filter(Boolean));
+          return acceptedCourseIds.has(item.courseId) || acceptedCourseIds.has(item.canonicalCourseId || "") || item.productId === effectiveCourseId;
+        };
+
+        if (!hasExplicitCourseId && !adminBypass) {
+          const latestActiveEnrollment = chooseMostRecentActiveEnrollment(enrollments);
+          const targetCourseId = getCourseRoomCourseIdFromEnrollment(latestActiveEnrollment);
+          if (targetCourseId && targetCourseId !== effectiveCourseId) {
+            router.replace("/course-room/?v=202607181430&courseId=" + encodeURIComponent(targetCourseId));
+            return;
+          }
+        }
+
+        if (isCanonicalDrugCourseRequest && !adminBypass) {
+          const drugEnrollment = enrollments.find((item) => (item.courseId === "drug-addiction-relapse-prevention" || item.canonicalCourseId === "drug-addiction-relapse-prevention") && isEnrollmentActive(item));
+          const targetCourseId = getCourseRoomCourseIdFromEnrollment(drugEnrollment);
+          if (targetCourseId && targetCourseId !== effectiveCourseId) {
+            router.replace("/course-room/?v=202607181430&courseId=" + encodeURIComponent(targetCourseId));
+            return;
+          }
+        }
+
+        let enrollment = enrollments.find((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item)) ?? enrollments.find(matchesEffectiveCourse);
         let allowed = adminBypass || isEnrollmentActive(enrollment);
 
         for (let attempt = 0; !allowed && !adminBypass && attempt < 3; attempt += 1) {
@@ -548,19 +598,11 @@ function CourseRoomPageContent() {
           await delayCourseAccessRetry(900 + attempt * 700);
           if (cancelled) return;
           enrollments = await getVerifiedUserEnrollments(user, null);
-          enrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => item.courseId === effectiveCourseId);
+          enrollment = enrollments.find((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item)) ?? enrollments.find(matchesEffectiveCourse);
           allowed = isEnrollmentActive(enrollment);
         }
 
-        if (!hasExplicitCourseId && !adminBypass) {
-          const activeEnrollment = enrollments.find((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item)) ?? enrollments.find((item) => isEnrollmentActive(item));
-          if (activeEnrollment?.courseId && activeEnrollment.courseId !== effectiveCourseId) {
-            router.replace("/course-room/?v=202607161010&courseId=" + encodeURIComponent(activeEnrollment.courseId));
-            return;
-          }
-        }
-
-        const documentFormsAllowed = enrollments.some((item) => item.courseId === effectiveCourseId && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
+        const documentFormsAllowed = enrollments.some((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
         setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
 
         if (!allowed) {

@@ -1662,13 +1662,13 @@ const CBT_COURSE_PRODUCT = {
 
 const NEW_PREVENTION_COURSE_PRODUCTS = {
     'violence-basic': { courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', certificateTitle: '폭력범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '폭력범죄 재범방지교육 기본과정', certificateAvailable: true },
-    'violence-advanced': { courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', certificateTitle: '폭력범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '폭력범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'violence-advanced': { courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', certificateTitle: '폭력범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 3, pricePerLesson: 33000, description: '폭력범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'gambling-basic': { courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', certificateTitle: '도박중독 재발방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '도박중독 재발방지교육 기본과정', certificateAvailable: true },
-    'gambling-advanced': { courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', certificateTitle: '도박중독 재발방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '도박중독 재발방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'gambling-advanced': { courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', certificateTitle: '도박중독 재발방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 3, pricePerLesson: 33000, description: '도박중독 재발방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'sexual-offense-basic': { courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', certificateTitle: '성범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '성범죄 재범방지교육 기본과정', certificateAvailable: true },
-    'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 3, pricePerLesson: 33000, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'drug-basic': { courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', certificateTitle: '마약류중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약류중독 재범방지교육 기본과정', certificateAvailable: true },
-    'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', certificateTitle: '마약류중독 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 2, pricePerLesson: 49500, description: '마약류중독 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
+    'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', certificateTitle: '마약류중독 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 3, pricePerLesson: 33000, description: '마약류중독 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'drug-addiction-relapse-prevention': { courseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육', certificateTitle: '마약중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약중독 재범방지교육', certificateAvailable: true }
 };
 
@@ -1944,15 +1944,15 @@ const APPLICATION_PRODUCTS = {
         totalLessons: CBT_COURSE_PRODUCT.totalLessons
     },
     'violence-basic': { categoryId: 'violence-prevention', productId: 'violence-basic', title: '폭력범죄 재범방지교육 기본과정', amount: 49000, courseId: 'violence-basic', courseTitle: '폭력범죄 재범방지교육 기본과정', totalLessons: 1 },
-    'violence-advanced': { categoryId: 'violence-prevention', productId: 'violence-advanced', title: '폭력범죄 재범방지교육 심화과정', amount: 99000, courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'violence-advanced': { categoryId: 'violence-prevention', productId: 'violence-advanced', title: '폭력범죄 재범방지교육 심화과정', amount: 99000, courseId: 'violence-advanced', courseTitle: '폭력범죄 재범방지교육 심화과정', totalLessons: 3, includesCbtCourse: true },
     'gambling-basic': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-basic', title: '도박중독 재발방지교육 기본과정', amount: 49000, courseId: 'gambling-basic', courseTitle: '도박중독 재발방지교육 기본과정', totalLessons: 1 },
-    'gambling-advanced': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-advanced', title: '도박중독 재발방지교육 심화과정', amount: 99000, courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'gambling-advanced': { categoryId: 'gambling-relapse-prevention', productId: 'gambling-advanced', title: '도박중독 재발방지교육 심화과정', amount: 99000, courseId: 'gambling-advanced', courseTitle: '도박중독 재발방지교육 심화과정', totalLessons: 3, includesCbtCourse: true },
     'sexual-offense-basic': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-basic', title: '성범죄 재범방지교육 기본과정', amount: 49000, courseId: 'sexual-offense-basic', courseTitle: '성범죄 재범방지교육 기본과정', totalLessons: 1 },
-    'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 99000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'sexual-offense-advanced': { categoryId: 'sexual-offense-prevention', productId: 'sexual-offense-advanced', title: '성범죄 재범방지교육 심화과정', amount: 99000, courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', totalLessons: 3, includesCbtCourse: true },
     'drug-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-basic', title: '마약류중독 재범방지교육 기본과정', amount: 49000, courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', totalLessons: 1 },
-    'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true },
+    'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', totalLessons: 3, includesCbtCourse: true },
     'drug-addiction-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-basic', planId: 'basic', title: '마약중독 재범방지교육 기본과정', amount: 49000, courseId: 'drug-addiction-basic', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 기본과정', totalLessons: 1 },
-    'drug-addiction-premium': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-premium', planId: 'premium', title: '마약중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-addiction-premium', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 심화과정', totalLessons: 2, includesCbtCourse: true }
+    'drug-addiction-premium': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-premium', planId: 'premium', title: '마약중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-addiction-premium', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 심화과정', totalLessons: 3, includesCbtCourse: true }
 };
 
 
@@ -2001,8 +2001,9 @@ async function handleCertificateIssue(request, env, corsHeaders) {
     const body = await request.json().catch(() => ({}));
     const courseId = body.courseId || DUI_COURSE_PRODUCT.courseId;
     const requestedDocumentType = String(body.documentType || "").trim();
-    const canonicalCourseId = resolveCanonicalCourseId({ courseId: body.courseId || DUI_COURSE_PRODUCT.courseId }) || courseId;
-    const enrollmentProduct = body.productId ? getApplicationProductForPayment(String(body.productId)) : null;
+    const canonicalCourseId = resolveCanonicalCourseId({ courseId: body.courseId || DUI_COURSE_PRODUCT.courseId, productId: body.productId }) || courseId;
+    const requestedCourseProduct = getApplicationProductForPayment(String(body.courseId || ''));
+    const enrollmentProduct = body.productId ? getApplicationProductForPayment(String(body.productId)) : requestedCourseProduct;
     const product = enrollmentProduct || getCourseProduct(canonicalCourseId);
     if (!product) {
         return json({ message: '지원하지 않는 교육과정입니다.', code: 'INVALID_COURSE' }, 400, corsHeaders);

@@ -107,7 +107,7 @@ export default function CheckoutContent() {
   const selectedCourseTitle = selectedProduct.canonicalCourseId ? selectedProduct.title : selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedPaymentOrderName = selectedProduct.id === "dui-cbt-advanced" ? "인지행동기반 재발방지교육 심화과정" : selectedCourseTitle;
   const selectedIsAdvanced = selectedProduct.id === "dui-cbt-advanced" || selectedProduct.id.endsWith("advanced") || selectedProduct.id.endsWith("premium") || selectedProduct.planId === "premium";
-  const selectedTotalLessons = selectedIsAdvanced ? 2 : selectedCourseDefinition?.modules.length || (selectedProduct.courseId ? 5 : 3);
+  const selectedTotalLessons = selectedCourseDefinition?.modules.length || (selectedIsAdvanced ? 2 : selectedProduct.courseId ? 5 : 3);
   const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : selectedProduct.id === "dui-documents" ? "수료증 · 재발방지계획서 서식 · 음주예방실천계획서 서식 · 음주운전 재발방지 서약서 서식" : "수료증 · 기본 서식");
   const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
   const selectedPaymentProvider = selectedPaymentMethod === "kakaopay" ? "portone-kakaopay-v2" : "portone-kcp-v2";
