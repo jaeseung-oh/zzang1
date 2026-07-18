@@ -681,6 +681,18 @@ function CertificatePageContent() {
     snapshot.style.boxShadow = "none";
     snapshot.style.borderRadius = "0";
     snapshot.style.overflow = "hidden";
+    snapshot.style.backgroundColor = "#ffffff";
+    snapshot.style.color = "#0f172a";
+    snapshot.style.borderColor = "#d9c08a";
+
+    [snapshot, ...Array.from(snapshot.querySelectorAll<HTMLElement>("*"))].forEach((element) => {
+      element.style.color = "#0f172a";
+      element.style.backgroundColor = "transparent";
+      element.style.borderColor = "transparent";
+      element.style.outlineColor = "transparent";
+      element.style.textDecorationColor = "currentColor";
+      element.style.boxShadow = "none";
+    });
 
     const inner = snapshot.querySelector<HTMLElement>(".certificate-inner");
     if (inner) {
@@ -688,6 +700,8 @@ function CertificatePageContent() {
       inner.style.minHeight = "281mm";
       inner.style.padding = isDetailDocument ? "7mm 9mm" : "8mm 10mm";
       inner.style.borderWidth = "2px";
+      inner.style.borderStyle = "solid";
+      inner.style.borderColor = "#d9c08a";
       inner.style.overflow = "hidden";
     }
 
@@ -704,12 +718,14 @@ function CertificatePageContent() {
       title.style.marginTop = isDetailDocument ? "4mm" : "10mm";
       title.style.fontSize = isDetailDocument ? "33px" : "39px";
       title.style.lineHeight = "1.18";
+      title.style.color = "#111827";
     }
 
     const certificateNoElement = snapshot.querySelector<HTMLElement>(".certificate-no");
     if (certificateNoElement) {
       certificateNoElement.style.marginTop = "0";
       certificateNoElement.style.fontSize = "12px";
+      certificateNoElement.style.color = "#475569";
     }
 
     const person = snapshot.querySelector<HTMLElement>(".certificate-person");
@@ -718,6 +734,8 @@ function CertificatePageContent() {
       person.style.padding = "5mm";
       person.style.fontSize = "19px";
       person.style.lineHeight = "1.7";
+      person.style.color = "#0f172a";
+      person.querySelectorAll<HTMLElement>("span:first-child").forEach((label) => { label.style.color = "#5f4514"; });
     }
 
     const body = snapshot.querySelector<HTMLElement>(".certificate-body");
@@ -725,20 +743,33 @@ function CertificatePageContent() {
       body.style.marginTop = "11mm";
       body.style.fontSize = "17.5px";
       body.style.lineHeight = "1.75";
+      body.style.color = "#1f2937";
     }
 
     const table = snapshot.querySelector<HTMLElement>(".certificate-table");
     if (table) {
       table.style.marginTop = "10mm";
       table.style.fontSize = "14px";
+      table.style.borderStyle = "solid";
+      table.style.borderColor = "#d9c08a";
+      table.style.backgroundColor = "#ffffff";
     }
 
     snapshot.querySelectorAll<HTMLElement>(".certificate-table-row").forEach((row) => {
       row.style.gridTemplateColumns = "36mm minmax(0, 1fr)";
+      row.style.borderBottomStyle = "solid";
+      row.style.borderBottomColor = "#eadfcb";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-table-cell").forEach((cell) => {
       cell.style.padding = "2.6mm 3.2mm";
       cell.style.lineHeight = "1.5";
+      cell.style.backgroundColor = "#ffffff";
+      cell.style.color = "#111827";
+      const isLabelCell = cell.parentElement?.firstElementChild === cell;
+      if (isLabelCell) {
+        cell.style.backgroundColor = "#fbf4e4";
+        cell.style.color = "#5f4514";
+      }
     });
 
     const detail = snapshot.querySelector<HTMLElement>(".certificate-detail");
@@ -746,6 +777,7 @@ function CertificatePageContent() {
       detail.style.marginTop = "5mm";
       detail.style.fontSize = "12.2px";
       detail.style.lineHeight = "1.48";
+      detail.style.color = "#0f172a";
     }
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-section").forEach((section) => {
       section.style.marginTop = "3.2mm";
@@ -754,35 +786,61 @@ function CertificatePageContent() {
       heading.style.fontSize = "13.2px";
       heading.style.marginBottom = "1.4mm";
       heading.style.lineHeight = "1.35";
+      heading.style.color = "#5f4514";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-title span").forEach((badge) => {
       badge.style.width = "6mm";
       badge.style.height = "6mm";
       badge.style.fontSize = "10px";
+      badge.style.color = "#ffffff";
+      badge.style.backgroundColor = "#5f4514";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-grid").forEach((grid) => {
       grid.style.gridTemplateColumns = "31mm minmax(0, 1fr)";
+      grid.style.borderBottomStyle = "solid";
+      grid.style.borderBottomColor = "#eadfcb";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-cell").forEach((cell) => {
       cell.style.padding = "1.8mm 2.4mm";
       cell.style.lineHeight = "1.45";
+      cell.style.backgroundColor = "#ffffff";
+      cell.style.color = "#0f172a";
+      const isLabelCell = cell.parentElement?.firstElementChild === cell;
+      if (isLabelCell) {
+        cell.style.backgroundColor = "#fbf4e4";
+        cell.style.color = "#5f4514";
+      }
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-list").forEach((list) => {
       list.style.gap = "0.85mm";
       list.style.padding = "3mm 3.5mm";
+      list.style.borderStyle = "solid";
+      list.style.borderColor = "#d9c08a";
+      list.style.backgroundColor = "#ffffff";
+      list.querySelectorAll<HTMLElement>("li").forEach((item) => { item.style.color = "#0f172a"; });
+      list.querySelectorAll<HTMLElement>("li span:first-child").forEach((bullet) => { bullet.style.color = "#8a6a2d"; });
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-confirm").forEach((confirm) => {
       confirm.style.marginTop = "2.8mm";
       confirm.style.padding = "2.8mm 3.2mm";
+      confirm.style.borderStyle = "solid";
+      confirm.style.borderColor = "#d9c08a";
+      confirm.style.backgroundColor = "#fffaf0";
+      confirm.style.color = "#0f172a";
+      confirm.querySelectorAll<HTMLElement>("span:first-child").forEach((label) => { label.style.color = "#8a6a2d"; });
     });
 
     const sign = snapshot.querySelector<HTMLElement>(".certificate-sign");
-    if (sign) sign.style.paddingTop = isDetailDocument ? "5mm" : "8mm";
+    if (sign) {
+      sign.style.paddingTop = isDetailDocument ? "5mm" : "8mm";
+      sign.querySelectorAll<HTMLElement>("p").forEach((paragraph) => { paragraph.style.color = "#111827"; });
+    }
 
     const issuer = snapshot.querySelector<HTMLElement>(".certificate-issuer");
     if (issuer) {
       issuer.style.marginTop = isDetailDocument ? "4mm" : "6mm";
       issuer.style.fontSize = isDetailDocument ? "25px" : "27px";
+      issuer.style.color = "#111827";
     }
 
     snapshot.querySelectorAll<HTMLElement>(".certificate-seal, .seal-stamp").forEach((seal) => {
