@@ -182,49 +182,6 @@ async function inlineImages(root: HTMLElement) {
   }));
 }
 
-function inlineComputedStyles(source: Element, target: Element) {
-  const computed = window.getComputedStyle(source);
-  const style = Array.from(computed).map((name) => name + ":" + computed.getPropertyValue(name) + ";").join("");
-  target.setAttribute("style", style);
-  Array.from(source.children).forEach((child, index) => {
-    const targetChild = target.children[index];
-    if (targetChild) inlineComputedStyles(child, targetChild);
-  });
-}
-
-async function loadCanvasImage(src: string) {
-  try {
-    const response = await fetch(new URL(src, window.location.href).toString(), { credentials: "same-origin", cache: "no-store" });
-    if (!response.ok) return null;
-    const dataUrl = await blobToDataUrl(await response.blob());
-    return await new Promise<HTMLImageElement | null>((resolve) => {
-      const image = new Image();
-      image.onload = () => resolve(image);
-      image.onerror = () => resolve(null);
-      image.src = dataUrl;
-    });
-  } catch {
-    return null;
-  }
-}
-
-function drawWrappedText(context: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeight: number) {
-  const words = String(text || "").split(/\s+/).filter(Boolean);
-  const lines: string[] = [];
-  let line = "";
-  words.forEach((word) => {
-    const candidate = line ? line + " " + word : word;
-    if (context.measureText(candidate).width <= maxWidth) {
-      line = candidate;
-      return;
-    }
-    if (line) lines.push(line);
-    line = word;
-  });
-  if (line) lines.push(line);
-  lines.forEach((value, index) => context.fillText(value, x, y + index * lineHeight));
-  return y + Math.max(1, lines.length) * lineHeight;
-}
 
 function getCertificateRecordId(userId: string, courseId: string, documentType?: string | null) {
   return documentType && documentType !== "completion" ? userId + "_" + courseId + "_" + documentType : userId + "_" + courseId;
@@ -368,16 +325,16 @@ function getDetailDocumentContext(courseId: string) {
       courseTitle: "마약중독 재범방지교육 심화과정",
       body: "위 사람은 본 기관에서 운영하는 「마약중독 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
-        "마약류 재범방지의 핵심 가치인 책임, 회복, 재활을 중심으로 중독 문제를 인정하고 치료와 변화를 실천하는 태도 형성",
-        "마약류의 범위: 마약, 향정신성의약품, 대마의 구분과 투약·소지·매수·매도·알선·제조·수출입 및 처방약 오남용의 법적 위험 이해",
-        "중독의 발생 과정: 호기심, 주변 권유, 스트레스, 불면, 우울·불안이 합리화와 반복 사용, 갈망, 의존으로 이어지는 구조 학습",
-        "반복 사용에 따른 전전두엽의 판단·충동조절 저하, 보상회로 변화, 스트레스 반응과 약물 관련 기억이 갈망에 미치는 영향 이해",
-        "과다복용, 감염, 신경계·심혈관계 손상, 불면, 우울, 환각·피해망상과 가족관계·직업·경제생활의 장기적 피해 점검",
-        "수면 부족, 스트레스, 사회적 고립, 위험 지인과 장소, 휴대전화 연락, 약물 검색과 금전 사용 등 재사용 위험상황을 차단하는 환경 설계",
-        "STOP 4단계를 활용해 갈망 상황에서 행동을 즉시 멈추고 호흡하며 감정과 생각을 관찰한 뒤 대체행동을 선택하고 안전한 사람에게 도움 요청",
-        "인지행동기반 재범방지교육 1: 약물 사용을 정당화하는 자동사고, 합리화 문장, 갈망 유발 생각을 찾아 사실 중심의 대안사고로 바꾸는 연습",
-        "인지행동기반 재범방지교육 2: 고위험 상황에서 감정·생각·행동의 연결고리를 기록하고 회피, 지연, 도움 요청, 환경 차단 등 재사용 방지 행동계획 수립",
-        "치료·재활 및 재발방지 실천: 의료기관과 전문 지원기관 연계, 위험 연락처·동선 차단, 도움 요청자 지정, 주간 실천목표와 단약 유지계획 수립",
+        "책임, 회복, 재활을 중심으로 중독 문제를 인정하고 치료와 변화를 실천하는 태도 형성",
+        "마약·향정신성의약품·대마의 구분과 투약·소지·매매·알선·처방약 오남용의 법적 위험 이해",
+        "호기심, 권유, 스트레스, 불면, 우울·불안이 반복 사용과 갈망, 의존으로 이어지는 과정 학습",
+        "반복 사용이 판단력, 충동조절, 보상회로, 스트레스 반응과 갈망에 미치는 영향 이해",
+        "과다복용, 감염, 신체·정신건강 손상과 가족·직업·경제생활의 장기 피해 점검",
+        "수면 부족, 스트레스, 위험 지인·장소·연락·검색·금전 사용 등 재사용 위험상황 차단 계획",
+        "STOP 4단계로 갈망 상황에서 멈춤, 호흡, 관찰, 대체행동 선택과 도움 요청 연습",
+        "인지행동교육 1: 사용을 정당화하는 자동사고와 합리화를 찾아 현실적 대안사고로 전환",
+        "인지행동교육 2: 고위험 상황의 감정·생각·행동 연결고리를 기록하고 재사용 방지 행동계획 수립",
+        "치료·재활기관 연계, 위험 연락처·동선 차단, 도움 요청자 지정과 단약 유지계획 수립",
       ],
     };
   }
@@ -705,158 +662,155 @@ function CertificatePageContent() {
   }, [searchParamsKey]);
 
   const renderCertificatePdfImage = async () => {
-    if (!certificate) throw new Error("저장할 수료증 정보가 없습니다.");
-    const width = 1240;
-    const height = 1754;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const context = canvas.getContext("2d");
-    if (!context) throw new Error("PDF 생성을 위한 캔버스를 준비하지 못했습니다.");
+    const paper = certificatePaperRef.current;
+    if (!paper || !certificate) throw new Error("저장할 수료증 정보가 없습니다.");
 
-    const pagePadding = 48;
-    const innerPaddingX = 60;
-    const innerPaddingY = 56;
-    const innerX = pagePadding;
-    const innerY = pagePadding;
-    const innerW = width - pagePadding * 2;
-    const innerH = height - pagePadding * 2;
-    const contentX = innerX + innerPaddingX;
-    const contentW = innerW - innerPaddingX * 2;
+    const { default: html2canvas } = await import("html2canvas");
+    const snapshot = paper.cloneNode(true) as HTMLElement;
+    snapshot.classList.add("certificate-pdf-capture");
+    snapshot.style.position = "fixed";
+    snapshot.style.left = "-10000px";
+    snapshot.style.top = "0";
+    snapshot.style.pointerEvents = "none";
+    snapshot.style.width = "210mm";
+    snapshot.style.maxWidth = "210mm";
+    snapshot.style.height = "297mm";
+    snapshot.style.minHeight = "0";
+    snapshot.style.margin = "0";
+    snapshot.style.padding = "8mm";
+    snapshot.style.boxShadow = "none";
+    snapshot.style.borderRadius = "0";
+    snapshot.style.overflow = "hidden";
 
-    context.fillStyle = "#ffffff";
-    context.fillRect(0, 0, width, height);
-    context.strokeStyle = "#d9c08a";
-    context.lineWidth = 4;
-    context.strokeRect(innerX, innerY, innerW, innerH);
+    const inner = snapshot.querySelector<HTMLElement>(".certificate-inner");
+    if (inner) {
+      inner.style.height = "281mm";
+      inner.style.minHeight = "281mm";
+      inner.style.padding = isDetailDocument ? "7mm 9mm" : "8mm 10mm";
+      inner.style.borderWidth = "2px";
+      inner.style.overflow = "hidden";
+    }
 
-    const watermark = await loadCanvasImage(centerLogoPath);
+    const watermark = snapshot.querySelector<HTMLElement>(".certificate-watermark");
     if (watermark) {
-      context.save();
-      context.globalAlpha = 0.055;
-      context.drawImage(watermark, width / 2 - 330, height / 2 - 330, 660, 660);
-      context.restore();
+      watermark.style.width = "112mm";
+      watermark.style.height = "112mm";
+      watermark.style.opacity = "0.055";
+      watermark.style.display = "block";
     }
 
-    context.textAlign = "left";
-    context.fillStyle = "#475569";
-    context.font = "600 18px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText("발급번호: " + certificateNo, contentX, innerY + 42);
-
-    context.textAlign = "center";
-    context.fillStyle = "#8a6a2d";
-    context.font = "700 20px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    if (documentEnglishTitle) context.fillText(documentEnglishTitle, width / 2, innerY + 118);
-    context.fillStyle = "#111827";
-    context.font = "800 56px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText(documentHeading.replace(/\s+/g, " "), width / 2, innerY + (documentEnglishTitle ? 196 : 138));
-
-    if (isDetailDocument) {
-      let y = innerY + 255;
-      context.textAlign = "left";
-      context.fillStyle = "#5f4514";
-      context.font = "800 23px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("1. 교육 이수자 정보", contentX, y);
-      y += 42;
-      context.fillStyle = "#111827";
-      context.font = "600 20px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("성명: " + (certificate.userName || profileName), contentX + 22, y);
-      y += 34;
-      context.fillText("생년월일: " + formatBirthDate(certificate.birthDate), contentX + 22, y);
-
-      y += 56;
-      context.fillStyle = "#5f4514";
-      context.font = "800 23px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("2. 교육과정 정보", contentX, y);
-      y += 24;
-      const rowH = 42;
-      const labelW = 170;
-      const tableRows = [
-        ["교육과정명", detailContext.courseTitle],
-        ["수료조건", "전체 교육과정 수강 완료"],
-        ["수료일자", detailCompletedAt],
-      ];
-      context.lineWidth = 2;
-      tableRows.forEach(([label, value], index) => {
-        const rowY = y + index * rowH;
-        context.fillStyle = "#fbf4e4";
-        context.fillRect(contentX, rowY, labelW, rowH);
-        context.strokeStyle = "#d9c08a";
-        context.strokeRect(contentX, rowY, contentW, rowH);
-        context.fillStyle = "#5f4514";
-        context.font = "700 18px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-        context.fillText(String(label), contentX + 16, rowY + 27);
-        context.fillStyle = "#111827";
-        context.font = "600 18px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-        context.fillText(String(value), contentX + labelW + 18, rowY + 27);
-      });
-
-      y += rowH * tableRows.length + 55;
-      context.fillStyle = "#5f4514";
-      context.font = "800 23px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("3. 주요 교육내용", contentX, y);
-      y += 32;
-      context.fillStyle = "#111827";
-      context.font = "500 17px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      detailEducationItems.forEach((item) => {
-        y = drawWrappedText(context, "- " + item, contentX + 12, y, contentW - 24, 25) + 4;
-      });
-
-      y += 22;
-      context.fillStyle = "#5f4514";
-      context.font = "800 23px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("4. 교육 이수 확인", contentX, y);
-      y += 32;
-      context.fillStyle = "#111827";
-      context.font = "600 18px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("확인: 온라인 동영상 강의 100% 수료", contentX + 12, y);
-      y += 30;
-      context.fillText("확인: 전체 교육과정 이수 완료", contentX + 12, y);
-    } else {
-      context.textAlign = "left";
-      let y = innerY + 350;
-      context.fillStyle = "#111827";
-      context.font = "700 28px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      context.fillText("성명: " + (certificate.userName || profileName), contentX + 100, y);
-      y += 54;
-      context.fillText("생년월일: " + formatBirthDate(certificate.birthDate), contentX + 100, y);
-      y += 120;
-      context.fillStyle = "#1f2937";
-      context.font = "500 27px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-      drawWrappedText(context, documentBody, contentX + 55, y, contentW - 110, 48);
-
-      const tableX = contentX + 40;
-      const tableY = innerY + 1005;
-      const tableW = contentW - 80;
-      const rowHeight = 68;
-      const labelWidth = 220;
-      context.lineWidth = 2;
-      certificateRows.forEach(([label, value], index) => {
-        const rowY = tableY + index * rowHeight;
-        context.fillStyle = "#fbf4e4";
-        context.fillRect(tableX, rowY, labelWidth, rowHeight);
-        context.strokeStyle = "#d9c08a";
-        context.strokeRect(tableX, rowY, tableW, rowHeight);
-        context.fillStyle = "#5f4514";
-        context.font = "700 22px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-        context.fillText(String(label), tableX + 24, rowY + 43);
-        context.fillStyle = "#111827";
-        context.font = "600 22px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-        context.fillText(String(value), tableX + labelWidth + 24, rowY + 43);
-      });
+    const title = snapshot.querySelector<HTMLElement>(".certificate-title");
+    if (title) {
+      title.style.marginTop = isDetailDocument ? "4mm" : "10mm";
+      title.style.fontSize = isDetailDocument ? "33px" : "39px";
+      title.style.lineHeight = "1.18";
     }
 
-    context.textAlign = "center";
-    context.fillStyle = "#111827";
-    context.font = "600 24px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText(formatKoreanDate(issuedAt), width / 2, innerY + innerH - 205);
-    context.font = "800 42px Arial, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif";
-    context.fillText(issuerName, width / 2 - 52, innerY + innerH - 118);
-    const seal = await loadCanvasImage(sealStampPath);
-    if (seal) context.drawImage(seal, width / 2 + 112, innerY + innerH - 180, 126, 126);
+    const certificateNoElement = snapshot.querySelector<HTMLElement>(".certificate-no");
+    if (certificateNoElement) {
+      certificateNoElement.style.marginTop = "0";
+      certificateNoElement.style.fontSize = "12px";
+    }
 
-    const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.95));
-    return { bytes: new Uint8Array(await blob.arrayBuffer()), width, height };
+    const person = snapshot.querySelector<HTMLElement>(".certificate-person");
+    if (person) {
+      person.style.marginTop = "11mm";
+      person.style.padding = "5mm";
+      person.style.fontSize = "19px";
+      person.style.lineHeight = "1.7";
+    }
+
+    const body = snapshot.querySelector<HTMLElement>(".certificate-body");
+    if (body) {
+      body.style.marginTop = "11mm";
+      body.style.fontSize = "17.5px";
+      body.style.lineHeight = "1.75";
+    }
+
+    const table = snapshot.querySelector<HTMLElement>(".certificate-table");
+    if (table) {
+      table.style.marginTop = "10mm";
+      table.style.fontSize = "14px";
+    }
+
+    snapshot.querySelectorAll<HTMLElement>(".certificate-table-row").forEach((row) => {
+      row.style.gridTemplateColumns = "36mm minmax(0, 1fr)";
+    });
+    snapshot.querySelectorAll<HTMLElement>(".certificate-table-cell").forEach((cell) => {
+      cell.style.padding = "2.6mm 3.2mm";
+      cell.style.lineHeight = "1.5";
+    });
+
+    const detail = snapshot.querySelector<HTMLElement>(".certificate-detail");
+    if (detail) {
+      detail.style.marginTop = "5mm";
+      detail.style.fontSize = "12.2px";
+      detail.style.lineHeight = "1.48";
+    }
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-section").forEach((section) => {
+      section.style.marginTop = "3.2mm";
+    });
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-title").forEach((heading) => {
+      heading.style.fontSize = "13.2px";
+      heading.style.marginBottom = "1.4mm";
+      heading.style.lineHeight = "1.35";
+    });
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-title span").forEach((badge) => {
+      badge.style.width = "6mm";
+      badge.style.height = "6mm";
+      badge.style.fontSize = "10px";
+    });
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-grid").forEach((grid) => {
+      grid.style.gridTemplateColumns = "31mm minmax(0, 1fr)";
+    });
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-cell").forEach((cell) => {
+      cell.style.padding = "1.8mm 2.4mm";
+      cell.style.lineHeight = "1.45";
+    });
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-list").forEach((list) => {
+      list.style.gap = "0.85mm";
+      list.style.padding = "3mm 3.5mm";
+    });
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-confirm").forEach((confirm) => {
+      confirm.style.marginTop = "2.8mm";
+      confirm.style.padding = "2.8mm 3.2mm";
+    });
+
+    const sign = snapshot.querySelector<HTMLElement>(".certificate-sign");
+    if (sign) sign.style.paddingTop = isDetailDocument ? "5mm" : "8mm";
+
+    const issuer = snapshot.querySelector<HTMLElement>(".certificate-issuer");
+    if (issuer) {
+      issuer.style.marginTop = isDetailDocument ? "4mm" : "6mm";
+      issuer.style.fontSize = isDetailDocument ? "25px" : "27px";
+    }
+
+    snapshot.querySelectorAll<HTMLElement>(".certificate-seal, .seal-stamp").forEach((seal) => {
+      seal.style.width = isDetailDocument ? "27mm" : "30mm";
+      seal.style.height = isDetailDocument ? "27mm" : "30mm";
+      seal.style.display = "block";
+    });
+
+    document.body.appendChild(snapshot);
+    try {
+      await inlineImages(snapshot);
+      await document.fonts.ready;
+      const canvas = await html2canvas(snapshot, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: false,
+        allowTaint: false,
+        logging: false,
+        width: snapshot.offsetWidth,
+        height: snapshot.offsetHeight,
+        windowWidth: snapshot.offsetWidth,
+        windowHeight: snapshot.offsetHeight,
+      });
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.95));
+      return { bytes: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height };
+    } finally {
+      snapshot.remove();
+    }
   };
 
   const savePdfFile = async () => {
