@@ -10,7 +10,7 @@ import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { getVerifiedActiveUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
-import { getPreventionDocumentsForCourse, hasPreventionDocumentsAccess } from "@/lib/course/prevention-documents";
+import { hasPreventionDocumentsAccess } from "@/lib/course/prevention-documents";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -175,8 +175,6 @@ const documentLabels: Record<string, string> = {
   completion: "음주운전 재범방지교육 수료증",
   "cbt-completion": "인지행동기반 재발방지교육 이수증",
   "cbt-detail": "재범방지 교육 이수 상세 내역서",
-  "psychology-report": "인지행동 심리검사 결과지",
-  "compliance-pledge": "준법 서약서",
 };
 
 function formatTimestamp(timestamp?: { seconds: number }) {
@@ -334,10 +332,7 @@ export default function DashboardPage() {
       : defaultCourse.id;
   const documentFormEnrollments = displayEnrollments.filter((enrollment) => isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
   const hasDocumentFormsAccess = adminPreview || documentFormEnrollments.length > 0;
-  const primaryDocumentCourseId = documentFormEnrollments[0]?.courseId || defaultCourse.id;
-  const primaryDocuments = getPreventionDocumentsForCourse(primaryDocumentCourseId);
-  const primaryDocumentHref = primaryDocuments[0] ? "/prevention-documents?type=" + encodeURIComponent(primaryDocuments[0].id) + "&courseId=" + encodeURIComponent(primaryDocumentCourseId) : "/prevention-documents";
-  const dashboardDocumentEntries = (documentFormEnrollments.length ? documentFormEnrollments : [{ courseId: defaultCourse.id, courseTitle: defaultCourse.title } as EnrollmentRecord]).flatMap((enrollment) => getPreventionDocumentsForCourse(getEnrollmentCertificateCourseId(enrollment)).map((document) => ({ document, enrollment })));
+  const primaryDocumentHref = "/education-documents";
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(211,173,98,0.14),transparent_22%),linear-gradient(180deg,#09111d_0%,#0d1728_32%,#eef3f8_32%,#f4f7fb_100%)] px-4 py-10 sm:px-6 lg:px-8">
@@ -372,7 +367,7 @@ export default function DashboardPage() {
               </Link>
               <Link href={primaryDocumentHref} className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-base font-black text-[#ffdd00]">02</span>
-                <span className="min-w-0"><span className="block text-xl font-black leading-tight">서류 인쇄하기</span><span className="mt-1 block text-sm font-bold text-slate-800">재발방지 작성자료 열기</span></span>
+                <span className="min-w-0"><span className="block text-xl font-black leading-tight">내 교육서류</span><span className="mt-1 block text-sm font-bold text-slate-800">PDF 저장과 인쇄</span></span>
               </Link>
             </div>
           </div>
@@ -432,11 +427,11 @@ export default function DashboardPage() {
                                   {document.title}
                                 </Link>
                               ))}
-                              {active && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle) ? getPreventionDocumentsForCourse(getEnrollmentCertificateCourseId(enrollment)).map((document) => (
-                                <Link key={document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-950">
-                                  {document.title}
+                              {active && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle) ? (
+                                <Link href="/education-documents" className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-950">
+                                  내 교육서류
                                 </Link>
-                              )) : null}
+                              ) : null}
                             </div>
                           </div>
                         );
@@ -569,16 +564,12 @@ export default function DashboardPage() {
 
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
               <div className="mb-6 rounded-2xl border-4 border-[#facc15] bg-white p-5 shadow-[0_22px_54px_rgba(250,204,21,0.26)]">
-                <p className="text-xl font-black text-slate-950">서류 인쇄하기</p>
-                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 작성자료를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요." : "수강권을 선택하면 과정별 작성자료 3종을 이용할 수 있습니다."}</p>
-                <div className="mt-4 grid gap-3">
-                  {dashboardDocumentEntries.map(({ document, enrollment }) => (
-                    <Link key={(enrollment.courseId || defaultCourse.id) + document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
-                      <span><span className="block text-xs font-bold text-slate-700">{enrollment.courseTitle || defaultCourse.title}</span>{document.title}</span>
-                      <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">작성자료 · 인쇄</span>
-                    </Link>
-                  ))}
-                </div>
+                <p className="text-xl font-black text-slate-950">내 교육서류</p>
+                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "수강한 과정에 포함된 수료증과 작성자료를 한 화면에서 확인하고 PDF로 저장하거나 인쇄할 수 있습니다." : "수강권을 선택하면 과정별 교육서류를 이용할 수 있습니다."}</p>
+                <Link href="/education-documents" className="mt-4 flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
+                  <span>내 교육서류 열기</span>
+                  <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">PDF 저장 · 인쇄</span>
+                </Link>
               </div>
               <p className="text-sm font-semibold text-[#f0cb85]">수료증</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">수강증/수료증 확인 및 온라인 인쇄</h2>
