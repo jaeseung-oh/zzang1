@@ -23,7 +23,7 @@ const courseLinks = [
 
 const mobileMenuItems = [
   { href: "/courses", label: "교육과정" },
-  { href: "/education-documents", label: "내 교육서류" },
+  { href: "/prevention-documents", label: "제공자료" },
   { href: "/#process", label: "이용방법" },
   { href: "/about#support", label: "고객지원" },
   { href: "/dashboard", label: "로그인 또는 내 강의실" },
