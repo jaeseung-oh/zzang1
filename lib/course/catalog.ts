@@ -172,8 +172,8 @@ const digitalCrimeAdvancedModules: CourseModule[] = [
     highlights: ["분노·질투·수치심·외로움 등 위험감정 파악", "온라인 행동 직전의 자동적 생각과 책임 회피 사고 점검", "충동이 생겼을 때 사용할 멈춤 행동 설계"],
     actionChecklist: ["내 위험감정 3가지 적기", "자주 떠오르는 정당화 문장 바꾸기", "30분 멈춤과 도움 요청 순서 정하기"],
     sourceCourseId: "digital-crime-advanced",
-    cloudflareStreamUid: preventionStreamUids.digitalCrime,
-    sourceFileName: "digital-crime-prevention.mp4",
+    cloudflareStreamUid: "7c452891a700328cdb8f56cb39260970",
+    sourceFileName: "cbt-relapse-prevention-lesson-1.mp4",
   },
   {
     id: "digital-crime-cbt-lesson-2",
@@ -183,8 +183,8 @@ const digitalCrimeAdvancedModules: CourseModule[] = [
     highlights: ["위험 계정·사이트·채팅방 관리", "피해자 접촉과 2차 피해 방지 원칙", "30일 실천계획과 도움 요청 체계 구성"],
     actionChecklist: ["위험한 온라인 환경 목록 작성", "접촉 금지 행동 기준 정리", "4주 실천계획 점검표 만들기"],
     sourceCourseId: "digital-crime-advanced",
-    cloudflareStreamUid: preventionStreamUids.digitalCrime,
-    sourceFileName: "digital-crime-prevention.mp4",
+    cloudflareStreamUid: "afa89d104a50e779ee12112f1ec59655",
+    sourceFileName: "cbt-relapse-prevention-lesson-2.mp4",
   },
 ];
 
@@ -339,7 +339,7 @@ export function getCourseDefinition(courseId?: string | null) {
 }
 
 export function getCourseModules(courseId?: string | null) {
-  if (courseId === DUI_CBT_ADVANCED_COURSE_ID) return duiCbtAdvancedModules;
+  if (courseId === DUI_CBT_ADVANCED_COURSE_ID) return defaultCourse.modules;
   return getCourseDefinition(courseId)?.modules || duiBasicModules;
 }
 

@@ -1655,8 +1655,8 @@ const CBT_COURSE_PRODUCT = {
     price: 99000,
     currency: 'KRW',
     durationDays: 90,
-    totalLessons: 2,
-    pricePerLesson: 49500,
+    totalLessons: 5,
+    pricePerLesson: 19800,
     description: '인지행동기반 재발방지 교육 심화과정',
     certificateAvailable: true
 };
