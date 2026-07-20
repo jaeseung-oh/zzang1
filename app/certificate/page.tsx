@@ -663,8 +663,11 @@ function CertificatePageContent() {
     : isCbtCertificate
       ? "위 사람은 본기관의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다.\n본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
-        ? `위 사람은 본 기관의 「${effectiveCourseTitle}」을 성실히 이수하였습니다.
-이에 본 증서를 수여합니다.`
+        ? `위 사람은 본 기관에서 실시한 「${effectiveCourseTitle}」의 전 교육과정을 성실히 이수하였습니다.
+
+본 교육과정은 해당 행동의 위험성과 피해 영향을 이해하고, 재범 위험요인을 점검하며, 책임 인식과 행동 변화를 바탕으로 구체적인 재범방지 실천계획을 수립하는 것을 목적으로 구성되었습니다.
+
+이에 위 교육과정을 성실히 이수하였음을 확인하며 본 수료증을 발급합니다.`
         : `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
   const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : isCbtCertificate ? "인지행동기반 재발방지교육" : effectiveCourseTitle;
