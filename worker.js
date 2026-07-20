@@ -1671,7 +1671,7 @@ const NEW_PREVENTION_COURSE_PRODUCTS = {
     'drug-basic': { courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', certificateTitle: '마약류중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약류중독 재범방지교육 기본과정', certificateAvailable: true },
     'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', certificateTitle: '마약류중독 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 3, pricePerLesson: 33000, description: '마약류중독 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'drug-addiction-relapse-prevention': { courseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육', certificateTitle: '마약중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약중독 재범방지교육', certificateAvailable: true },
-    'digital-crime-basic': { courseId: 'digital-crime-basic', courseTitle: '디지털범죄 재범방지교육 기본과정', certificateTitle: '디지털범죄 재범방지교육 기본과정', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '디지털범죄 재범방지교육 기본과정', certificateAvailable: true },
+    'digital-crime-basic': { courseId: 'digital-crime-basic', courseTitle: '디지털범죄 재범방지교육 기본과정', certificateTitle: '디지털범죄 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '디지털범죄 재범방지교육 기본과정', certificateAvailable: true },
     'digital-crime-advanced': { courseId: 'digital-crime-advanced', courseTitle: '디지털범죄 재범방지교육 심화과정', certificateTitle: '디지털범죄 재범방지교육 심화과정', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 99000, description: '디지털범죄 재범방지교육 심화과정', certificateAvailable: true }
 };
 

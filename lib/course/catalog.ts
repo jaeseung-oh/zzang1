@@ -297,7 +297,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       planId: "basic" as const,
       level: "basic" as const,
       title: seed.title + " 기본과정",
-      certificateTitle: seed.title + " 기본과정",
+      certificateTitle: seed.categoryId === "digital-crime" ? seed.title : seed.title + " 기본과정",
       durationMinutes: baseModule.minutes,
       priceKrw: 49000,
       priceLabel: formatKrw(49000),

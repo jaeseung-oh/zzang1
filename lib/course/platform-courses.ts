@@ -278,7 +278,7 @@ export const platformCourseCategories: CourseCategory[] = [
     advancedProductId: "digital-crime-advanced",
     certificateTitle: "디지털범죄 재범방지교육 수료증",
     availableDocuments: [
-      "디지털범죄 재범방지교육 기본과정 수료증",
+      "디지털범죄 재범방지교육 수료증",
       "디지털범죄 재범방지교육 심화과정 수료증",
       "디지털범죄 재발방지계획서",
       "디지털범죄 재범방지 실천계획서",

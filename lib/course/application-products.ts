@@ -193,7 +193,7 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     price: APPLICATION_PRICES.DIGITAL_CRIME_BASIC,
     badge: "가장 부담 없이 시작",
     description: "디지털 공간에서의 행동이 피해자와 현실에 미치는 영향을 이해하고, 자신의 위험요인과 온라인 사용 습관을 점검하여 구체적인 재범방지 계획을 수립하는 과정입니다.",
-    includes: ["디지털범죄 재범방지교육 온라인 강의", "진도율 확인", "디지털범죄 재범방지교육 기본과정 수료증 PDF 발급", "디지털범죄 재발방지계획서", "디지털범죄 재범방지 실천계획서", "디지털범죄 재범방지 실천서약서", "반성문 작성자료", "모바일 및 PC 수강", "결제 후 즉시 수강 가능"],
+    includes: ["디지털범죄 재범방지교육 온라인 강의", "진도율 확인", "디지털범죄 재범방지교육 수료증 PDF 발급", "디지털범죄 재발방지계획서", "디지털범죄 재범방지 실천계획서", "디지털범죄 재범방지 실천서약서", "반성문 작성자료", "모바일 및 PC 수강", "결제 후 즉시 수강 가능"],
   }],
   ["digital-crime-advanced", {
     id: "digital-crime-advanced",
