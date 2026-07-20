@@ -102,7 +102,7 @@ export default function CheckoutContent() {
   const selectedProduct = getApplicationProduct(selectedCategoryId, selectedProductId) || defaultCheckoutProduct;
   const selectedCourseId = selectedProduct.courseId || duiPreventionCourseProduct.courseId;
   const selectedEntitlementCourseId = selectedProduct.canonicalCourseId || selectedCourseId;
-  const allowPaymentWhenPrecheckUnavailable = selectedProduct.canonicalCourseId === "drug-addiction-relapse-prevention";
+  const allowPaymentWhenPrecheckUnavailable = selectedProduct.canonicalCourseId === "drug-addiction-relapse-prevention" || selectedProduct.id.startsWith("digital-crime-");
   const selectedCourseDefinition = getCourseDefinition(selectedEntitlementCourseId) || getCourseDefinition(selectedCourseId);
   const selectedCourseTitle = selectedProduct.canonicalCourseId ? selectedProduct.title : selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedPaymentOrderName = selectedProduct.id === "dui-cbt-advanced" ? "인지행동기반 재발방지교육 심화과정" : selectedCourseTitle;

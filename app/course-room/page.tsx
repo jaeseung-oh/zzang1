@@ -1990,17 +1990,17 @@ function CourseRoomPageContent() {
                 <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-amber-300 bg-amber-50 p-4 shadow-[0_18px_44px_rgba(245,158,11,0.18)]">
                   <p className="text-sm font-black text-amber-950">인지행동기반 재발방지교육 이수 서류</p>
                   <p className="text-sm leading-6 text-amber-900">심화과정 수강권은 과정 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 출력할 수 있습니다.</p>
-                  <Link href={"/certificate?courseId=" + encodeURIComponent(isCbtAdvancedCourse ? "dui-prevention-basic" : effectiveCourseId) + "&documentType=completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
-                    <span>{isCbtAdvancedCourse ? "음주운전 재범방지교육 수료증" : (courseDefinition?.certificateTitle || courseTitle) + " 수료증"}</span>
-                    <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(isCbtAdvancedCourse ? "dui-prevention-basic" : effectiveCourseId) + "&documentType=completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-slate-950 bg-[#facc15] px-4 py-4 text-sm font-black !text-slate-950 shadow-[0_16px_34px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-[#fde047] hover:!text-slate-950 hover:shadow-[0_20px_42px_rgba(15,23,42,0.28)]">
+                    <span className="min-w-0 break-keep leading-6">{isCbtAdvancedCourse ? "음주운전 재범방지교육 수료증" : (courseDefinition?.certificateTitle || courseTitle) + " 수료증"}</span>
+                    <span className="shrink-0 rounded-full border-2 border-slate-950 bg-white px-3 py-1.5 text-xs font-black !text-slate-950 shadow-sm">인쇄 · PDF 저장</span>
                   </Link>
-                  <Link href={"/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-[#10213f] px-4 py-4 text-sm font-black !text-white shadow-[0_12px_28px_rgba(16,33,63,0.24)] transition hover:-translate-y-0.5 hover:bg-[#1d3d6f] hover:!text-white hover:shadow-lg">
-                    <span>인지행동기반 재발방지교육 이수증</span>
-                    <span className="shrink-0 rounded-full border border-white/30 bg-white/10 px-3 py-1.5 text-xs font-black !text-white">인쇄 · PDF 저장</span>
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-slate-950 bg-[#facc15] px-4 py-4 text-sm font-black !text-slate-950 shadow-[0_16px_34px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-[#fde047] hover:!text-slate-950 hover:shadow-[0_20px_42px_rgba(15,23,42,0.28)]">
+                    <span className="min-w-0 break-keep leading-6">인지행동기반 재발방지교육 이수증</span>
+                    <span className="shrink-0 rounded-full border-2 border-slate-950 bg-white px-3 py-1.5 text-xs font-black !text-slate-950 shadow-sm">인쇄 · PDF 저장</span>
                   </Link>
-                  <Link href={"/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-detail"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-[#10213f] bg-white px-4 py-4 text-sm font-black text-[#10213f] shadow-[0_12px_28px_rgba(16,33,63,0.14)] transition hover:-translate-y-0.5 hover:bg-slate-50 hover:text-[#10213f] hover:shadow-lg">
-                    <span>교육이수 상세내역서</span>
-                    <span className="shrink-0 rounded-full border border-[#10213f]/20 bg-[#10213f]/5 px-3 py-1.5 text-xs font-black text-[#10213f]">인쇄 · PDF 저장</span>
+                  <Link href={"/certificate?courseId=" + encodeURIComponent(effectiveCourseId) + "&documentType=cbt-detail"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-slate-950 bg-[#facc15] px-4 py-4 text-sm font-black !text-slate-950 shadow-[0_16px_34px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-[#fde047] hover:!text-slate-950 hover:shadow-[0_20px_42px_rgba(15,23,42,0.28)]">
+                    <span className="min-w-0 break-keep leading-6">교육이수 상세내역서</span>
+                    <span className="shrink-0 rounded-full border-2 border-slate-950 bg-white px-3 py-1.5 text-xs font-black !text-slate-950 shadow-sm">인쇄 · PDF 저장</span>
                   </Link>
                 </div>
               ) : null}
