@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
   openGraph: {
     title: "리셋 재범방지교육센터",
-    description: "음주운전, 폭력범죄, 성범죄, 도박중독, 마약중독 재범방지 온라인 교육",
+    description: "음주운전, 폭력범죄, 성범죄, 도박중독, 마약중독, 디지털범죄 재범방지 온라인 교육",
     url: "https://resetedu.kr/",
     siteName: "리셋 재범방지교육센터",
     locale: "ko_KR",
@@ -58,6 +58,14 @@ const courseCopy: Record<string, { purpose: string; composition: string }> = {
   },
   "sexual-offense-prevention": {
     purpose: "동의와 경계에 대한 이해를 다시 확인하고, 위험한 생각이나 행동을 멈추기 위한 기준을 배웁니다.",
+    composition: "온라인 교육 및 수료증 등 제공자료 3종",
+  },
+  "drug-rehab-prevention": {
+    purpose: "재사용 위험상황과 갈망을 점검하고, 접근 차단과 도움 요청 계획을 세우는 과정입니다.",
+    composition: "온라인 교육 및 수료증 등 제공자료 3종",
+  },
+  "digital-crime": {
+    purpose: "온라인 행동과 위험한 디지털 사용 습관을 점검하고, 피해자 접촉 방지와 환경관리 계획을 세우는 과정입니다.",
     composition: "온라인 교육 및 수료증 등 제공자료 3종",
   },
 };

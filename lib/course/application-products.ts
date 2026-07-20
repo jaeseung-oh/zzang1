@@ -6,6 +6,8 @@ export const APPLICATION_PRICES = {
   PREVENTION_ADVANCED: 99000,
   DRUG_ADDICTION_BASIC: 49000,
   DRUG_ADDICTION_PREMIUM: 99000,
+  DIGITAL_CRIME_BASIC: 49000,
+  DIGITAL_CRIME_ADVANCED: 99000,
 } as const;
 
 export type ApplicationProduct = {
@@ -183,6 +185,26 @@ const newPreventionApplicationProducts = new Map<string, ApplicationProduct>([
     description: "기본과정의 3종 작성자료에 인지행동 기반 심화교육과 이수 확인 자료를 더한 독립 상품입니다.",
     includes: ["마약중독 재범방지교육 영상", "마약범죄 재범방지계획서", "마약범죄 재범방지서약서", "마약범죄 재범방지실천계획서", "추가 인지행동 기반 심화교육", "마약중독 재범방지교육 심화과정 수료증", "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
   }],
+  ["digital-crime-basic", {
+    id: "digital-crime-basic",
+    courseId: "digital-crime-basic",
+    planId: "basic",
+    title: "디지털범죄 재범방지교육 기본과정",
+    price: APPLICATION_PRICES.DIGITAL_CRIME_BASIC,
+    badge: "가장 부담 없이 시작",
+    description: "디지털 공간에서의 행동이 피해자와 현실에 미치는 영향을 이해하고, 자신의 위험요인과 온라인 사용 습관을 점검하여 구체적인 재범방지 계획을 수립하는 과정입니다.",
+    includes: ["디지털범죄 재범방지교육 온라인 강의", "진도율 확인", "디지털범죄 재범방지교육 기본과정 수료증 PDF 발급", "디지털범죄 재발방지계획서", "디지털범죄 재범방지 실천계획서", "디지털범죄 재범방지 실천서약서", "반성문 작성자료", "모바일 및 PC 수강", "결제 후 즉시 수강 가능"],
+  }],
+  ["digital-crime-advanced", {
+    id: "digital-crime-advanced",
+    courseId: "digital-crime-advanced",
+    planId: "advanced",
+    title: "디지털범죄 재범방지교육 심화과정",
+    price: APPLICATION_PRICES.DIGITAL_CRIME_ADVANCED,
+    badge: "가장 많이 선택하는 과정",
+    description: "기본과정의 교육 내용에 인지행동 기반의 위험상황 분석과 충동조절, 왜곡된 사고 교정, 디지털 환경관리 및 피해자 보호계획을 더한 심화 과정입니다.",
+    includes: ["기본과정의 모든 제공 내용", "디지털범죄 관련 인지행동 기반 심화교육", "왜곡된 사고 및 책임 회피 사고 점검", "감정·충동·온라인 행동 연결 과정 분석", "위험상황 대처전략", "피해자 보호 및 2차 피해 방지 원칙", "디지털 사용환경 관리계획", "디지털범죄 재범방지교육 심화과정 수료증 PDF 발급", "인지행동교육 이수 내용이 반영된 교육 이수 상세내역서", "심화형 재발방지계획서", "심화형 실천계획서", "심화형 실천서약서", "반성문 작성자료"],
+  }],
 ]);
 
 function getNewPreventionProducts(basicId: string, advancedId: string) {
@@ -251,10 +273,20 @@ export const applicationCourseCategories: ApplicationCourseCategory[] = [
     products: getNewPreventionProducts("drug-addiction-basic", "drug-addiction-premium"),
     defaultProductId: "drug-addiction-basic",
   },
+  {
+    id: "digital-crime",
+    title: "디지털범죄 재범방지교육",
+    description: "온라인에서의 행동이 현실의 피해와 책임으로 이어지는 과정을 이해하고, 같은 행동을 반복하지 않기 위한 구체적인 실천계획을 수립합니다.",
+    summary: "기본과정 49,000원, 심화과정 99,000원",
+    icon: "shieldCheck",
+    status: "available",
+    products: getNewPreventionProducts("digital-crime-basic", "digital-crime-advanced"),
+    defaultProductId: "digital-crime-basic",
+  },
 ];
 
 export const applicationNoticeText =
-  "기본과정은 온라인 재범방지교육, 수료증, 과정별 3종 작성자료를 제공합니다. 심화과정은 같은 3종 작성자료에 반성문 작성자료, 인지행동기반 재발방지교육 이수증, 상세 내역서 출력 구성을 함께 제공합니다. 제공 자료는 특정 법적 결과를 보장하지 않습니다.";
+  "기본과정은 온라인 재범방지교육, 수료증, 과정별 3종 작성자료를 제공합니다. 심화과정은 같은 3종 작성자료에 반성문 작성자료, 인지행동기반 재발방지교육 이수증, 상세 내역서 출력 구성을 함께 제공합니다.";
 
 export function formatApplicationKrw(value: number) {
   return value.toLocaleString("ko-KR") + "원";

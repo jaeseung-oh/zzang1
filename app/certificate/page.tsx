@@ -286,6 +286,25 @@ function hasCertificateDocumentAccess(enrollments: EnrollmentRecord[], courseId:
 function getDetailDocumentContext(courseId: string) {
   const normalized = courseId || defaultCourse.id;
 
+  if (normalized.includes("digital-crime") || normalized.includes("digital")) {
+    return {
+      courseTitle: "디지털범죄 재범방지교육 심화과정",
+      body: "위 사람은 본 기관에서 운영하는 「디지털범죄 재범방지교육 심화과정」을 성실히 이수하였기에 교육 내역을 아래와 같이 확인합니다.",
+      items: [
+        "디지털범죄의 개념과 주요 유형",
+        "디지털 행동이 현실의 피해로 이어지는 과정",
+        "피해자의 심리적·사회적 피해와 재유포 위험",
+        "디지털 정보의 복제성과 익명성으로 인한 책임 회피 사고 점검",
+        "감정·생각·행동의 연결 과정과 왜곡된 사고 수정",
+        "개인적·환경적·관계적 재범 위험요인 점검",
+        "피해자 접촉 및 2차 피해 방지 원칙",
+        "위험 계정, 사이트, 채팅방 등 디지털 사용환경 관리",
+        "충동조절과 감정조절 전략",
+        "재범방지계획, 실천계획, 실천서약 작성",
+      ],
+    };
+  }
+
   if (normalized.includes("violence")) {
     return {
       courseTitle: "폭력범죄 재범방지교육 심화과정",

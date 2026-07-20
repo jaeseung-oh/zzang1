@@ -35,7 +35,8 @@ function getConfiguredCourseStreamUids(env) {
         env.STREAM_UID_GAMBLING_RELAPSE_PREVENTION,
         env.STREAM_UID_SEXUAL_OFFENSE_PREVENTION,
         env.STREAM_UID_DRUG_REHAB_PREVENTION,
-        env.STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION
+        env.STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION,
+        env.STREAM_UID_DIGITAL_CRIME_PREVENTION
     ].filter(Boolean));
 }
 
@@ -1669,7 +1670,9 @@ const NEW_PREVENTION_COURSE_PRODUCTS = {
     'sexual-offense-advanced': { courseId: 'sexual-offense-advanced', courseTitle: '성범죄 재범방지교육 심화과정', certificateTitle: '성범죄 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 3, pricePerLesson: 33000, description: '성범죄 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
     'drug-basic': { courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', certificateTitle: '마약류중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약류중독 재범방지교육 기본과정', certificateAvailable: true },
     'drug-advanced': { courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', certificateTitle: '마약류중독 재범방지교육', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 3, pricePerLesson: 33000, description: '마약류중독 재범방지교육 심화과정', certificateAvailable: true, includesCbtCourse: true },
-    'drug-addiction-relapse-prevention': { courseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육', certificateTitle: '마약중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약중독 재범방지교육', certificateAvailable: true }
+    'drug-addiction-relapse-prevention': { courseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육', certificateTitle: '마약중독 재범방지교육', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '마약중독 재범방지교육', certificateAvailable: true },
+    'digital-crime-basic': { courseId: 'digital-crime-basic', courseTitle: '디지털범죄 재범방지교육 기본과정', certificateTitle: '디지털범죄 재범방지교육 기본과정', price: 49000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 49000, description: '디지털범죄 재범방지교육 기본과정', certificateAvailable: true },
+    'digital-crime-advanced': { courseId: 'digital-crime-advanced', courseTitle: '디지털범죄 재범방지교육 심화과정', certificateTitle: '디지털범죄 재범방지교육 심화과정', price: 99000, currency: 'KRW', durationDays: 90, totalLessons: 1, pricePerLesson: 99000, description: '디지털범죄 재범방지교육 심화과정', certificateAvailable: true }
 };
 
 const COURSE_PRODUCTS_BY_ID = {
@@ -1709,7 +1712,13 @@ const COURSE_ID_ALIASES = {
     'drug-addiction-premium': 'drug-addiction-relapse-prevention',
     '마약중독 재범방지교육': 'drug-addiction-relapse-prevention',
     '마약중독 재범방지교육 기본과정': 'drug-addiction-relapse-prevention',
-    '마약중독 재범방지교육 심화과정': 'drug-addiction-relapse-prevention'
+    '마약중독 재범방지교육 심화과정': 'drug-addiction-relapse-prevention',
+    'digital-crime': 'digital-crime-basic',
+    'digital-crime-basic': 'digital-crime-basic',
+    'digital-crime-advanced': 'digital-crime-advanced',
+    '디지털범죄 재범방지교육': 'digital-crime-basic',
+    '디지털범죄 재범방지교육 기본과정': 'digital-crime-basic',
+    '디지털범죄 재범방지교육 심화과정': 'digital-crime-advanced'
 };
 
 function resolveCanonicalCourseId(input = {}) {
@@ -1952,7 +1961,9 @@ const APPLICATION_PRODUCTS = {
     'drug-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-basic', title: '마약류중독 재범방지교육 기본과정', amount: 49000, courseId: 'drug-basic', courseTitle: '마약류중독 재범방지교육 기본과정', totalLessons: 1 },
     'drug-advanced': { categoryId: 'drug-rehab-prevention', productId: 'drug-advanced', title: '마약류중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-advanced', courseTitle: '마약류중독 재범방지교육 심화과정', totalLessons: 3, includesCbtCourse: true },
     'drug-addiction-basic': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-basic', planId: 'basic', title: '마약중독 재범방지교육 기본과정', amount: 49000, courseId: 'drug-addiction-basic', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 기본과정', totalLessons: 1 },
-    'drug-addiction-premium': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-premium', planId: 'premium', title: '마약중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-addiction-premium', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 심화과정', totalLessons: 3, includesCbtCourse: true }
+    'drug-addiction-premium': { categoryId: 'drug-rehab-prevention', productId: 'drug-addiction-premium', planId: 'premium', title: '마약중독 재범방지교육 심화과정', amount: 99000, courseId: 'drug-addiction-premium', canonicalCourseId: 'drug-addiction-relapse-prevention', courseTitle: '마약중독 재범방지교육 심화과정', totalLessons: 3, includesCbtCourse: true },
+    'digital-crime-basic': { categoryId: 'digital-crime', productId: 'digital-crime-basic', planId: 'basic', title: '디지털범죄 재범방지교육 기본과정', amount: 49000, courseId: 'digital-crime-basic', courseTitle: '디지털범죄 재범방지교육 기본과정', totalLessons: 1 },
+    'digital-crime-advanced': { categoryId: 'digital-crime', productId: 'digital-crime-advanced', planId: 'advanced', title: '디지털범죄 재범방지교육 심화과정', amount: 99000, courseId: 'digital-crime-advanced', courseTitle: '디지털범죄 재범방지교육 심화과정', totalLessons: 1 }
 };
 
 
@@ -1972,6 +1983,7 @@ function compactDate(value) {
 
 function getCertificateCourseCode(courseId) {
     const normalized = String(courseId || '');
+    if (normalized.includes('digital-crime')) return normalized.includes('advanced') ? 'DIG-A' : 'DIG-B';
     if (normalized.includes('violence')) return 'VIOLENCE';
     if (normalized.includes('gambling')) return 'GAMBLING';
     if (normalized.includes('sexual-offense')) return 'SEX';

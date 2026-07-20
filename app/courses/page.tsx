@@ -26,6 +26,7 @@ const filters = [
   ["도박중독", "#gambling-relapse-prevention"],
   ["성범죄", "#sexual-offense-prevention"],
   ["마약중독", "#drug-rehab-prevention"],
+  ["디지털범죄", "#digital-crime"],
 ] as const;
 
 function Icon({ className = "h-5 w-5" }: { className?: string }) {

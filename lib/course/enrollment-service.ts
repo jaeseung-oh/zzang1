@@ -94,6 +94,9 @@ export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
   "drug-addiction-relapse-prevention": "drug-addiction-relapse-prevention",
   "drug-addiction-basic": "drug-addiction-basic",
   "drug-addiction-premium": "drug-addiction-premium",
+  "digital-crime": "digital-crime-basic",
+  "digital-crime-basic": "digital-crime-basic",
+  "digital-crime-advanced": "digital-crime-advanced",
 };
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {

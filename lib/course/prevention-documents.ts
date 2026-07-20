@@ -1,6 +1,6 @@
 import type { StoredUserProfile } from "@/lib/firebase/user-profile";
 
-export type PreventionDocumentCategory = "dui" | "violence" | "gambling" | "sexual-offense" | "drug";
+export type PreventionDocumentCategory = "dui" | "violence" | "gambling" | "sexual-offense" | "drug" | "digital-crime";
 export type PreventionDocumentKind = "prevention-plan" | "action-plan" | "pledge";
 export type PreventionDocumentType = string;
 
@@ -29,6 +29,7 @@ export const preventionDocumentCategoryLabels: Record<PreventionDocumentCategory
   gambling: "도박중독 재발방지교육",
   "sexual-offense": "성범죄 재범방지교육",
   drug: "마약중독 재범방지교육",
+  "digital-crime": "디지털범죄 재범방지교육",
 };
 
 export const preventionDocumentApplyInfo: Record<PreventionDocumentCategory, { category: string; productId: string }> = {
@@ -37,6 +38,7 @@ export const preventionDocumentApplyInfo: Record<PreventionDocumentCategory, { c
   gambling: { category: "gambling-relapse-prevention", productId: "gambling-basic" },
   "sexual-offense": { category: "sexual-offense-prevention", productId: "sexual-offense-basic" },
   drug: { category: "drug-rehab-prevention", productId: "drug-addiction-basic" },
+  "digital-crime": { category: "digital-crime", productId: "digital-crime-basic" },
 };
 
 export const preventionDocuments: PreventionDocumentDefinition[] = [
@@ -55,6 +57,10 @@ export const preventionDocuments: PreventionDocumentDefinition[] = [
   { id: "drug-prevention-plan", category: "drug", kind: "prevention-plan", title: "마약범죄 재범방지계획서", description: "마약류 재사용 위험요인, 접근 차단, 치료·상담 연계, 회복 지원체계를 구체적으로 정리하는 작성자료입니다." },
   { id: "drug-pledge", category: "drug", kind: "pledge", title: "마약범죄 재범방지서약서", description: "마약류 구매·보관·사용·관련자 접촉을 중단하고 회복 원칙을 지키겠다는 서약서입니다." },
   { id: "drug-action-plan", category: "drug", kind: "action-plan", title: "마약범죄 재범방지실천계획서", description: "고위험 상황, 갈망, 연락망, 생활 루틴을 관리하기 위한 실행 중심 계획서입니다." },
+  { id: "digital-crime-prevention-plan", category: "digital-crime", kind: "prevention-plan", title: "디지털범죄 재발방지계획서", description: "온라인 행동과 위험상황을 돌아보고 같은 행동을 반복하지 않기 위한 계획서입니다." },
+  { id: "digital-crime-advanced-prevention-plan", category: "digital-crime", kind: "prevention-plan", title: "디지털범죄 심화 재발방지계획서", description: "감정, 자동적 생각, 왜곡된 사고, 행동 연결 과정과 디지털 환경관리까지 정리하는 심화 계획서입니다." },
+  { id: "digital-crime-action-plan", category: "digital-crime", kind: "action-plan", title: "디지털범죄 재범방지 실천계획서", description: "일상에서 바로 실행할 디지털 사용 규칙과 4주 실천계획을 정리하는 자료입니다." },
+  { id: "digital-crime-pledge", category: "digital-crime", kind: "pledge", title: "디지털범죄 재범방지 실천서약서", description: "디지털 공간에서 타인의 권리와 안전을 존중하고 같은 행동을 반복하지 않겠다는 서약서입니다." },
 ];
 
 export function getPreventionDocumentCategoryFromCourseId(courseId?: string | null): PreventionDocumentCategory {
@@ -62,6 +68,7 @@ export function getPreventionDocumentCategoryFromCourseId(courseId?: string | nu
   if (normalized.includes("violence")) return "violence";
   if (normalized.includes("gambling")) return "gambling";
   if (normalized.includes("sexual-offense")) return "sexual-offense";
+  if (normalized.includes("digital-crime") || normalized.includes("digital")) return "digital-crime";
   if (normalized.includes("drug")) return "drug";
   return "dui";
 }
@@ -71,6 +78,7 @@ export function getPreventionDocumentCategoryFromProduct(productId?: string | nu
   if (normalized.includes("violence") || normalized.includes("폭력")) return "violence";
   if (normalized.includes("gambling") || normalized.includes("도박")) return "gambling";
   if (normalized.includes("sexual-offense") || normalized.includes("성범죄")) return "sexual-offense";
+  if (normalized.includes("digital-crime") || normalized.includes("digital") || normalized.includes("디지털범죄")) return "digital-crime";
   if (normalized.includes("drug") || normalized.includes("마약")) return "drug";
   return "dui";
 }
@@ -100,6 +108,7 @@ export function hasPreventionDocumentsAccess(productId?: string | null, amount?:
     || normalizedProductId.startsWith("gambling-")
     || normalizedProductId.startsWith("sexual-offense-")
     || normalizedProductId.startsWith("drug-")
+    || normalizedProductId.startsWith("digital-crime-")
     || Number(amount) >= 49000
     || normalizedTitle.includes("작성자료포함")
     || normalizedTitle.includes("재범방지교육")

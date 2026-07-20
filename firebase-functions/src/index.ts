@@ -25,6 +25,8 @@ const COURSE_PRICE_KRW: Record<string, number> = {
   "drug-addiction-basic": 49000,
   "drug-addiction-premium": 99000,
   "drug-addiction-relapse-prevention": 49000,
+  "digital-crime-basic": 49000,
+  "digital-crime-advanced": 99000,
 };
 const DUI_COURSE_ID = "dui-prevention-basic";
 const DUI_COURSE_TITLE = "음주운전 재범방지교육";
@@ -70,6 +72,12 @@ const COURSE_ID_ALIASES: Record<string, string> = {
   "마약중독 재범방지교육": "drug-addiction-relapse-prevention",
   "마약중독 재범방지교육 기본과정": "drug-addiction-relapse-prevention",
   "마약중독 재범방지교육 심화과정": "drug-addiction-relapse-prevention",
+  "digital-crime": "digital-crime-basic",
+  "digital-crime-basic": "digital-crime-basic",
+  "digital-crime-advanced": "digital-crime-advanced",
+  "디지털범죄 재범방지교육": "digital-crime-basic",
+  "디지털범죄 재범방지교육 기본과정": "digital-crime-basic",
+  "디지털범죄 재범방지교육 심화과정": "digital-crime-advanced",
 };
 
 function resolveCanonicalCourseId(input: Record<string, any> | string | null | undefined) {

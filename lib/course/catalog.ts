@@ -154,12 +154,34 @@ export const CBT_COMPLETION_MODULES: CourseModule[] = duiCbtAdvancedModules.map(
   sourceCourseId: DUI_CBT_ADVANCED_COURSE_ID,
 }));
 
+const digitalCrimeAdvancedModules: CourseModule[] = [
+  {
+    id: "digital-crime-cbt-lesson-1",
+    title: "인지행동치료 1강. 감정·생각·온라인 행동 연결 과정",
+    minutes: 10,
+    summary: "디지털범죄로 이어질 수 있는 감정, 자동적 생각, 정당화, 온라인 행동의 연결 과정을 점검하고 대안 행동을 정리합니다.",
+    highlights: ["분노·질투·수치심·외로움 등 위험감정 파악", "온라인 행동 직전의 자동적 생각과 책임 회피 사고 점검", "충동이 생겼을 때 사용할 멈춤 행동 설계"],
+    actionChecklist: ["내 위험감정 3가지 적기", "자주 떠오르는 정당화 문장 바꾸기", "30분 멈춤과 도움 요청 순서 정하기"],
+    sourceCourseId: "digital-crime-advanced",
+  },
+  {
+    id: "digital-crime-cbt-lesson-2",
+    title: "인지행동치료 2강. 디지털 환경관리와 피해자 보호계획",
+    minutes: 10,
+    summary: "위험 계정, 사이트, 채팅방, 야간 사용, 음주 후 사용 같은 환경 요인을 관리하고 피해자 접촉과 2차 피해를 방지하는 계획을 세웁니다.",
+    highlights: ["위험 계정·사이트·채팅방 관리", "피해자 접촉과 2차 피해 방지 원칙", "30일 실천계획과 도움 요청 체계 구성"],
+    actionChecklist: ["위험한 온라인 환경 목록 작성", "접촉 금지 행동 기준 정리", "4주 실천계획 점검표 만들기"],
+    sourceCourseId: "digital-crime-advanced",
+  },
+];
+
 const preventionStreamUids = {
   violence: process.env.NEXT_PUBLIC_STREAM_UID_VIOLENCE_PREVENTION || "",
   gambling: process.env.NEXT_PUBLIC_STREAM_UID_GAMBLING_RELAPSE_PREVENTION || "",
   sexualOffense: process.env.NEXT_PUBLIC_STREAM_UID_SEXUAL_OFFENSE_PREVENTION || "",
   drug: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
   drugAddiction: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION || process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "9e7a8bca74cc08b48622a4dcf8df070f",
+  digitalCrime: process.env.NEXT_PUBLIC_STREAM_UID_DIGITAL_CRIME_PREVENTION || "6ace367027be3fe294639343739e9af5",
 };
 
 type PreventionCategorySeed = {
@@ -220,6 +242,16 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     sourceFileName: "마약중독.mp4",
     documentTitles: ["마약범죄 재범방지계획서", "마약범죄 재범방지서약서", "마약범죄 재범방지실천계획서"],
   },
+  {
+    categoryId: "digital-crime",
+    productPrefix: "digital-crime",
+    baseLessonId: "digital-crime-main-lecture",
+    title: "디지털범죄 재범방지교육",
+    caseType: "디지털범죄",
+    streamUid: preventionStreamUids.digitalCrime,
+    sourceFileName: "digital-crime-prevention.mp4",
+    documentTitles: ["디지털범죄 재발방지계획서", "디지털범죄 재범방지 실천계획서", "디지털범죄 재범방지 실천서약서"],
+  },
 ];
 
 function buildPreventionModule(seed: PreventionCategorySeed): CourseModule {
@@ -247,6 +279,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
   const baseModule = buildPreventionModule(seed);
   const basicProductId = seed.basicProductId || seed.productPrefix + "-basic";
   const advancedProductId = seed.advancedProductId || seed.productPrefix + "-advanced";
+  const advancedModules = seed.categoryId === "digital-crime" ? [] : CBT_COMPLETION_MODULES;
   const common = {
     categoryId: seed.categoryId,
     canonicalCourseId: seed.canonicalCourseId,
@@ -264,6 +297,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       planId: "basic" as const,
       level: "basic" as const,
       title: seed.title + " 기본과정",
+      certificateTitle: seed.title + " 기본과정",
       durationMinutes: baseModule.minutes,
       priceKrw: 49000,
       priceLabel: formatKrw(49000),
@@ -278,11 +312,12 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       planId: seed.advancedProductId === "drug-addiction-premium" ? "premium" as const : "advanced" as const,
       level: "advanced" as const,
       title: seed.title + " 심화과정",
-      durationMinutes: baseModule.minutes + CBT_COMPLETION_MODULES.reduce((total, module) => total + module.minutes, 0),
+      certificateTitle: seed.title + " 심화과정",
+      durationMinutes: baseModule.minutes + advancedModules.reduce((total, module) => total + module.minutes, 0),
       priceKrw: 99000,
       priceLabel: formatKrw(99000),
       outputs: [seed.title + " 수료증", ...seed.documentTitles, "인지행동기반 재발방지교육 이수증", "재범방지 교육 이수 상세 내역서"],
-      modules: [baseModule, ...CBT_COMPLETION_MODULES],
+      modules: [baseModule, ...advancedModules],
       documents: [
         { type: "course-certificate" as const, title: seed.title + " 수료증" },
         { type: "cbt-completion" as const, title: "인지행동기반 재발방지교육 이수증", courseId: advancedProductId },

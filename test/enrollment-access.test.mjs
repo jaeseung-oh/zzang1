@@ -87,3 +87,22 @@ test('drug premium enrollment blocks basic because premium includes basic conten
   assert.equal(decision.blocked, true);
   assert.equal(decision.reason, 'PREMIUM_ALREADY_INCLUDES_BASIC');
 });
+
+
+test('digital crime product aliases resolve to independent course products', () => {
+  assert.equal(resolveCanonicalCourseId({ categoryId: 'digital-crime' }), 'digital-crime-basic');
+  assert.equal(resolveCanonicalCourseId({ productId: 'digital-crime-basic' }), 'digital-crime-basic');
+  assert.equal(resolveCanonicalCourseId({ productId: 'digital-crime-advanced' }), 'digital-crime-advanced');
+});
+
+test('digital crime basic enrollment does not block advanced purchase', () => {
+  const enrollment = {
+    ...base,
+    courseId: 'digital-crime-basic',
+    productId: 'digital-crime-basic',
+    sourceType: 'PAYMENT',
+    paymentStatus: 'paid'
+  };
+  assert.equal(getActiveDuplicateEnrollmentDecision(enrollment, 'user_1', 'digital-crime-basic', 'digital-crime-basic').blocked, true);
+  assert.equal(getActiveDuplicateEnrollmentDecision(enrollment, 'user_1', 'digital-crime-advanced', 'digital-crime-advanced').blocked, false);
+});
