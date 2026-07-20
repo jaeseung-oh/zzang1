@@ -58,7 +58,6 @@ export const preventionDocuments: PreventionDocumentDefinition[] = [
   { id: "drug-pledge", category: "drug", kind: "pledge", title: "마약범죄 재범방지서약서", description: "마약류 구매·보관·사용·관련자 접촉을 중단하고 회복 원칙을 지키겠다는 서약서입니다." },
   { id: "drug-action-plan", category: "drug", kind: "action-plan", title: "마약범죄 재범방지실천계획서", description: "고위험 상황, 갈망, 연락망, 생활 루틴을 관리하기 위한 실행 중심 계획서입니다." },
   { id: "digital-crime-prevention-plan", category: "digital-crime", kind: "prevention-plan", title: "디지털범죄 재발방지계획서", description: "온라인 행동과 위험상황을 돌아보고 같은 행동을 반복하지 않기 위한 계획서입니다." },
-  { id: "digital-crime-advanced-prevention-plan", category: "digital-crime", kind: "prevention-plan", title: "디지털범죄 심화 재발방지계획서", description: "감정, 자동적 생각, 왜곡된 사고, 행동 연결 과정과 디지털 환경관리까지 정리하는 심화 계획서입니다." },
   { id: "digital-crime-action-plan", category: "digital-crime", kind: "action-plan", title: "디지털범죄 재범방지 실천계획서", description: "일상에서 바로 실행할 디지털 사용 규칙과 4주 실천계획을 정리하는 자료입니다." },
   { id: "digital-crime-pledge", category: "digital-crime", kind: "pledge", title: "디지털범죄 재범방지 실천서약서", description: "디지털 공간에서 타인의 권리와 안전을 존중하고 같은 행동을 반복하지 않겠다는 서약서입니다." },
 ];
