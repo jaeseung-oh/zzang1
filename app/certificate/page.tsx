@@ -663,7 +663,8 @@ function CertificatePageContent() {
     : isCbtCertificate
       ? "위 사람은 본기관의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다.\n본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
-        ? `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다.`
+        ? `위 사람은 본 기관의 「${effectiveCourseTitle}」을 성실히 이수하였습니다.
+이에 본 증서를 수여합니다.`
         : `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
   const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : isCbtCertificate ? "인지행동기반 재발방지교육" : effectiveCourseTitle;
@@ -762,6 +763,7 @@ function CertificatePageContent() {
       body.style.marginTop = "11mm";
       body.style.fontSize = "17.5px";
       body.style.lineHeight = "1.75";
+      body.style.whiteSpace = "pre-line";
       body.style.color = "#1f2937";
     }
 
@@ -964,7 +966,7 @@ function CertificatePageContent() {
           .certificate-inner { min-height: auto !important; padding: 18px 14px !important; }
           .certificate-title { font-size: 30px !important; letter-spacing: 0.12em !important; }
           .certificate-identity-value { font-size: 22px !important; }
-          .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; }
+          .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; white-space: pre-line !important; }
           .certificate-identity-row, .certificate-table-row { grid-template-columns: 96px minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 10px 12px !important; font-size: 13px !important; }
           .certificate-sign { padding-top: 32px !important; }
@@ -1004,7 +1006,7 @@ function CertificatePageContent() {
           .certificate-person { margin-top: 11mm !important; padding: 5mm !important; font-size: 19px !important; line-height: 1.7 !important; }
           .certificate-identity-value { font-size: 19px !important; }
           .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
-          .certificate-body { margin-top: 11mm !important; font-size: 17.5px !important; line-height: 1.75 !important; }
+          .certificate-body { margin-top: 11mm !important; font-size: 17.5px !important; line-height: 1.75 !important; white-space: pre-line !important; }
           .certificate-table { margin-top: 10mm !important; font-size: 14px !important; }
           .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 2.6mm 3.2mm !important; line-height: 1.5 !important; }
@@ -1175,7 +1177,7 @@ function CertificatePageContent() {
                       <p><span className="font-bold text-[#5f4514]">생년월일:</span> <span className="font-semibold">{formatBirthDate(certificate.birthDate)}</span></p>
                     </div>
 
-                    <p className="certificate-body mx-auto mt-12 max-w-[620px] break-keep text-left text-xl leading-[2.1] text-slate-800">
+                    <p className="certificate-body mx-auto mt-12 max-w-[620px] whitespace-pre-line break-keep text-left text-xl leading-[2.1] text-slate-800">
                       {documentBody}
                     </p>
 

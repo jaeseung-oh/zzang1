@@ -154,6 +154,15 @@ export const CBT_COMPLETION_MODULES: CourseModule[] = duiCbtAdvancedModules.map(
   sourceCourseId: DUI_CBT_ADVANCED_COURSE_ID,
 }));
 
+const preventionStreamUids = {
+  violence: process.env.NEXT_PUBLIC_STREAM_UID_VIOLENCE_PREVENTION || "",
+  gambling: process.env.NEXT_PUBLIC_STREAM_UID_GAMBLING_RELAPSE_PREVENTION || "",
+  sexualOffense: process.env.NEXT_PUBLIC_STREAM_UID_SEXUAL_OFFENSE_PREVENTION || "",
+  drug: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
+  drugAddiction: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION || process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "9e7a8bca74cc08b48622a4dcf8df070f",
+  digitalCrime: process.env.NEXT_PUBLIC_STREAM_UID_DIGITAL_CRIME_PREVENTION || "6ace367027be3fe294639343739e9af5",
+};
+
 const digitalCrimeAdvancedModules: CourseModule[] = [
   {
     id: "digital-crime-cbt-lesson-1",
@@ -163,6 +172,8 @@ const digitalCrimeAdvancedModules: CourseModule[] = [
     highlights: ["분노·질투·수치심·외로움 등 위험감정 파악", "온라인 행동 직전의 자동적 생각과 책임 회피 사고 점검", "충동이 생겼을 때 사용할 멈춤 행동 설계"],
     actionChecklist: ["내 위험감정 3가지 적기", "자주 떠오르는 정당화 문장 바꾸기", "30분 멈춤과 도움 요청 순서 정하기"],
     sourceCourseId: "digital-crime-advanced",
+    cloudflareStreamUid: preventionStreamUids.digitalCrime,
+    sourceFileName: "digital-crime-prevention.mp4",
   },
   {
     id: "digital-crime-cbt-lesson-2",
@@ -172,17 +183,10 @@ const digitalCrimeAdvancedModules: CourseModule[] = [
     highlights: ["위험 계정·사이트·채팅방 관리", "피해자 접촉과 2차 피해 방지 원칙", "30일 실천계획과 도움 요청 체계 구성"],
     actionChecklist: ["위험한 온라인 환경 목록 작성", "접촉 금지 행동 기준 정리", "4주 실천계획 점검표 만들기"],
     sourceCourseId: "digital-crime-advanced",
+    cloudflareStreamUid: preventionStreamUids.digitalCrime,
+    sourceFileName: "digital-crime-prevention.mp4",
   },
 ];
-
-const preventionStreamUids = {
-  violence: process.env.NEXT_PUBLIC_STREAM_UID_VIOLENCE_PREVENTION || "",
-  gambling: process.env.NEXT_PUBLIC_STREAM_UID_GAMBLING_RELAPSE_PREVENTION || "",
-  sexualOffense: process.env.NEXT_PUBLIC_STREAM_UID_SEXUAL_OFFENSE_PREVENTION || "",
-  drug: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
-  drugAddiction: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION || process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "9e7a8bca74cc08b48622a4dcf8df070f",
-  digitalCrime: process.env.NEXT_PUBLIC_STREAM_UID_DIGITAL_CRIME_PREVENTION || "6ace367027be3fe294639343739e9af5",
-};
 
 type PreventionCategorySeed = {
   categoryId: string;
@@ -279,7 +283,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
   const baseModule = buildPreventionModule(seed);
   const basicProductId = seed.basicProductId || seed.productPrefix + "-basic";
   const advancedProductId = seed.advancedProductId || seed.productPrefix + "-advanced";
-  const advancedModules = seed.categoryId === "digital-crime" ? [] : CBT_COMPLETION_MODULES;
+  const advancedModules = seed.categoryId === "digital-crime" ? digitalCrimeAdvancedModules : CBT_COMPLETION_MODULES;
   const common = {
     categoryId: seed.categoryId,
     canonicalCourseId: seed.canonicalCourseId,
@@ -297,7 +301,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       planId: "basic" as const,
       level: "basic" as const,
       title: seed.title + " 기본과정",
-      certificateTitle: seed.categoryId === "digital-crime" ? seed.title : seed.title + " 기본과정",
+      certificateTitle: seed.title,
       durationMinutes: baseModule.minutes,
       priceKrw: 49000,
       priceLabel: formatKrw(49000),
