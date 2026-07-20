@@ -661,12 +661,12 @@ function CertificatePageContent() {
   const documentBody = isDetailDocument
     ? detailContext.body
     : isCbtCertificate
-      ? "위 사람은 리셋에듀센터의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
+      ? "위 사람은 본기관의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다.\n본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
         ? `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 교육과정을 성실히 이수하였기에 이 증서를 수여합니다.`
         : `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
-  const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : effectiveCourseTitle;
+  const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : isCbtCertificate ? "인지행동기반 재발방지교육" : effectiveCourseTitle;
   const certificateRows = [
     ["교육과정명", displayedCourseTitle],
     [isCompletionCertificate ? "수료조건" : "수강상태", isCompletionCertificate ? "전체 교육과정 수강 완료" : "교육과정 수강 중"],
