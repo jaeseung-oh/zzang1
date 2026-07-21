@@ -70,6 +70,15 @@ const courseCopy: Record<string, { purpose: string; composition: string }> = {
   },
 };
 
+const courseVisuals: Record<string, { label: string; tone: string }> = {
+  dui: { label: "음주 판단", tone: "#176b68" },
+  "violence-prevention": { label: "분노 조절", tone: "#8a4f1d" },
+  "gambling-relapse-prevention": { label: "충동 관리", tone: "#5b5f1b" },
+  "sexual-offense-prevention": { label: "동의와 경계", tone: "#7a3f68" },
+  "drug-rehab-prevention": { label: "회복 계획", tone: "#2f6f54" },
+  "digital-crime": { label: "디지털 사용", tone: "#305f8f" },
+};
+
 const documentSamples = [
   { title: "교육 수료증", label: "대표 자료", imageSrc: "/images/%EA%B8%B0%EB%B3%B8%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" },
   { title: "심화교육 이수증", imageSrc: "/images/document-samples/advanced-certificate-capture.jpg" },
@@ -97,17 +106,49 @@ function SectionTitle({ title, body, className = "" }: { title: string; body?: s
   );
 }
 
+function CourseIcon({ id }: { id: string }) {
+  if (id === "dui") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17h10" /><path d="M8 17l1.4-5.2A3 3 0 0 1 12.3 9h1.4a3 3 0 0 1 2.9 2.8L18 17" /><path d="M9 13h6" /><path d="M6 19h.01" /><path d="M18 19h.01" /></svg>;
+  }
+  if (id === "violence-prevention") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-2.9 8-7 10-4.1-2-7-5.5-7-10V6l7-3z" /><path d="M9 12h6" /><path d="M12 9v6" /></svg>;
+  }
+  if (id === "gambling-relapse-prevention") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="5" width="14" height="14" rx="2" /><path d="M9 9h.01" /><path d="M15 9h.01" /><path d="M12 12h.01" /><path d="M9 15h.01" /><path d="M15 15h.01" /></svg>;
+  }
+  if (id === "sexual-offense-prevention") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4a5 5 0 0 0-5 5c0 4 5 9 5 9s5-5 5-9a5 5 0 0 0-5-5z" /><path d="M12 8v3" /><path d="M12 14h.01" /></svg>;
+  }
+  if (id === "drug-rehab-prevention") {
+    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 4h4" /><path d="M12 4v16" /><path d="M7 9h10" /><path d="M8 20h8" /><path d="M8 13h8" /></svg>;
+  }
+  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><path d="M14 14h6v6" /><path d="M17 14v6" /></svg>;
+}
+
 function CourseCard({ course, basicPrice, advancedPrice }: { course: CourseCategory; basicPrice: string; advancedPrice: string }) {
   const copy = courseCopy[course.id] || { purpose: course.summary, composition: "온라인 교육과 제공자료" };
+  const visual = courseVisuals[course.id] || { label: "교육 과정", tone: "#173968" };
   return (
-    <article className="border-t border-slate-300 py-6 md:px-2">
-      <h3 className="text-xl font-black leading-snug text-slate-950">{course.title}</h3>
-      <p className="mt-3 text-[15px] leading-7 text-slate-700">{copy.purpose}</p>
-      <dl className="mt-4 grid gap-2 text-sm leading-6 text-slate-700 sm:grid-cols-2">
-        <div><dt className="font-bold text-slate-950">구성</dt><dd>{copy.composition}</dd></div>
-        <div><dt className="font-bold text-slate-950">기본과정</dt><dd>{basicPrice}</dd><dt className="mt-2 font-bold text-slate-950">심화과정</dt><dd>{advancedPrice}</dd></div>
-      </dl>
-      <Link href={"/courses/" + course.slug} className="mt-5 inline-flex min-h-11 items-center border border-slate-400 bg-white px-4 text-sm font-black text-slate-950 transition hover:border-[#173968] hover:text-[#173968]">상세보기</Link>
+    <article className="group flex h-full flex-col border border-slate-300 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#173968] hover:shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:p-6">
+      <div className="flex items-start gap-4">
+        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100" style={{ color: visual.tone }}>
+          <CourseIcon id={course.id} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-black text-slate-500">{visual.label}</p>
+          <h3 className="mt-1 break-keep text-xl font-black leading-snug text-slate-950">{course.title}</h3>
+        </div>
+      </div>
+      <p className="mt-4 min-h-[72px] break-keep text-[15px] leading-7 text-slate-700">{copy.purpose}</p>
+      <div className="mt-5 grid grid-cols-2 gap-2 border-y border-slate-200 py-3 text-sm">
+        <div><p className="text-xs font-black text-slate-500">기본</p><p className="mt-1 font-black text-slate-950">{basicPrice}</p></div>
+        <div><p className="text-xs font-black text-slate-500">심화</p><p className="mt-1 font-black text-[#173968]">{advancedPrice}</p></div>
+      </div>
+      <div className="mt-auto pt-5">
+        <Link href={"/courses/" + course.slug} className="inline-flex min-h-11 w-full items-center justify-between border border-slate-400 bg-white px-4 text-sm font-black text-slate-950 transition group-hover:border-[#173968] group-hover:bg-[#173968] group-hover:!text-white">
+          <span>상세보기</span><span aria-hidden="true">→</span>
+        </Link>
+      </div>
     </article>
   );
 }
@@ -183,14 +224,22 @@ export default function HomePage() {
         <section className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.72fr)] lg:items-center">
             <div>
-              <img src="/images/%EC%84%9C%EB%A5%98%EB%B3%B4%EB%8B%A4%20%EB%A8%BC%EC%A0%80.png" alt="서류보다 먼저 달라져야 하는 것이 있습니다" className="h-auto w-full max-w-3xl object-contain" />
+              <img src="/images/document-first.png" alt="서류보다 먼저 달라져야 하는 것이 있습니다" className="h-auto w-full max-w-3xl object-contain" />
             </div>
             <div className="bg-[#eef2f5] p-5"><div className="border border-slate-200 bg-white p-5"><p className="text-sm font-black text-slate-950">교육 중 작성하게 되는 내용</p><div className="mt-5 space-y-4 text-sm leading-7 text-slate-700">{[["위험상황", "언제, 누구와, 어떤 감정에서 같은 문제가 반복될 수 있는지 적어봅니다."], ["멈추는 방법", "혼자 판단하지 않고 피할 방법, 도움을 요청할 사람, 당장 할 행동을 정합니다."], ["생활 약속", "수료 후에도 확인할 수 있도록 짧고 구체적인 문장으로 남깁니다."]].map(([title, body]) => <div key={title} className="border-l-2 border-[#176b68] pl-4"><p className="font-bold text-slate-950">{title}</p><p>{body}</p></div>)}</div></div></div>
           </div>
         </section>
 
         <section id="courses" className="bg-[#f7f4ee] px-4 py-14 sm:px-6 md:py-20 lg:px-8">
-          <div className="mx-auto max-w-7xl"><div className="grid gap-6 lg:grid-cols-[minmax(0,0.78fr)_minmax(0,1.22fr)]"><SectionTitle title="교육과정 선택" body="과정별 교육내용과 제공자료를 살펴본 뒤 필요한 과정을 선택합니다." /><div className="grid gap-x-8 md:grid-cols-2">{listedCourses.map((course) => <CourseCard key={course.slug} course={course} basicPrice={basicPrice} advancedPrice={advancedPrice} />)}</div></div></div>
+          <div className="mx-auto max-w-7xl">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+              <SectionTitle title="교육과정 선택" body="사건 유형에 맞는 교육을 고르고, 상세보기에서 커리큘럼과 제공자료를 확인하세요." className="max-w-2xl" />
+              <Link href="/courses" className="inline-flex min-h-11 w-full items-center justify-center border border-slate-400 bg-white px-4 text-sm font-black text-slate-950 transition hover:border-[#173968] hover:bg-[#173968] hover:!text-white sm:w-auto">전체 과정 보기</Link>
+            </div>
+            <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {listedCourses.map((course) => <CourseCard key={course.slug} course={course} basicPrice={basicPrice} advancedPrice={advancedPrice} />)}
+            </div>
+          </div>
         </section>
 
         <section id="documents" className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8"><div className="mx-auto max-w-7xl"><SectionTitle title="실제 제공자료 미리보기" body="수료증과 실천자료는 수강 후 마이페이지에서 확인합니다. 개인정보가 들어가는 부분은 실제 발급 시 수강자 정보에 맞춰 표시됩니다." className="max-w-3xl" /><DocumentDesk /></div></section>
