@@ -310,14 +310,14 @@ function getDetailDocumentContext(courseId: string) {
       courseTitle: "폭력범죄 재범방지교육 심화과정",
       body: "위 사람은 본 기관에서 운영하는 「폭력범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
-        "폭력의 범위와 영향: 신체적 폭력, 언어적 위협, 심리적 위협 및 피해자의 불안·공포·관계 손상 이해",
-        "폭력은 감정이 아니라 선택된 행동이라는 관점에서 자극, 해석, 몸 반응, 충동, 행동의 흐름 점검",
-        "위협 해석과 자존심 방어 사고를 구분하고 사실과 해석을 분리해 폭력적 반응을 늦추는 방법 학습",
-        "음주와 충동성이 폭력 위험을 높이는 신호를 확인하고 술자리·언쟁 상황에서 사전 이탈 규칙 수립",
-        "폭력의 악순환: 스트레스, 촉발 사건, 욕설·위협·신체접촉, 후회와 합리화의 반복 구조 분석",
-        "STOP 4단계와 호흡·거리두기·20분 후 대화 원칙을 활용한 폭력 직전 멈춤 기술 학습",
-        "말싸움 중단 대화법과 비폭력적 표현을 통해 갈등을 확대하지 않고 안전하게 종료하는 방법 학습",
-        "재발방지 계획: 위험상황, 초기 경고신호, 대체행동, 생활관리, 피해 회복 태도를 구체적으로 작성",
+        "폭력의 범위와 피해 영향 이해",
+        "자극·해석·충동·행동의 폭력 발생 흐름 점검",
+        "위협 해석과 자존심 방어 사고 구분",
+        "음주·충동성·언쟁 상황의 위험 신호 확인",
+        "스트레스와 합리화가 반복 폭력으로 이어지는 구조 분석",
+        "STOP 4단계와 거리두기 등 폭력 직전 멈춤 기술 학습",
+        "비폭력 대화와 갈등 확대 방지 방법 학습",
+        "위험상황·대체행동·피해 회복 중심 재범방지계획 작성",
       ],
     };
   }
@@ -327,14 +327,14 @@ function getDetailDocumentContext(courseId: string) {
       courseTitle: "도박중독 재발방지교육 심화과정",
       body: "위 사람은 본 기관에서 운영하는 「도박중독 재발방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
-        "도박중독의 반복 구조: 보상 기대, 손실추격, 거짓말, 빚, 가족 갈등과 범죄 위험으로 이어지는 과정 이해",
-        "도박을 의지 부족만으로 보지 않고 보상회로, 손실 만회 심리, 왜곡된 기대가 함께 작동하는 원리 학습",
-        "대표적 생각 오류: 손실추격, 통제착각, 선택기억, 한 방 사고를 현실적인 판단 문장으로 바꾸는 연습",
-        "도박 전·중·후 감정 흐름과 월급날, 혼자 있는 밤, 온라인 광고, 오픈채팅 등 개인별 재발 트리거 점검",
-        "온라인 도박 접근성의 위험을 이해하고 앱·사이트·결제·광고·알림·위험 연락처 차단 계획 수립",
-        "회복의 네 가지 축: 접근 차단, 대체 행동, 관계 공개, 전문 도움을 통한 생활 구조 변경",
-        "STOP 방법과 10분 버티기, 회복 파트너 연락, 산책, 차단 확인 등 충동 지연 행동 학습",
-        "돈의 통로 차단, 휴대폰·관계 환경 정리, 피해 회복, 7일 재범방지 실행계획 작성",
+        "도박중독의 반복 구조와 범죄 위험 이해",
+        "보상회로·손실 만회 심리·왜곡된 기대 점검",
+        "손실추격·통제착각 등 생각 오류 수정 연습",
+        "감정 흐름과 개인별 재발 트리거 점검",
+        "앱·사이트·결제·광고 등 온라인 접근 차단 계획 수립",
+        "접근 차단·대체 행동·관계 공개·전문 도움의 회복 구조 학습",
+        "STOP 방법과 10분 버티기 등 충동 지연 행동 학습",
+        "금전 통로 차단과 7일 재범방지 실행계획 작성",
       ],
     };
   }
@@ -363,14 +363,14 @@ function getDetailDocumentContext(courseId: string) {
       courseTitle: "성범죄 재범방지교육 심화과정",
       body: "위 사람은 본 기관에서 운영하는 「성범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
-        "성범죄 재범방지의 핵심 가치인 존중, 동의, 경계를 중심으로 타인의 성적 자기결정권 이해",
-        "성폭력의 범위: 동의 없는 신체 접촉, 성적 발언, 반복 메시지, 촬영·저장·전송·유포 등 성적 침해 점검",
-        "동의의 조건: 침묵, 소극적 반응, 관계성, 이전 동의, 음주 상태가 명확한 동의를 의미하지 않음을 학습",
-        "피해자의 불안, 수치심, 공포, 수면 문제, 대인관계 어려움, 디지털 재유포 불안 등 장기 피해 이해",
-        "자기중심성, 권리의식, 인지왜곡, 충동성, 분노와 보복심리 등 성범죄 위험 사고 점검",
-        "음주, 단둘이 있는 공간, 위계관계, 반복 연락, 디지털 자료 보관 등 위험상황을 차단하는 환경 설계",
-        "STOP 4단계와 3분 대처법을 활용해 말·행동·연락·접근을 즉시 멈추고 안전한 사람에게 도움 요청",
-        "피해 회복과 2차 피해 방지: 접촉금지·거리두기 준수, 합의 압박 금지, 5문장 재발방지 선언 작성",
+        "존중·동의·경계와 성적 자기결정권 이해",
+        "동의 없는 접촉·발언·메시지·촬영 등 성적 침해 범위 점검",
+        "명확한 동의의 조건과 음주 상태의 위험성 학습",
+        "피해자의 심리적·사회적·디지털 피해 영향 이해",
+        "자기중심성·인지왜곡·충동성 등 위험 사고 점검",
+        "음주·위계관계·반복 연락 등 위험상황 차단 계획 수립",
+        "STOP 4단계와 3분 대처법을 통한 접근 중단 연습",
+        "2차 피해 방지와 재범방지 선언 작성",
       ],
     };
   }
@@ -647,7 +647,7 @@ function CertificatePageContent() {
 
   const certificateNo = certificate?.certificateNo || certificate?.issueNumber || "발급번호 확인 중";
   const issuedAt = certificate?.issuedAt || certificate?.certificateIssuedAt || certificate?.completedAt || null;
-  const issuerName = issuerFallback;
+  const issuerName = certificate?.issuerName || issuerFallback;
   const effectiveCourseId = certificate?.courseId || requestedCourseId;
   const effectiveCourseTitle = effectiveCourseId === DUI_CBT_ADVANCED_COURSE_ID ? "인지행동기반 재발방지교육" : getCourseCertificateTitle(effectiveCourseId);
   const effectiveDocumentType = certificate?.documentType || requestedDocumentType || "completion";
@@ -663,11 +663,11 @@ function CertificatePageContent() {
     : isCbtCertificate
       ? "위 사람은 본기관의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다.\n본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
-        ? `위 사람은 본 기관에서 실시한 「${effectiveCourseTitle}」의 전 교육과정을 성실히 이수하였습니다.
+        ? `위 사람은 리셋재범방지교육센터에서 실시한 「${effectiveCourseTitle}」을 성실히 이수하였습니다.
 
-본 교육과정은 해당 행동의 위험성과 피해 영향을 이해하고, 재범 위험요인을 점검하며, 책임 인식과 행동 변화를 바탕으로 구체적인 재범방지 실천계획을 수립하는 것을 목적으로 구성되었습니다.
+본 과정은 해당 행동의 위험성과 피해 영향을 이해하고, 재범 위험요인을 점검하여 구체적인 재범방지 실천계획을 수립하는 교육으로 구성되었습니다.
 
-이에 위 교육과정을 성실히 이수하였음을 확인하며 본 수료증을 발급합니다.`
+이에 교육과정을 정상적으로 이수하였음을 확인하며 본 수료증을 발급합니다.`
         : `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
   const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : isCbtCertificate ? "인지행동기반 재발방지교육" : effectiveCourseTitle;
@@ -798,18 +798,18 @@ function CertificatePageContent() {
 
     const detail = snapshot.querySelector<HTMLElement>(".certificate-detail");
     if (detail) {
-      detail.style.marginTop = "5mm";
-      detail.style.fontSize = "12.2px";
-      detail.style.lineHeight = "1.48";
+      detail.style.marginTop = "3mm";
+      detail.style.fontSize = "10.8px";
+      detail.style.lineHeight = "1.34";
       detail.style.color = "#0f172a";
     }
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-section").forEach((section) => {
-      section.style.marginTop = "3.2mm";
+      section.style.marginTop = "2mm";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-title").forEach((heading) => {
-      heading.style.fontSize = "13.2px";
-      heading.style.marginBottom = "1.4mm";
-      heading.style.lineHeight = "1.35";
+      heading.style.fontSize = "12px";
+      heading.style.marginBottom = "1mm";
+      heading.style.lineHeight = "1.25";
       heading.style.color = "#5f4514";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-title span").forEach((badge) => {
@@ -825,8 +825,8 @@ function CertificatePageContent() {
       grid.style.borderBottomColor = "#eadfcb";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-cell").forEach((cell) => {
-      cell.style.padding = "1.8mm 2.4mm";
-      cell.style.lineHeight = "1.45";
+      cell.style.padding = "1.2mm 2mm";
+      cell.style.lineHeight = "1.3";
       cell.style.backgroundColor = "#ffffff";
       cell.style.color = "#0f172a";
       const isLabelCell = cell.parentElement?.firstElementChild === cell;
@@ -836,8 +836,8 @@ function CertificatePageContent() {
       }
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-list").forEach((list) => {
-      list.style.gap = "0.85mm";
-      list.style.padding = "3mm 3.5mm";
+      list.style.gap = "0.45mm";
+      list.style.padding = "2mm 3mm";
       list.style.borderStyle = "solid";
       list.style.borderColor = "#d9c08a";
       list.style.backgroundColor = "#ffffff";
@@ -845,8 +845,8 @@ function CertificatePageContent() {
       list.querySelectorAll<HTMLElement>("li span:first-child").forEach((bullet) => { bullet.style.color = "#8a6a2d"; });
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-confirm").forEach((confirm) => {
-      confirm.style.marginTop = "2.8mm";
-      confirm.style.padding = "2.8mm 3.2mm";
+      confirm.style.marginTop = "1.8mm";
+      confirm.style.padding = "1.8mm 2.6mm";
       confirm.style.borderStyle = "solid";
       confirm.style.borderColor = "#d9c08a";
       confirm.style.backgroundColor = "#fffaf0";
@@ -856,20 +856,20 @@ function CertificatePageContent() {
 
     const sign = snapshot.querySelector<HTMLElement>(".certificate-sign");
     if (sign) {
-      sign.style.paddingTop = isDetailDocument ? "5mm" : "8mm";
+      sign.style.paddingTop = isDetailDocument ? "2mm" : "8mm";
       sign.querySelectorAll<HTMLElement>("p").forEach((paragraph) => { paragraph.style.color = "#111827"; });
     }
 
     const issuer = snapshot.querySelector<HTMLElement>(".certificate-issuer");
     if (issuer) {
-      issuer.style.marginTop = isDetailDocument ? "4mm" : "6mm";
-      issuer.style.fontSize = isDetailDocument ? "25px" : "27px";
+      issuer.style.marginTop = isDetailDocument ? "2mm" : "6mm";
+      issuer.style.fontSize = isDetailDocument ? "23px" : "27px";
       issuer.style.color = "#111827";
     }
 
     snapshot.querySelectorAll<HTMLElement>(".certificate-seal, .seal-stamp").forEach((seal) => {
-      seal.style.width = isDetailDocument ? "27mm" : "30mm";
-      seal.style.height = isDetailDocument ? "27mm" : "30mm";
+      seal.style.width = isDetailDocument ? "23mm" : "30mm";
+      seal.style.height = isDetailDocument ? "23mm" : "30mm";
       seal.style.display = "block";
     });
 
@@ -1013,23 +1013,23 @@ function CertificatePageContent() {
           .certificate-table { margin-top: 10mm !important; font-size: 14px !important; }
           .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 2.6mm 3.2mm !important; line-height: 1.5 !important; }
-          .certificate-detail-document .certificate-inner { padding: 7mm 9mm !important; }
-          .certificate-detail-document .certificate-title { margin-top: 4mm !important; font-size: 33px !important; line-height: 1.18 !important; }
-          .certificate-detail { margin-top: 5mm !important; font-size: 12.2px !important; line-height: 1.48 !important; }
+          .certificate-detail-document .certificate-inner { padding: 6mm 8mm !important; }
+          .certificate-detail-document .certificate-title { margin-top: 3mm !important; font-size: 29px !important; line-height: 1.12 !important; }
+          .certificate-detail { margin-top: 3mm !important; font-size: 10.8px !important; line-height: 1.34 !important; }
           .certificate-detail-hero { padding: 3mm 3.5mm !important; margin-top: 5mm !important; }
-          .certificate-detail-section { margin-top: 3.2mm !important; }
-          .certificate-detail-title { font-size: 13.2px !important; margin-bottom: 1.4mm !important; line-height: 1.35 !important; }
+          .certificate-detail-section { margin-top: 2mm !important; }
+          .certificate-detail-title { font-size: 12px !important; margin-bottom: 1mm !important; line-height: 1.25 !important; }
           .certificate-detail-title span { width: 6mm !important; height: 6mm !important; font-size: 10px !important; }
           .certificate-detail-grid { grid-template-columns: 31mm minmax(0, 1fr) !important; }
-          .certificate-detail-cell { padding: 1.8mm 2.4mm !important; line-height: 1.45 !important; }
-          .certificate-detail-list { gap: 0.85mm !important; padding: 3mm 3.5mm !important; }
-          .certificate-detail-confirm { margin-top: 2.8mm !important; padding: 2.8mm 3.2mm !important; }
+          .certificate-detail-cell { padding: 1.2mm 2mm !important; line-height: 1.3 !important; }
+          .certificate-detail-list { gap: 0.45mm !important; padding: 2mm 3mm !important; }
+          .certificate-detail-confirm { margin-top: 1.8mm !important; padding: 1.8mm 2.6mm !important; }
           .certificate-sign { padding-top: 8mm !important; }
-          .certificate-detail-document .certificate-sign { padding-top: 5mm !important; }
+          .certificate-detail-document .certificate-sign { padding-top: 2mm !important; }
           .certificate-issuer { margin-top: 6mm !important; font-size: 27px !important; }
-          .certificate-detail-document .certificate-issuer { margin-top: 4mm !important; font-size: 25px !important; }
+          .certificate-detail-document .certificate-issuer { margin-top: 2mm !important; font-size: 23px !important; }
           .certificate-seal, .seal-stamp { width: 30mm !important; height: 30mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .certificate-detail-document .certificate-seal, .certificate-detail-document .seal-stamp { width: 27mm !important; height: 27mm !important; }
+          .certificate-detail-document .certificate-seal, .certificate-detail-document .seal-stamp { width: 23mm !important; height: 23mm !important; }
         }
       `}</style>
 
@@ -1195,7 +1195,7 @@ function CertificatePageContent() {
                   </>
                 )}
 
-                <div className="certificate-sign mt-auto pt-12">
+                <div className="certificate-sign mt-auto shrink-0 pt-12">
                   <p className="text-lg font-semibold text-slate-900">{formatKoreanDate(issuedAt)}</p>
                   <div className="mt-8 flex items-center justify-center gap-5"><p className="certificate-issuer text-3xl font-bold tracking-[0.08em] text-slate-950">{issuerName}</p><SealStamp size={112} className="certificate-seal shrink-0" withTexture /></div>
                   {(certificate.issuerBusinessNumber || certificate.issuerContact || certificate.issuerEmail) ? (

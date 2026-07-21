@@ -71,12 +71,12 @@ const courseCopy: Record<string, { purpose: string; composition: string }> = {
 };
 
 const documentSamples = [
-  { title: "교육 수료증", label: "대표 자료", imageSrc: "/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" },
+  { title: "교육 수료증", label: "대표 자료", imageSrc: "/images/%EA%B8%B0%EB%B3%B8%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" },
   { title: "심화교육 이수증", imageSrc: "/images/document-samples/advanced-certificate-capture.jpg" },
   { title: "재범방지계획서", imageSrc: "/images/document-samples/prevention-plan-sample.jpg" },
   { title: "실천계획서", imageSrc: "/images/document-samples/risk-response-plan-sample.jpg" },
   { title: "서약서", imageSrc: "/images/document-samples/sobriety-pledge-sample.jpg" },
-  { title: "이수 상세내역서", imageSrc: "/images/%EA%B5%90%EC%9C%A1%EC%9D%B4%EC%88%98%EC%83%81%EC%84%B8%EB%82%B4%EC%97%AD%EC%84%9C.jpg" },
+  { title: "이수 상세내역서", imageSrc: "/images/document-samples/course-detail-sample.svg" },
 ] as const;
 
 const operatorInfo = [
@@ -174,7 +174,7 @@ export default function HomePage() {
               <div className="relative mx-auto h-[410px] max-w-[390px]">
                 <img src="/images/document-samples/prevention-plan-sample.jpg" alt="재범방지계획서 예시" className="absolute left-0 top-16 h-[290px] w-[205px] border border-slate-200 bg-white object-cover object-top shadow-sm" />
                 <img src="/images/document-samples/risk-response-plan-sample.jpg" alt="실천계획서 예시" className="absolute right-0 top-24 h-[270px] w-[190px] border border-slate-200 bg-white object-cover object-top shadow-sm" />
-                <img src="/images/%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%98%88%EC%8B%9C%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋 재범방지교육센터 수료증 예시" className="absolute left-1/2 top-0 h-[360px] w-[255px] -translate-x-1/2 border border-slate-200 bg-white object-contain shadow-[0_18px_38px_rgba(15,23,42,0.12)]" />
+                <img src="/images/%EA%B8%B0%EB%B3%B8%EC%88%98%EB%A3%8C%EC%A6%9D%20%EC%88%98%EC%A0%95%EB%B3%B8.jpg" alt="리셋 재범방지교육센터 수료증 예시" className="absolute left-1/2 top-0 h-[360px] w-[255px] -translate-x-1/2 border border-slate-200 bg-white object-contain shadow-[0_18px_38px_rgba(15,23,42,0.12)]" />
               </div>
             </div>
           </div>
