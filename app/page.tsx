@@ -71,12 +71,12 @@ const courseCopy: Record<string, { purpose: string; composition: string }> = {
 };
 
 const courseVisuals: Record<string, { label: string; imageSrc: string }> = {
-  dui: { label: "음주 판단", imageSrc: "/images/course-icon-dui.jpg" },
-  "violence-prevention": { label: "분노 조절", imageSrc: "/images/course-icon-violence.jpg" },
-  "gambling-relapse-prevention": { label: "충동 관리", imageSrc: "/images/course-icon-gambling.jpg" },
-  "sexual-offense-prevention": { label: "동의와 경계", imageSrc: "/images/course-icon-sexual-offense.jpg" },
-  "drug-rehab-prevention": { label: "회복 계획", imageSrc: "/images/course-icon-drug.jpg" },
-  "digital-crime": { label: "디지털 사용", imageSrc: "/images/course-icon-digital.jpg" },
+  dui: { label: "음주 판단", imageSrc: "/images/resetedu-course-20260721-dui.jpg" },
+  "violence-prevention": { label: "분노 조절", imageSrc: "/images/resetedu-course-20260721-violence.jpg" },
+  "gambling-relapse-prevention": { label: "충동 관리", imageSrc: "/images/resetedu-course-20260721-gambling.jpg" },
+  "sexual-offense-prevention": { label: "동의와 경계", imageSrc: "/images/resetedu-course-20260721-sexual-offense.jpg" },
+  "drug-rehab-prevention": { label: "회복 계획", imageSrc: "/images/resetedu-course-20260721-drug.jpg" },
+  "digital-crime": { label: "디지털 사용", imageSrc: "/images/resetedu-course-20260721-digital.jpg" },
 };
 
 const documentSamples = [
