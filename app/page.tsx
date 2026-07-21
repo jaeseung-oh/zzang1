@@ -183,13 +183,7 @@ export default function HomePage() {
         <section className="bg-white px-4 py-14 sm:px-6 md:py-20 lg:px-8">
           <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,0.72fr)] lg:items-center">
             <div>
-              <SectionTitle title="서류보다 먼저 달라져야 하는 것이 있습니다" />
-              <div className="mt-6 max-w-3xl space-y-5 text-[15px] leading-8 text-slate-700 sm:text-base">
-                <p>교육 수료증과 재범방지 실천자료는 단순 첨부서류가 아니라, 교육 이수와 실천 노력을 함께 기록하는 자료입니다.</p>
-                <p>같은 문제가 반복되지 않으려면 자신이 어떤 상황에서 잘못된 판단을 했는지부터 돌아봐야 합니다.</p>
-                <p>리셋 재범방지교육센터의 교육은 잘못된 행동의 원인을 점검하고, 위험상황을 알아차리며, 실제 생활에서 지킬 수 있는 약속을 세우는 과정으로 구성되어 있습니다.</p>
-                <p>수료증은 교육이 끝났다는 기록입니다. 교육의 목적은 그 이후의 행동을 바꾸는 데 있습니다.</p>
-              </div>
+              <img src="/images/%EC%84%9C%EB%A5%98%EB%B3%B4%EB%8B%A4%20%EB%A8%BC%EC%A0%80.png" alt="서류보다 먼저 달라져야 하는 것이 있습니다" className="h-auto w-full max-w-3xl object-contain" />
             </div>
             <div className="bg-[#eef2f5] p-5"><div className="border border-slate-200 bg-white p-5"><p className="text-sm font-black text-slate-950">교육 중 작성하게 되는 내용</p><div className="mt-5 space-y-4 text-sm leading-7 text-slate-700">{[["위험상황", "언제, 누구와, 어떤 감정에서 같은 문제가 반복될 수 있는지 적어봅니다."], ["멈추는 방법", "혼자 판단하지 않고 피할 방법, 도움을 요청할 사람, 당장 할 행동을 정합니다."], ["생활 약속", "수료 후에도 확인할 수 있도록 짧고 구체적인 문장으로 남깁니다."]].map(([title, body]) => <div key={title} className="border-l-2 border-[#176b68] pl-4"><p className="font-bold text-slate-950">{title}</p><p>{body}</p></div>)}</div></div></div>
           </div>
