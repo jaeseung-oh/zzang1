@@ -70,13 +70,13 @@ const courseCopy: Record<string, { purpose: string; composition: string }> = {
   },
 };
 
-const courseVisuals: Record<string, { label: string; tone: string }> = {
-  dui: { label: "음주 판단", tone: "#176b68" },
-  "violence-prevention": { label: "분노 조절", tone: "#8a4f1d" },
-  "gambling-relapse-prevention": { label: "충동 관리", tone: "#5b5f1b" },
-  "sexual-offense-prevention": { label: "동의와 경계", tone: "#7a3f68" },
-  "drug-rehab-prevention": { label: "회복 계획", tone: "#2f6f54" },
-  "digital-crime": { label: "디지털 사용", tone: "#305f8f" },
+const courseVisuals: Record<string, { label: string; imageSrc: string }> = {
+  dui: { label: "음주 판단", imageSrc: "/images/course-icon-dui.jpg" },
+  "violence-prevention": { label: "분노 조절", imageSrc: "/images/course-icon-violence.jpg" },
+  "gambling-relapse-prevention": { label: "충동 관리", imageSrc: "/images/course-icon-gambling.jpg" },
+  "sexual-offense-prevention": { label: "동의와 경계", imageSrc: "/images/course-icon-sexual-offense.jpg" },
+  "drug-rehab-prevention": { label: "회복 계획", imageSrc: "/images/course-icon-drug.jpg" },
+  "digital-crime": { label: "디지털 사용", imageSrc: "/images/course-icon-digital.jpg" },
 };
 
 const documentSamples = [
@@ -106,33 +106,14 @@ function SectionTitle({ title, body, className = "" }: { title: string; body?: s
   );
 }
 
-function CourseIcon({ id }: { id: string }) {
-  if (id === "dui") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17h10" /><path d="M8 17l1.4-5.2A3 3 0 0 1 12.3 9h1.4a3 3 0 0 1 2.9 2.8L18 17" /><path d="M9 13h6" /><path d="M6 19h.01" /><path d="M18 19h.01" /></svg>;
-  }
-  if (id === "violence-prevention") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3l7 3v5c0 4.5-2.9 8-7 10-4.1-2-7-5.5-7-10V6l7-3z" /><path d="M9 12h6" /><path d="M12 9v6" /></svg>;
-  }
-  if (id === "gambling-relapse-prevention") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="5" width="14" height="14" rx="2" /><path d="M9 9h.01" /><path d="M15 9h.01" /><path d="M12 12h.01" /><path d="M9 15h.01" /><path d="M15 15h.01" /></svg>;
-  }
-  if (id === "sexual-offense-prevention") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4a5 5 0 0 0-5 5c0 4 5 9 5 9s5-5 5-9a5 5 0 0 0-5-5z" /><path d="M12 8v3" /><path d="M12 14h.01" /></svg>;
-  }
-  if (id === "drug-rehab-prevention") {
-    return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 4h4" /><path d="M12 4v16" /><path d="M7 9h10" /><path d="M8 20h8" /><path d="M8 13h8" /></svg>;
-  }
-  return <svg viewBox="0 0 24 24" aria-hidden="true" className="h-7 w-7 fill-none stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="6" height="6" /><rect x="14" y="4" width="6" height="6" /><rect x="4" y="14" width="6" height="6" /><path d="M14 14h6v6" /><path d="M17 14v6" /></svg>;
-}
-
 function CourseCard({ course, basicPrice, advancedPrice }: { course: CourseCategory; basicPrice: string; advancedPrice: string }) {
   const copy = courseCopy[course.id] || { purpose: course.summary, composition: "온라인 교육과 제공자료" };
-  const visual = courseVisuals[course.id] || { label: "교육 과정", tone: "#173968" };
+  const visual = courseVisuals[course.id] || { label: "교육 과정", imageSrc: "/images/resetedu-logo-mark.png" };
   return (
     <article className="group flex h-full flex-col border border-slate-300 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-[#173968] hover:shadow-[0_18px_38px_rgba(15,23,42,0.12)] sm:p-6">
       <div className="flex items-start gap-4">
-        <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-slate-100" style={{ color: visual.tone }}>
-          <CourseIcon id={course.id} />
+        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100 sm:h-[72px] sm:w-[72px]">
+          <img src={visual.imageSrc} alt="" aria-hidden="true" className="h-full w-full object-cover" />
         </div>
         <div className="min-w-0">
           <p className="text-xs font-black text-slate-500">{visual.label}</p>
