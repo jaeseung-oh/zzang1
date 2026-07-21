@@ -700,7 +700,7 @@ function CertificatePageContent() {
     snapshot.style.height = "297mm";
     snapshot.style.minHeight = "0";
     snapshot.style.margin = "0";
-    snapshot.style.padding = "8mm";
+    snapshot.style.padding = isDetailDocument ? "14mm" : "20mm 18mm";
     snapshot.style.boxShadow = "none";
     snapshot.style.borderRadius = "0";
     snapshot.style.overflow = "hidden";
@@ -719,10 +719,10 @@ function CertificatePageContent() {
 
     const inner = snapshot.querySelector<HTMLElement>(".certificate-inner");
     if (inner) {
-      inner.style.height = "281mm";
-      inner.style.minHeight = "281mm";
-      inner.style.padding = isDetailDocument ? "7mm 9mm" : "8mm 10mm";
-      inner.style.borderWidth = "2px";
+      inner.style.height = isDetailDocument ? "269mm" : "257mm";
+      inner.style.minHeight = isDetailDocument ? "269mm" : "257mm";
+      inner.style.padding = isDetailDocument ? "8.5mm 7.5mm" : "10.5mm 8.5mm";
+      inner.style.borderWidth = "3px";
       inner.style.borderStyle = "solid";
       inner.style.borderColor = "#d9c08a";
       inner.style.overflow = "hidden";
@@ -738,8 +738,8 @@ function CertificatePageContent() {
 
     const title = snapshot.querySelector<HTMLElement>(".certificate-title");
     if (title) {
-      title.style.marginTop = isDetailDocument ? "4mm" : "10mm";
-      title.style.fontSize = isDetailDocument ? "33px" : "39px";
+      title.style.marginTop = isDetailDocument ? "6mm" : "8.5mm";
+      title.style.fontSize = isDetailDocument ? "31px" : "48px";
       title.style.lineHeight = "1.18";
       title.style.color = "#111827";
     }
@@ -747,45 +747,45 @@ function CertificatePageContent() {
     const certificateNoElement = snapshot.querySelector<HTMLElement>(".certificate-no");
     if (certificateNoElement) {
       certificateNoElement.style.marginTop = "0";
-      certificateNoElement.style.fontSize = "12px";
+      certificateNoElement.style.fontSize = "14px";
       certificateNoElement.style.color = "#475569";
     }
 
     const person = snapshot.querySelector<HTMLElement>(".certificate-person");
     if (person) {
-      person.style.marginTop = "11mm";
-      person.style.padding = "5mm";
-      person.style.fontSize = "19px";
-      person.style.lineHeight = "1.7";
+      person.style.marginTop = "12.7mm";
+      person.style.padding = "0";
+      person.style.fontSize = "18px";
+      person.style.lineHeight = "1.78";
       person.style.color = "#0f172a";
       person.querySelectorAll<HTMLElement>("span:first-child").forEach((label) => { label.style.color = "#5f4514"; });
     }
 
     const body = snapshot.querySelector<HTMLElement>(".certificate-body");
     if (body) {
-      body.style.marginTop = "11mm";
-      body.style.fontSize = "17.5px";
-      body.style.lineHeight = "1.75";
+      body.style.marginTop = "12.7mm";
+      body.style.fontSize = "20px";
+      body.style.lineHeight = "2.1";
       body.style.whiteSpace = "pre-line";
       body.style.color = "#1f2937";
     }
 
     const table = snapshot.querySelector<HTMLElement>(".certificate-table");
     if (table) {
-      table.style.marginTop = "10mm";
-      table.style.fontSize = "14px";
+      table.style.marginTop = "10.5mm";
+      table.style.fontSize = "16px";
       table.style.borderStyle = "solid";
       table.style.borderColor = "#d9c08a";
       table.style.backgroundColor = "#ffffff";
     }
 
     snapshot.querySelectorAll<HTMLElement>(".certificate-table-row").forEach((row) => {
-      row.style.gridTemplateColumns = "36mm minmax(0, 1fr)";
+      row.style.gridTemplateColumns = "39.7mm minmax(0, 1fr)";
       row.style.borderBottomStyle = "solid";
       row.style.borderBottomColor = "#eadfcb";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-table-cell").forEach((cell) => {
-      cell.style.padding = "2.6mm 3.2mm";
+      cell.style.padding = "3.2mm 4.2mm";
       cell.style.lineHeight = "1.5";
       cell.style.backgroundColor = "#ffffff";
       cell.style.color = "#111827";
@@ -798,18 +798,26 @@ function CertificatePageContent() {
 
     const detail = snapshot.querySelector<HTMLElement>(".certificate-detail");
     if (detail) {
-      detail.style.marginTop = "3mm";
-      detail.style.fontSize = "10.8px";
-      detail.style.lineHeight = "1.34";
+      detail.style.marginTop = "4mm";
+      detail.style.fontSize = "10.6px";
+      detail.style.lineHeight = "1.38";
       detail.style.color = "#0f172a";
     }
+    snapshot.querySelectorAll<HTMLElement>(".certificate-detail-intro").forEach((intro) => {
+      intro.style.padding = "2.4mm 3mm";
+      intro.style.lineHeight = "1.45";
+      intro.style.borderStyle = "solid";
+      intro.style.borderColor = "#eadfcb";
+      intro.style.backgroundColor = "#fffaf0";
+      intro.style.color = "#1f2937";
+    });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-section").forEach((section) => {
-      section.style.marginTop = "2mm";
+      section.style.marginTop = "2.4mm";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-title").forEach((heading) => {
-      heading.style.fontSize = "12px";
+      heading.style.fontSize = "12.2px";
       heading.style.marginBottom = "1mm";
-      heading.style.lineHeight = "1.25";
+      heading.style.lineHeight = "1.3";
       heading.style.color = "#5f4514";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-title span").forEach((badge) => {
@@ -825,8 +833,8 @@ function CertificatePageContent() {
       grid.style.borderBottomColor = "#eadfcb";
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-cell").forEach((cell) => {
-      cell.style.padding = "1.2mm 2mm";
-      cell.style.lineHeight = "1.3";
+      cell.style.padding = "1.5mm 2.2mm";
+      cell.style.lineHeight = "1.34";
       cell.style.backgroundColor = "#ffffff";
       cell.style.color = "#0f172a";
       const isLabelCell = cell.parentElement?.firstElementChild === cell;
@@ -836,8 +844,8 @@ function CertificatePageContent() {
       }
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-list").forEach((list) => {
-      list.style.gap = "0.45mm";
-      list.style.padding = "2mm 3mm";
+      list.style.gap = "0.65mm";
+      list.style.padding = "2.2mm 3mm";
       list.style.borderStyle = "solid";
       list.style.borderColor = "#d9c08a";
       list.style.backgroundColor = "#ffffff";
@@ -845,8 +853,8 @@ function CertificatePageContent() {
       list.querySelectorAll<HTMLElement>("li span:first-child").forEach((bullet) => { bullet.style.color = "#8a6a2d"; });
     });
     snapshot.querySelectorAll<HTMLElement>(".certificate-detail-confirm").forEach((confirm) => {
-      confirm.style.marginTop = "1.8mm";
-      confirm.style.padding = "1.8mm 2.6mm";
+      confirm.style.marginTop = "2.4mm";
+      confirm.style.padding = "2.2mm 3mm";
       confirm.style.borderStyle = "solid";
       confirm.style.borderColor = "#d9c08a";
       confirm.style.backgroundColor = "#fffaf0";
@@ -856,20 +864,20 @@ function CertificatePageContent() {
 
     const sign = snapshot.querySelector<HTMLElement>(".certificate-sign");
     if (sign) {
-      sign.style.paddingTop = isDetailDocument ? "2mm" : "8mm";
+      sign.style.paddingTop = isDetailDocument ? "4mm" : "10.5mm";
       sign.querySelectorAll<HTMLElement>("p").forEach((paragraph) => { paragraph.style.color = "#111827"; });
     }
 
     const issuer = snapshot.querySelector<HTMLElement>(".certificate-issuer");
     if (issuer) {
-      issuer.style.marginTop = isDetailDocument ? "2mm" : "6mm";
-      issuer.style.fontSize = isDetailDocument ? "23px" : "27px";
+      issuer.style.marginTop = isDetailDocument ? "3mm" : "6.4mm";
+      issuer.style.fontSize = isDetailDocument ? "23px" : "26px";
       issuer.style.color = "#111827";
     }
 
     snapshot.querySelectorAll<HTMLElement>(".certificate-seal, .seal-stamp").forEach((seal) => {
-      seal.style.width = isDetailDocument ? "23mm" : "30mm";
-      seal.style.height = isDetailDocument ? "23mm" : "30mm";
+      seal.style.width = isDetailDocument ? "24mm" : "27.5mm";
+      seal.style.height = isDetailDocument ? "24mm" : "27.5mm";
       seal.style.display = "block";
     });
 
@@ -963,6 +971,21 @@ function CertificatePageContent() {
     <main className="min-h-screen bg-[#eef3f8] px-4 py-8 text-[#0f172a] print:bg-white print:p-0">
       <style jsx global>{`
         @page { size: A4 portrait; margin: 0; }
+        @media screen and (min-width: 641px) {
+          .certificate-detail-document .certificate-title { margin-top: 6mm !important; font-size: 31px !important; line-height: 1.14 !important; }
+          .certificate-detail { margin-top: 4mm !important; font-size: 10.6px !important; line-height: 1.38 !important; }
+          .certificate-detail-intro { padding: 2.4mm 3mm !important; line-height: 1.45 !important; }
+          .certificate-detail-section { margin-top: 2.4mm !important; }
+          .certificate-detail-title { font-size: 12.2px !important; margin-bottom: 1mm !important; line-height: 1.3 !important; }
+          .certificate-detail-title span { width: 6mm !important; height: 6mm !important; font-size: 10px !important; }
+          .certificate-detail-grid { grid-template-columns: 31mm minmax(0, 1fr) !important; }
+          .certificate-detail-cell { padding: 1.5mm 2.2mm !important; line-height: 1.34 !important; }
+          .certificate-detail-list { gap: 0.65mm !important; padding: 2.2mm 3mm !important; }
+          .certificate-detail-confirm { margin-top: 2.4mm !important; padding: 2.2mm 3mm !important; }
+          .certificate-detail-document .certificate-sign { padding-top: 4mm !important; }
+          .certificate-detail-document .certificate-issuer { margin-top: 3mm !important; font-size: 23px !important; }
+          .certificate-detail-document .certificate-seal, .certificate-detail-document .seal-stamp { width: 24mm !important; height: 24mm !important; }
+        }
         @media screen and (max-width: 640px) {
           .certificate-wrap { overflow-x: hidden; }
           .certificate-paper { min-height: auto !important; width: 100% !important; max-width: 100% !important; padding: 14px !important; }
@@ -982,16 +1005,16 @@ function CertificatePageContent() {
           body * { visibility: hidden !important; }
           .certificate-print-root, .certificate-print-root * { visibility: visible !important; }
           body > header, body > footer, header, footer, nav, aside, button, .no-print, .no-print * { display: none !important; visibility: hidden !important; }
-          body > div, body > div > div { width: 210mm !important; height: 297mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
-          main { position: fixed !important; inset: 0 auto auto 0 !important; width: 210mm !important; height: 297mm !important; min-height: 0 !important; max-height: 297mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
-          .certificate-wrap { width: 210mm !important; height: 297mm !important; max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+          body > div, body > div > div { width: 210mm !important; height: 296mm !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+          main { position: fixed !important; inset: 0 auto auto 0 !important; width: 210mm !important; height: 296mm !important; min-height: 0 !important; max-height: 296mm !important; margin: 0 !important; padding: 0 !important; background: #fff !important; overflow: hidden !important; }
+          .certificate-wrap { width: 210mm !important; height: 296mm !important; max-width: none !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
           .certificate-paper {
             width: 210mm !important;
             max-width: 210mm !important;
             min-height: 0 !important;
-            height: 297mm !important;
+            height: 296mm !important;
             margin: 0 !important;
-            padding: 8mm !important;
+            padding: 20mm 18mm !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             page-break-before: avoid !important;
@@ -1002,34 +1025,36 @@ function CertificatePageContent() {
             break-inside: avoid !important;
             overflow: hidden !important;
           }
-          .certificate-inner { height: 281mm !important; min-height: 281mm !important; padding: 8mm 10mm !important; border-width: 2px !important; overflow: hidden !important; }
+          .certificate-inner { height: 256mm !important; min-height: 256mm !important; padding: 10.5mm 8.5mm !important; border-width: 3px !important; overflow: hidden !important; }
           .certificate-watermark { width: 112mm !important; height: 112mm !important; opacity: 0.055 !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .certificate-title { margin-top: 10mm !important; font-size: 39px !important; line-height: 1.18 !important; }
-          .certificate-no { margin-top: 0 !important; font-size: 12px !important; }
-          .certificate-person { margin-top: 11mm !important; padding: 5mm !important; font-size: 19px !important; line-height: 1.7 !important; }
+          .certificate-title { margin-top: 8.5mm !important; font-size: 48px !important; line-height: 1.18 !important; }
+          .certificate-no { margin-top: 0 !important; font-size: 14px !important; }
+          .certificate-person { margin-top: 12.7mm !important; padding: 0 !important; font-size: 18px !important; line-height: 1.78 !important; }
           .certificate-identity-value { font-size: 19px !important; }
           .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
-          .certificate-body { margin-top: 11mm !important; font-size: 17.5px !important; line-height: 1.75 !important; white-space: pre-line !important; }
-          .certificate-table { margin-top: 10mm !important; font-size: 14px !important; }
-          .certificate-table-row { grid-template-columns: 36mm minmax(0, 1fr) !important; }
-          .certificate-table-cell { padding: 2.6mm 3.2mm !important; line-height: 1.5 !important; }
-          .certificate-detail-document .certificate-inner { padding: 6mm 8mm !important; }
-          .certificate-detail-document .certificate-title { margin-top: 3mm !important; font-size: 29px !important; line-height: 1.12 !important; }
-          .certificate-detail { margin-top: 3mm !important; font-size: 10.8px !important; line-height: 1.34 !important; }
+          .certificate-body { margin-top: 12.7mm !important; font-size: 20px !important; line-height: 2.1 !important; white-space: pre-line !important; }
+          .certificate-table { margin-top: 10.5mm !important; font-size: 16px !important; }
+          .certificate-table-row { grid-template-columns: 39.7mm minmax(0, 1fr) !important; }
+          .certificate-table-cell { padding: 3.2mm 4.2mm !important; line-height: 1.5 !important; }
+          .certificate-detail-document { padding: 14mm !important; }
+          .certificate-detail-document .certificate-inner { height: 268mm !important; min-height: 268mm !important; padding: 8.5mm 7.5mm !important; }
+          .certificate-detail-document .certificate-title { margin-top: 6mm !important; font-size: 31px !important; line-height: 1.14 !important; }
+          .certificate-detail { margin-top: 4mm !important; font-size: 10.6px !important; line-height: 1.38 !important; }
           .certificate-detail-hero { padding: 3mm 3.5mm !important; margin-top: 5mm !important; }
-          .certificate-detail-section { margin-top: 2mm !important; }
-          .certificate-detail-title { font-size: 12px !important; margin-bottom: 1mm !important; line-height: 1.25 !important; }
+          .certificate-detail-intro { padding: 2.4mm 3mm !important; line-height: 1.45 !important; }
+          .certificate-detail-section { margin-top: 2.4mm !important; }
+          .certificate-detail-title { font-size: 12.2px !important; margin-bottom: 1mm !important; line-height: 1.3 !important; }
           .certificate-detail-title span { width: 6mm !important; height: 6mm !important; font-size: 10px !important; }
           .certificate-detail-grid { grid-template-columns: 31mm minmax(0, 1fr) !important; }
-          .certificate-detail-cell { padding: 1.2mm 2mm !important; line-height: 1.3 !important; }
-          .certificate-detail-list { gap: 0.45mm !important; padding: 2mm 3mm !important; }
-          .certificate-detail-confirm { margin-top: 1.8mm !important; padding: 1.8mm 2.6mm !important; }
-          .certificate-sign { padding-top: 8mm !important; }
-          .certificate-detail-document .certificate-sign { padding-top: 2mm !important; }
-          .certificate-issuer { margin-top: 6mm !important; font-size: 27px !important; }
-          .certificate-detail-document .certificate-issuer { margin-top: 2mm !important; font-size: 23px !important; }
-          .certificate-seal, .seal-stamp { width: 30mm !important; height: 30mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
-          .certificate-detail-document .certificate-seal, .certificate-detail-document .seal-stamp { width: 23mm !important; height: 23mm !important; }
+          .certificate-detail-cell { padding: 1.5mm 2.2mm !important; line-height: 1.34 !important; }
+          .certificate-detail-list { gap: 0.65mm !important; padding: 2.2mm 3mm !important; }
+          .certificate-detail-confirm { margin-top: 2.4mm !important; padding: 2.2mm 3mm !important; }
+          .certificate-sign { padding-top: 10.5mm !important; }
+          .certificate-detail-document .certificate-sign { padding-top: 4mm !important; }
+          .certificate-issuer { margin-top: 6.4mm !important; font-size: 26px !important; }
+          .certificate-detail-document .certificate-issuer { margin-top: 3mm !important; font-size: 23px !important; }
+          .certificate-seal, .seal-stamp { width: 27.5mm !important; height: 27.5mm !important; display: block !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .certificate-detail-document .certificate-seal, .certificate-detail-document .seal-stamp { width: 24mm !important; height: 24mm !important; }
         }
       `}</style>
 
@@ -1121,8 +1146,8 @@ function CertificatePageContent() {
 
         {certificate ? (
           <>
-            <section ref={certificatePaperRef} className={`certificate-print-root certificate-paper ${isDetailDocument ? "certificate-detail-document" : "certificate-completion-document"} mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white px-[18mm] py-[20mm] shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0`}>
-              <div className="certificate-inner relative flex h-full min-h-[257mm] flex-col overflow-hidden border-[3px] border-[#d9c08a] px-8 py-10 text-center">
+            <section ref={certificatePaperRef} className={`certificate-print-root certificate-paper ${isDetailDocument ? "certificate-detail-document px-[14mm] py-[14mm]" : "certificate-completion-document px-[18mm] py-[20mm]"} mx-auto min-h-[297mm] w-full max-w-[210mm] bg-white shadow-[0_24px_72px_rgba(15,23,42,0.16)] ring-1 ring-[#d9c08a] print:ring-0`}>
+              <div className={`certificate-inner relative flex h-full ${isDetailDocument ? "min-h-[269mm] px-7 py-8" : "min-h-[257mm] px-8 py-10"} flex-col overflow-hidden border-[3px] border-[#d9c08a] text-center`}>
                 <img src={centerLogoPath} alt="" aria-hidden="true" className="certificate-watermark pointer-events-none absolute left-1/2 top-1/2 z-0 h-[430px] w-[430px] -translate-x-1/2 -translate-y-1/2 select-none object-contain opacity-[0.055]" />
                 <div className="relative z-10 flex h-full min-h-0 flex-col">
                 <p className="certificate-no self-start text-left text-sm font-semibold text-slate-600">발급번호: {certificateNo}</p>
@@ -1130,7 +1155,9 @@ function CertificatePageContent() {
                 <h2 className="certificate-title mt-8 text-5xl font-bold tracking-[0.22em] text-[#111827]">{documentHeading}</h2>
 
                 {isDetailDocument ? (
-                  <div className="certificate-detail mt-8 text-left text-sm leading-6 text-slate-900">
+                  <div className="certificate-detail mt-7 flex flex-1 flex-col text-left text-sm leading-6 text-slate-900">
+                    <p className="certificate-detail-intro rounded-lg border border-[#eadfcb] bg-[#fffaf0] px-4 py-3 font-semibold leading-6 text-slate-800">{detailContext.body}</p>
+
                     <section className="certificate-detail-section mt-4">
                       <h3 className="certificate-detail-title mb-2 flex items-center gap-2 text-base font-black text-[#5f4514]"><span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#5f4514] text-xs text-white">1</span>교육 이수자 정보</h3>
                       <div className="space-y-1.5 px-1 text-[15px] leading-7 text-slate-950">
@@ -1195,9 +1222,9 @@ function CertificatePageContent() {
                   </>
                 )}
 
-                <div className="certificate-sign mt-auto shrink-0 pt-12">
+                <div className="certificate-sign mt-auto shrink-0 pt-10">
                   <p className="text-lg font-semibold text-slate-900">{formatKoreanDate(issuedAt)}</p>
-                  <div className="mt-8 flex items-center justify-center gap-5"><p className="certificate-issuer text-3xl font-bold tracking-[0.08em] text-slate-950">{issuerName}</p><SealStamp size={112} className="certificate-seal shrink-0" withTexture /></div>
+                  <div className="mt-6 flex items-center justify-center gap-5"><p className="certificate-issuer text-[26px] font-bold tracking-[0.08em] text-slate-950">{issuerName}</p><SealStamp size={104} className="certificate-seal shrink-0" withTexture /></div>
                   {(certificate.issuerBusinessNumber || certificate.issuerContact || certificate.issuerEmail) ? (
                     <p className="mt-4 text-sm leading-7 text-slate-500">
                       {certificate.issuerBusinessNumber ? `사업자등록번호 ${certificate.issuerBusinessNumber}` : ""}
