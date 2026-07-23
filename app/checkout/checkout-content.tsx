@@ -21,7 +21,6 @@ const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617
 
 const CARD_APPROVAL_DELAY_MESSAGE =
   "안녕하세요. 리셋 재범방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n문제가 계속되면 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
-const ENROLLMENT_LOOKUP_FAILURE_MESSAGE = "기존 수강권 사전 확인이 지연되고 있습니다. 결제 직전 서버에서 중복 결제를 다시 확인합니다.";
 
 type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>;
 type CheckoutPaymentMethod = "card" | "kakaopay";
@@ -131,7 +130,6 @@ export default function CheckoutContent() {
     setSelectedProductId(nextProductId);
     setActiveEnrollment(null);
     setEnrollmentCheckFailed(false);
-    setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
     replaceCheckoutSelectionUrl(category.id, nextProductId);
   };
 
@@ -140,7 +138,6 @@ export default function CheckoutContent() {
     setSelectedProductId(productId);
     setActiveEnrollment(null);
     setEnrollmentCheckFailed(false);
-    setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
     replaceCheckoutSelectionUrl(selectedCategoryId, productId);
   };
 
@@ -179,13 +176,11 @@ export default function CheckoutContent() {
           if (cancelled) return;
           setActiveEnrollment(enrollments.find((row) => row.courseId === selectedEntitlementCourseId) ?? null);
           setEnrollmentCheckFailed(false);
-          setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
         } catch (enrollmentError) {
           if (cancelled) return;
           console.error("Verified enrollment lookup failed before checkout", enrollmentError);
           setActiveEnrollment(null);
           setEnrollmentCheckFailed(true);
-          setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
         }
         setPaymentId(createPaymentId(user.uid));
         setProfileReady(Boolean(realName && birthDate));
@@ -235,13 +230,11 @@ export default function CheckoutContent() {
         const enrollments = await getVerifiedUserEnrollments(user, selectedEntitlementCourseId);
         enrollment = enrollments.find((row) => row.courseId === selectedEntitlementCourseId) ?? null;
         setEnrollmentCheckFailed(false);
-        setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
       } catch (enrollmentError) {
         console.error("Verified enrollment lookup failed immediately before payment", enrollmentError);
         enrollment = null;
         setActiveEnrollment(null);
         setEnrollmentCheckFailed(true);
-        setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
       }
       if (isEnrollmentActive(enrollment)) {
         setActiveEnrollment(enrollment);
