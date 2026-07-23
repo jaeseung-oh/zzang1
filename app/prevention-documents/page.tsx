@@ -288,7 +288,7 @@ function PreventionDocumentsContent() {
       const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
       const safeName = sanitizeFilePart(identity.name || "회원");
       const safeDocument = sanitizeFilePart(selected.title);
-      downloadBlob(pdfBlob, `${safeName}_${safeDocument}_${formatCompactDate(new Date())}.pdf`);
+      await downloadBlob(pdfBlob, `${safeName}_${safeDocument}_${formatCompactDate(new Date())}.pdf`);
     } catch (downloadError) {
       console.error(downloadError);
       setError(downloadError instanceof Error ? downloadError.message : "PDF 파일 저장 중 오류가 발생했습니다.");

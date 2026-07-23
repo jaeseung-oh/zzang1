@@ -81,11 +81,44 @@ export async function inlineImages(root: HTMLElement) {
   }));
 }
 
-export function downloadBlob(blob: Blob, filename: string) {
+type NavigatorWithFileShare = Navigator & {
+  canShare?: (data: ShareData & { files?: File[] }) => boolean;
+  share?: (data: ShareData & { files?: File[] }) => Promise<void>;
+};
+
+function isAbortError(error: unknown) {
+  return error instanceof DOMException && error.name === "AbortError";
+}
+
+function isMobileBrowser() {
+  return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+}
+
+export async function downloadBlob(blob: Blob, filename: string) {
+  const file = new File([blob], filename, { type: blob.type || "application/pdf" });
+  const nav = navigator as NavigatorWithFileShare;
+
+  if (isMobileBrowser() && nav.canShare?.({ files: [file] }) && nav.share) {
+    try {
+      await nav.share({ files: [file], title: filename });
+      return;
+    } catch (error) {
+      if (isAbortError(error)) return;
+    }
+  }
+
   const url = URL.createObjectURL(blob);
+  if (isMobileBrowser()) {
+    const opened = window.open(url, "_blank", "noopener,noreferrer");
+    if (!opened) window.location.href = url;
+    window.setTimeout(() => URL.revokeObjectURL(url), 60000);
+    return;
+  }
+
   const link = document.createElement("a");
   link.href = url;
   link.download = filename;
+  link.rel = "noopener noreferrer";
   document.body.appendChild(link);
   link.click();
   link.remove();

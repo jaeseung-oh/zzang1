@@ -845,7 +845,7 @@ function CertificatePageContent() {
       const safeDocument = sanitizeFilePart(documentTitle);
       const image = await renderCertificatePdfImage();
       const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
-      downloadBlob(pdfBlob, `${safeName}_${safeCourse}_${safeDocument}_${safeDate}.pdf`);
+      await downloadBlob(pdfBlob, `${safeName}_${safeCourse}_${safeDocument}_${safeDate}.pdf`);
     } catch (downloadError) {
       console.error(downloadError);
       setError(downloadError instanceof Error ? downloadError.message : "PDF 파일 저장 중 오류가 발생했습니다.");
