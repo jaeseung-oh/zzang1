@@ -3596,6 +3596,8 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         createdAt: nowIso,
         updatedAt: nowIso
     };
+    let savedEnrollment = null;
+    let includedBaseEnrollment = null;
     const grantAuditRecord = {
         manualGrantId,
         enrollmentId,
@@ -3625,9 +3627,9 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     };
 
     try {
-        await grantCourseAccess(env, { ...enrollmentRecord, canonicalCourseId: courseId, source: 'manual', grantedBy: admin.email || admin.uid, grantedByAdminId: admin.uid || '' });
-        await firestorePatch(env, firestoreDocumentPath(env, 'adminManualEnrollmentGrants', manualGrantId), grantAuditRecord);
-        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', courseId), buildRefundPolicyRecord(nowIso, getCourseProduct(courseId)));
+        savedEnrollment = await grantCourseAccess(env, { ...enrollmentRecord, canonicalCourseId: courseId, source: 'manual', grantedBy: admin.email || admin.uid, grantedByAdminId: admin.uid || '' });
+        await firestorePatch(env, firestoreDocumentPath(env, 'adminManualEnrollmentGrants', manualGrantId), { ...grantAuditRecord, enrollmentId: savedEnrollment.enrollmentId || enrollmentId, courseId: savedEnrollment.courseId || courseId, canonicalCourseId: savedEnrollment.canonicalCourseId || savedEnrollment.courseId || courseId });
+        await firestorePatch(env, firestoreDocumentPath(env, 'refundPolicies', savedEnrollment.courseId || courseId), buildRefundPolicyRecord(nowIso, getCourseProduct(savedEnrollment.courseId || courseId)));
         await savePaymentLog(env, manualGrantId, {
             type: 'admin_manual_enrollment_granted',
             paymentId: null,
@@ -3647,13 +3649,13 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             created_at: nowIso,
             createdAt: nowIso
         });
-        const includedBaseEnrollment = await ensureManualIncludedBaseEnrollment(env, uid, product, enrollmentId, admin, note);
-        const savedEnrollment = await firestoreGetData(env, 'enrollments', enrollmentId);
-        const accessDecision = getEnrollmentAccessDecision(savedEnrollment, uid, courseId);
+        includedBaseEnrollment = await ensureManualIncludedBaseEnrollment(env, uid, product, savedEnrollment.enrollmentId || enrollmentId, admin, note);
+        const verifiedCourseId = resolveCanonicalCourseId(savedEnrollment || {}) || savedEnrollment?.courseId || courseId;
+        const accessDecision = getEnrollmentAccessDecision(savedEnrollment, uid, verifiedCourseId);
         if (!accessDecision.allowed) {
             throw new Error('수강권은 저장됐지만 강의 접근 검증에 실패했습니다: ' + accessDecision.reason);
         }
-        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', enrollmentId, null, { ...enrollmentRecord, includedBaseEnrollment, accessDecision }, grantReason);
+        await saveAdminAuditLog(env, request, admin, 'enrollment.grant', 'enrollments', savedEnrollment.enrollmentId || enrollmentId, null, { ...savedEnrollment, includedBaseEnrollment, accessDecision }, grantReason);
     } catch (error) {
         await savePaymentLog(env, manualGrantId, {
             type: 'admin_manual_enrollment_failed',
@@ -3679,11 +3681,14 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         uid,
         orderId: null,
         manualGrantId,
-        enrollmentId,
-        courseId,
-        productId,
-        expiresAt,
-        accessStatus,
+        enrollmentId: savedEnrollment?.enrollmentId || enrollmentId,
+        courseId: savedEnrollment?.courseId || courseId,
+        canonicalCourseId: savedEnrollment?.canonicalCourseId || savedEnrollment?.courseId || courseId,
+        productId: savedEnrollment?.productId || productId,
+        expiresAt: savedEnrollment?.expiresAt || expiresAt,
+        accessStatus: savedEnrollment?.accessStatus || accessStatus,
+        enrollment: savedEnrollment,
+        includedBaseEnrollment,
         accessVerified: true
     }, 200, corsHeaders);
 }
