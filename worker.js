@@ -867,6 +867,38 @@ async function getValidCompletedPaymentsForCourse(env, uid, canonicalCourseId, e
         .sort((a, b) => new Date(b.approvedAt || b.purchasedAt || b.paidAt || b.createdAt || 0).getTime() - new Date(a.approvedAt || a.purchasedAt || a.paidAt || a.createdAt || 0).getTime());
 }
 
+function isManualLikeEnrollment(enrollment) {
+    return normalizeEnrollmentSourceType(enrollment || {}) === 'MANUAL' || enrollment?.adminGranted === true;
+}
+
+function getManualEnrollmentCompatibilityPatch(admin, note, nowIso) {
+    return {
+        sourceType: 'MANUAL',
+        grantType: 'MANUAL',
+        issueType: 'MANUAL',
+        manualGrant: true,
+        grantReason: 'ADMIN_MANUAL',
+        adminGranted: true,
+        adminGrantReason: note || '관리자 수동 수강권 지급',
+        grantedBy: admin?.email || admin?.uid || null,
+        grantedByAdminId: admin?.uid || null,
+        updatedAt: nowIso
+    };
+}
+
+async function mirrorManualEnrollmentToUser(env, uid, courseId, enrollment) {
+    if (!uid || !courseId || !isManualLikeEnrollment(enrollment)) return null;
+    return firestorePatch(env, firestoreDocumentPath(env, 'users/' + uid + '/enrollments', courseId), {
+        ...enrollment,
+        id: courseId,
+        enrollmentId: enrollment.enrollmentId || uid + '_' + courseId,
+        uid: enrollment.uid || uid,
+        userId: enrollment.userId || uid,
+        courseId,
+        canonicalCourseId: enrollment.canonicalCourseId || courseId
+    });
+}
+
 function getAllowedByForEnrollment(enrollment) {
     const sourceType = normalizeEnrollmentSourceType(enrollment || {});
     if (sourceType === 'MANUAL') return 'manual';
@@ -1953,6 +1985,10 @@ async function grantCourseAccess(env, input) {
         certificateIssuedAt: existing.certificateIssuedAt || input.certificateIssuedAt || null,
         certificateId: existing.certificateId || input.certificateId || null,
         certificateNo: existing.certificateNo || input.certificateNo || null,
+        grantType: sourceType === 'MANUAL' ? (input.grantType || existing.grantType || 'MANUAL') : (existing.grantType || input.grantType || null),
+        issueType: sourceType === 'MANUAL' ? (input.issueType || existing.issueType || 'MANUAL') : (existing.issueType || input.issueType || null),
+        manualGrant: sourceType === 'MANUAL' || Boolean(existing.manualGrant),
+        grantReason: sourceType === 'MANUAL' ? (input.grantReason || existing.grantReason || 'ADMIN_MANUAL') : (existing.grantReason || input.grantReason || null),
         adminGranted: sourceType === 'MANUAL' || Boolean(existing.adminGranted),
         grantedBy: input.grantedBy || existing.grantedBy || null,
         grantedByAdminId: input.grantedByAdminId || existing.grantedByAdminId || null,
@@ -1963,7 +1999,7 @@ async function grantCourseAccess(env, input) {
     };
     await firestorePatch(env, enrollmentPath, record);
     if (sourceType === 'MANUAL') {
-        await firestorePatch(env, firestoreDocumentPath(env, 'users/' + uid + '/enrollments', canonicalCourseId), { ...record, id: canonicalCourseId, enrollmentId });
+        await mirrorManualEnrollmentToUser(env, uid, canonicalCourseId, record);
     }
     const saved = await firestoreGetData(env, 'enrollments', enrollmentId);
     const decision = getEnrollmentAccessDecision(saved, uid, canonicalCourseId);
@@ -3428,7 +3464,7 @@ async function ensureManualIncludedBaseEnrollment(env, uid, sourceProduct, sourc
         updatedAt: nowIso
     };
     await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), record);
-    await firestorePatch(env, firestoreDocumentPath(env, 'users/' + uid + '/enrollments', baseProduct.courseId), { ...record, id: baseProduct.courseId });
+    await mirrorManualEnrollmentToUser(env, uid, baseProduct.courseId, record);
     await savePaymentLog(env, record.enrollmentId, {
         type: 'admin_manual_included_base_enrollment_granted',
         paymentId: null,
@@ -3484,15 +3520,27 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         const existingExpiresAt = existing.expiresAt ? new Date(existing.expiresAt).getTime() : 0;
         if (isFirestoreEnrollmentActiveRecord(existing)) {
             const duplicateResolution = String(body?.duplicateResolution || 'keep').trim();
+            const existingIsManual = isManualLikeEnrollment(existing);
             if (duplicateResolution === 'extend') {
                 const nowIso = new Date().toISOString();
                 const extensionDays = Number(body?.extensionDays || getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
                 const extensionBase = existingExpiresAt > Date.now() ? existingExpiresAt : Date.now();
                 const expiresAt = new Date(extensionBase + Math.max(1, extensionDays) * 24 * 60 * 60 * 1000).toISOString();
-                const patch = { expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장' };
+                const patch = { expiresAt, accessEndsAt: expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장', ...(existingIsManual ? getManualEnrollmentCompatibilityPatch(admin, note, nowIso) : {}) };
                 await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), patch);
+                if (existingIsManual) await mirrorManualEnrollmentToUser(env, uid, courseId, { ...existing, ...patch, uid, userId: uid, courseId, enrollmentId });
                 await saveAdminAuditLog(env, request, admin, 'enrollment.extend', 'enrollments', enrollmentId, existing, patch, note || '중복 수강권 기간 연장');
                 return json({ ok: true, message: '기존 수강권 기간을 연장했습니다.', enrollmentId, expiresAt, accessStatus: 'active' }, 200, corsHeaders);
+            }
+            if (existingIsManual || duplicateResolution === 'keep') {
+                const nowIso = new Date().toISOString();
+                const patch = existingIsManual ? getManualEnrollmentCompatibilityPatch(admin, note, nowIso) : { updatedAt: nowIso };
+                if (existingIsManual) {
+                    await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), patch);
+                    await mirrorManualEnrollmentToUser(env, uid, courseId, { ...existing, ...patch, uid, userId: uid, courseId, enrollmentId });
+                }
+                await saveAdminAuditLog(env, request, admin, 'enrollment.keep', 'enrollments', enrollmentId, existing, patch, note || '기존 활성 수강권 유지');
+                return json({ ok: true, message: '이미 활성화된 수강권을 확인했고 표시 정보를 보정했습니다.', enrollmentId, courseId, productId, expiresAt: existing.expiresAt || null, accessStatus: 'active', alreadyActive: true }, 200, corsHeaders);
             }
             return json({ ok: false, message: '이미 활성화된 수강권이 있습니다. 기존 수강권 유지, 기간 연장, 교체 중 하나를 선택해 주세요.', code: 'ACTIVE_ENROLLMENT_EXISTS', enrollmentId, orderId: existing.orderId || existing.paymentId || null, expiresAt: existing.expiresAt || null, accessStatus: 'active', choices: ['keep', 'extend', 'replace'] }, 409, corsHeaders);
         }
