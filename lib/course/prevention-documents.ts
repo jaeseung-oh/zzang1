@@ -98,11 +98,41 @@ export function getPreventionDocument(type?: string | null, courseId?: string | 
     || preventionDocuments[0];
 }
 
+export type PreventionDocumentsEnrollmentLike = {
+  courseId?: string | null;
+  canonicalCourseId?: string | null;
+  productId?: string | null;
+  productTitle?: string | null;
+  courseTitle?: string | null;
+  amount?: number | null;
+};
+
+const preventionDocumentProductIds = new Set([
+  "basic",
+  "dui",
+  "dui-documents",
+  "dui-prevention",
+  "dui-prevention-basic",
+  ADVANCED_PRODUCT_ID,
+  "violence-basic",
+  "violence-advanced",
+  "gambling-basic",
+  "gambling-advanced",
+  "sexual-offense-basic",
+  "sexual-offense-advanced",
+  "drug-basic",
+  "drug-advanced",
+  "drug-addiction-basic",
+  "drug-addiction-premium",
+  "drug-addiction-relapse-prevention",
+  "digital-crime-basic",
+  "digital-crime-advanced",
+]);
+
 export function hasPreventionDocumentsAccess(productId?: string | null, amount?: number | null, productTitle?: string | null) {
   const normalizedProductId = String(productId || "");
   const normalizedTitle = String(productTitle || "").replace(/\s/g, "");
-  return normalizedProductId === DOCUMENTS_PRODUCT_ID
-    || normalizedProductId === ADVANCED_PRODUCT_ID
+  return preventionDocumentProductIds.has(normalizedProductId)
     || normalizedProductId.startsWith("violence-")
     || normalizedProductId.startsWith("gambling-")
     || normalizedProductId.startsWith("sexual-offense-")
@@ -111,7 +141,24 @@ export function hasPreventionDocumentsAccess(productId?: string | null, amount?:
     || Number(amount) >= 49000
     || normalizedTitle.includes("작성자료포함")
     || normalizedTitle.includes("재범방지교육")
-    || normalizedTitle.includes("재발방지교육");
+    || normalizedTitle.includes("재발방지교육")
+    || normalizedTitle.includes("재범방지")
+    || normalizedTitle.includes("재발방지");
+}
+
+function isGenericDuiProduct(productId?: string | null) {
+  return ["basic", "dui", "dui-documents", "dui-prevention", "dui-prevention-basic"].includes(String(productId || ""));
+}
+
+export function getPreventionDocumentCategoryFromEnrollment(enrollment: PreventionDocumentsEnrollmentLike): PreventionDocumentCategory {
+  const courseId = enrollment.courseId || enrollment.canonicalCourseId;
+  if (courseId && !isGenericDuiProduct(courseId)) return getPreventionDocumentCategoryFromCourseId(courseId);
+  if (enrollment.productId && !isGenericDuiProduct(enrollment.productId)) return getPreventionDocumentCategoryFromProduct(enrollment.productId, enrollment.productTitle || enrollment.courseTitle);
+  return getPreventionDocumentCategoryFromProduct(enrollment.productId || courseId, enrollment.productTitle || enrollment.courseTitle);
+}
+
+export function isPreventionDocumentsEnrollment(enrollment: PreventionDocumentsEnrollmentLike) {
+  return hasPreventionDocumentsAccess(enrollment.productId || enrollment.courseId || enrollment.canonicalCourseId, enrollment.amount, enrollment.productTitle || enrollment.courseTitle);
 }
 
 export function getPreventionDocumentsApplyHref(category: PreventionDocumentCategory) {

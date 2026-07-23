@@ -12,10 +12,10 @@ import { trackEvent } from "@/lib/analytics/ga";
 import {
   buildDocumentIdentity,
   getPreventionDocument,
-  getPreventionDocumentCategoryFromCourseId,
+  getPreventionDocumentCategoryFromEnrollment,
   getPreventionDocumentsApplyHref,
   getPreventionDocumentsForCategory,
-  hasPreventionDocumentsAccess,
+  isPreventionDocumentsEnrollment,
   preventionDocumentCategoryLabels,
   type PreventionDocumentCategory,
   type PreventionDocumentIdentity,
@@ -186,7 +186,7 @@ function PreventionDocumentsContent() {
         const enrollments = adminAccess && adminTargetUid ? [] : await getVerifiedUserEnrollments(user, null);
         const profile = await getUserProfile(targetUid);
         const selectedFromType = getPreventionDocument(searchParams.get("type"), requestedCourseId);
-        const allowed = adminAccess || enrollments.some((item) => getPreventionDocumentCategoryFromCourseId(item.courseId) === selectedFromType.category && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
+        const allowed = adminAccess || enrollments.some((item) => isEnrollmentActive(item) && isPreventionDocumentsEnrollment(item) && getPreventionDocumentCategoryFromEnrollment(item) === selectedFromType.category);
         if (cancelled) return;
         setHasAccess(allowed);
         setIdentity(buildDocumentIdentity(profile));

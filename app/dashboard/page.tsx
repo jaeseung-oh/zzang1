@@ -10,7 +10,7 @@ import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { getVerifiedActiveUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
-import { getPreventionDocumentsForCourse, hasPreventionDocumentsAccess } from "@/lib/course/prevention-documents";
+import { getPreventionDocumentsForCourse, isPreventionDocumentsEnrollment } from "@/lib/course/prevention-documents";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -330,7 +330,7 @@ export default function DashboardPage() {
     : advancedEnrollmentRecord
       ? getEnrollmentCertificateCourseId(advancedEnrollmentRecord)
       : defaultCourse.id;
-  const documentFormEnrollments = displayEnrollments.filter((enrollment) => isEnrollmentActive(enrollment) && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle));
+  const documentFormEnrollments = displayEnrollments.filter((enrollment) => isEnrollmentActive(enrollment) && isPreventionDocumentsEnrollment(enrollment));
   const hasDocumentFormsAccess = adminPreview || documentFormEnrollments.length > 0;
   const primaryDocumentCourseId = documentFormEnrollments[0]?.courseId || defaultCourse.id;
   const primaryDocuments = getPreventionDocumentsForCourse(primaryDocumentCourseId);
@@ -430,7 +430,7 @@ export default function DashboardPage() {
                                   {document.title}
                                 </Link>
                               ))}
-                              {active && hasPreventionDocumentsAccess(enrollment.productId, enrollment.amount, enrollment.productTitle) ? getPreventionDocumentsForCourse(getEnrollmentCertificateCourseId(enrollment)).map((document) => (
+                              {active && isPreventionDocumentsEnrollment(enrollment) ? getPreventionDocumentsForCourse(getEnrollmentCertificateCourseId(enrollment)).map((document) => (
                                 <Link key={document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-950">
                                   {document.title}
                                 </Link>

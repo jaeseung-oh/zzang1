@@ -14,7 +14,7 @@ import { getUserProfile } from "@/lib/firebase/user-profile";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { getVerifiedUserEnrollments, isEnrollmentActive, resolveCourseId, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
-import { getPreventionDocumentsApplyHref, getPreventionDocumentsForCourse, hasPreventionDocumentsAccess, preventionDocumentCategoryLabels } from "@/lib/course/prevention-documents";
+import { getPreventionDocumentsApplyHref, getPreventionDocumentsForCourse, isPreventionDocumentsEnrollment, preventionDocumentCategoryLabels } from "@/lib/course/prevention-documents";
 import { trackCourseComplete, trackCourseStart } from "@/lib/analytics/ga";
 
 type SaveCourseProgressResponse = {
@@ -602,7 +602,7 @@ function CourseRoomPageContent() {
           allowed = isEnrollmentActive(enrollment);
         }
 
-        const documentFormsAllowed = enrollments.some((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item) && hasPreventionDocumentsAccess(item.productId, item.amount, item.productTitle));
+        const documentFormsAllowed = enrollments.some((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item) && isPreventionDocumentsEnrollment(item));
         setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
 
         if (!allowed) {
