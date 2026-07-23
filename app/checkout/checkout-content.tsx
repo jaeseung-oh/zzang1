@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { defaultCourse, getCourseDefinition } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
-import { duiDocumentsApplicationProduct, formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
+import { applicationCourseCategories, duiDocumentsApplicationProduct, formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
 import { getPreventionDocumentsForCourse } from "@/lib/course/prevention-documents";
 import { getCertificateIdentity, getUserProfile } from "@/lib/firebase/user-profile";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -113,7 +113,36 @@ export default function CheckoutContent() {
   const selectedPreviousPrice = selectedIsAdvanced ? "129,000원" : "69,000원";
   const hasPaymentConfig = Boolean(paymentConfig.storeId && selectedChannelKey);
   const hasActiveEnrollment = isEnrollmentActive(activeEnrollment);
-  const canSubmit = hasPaymentConfig && isMember && profileReady && !hasActiveEnrollment && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
+  const selectedCategoryAvailable = selectedCategory?.status === "available";
+  const canSubmit = hasPaymentConfig && selectedCategoryAvailable && isMember && profileReady && !hasActiveEnrollment && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
+
+  const replaceCheckoutSelectionUrl = (categoryId: string, productId: string) => {
+    const params = new URLSearchParams(window.location.search);
+    params.set("categoryId", categoryId);
+    params.set("productId", productId);
+    window.history.replaceState(null, "", window.location.pathname + "?" + params.toString());
+  };
+
+  const handleCheckoutCategorySelect = (categoryId: string) => {
+    const category = getApplicationCategory(categoryId);
+    if (!category || category.status !== "available") return;
+    const nextProductId = category.defaultProductId || category.products[0]?.id || defaultCheckoutProduct.id;
+    setSelectedCategoryId(category.id);
+    setSelectedProductId(nextProductId);
+    setActiveEnrollment(null);
+    setEnrollmentCheckFailed(false);
+    setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
+    replaceCheckoutSelectionUrl(category.id, nextProductId);
+  };
+
+  const handleCheckoutProductSelect = (productId: string) => {
+    if (!getApplicationProduct(selectedCategoryId, productId)) return;
+    setSelectedProductId(productId);
+    setActiveEnrollment(null);
+    setEnrollmentCheckFailed(false);
+    setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
+    replaceCheckoutSelectionUrl(selectedCategoryId, productId);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -405,6 +434,38 @@ export default function CheckoutContent() {
               </div>
             </div>
 
+            <div className="mt-5 sm:mt-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-slate-500">교육 과정 변경</p>
+                  <h3 className="mt-1 text-lg font-black text-slate-950">결제할 교육을 다시 선택할 수 있습니다</h3>
+                </div>
+                <p className="text-xs font-bold text-slate-500">현재 선택: {selectedCategory?.title}</p>
+              </div>
+              <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+                {applicationCourseCategories.map((category) => {
+                  const isSelected = selectedCategory?.id === category.id;
+                  const isUnavailable = category.status !== "available";
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      onClick={() => handleCheckoutCategorySelect(category.id)}
+                      disabled={isSubmitting || isUnavailable}
+                      aria-pressed={isSelected}
+                      className={`min-h-[104px] rounded-xl border-2 p-3 text-left transition focus:outline-none focus:ring-2 focus:ring-[#10213f] focus:ring-offset-2 ${isSelected ? "border-[#10213f] bg-[#10213f] text-white shadow-[0_14px_30px_rgba(16,33,63,0.18)]" : isUnavailable ? "cursor-not-allowed border-slate-200 bg-slate-100 text-slate-500 opacity-70" : "border-slate-200 bg-white text-slate-950 hover:border-[#10213f]/45 hover:bg-slate-50"}`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className={isSelected ? "text-sm font-black leading-snug text-white" : "text-sm font-black leading-snug text-slate-950"}>{category.title}</span>
+                        <span className={isSelected ? "rounded-full bg-white px-2 py-0.5 text-[11px] font-black text-[#10213f]" : isUnavailable ? "rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-black text-slate-500" : "rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600"}>{isUnavailable ? "준비중" : isSelected ? "선택됨" : "변경"}</span>
+                      </div>
+                      <p className={isSelected ? "mt-2 text-xs font-bold leading-5 text-slate-100" : "mt-2 text-xs font-bold leading-5 text-slate-600"}>{category.summary}</p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {selectedCategory ? (
               <div className="mt-5 sm:mt-6">
                 <p className="text-sm font-semibold text-slate-500">수강권 선택</p>
@@ -420,7 +481,7 @@ export default function CheckoutContent() {
                       <button
                         key={product.id}
                         type="button"
-                        onClick={() => setSelectedProductId(product.id)}
+                        onClick={() => handleCheckoutProductSelect(product.id)}
                         disabled={isSubmitting}
                         className={`min-h-[190px] rounded-2xl border-2 p-4 text-left transition focus:outline-none focus:ring-2 focus:ring-[#10213f] focus:ring-offset-2 sm:min-h-[220px] ${isSelected ? "border-[#10213f] bg-[#10213f] text-white shadow-[0_18px_42px_rgba(16,33,63,0.22)]" : isAdvancedProduct ? "border-[#173968]/50 bg-white text-slate-950 shadow-[0_16px_36px_rgba(23,57,104,0.10)] hover:border-[#10213f]" : "border-slate-200 bg-white text-slate-950 hover:border-[#10213f]/45 hover:bg-slate-50"}`}
                         aria-pressed={isSelected}
@@ -593,8 +654,8 @@ export default function CheckoutContent() {
             {isInitializing ? <p className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">주문서를 준비하는 중입니다...</p> : null}
             {!isInitializing && !isMember ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">로그인 및 회원가입 후 결제를 진행할 수 있습니다.</p> : null}
             {!isInitializing && isMember && !profileReady ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">수료증에 출력될 실명과 생년월일을 회원정보에 먼저 저장해 주세요.</p> : null}
+            {!isInitializing && !selectedCategoryAvailable ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">준비중인 과정은 아직 결제할 수 없습니다.</p> : null}
             {!isInitializing && !hasPaymentConfig ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">결제 설정 확인이 필요합니다. 잠시 후 다시 시도해 주세요.</p> : null}
-            {enrollmentCheckFailed ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">{ENROLLMENT_LOOKUP_FAILURE_MESSAGE}</p> : null}
             {hasActiveEnrollment ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900"><p className="font-bold">이미 결제 완료된 수강권이 있습니다.</p><p>중복 결제를 막기 위해 결제 버튼을 비활성화했습니다.</p><div className="mt-3 flex flex-wrap gap-2"><Link href="/course-room/?v=202607161010" className={buttonClass("primary", "sm", "rounded-full px-4 font-bold")}>강의실로 이동</Link><Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full px-4 font-bold")}>수료증 출력</Link></div></div> : null}
 
             <button type="button" onClick={() => void handleRequestPayment()} disabled={!canSubmit} className={buttonClass("primary", "lg", "mt-5 w-full rounded-xl font-bold disabled:opacity-100")}>
