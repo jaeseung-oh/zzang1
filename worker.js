@@ -1231,6 +1231,32 @@ async function hasOperationalCourseEntitlement(env, firebaseUser, courseId) {
     return { allowed: true, allowedBy: saved ? 'payment_auto_recovery' : 'payment', enrollment: saved || null };
 }
 
+function getKnownEnrollmentCourseIds() {
+    const ids = new Set(Object.keys(COURSE_PRODUCTS_BY_ID));
+    Object.values(APPLICATION_PRODUCTS).forEach((product) => {
+        if (product?.courseId) ids.add(product.courseId);
+        if (product?.canonicalCourseId) ids.add(product.canonicalCourseId);
+    });
+    return Array.from(ids).filter(Boolean);
+}
+
+async function getWorkerDirectEnrollmentRecordsForUser(env, uid) {
+    const courseIds = getKnownEnrollmentCourseIds();
+    const reads = courseIds.flatMap((courseId) => {
+        const rootId = uid + '_' + courseId;
+        return [
+            firestoreGet(env, firestoreDocumentPath(env, 'enrollments', rootId))
+                .then((raw) => ({ id: rootId, documentPath: firestoreDocumentPath(env, 'enrollments', rootId), ...fromFirestoreFields(raw.fields || {}), recordSource: 'root_direct' }))
+                .catch((error) => error.status === 404 ? null : Promise.reject(error)),
+            firestoreGet(env, firestoreDocumentPath(env, 'users/' + uid + '/enrollments', courseId))
+                .then((raw) => ({ id: courseId, documentPath: firestoreDocumentPath(env, 'users/' + uid + '/enrollments', courseId), ...fromFirestoreFields(raw.fields || {}), recordSource: 'nested_direct' }))
+                .catch((error) => error.status === 404 ? null : Promise.reject(error))
+        ];
+    });
+    const rows = await Promise.all(reads);
+    return rows.filter(Boolean);
+}
+
 async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
     const uid = firebaseUser.uid;
     const normalizedEmail = String(firebaseUser.email || '').trim().toLowerCase();
@@ -1240,7 +1266,11 @@ async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
         return rowUid === uid || (normalizedEmail && rowEmail === normalizedEmail);
     };
 
-    const [allEnrollments, allPurchases, allPayments, allOrders] = await Promise.all([
+    const [directEnrollments, listedEnrollments, allPurchases, allPayments, allOrders] = await Promise.all([
+        getWorkerDirectEnrollmentRecordsForUser(env, uid).catch((error) => {
+            logEnrollmentWorkerEvent('enrollment_direct_lookup_failed', { uid: maskLogIdentifier(uid), message: error instanceof Error ? error.message : String(error) });
+            return [];
+        }),
         firestoreList(env, 'enrollments').catch((error) => {
             logEnrollmentWorkerEvent('enrollment_full_list_failed', { uid: maskLogIdentifier(uid), message: error instanceof Error ? error.message : String(error) });
             return [];
@@ -1249,6 +1279,7 @@ async function getWorkerAllActiveEnrollmentRecords(env, firebaseUser) {
         firestoreList(env, 'payments').catch(() => []),
         firestoreList(env, 'orders').catch(() => [])
     ]);
+    const allEnrollments = [...directEnrollments, ...listedEnrollments];
 
     const byCourse = new Map();
     const addEnrollment = (enrollment) => {
@@ -1931,6 +1962,9 @@ async function grantCourseAccess(env, input) {
         updatedAt: nowIso
     };
     await firestorePatch(env, enrollmentPath, record);
+    if (sourceType === 'MANUAL') {
+        await firestorePatch(env, firestoreDocumentPath(env, 'users/' + uid + '/enrollments', canonicalCourseId), { ...record, id: canonicalCourseId, enrollmentId });
+    }
     const saved = await firestoreGetData(env, 'enrollments', enrollmentId);
     const decision = getEnrollmentAccessDecision(saved, uid, canonicalCourseId);
     if (!decision.allowed) {
@@ -3394,6 +3428,7 @@ async function ensureManualIncludedBaseEnrollment(env, uid, sourceProduct, sourc
         updatedAt: nowIso
     };
     await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), record);
+    await firestorePatch(env, firestoreDocumentPath(env, 'users/' + uid + '/enrollments', baseProduct.courseId), { ...record, id: baseProduct.courseId });
     await savePaymentLog(env, record.enrollmentId, {
         type: 'admin_manual_included_base_enrollment_granted',
         paymentId: null,
