@@ -70,6 +70,29 @@ async function blobToDataUrl(blob: Blob) {
   });
 }
 
+function canvasSafeColor(value: string | null | undefined, fallback: string) {
+  if (!value) return fallback;
+  return /oklch|oklab|\blch\(|\blab\(|color\(/i.test(value) ? fallback : value;
+}
+
+export function normalizeCanvasColors(root: HTMLElement) {
+  [root, ...Array.from(root.querySelectorAll<HTMLElement>("*"))].forEach((element) => {
+    const computed = window.getComputedStyle(element);
+    element.style.color = canvasSafeColor(computed.color, "#0f172a");
+    element.style.backgroundColor = canvasSafeColor(computed.backgroundColor, "transparent");
+    element.style.borderColor = canvasSafeColor(computed.borderColor, "transparent");
+    element.style.borderTopColor = canvasSafeColor(computed.borderTopColor, "transparent");
+    element.style.borderRightColor = canvasSafeColor(computed.borderRightColor, "transparent");
+    element.style.borderBottomColor = canvasSafeColor(computed.borderBottomColor, "transparent");
+    element.style.borderLeftColor = canvasSafeColor(computed.borderLeftColor, "transparent");
+    element.style.outlineColor = canvasSafeColor(computed.outlineColor, "transparent");
+    element.style.textDecorationColor = "currentColor";
+    element.style.backgroundImage = "none";
+    element.style.boxShadow = "none";
+    element.style.textShadow = "none";
+  });
+}
+
 export async function inlineImages(root: HTMLElement) {
   const images = Array.from(root.querySelectorAll("img"));
   await Promise.all(images.map(async (image) => {

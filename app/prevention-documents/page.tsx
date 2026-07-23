@@ -22,7 +22,7 @@ import {
   type PreventionDocumentKind,
 } from "@/lib/course/prevention-documents";
 import { centerLogoPath } from "@/app/components/SealStamp";
-import { createPdfFromJpeg, downloadBlob, formatCompactDate, inlineImages, sanitizeFilePart } from "@/lib/pdf-client";
+import { createPdfFromJpeg, downloadBlob, formatCompactDate, inlineImages, normalizeCanvasColors, sanitizeFilePart } from "@/lib/pdf-client";
 
 const blank = "____________";
 const exampleNotice = "본 자료는 참고용 작성자료입니다. 그대로 제출하기보다 반드시 본인의 실제 사건 경위, 생활환경, 반성 내용, 재발방지 실천계획에 맞게 자필로 수정·보완하여 작성해 주세요.";
@@ -242,6 +242,8 @@ function PreventionDocumentsContent() {
     snapshot.style.overflow = "hidden";
     snapshot.style.backgroundColor = "#ffffff";
     snapshot.style.color = "#0f172a";
+
+    normalizeCanvasColors(snapshot);
 
     [snapshot, ...Array.from(snapshot.querySelectorAll<HTMLElement>("*"))].forEach((element) => {
       element.style.boxShadow = "none";

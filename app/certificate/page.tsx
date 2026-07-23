@@ -12,7 +12,7 @@ import SealStamp, { centerLogoPath, sealStampPath } from "@/app/components/SealS
 import { getVerifiedActiveUserEnrollments, hasCourseAccess, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { trackEvent } from "@/lib/analytics/ga";
 import { buttonClass } from "@/app/components/ui/button-styles";
-import { createPdfFromJpeg, downloadBlob, formatCompactDate, inlineImages, sanitizeFilePart } from "@/lib/pdf-client";
+import { createPdfFromJpeg, downloadBlob, formatCompactDate, inlineImages, normalizeCanvasColors, sanitizeFilePart } from "@/lib/pdf-client";
 
 const issuerFallback = "리셋에듀센터";
 
@@ -634,13 +634,13 @@ function CertificatePageContent() {
     snapshot.style.color = "#0f172a";
     snapshot.style.borderColor = "#d9c08a";
 
+    normalizeCanvasColors(snapshot);
+
     [snapshot, ...Array.from(snapshot.querySelectorAll<HTMLElement>("*"))].forEach((element) => {
       element.style.color = "#0f172a";
       element.style.backgroundColor = "transparent";
       element.style.borderColor = "transparent";
       element.style.outlineColor = "transparent";
-      element.style.textDecorationColor = "currentColor";
-      element.style.boxShadow = "none";
     });
 
     const inner = snapshot.querySelector<HTMLElement>(".certificate-inner");
