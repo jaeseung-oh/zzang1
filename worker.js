@@ -3495,6 +3495,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
     const productId = String(body?.productId || 'basic').trim();
     const requestedCourseId = String(body?.courseId || '').trim();
     const requestedCategoryId = String(body?.categoryId || '').trim();
+    const requestedUserEmail = String(body?.userEmail || body?.email || body?.customerEmail || '').trim().toLowerCase();
     const note = String(body?.note || body?.adminMemo || '').trim();
     const grantType = 'MANUAL';
     const grantReason = note || '관리자 수동 수강권 지급';
@@ -3526,7 +3527,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
                 const extensionDays = Number(body?.extensionDays || getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
                 const extensionBase = existingExpiresAt > Date.now() ? existingExpiresAt : Date.now();
                 const expiresAt = new Date(extensionBase + Math.max(1, extensionDays) * 24 * 60 * 60 * 1000).toISOString();
-                const patch = { expiresAt, accessEndsAt: expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장', ...(existingIsManual ? getManualEnrollmentCompatibilityPatch(admin, note, nowIso) : {}) };
+                const patch = { expiresAt, accessEndsAt: expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장', ...(requestedUserEmail ? { userEmail: requestedUserEmail, email: requestedUserEmail } : {}), ...(existingIsManual ? getManualEnrollmentCompatibilityPatch(admin, note, nowIso) : {}) };
                 await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), patch);
                 if (existingIsManual) await mirrorManualEnrollmentToUser(env, uid, courseId, { ...existing, ...patch, uid, userId: uid, courseId, enrollmentId });
                 await saveAdminAuditLog(env, request, admin, 'enrollment.extend', 'enrollments', enrollmentId, existing, patch, note || '중복 수강권 기간 연장');
@@ -3534,7 +3535,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             }
             if (existingIsManual || duplicateResolution === 'keep') {
                 const nowIso = new Date().toISOString();
-                const patch = existingIsManual ? getManualEnrollmentCompatibilityPatch(admin, note, nowIso) : { updatedAt: nowIso };
+                const patch = { ...(existingIsManual ? getManualEnrollmentCompatibilityPatch(admin, note, nowIso) : { updatedAt: nowIso }), ...(requestedUserEmail ? { userEmail: requestedUserEmail, email: requestedUserEmail } : {}) };
                 if (existingIsManual) {
                     await firestorePatch(env, firestoreDocumentPath(env, 'enrollments', enrollmentId), patch);
                     await mirrorManualEnrollmentToUser(env, uid, courseId, { ...existing, ...patch, uid, userId: uid, courseId, enrollmentId });
@@ -3603,6 +3604,8 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         enrollmentId,
         uid,
         userId: uid,
+        userEmail: requestedUserEmail || null,
+        email: requestedUserEmail || null,
         courseId,
         courseTitle: product.courseTitle,
         categoryId,

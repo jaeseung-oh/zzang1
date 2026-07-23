@@ -786,11 +786,11 @@ function ManualEnrollmentGrantPanel({ users = [], onRefresh }: { users?: AnyReco
       const response = await fetch(baseUrl + "/api/admin/enrollments/grant", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-        body: JSON.stringify({ uid: uid.trim(), productId, courseId: selectedProduct?.courseId, categoryId: selectedProduct?.categoryId, amount: Number(amount) || undefined, note: note.trim() || undefined, adminMemo: note.trim() || undefined, duplicateResolution, startsAt, expiresAt, active }),
+        body: JSON.stringify({ uid: uid.trim(), userEmail: selectedMember?.email || undefined, email: selectedMember?.email || undefined, productId, courseId: selectedProduct?.courseId, categoryId: selectedProduct?.categoryId, amount: Number(amount) || undefined, note: note.trim() || undefined, adminMemo: note.trim() || undefined, duplicateResolution, startsAt, expiresAt, active }),
       });
       const payload = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(payload?.message || "수강권 수동 지급에 실패했습니다.");
-      setStatus((payload?.message || "수강권이 수동 지급되었습니다.") + (payload?.enrollmentId ? " (" + payload.enrollmentId + ")" : ""));
+      setStatus((payload?.message || "수강권이 수동 지급되었습니다.") + (payload?.enrollmentId ? " (" + payload.enrollmentId + ")" : "") + (payload?.uid ? " / UID " + payload.uid : ""));
       await Promise.resolve(onRefresh());
     } catch (error) {
       console.error(error);
