@@ -277,6 +277,32 @@ function logDashboardEnrollmentEvent(event: string, details: Record<string, unkn
   console.info("[enrollments:frontend]", { event, ...details });
 }
 
+function getEnrollmentMergeKey(row: EnrollmentRecord) {
+  const meta = row as EnrollmentRecord & { planId?: string; enrollmentId?: string; id?: string };
+  return [row.courseId || "", row.canonicalCourseId || "", row.productId || "", meta.planId || "", meta.enrollmentId || meta.id || ""].join(":");
+}
+
+function mergeEnrollmentRecords(primary: EnrollmentRecord[], fallback: EnrollmentRecord[]) {
+  const merged = new Map<string, EnrollmentRecord>();
+  [...fallback, ...primary].forEach((row) => {
+    const key = getEnrollmentMergeKey(row);
+    const existing = merged.get(key);
+    if (!existing || isEnrollmentActive(row) || !isEnrollmentActive(existing)) merged.set(key, row);
+  });
+  return Array.from(merged.values());
+}
+
+async function getFirestoreEnrollmentFallback(userId: string, maskedUid: string, courseId: string) {
+  try {
+    const rows = await getUserEnrollments(userId);
+    logDashboardEnrollmentEvent("enrollments_firestore_fallback", { uid: maskedUid, courseId, count: rows.length });
+    return rows;
+  } catch (error) {
+    logDashboardEnrollmentEvent("enrollments_firestore_fallback_failed", { uid: maskedUid, courseId, message: error instanceof Error ? error.message : String(error) });
+    return [];
+  }
+}
+
 type EnrollmentsApiFailureKind = "auth" | "forbidden" | "not_found" | "server" | "network" | "config" | "invalid_response";
 
 class EnrollmentsApiError extends Error {
@@ -353,7 +379,12 @@ export async function getVerifiedUserEnrollments(user: User, courseIdOrCategory:
       if (!Array.isArray(payload.enrollments)) {
         throw new EnrollmentsApiError("수강권 조회 API 응답에 enrollments 배열이 없습니다.", "invalid_response", response.status, "INVALID_PAYLOAD");
       }
-      return payload.enrollments as EnrollmentRecord[];
+      const apiRows = payload.enrollments as EnrollmentRecord[];
+      const firestoreRows = await getFirestoreEnrollmentFallback(user.uid, maskedUid, courseId);
+      const mergedRows = mergeEnrollmentRecords(apiRows, firestoreRows);
+      const resultRows = requestAllCourses ? mergedRows : mergedRows.filter((row) => resolveCourseId(row.courseId) === courseId || resolveCourseId(row.canonicalCourseId || "") === courseId || row.productId === courseId);
+      logDashboardEnrollmentEvent("enrollments_merged_response", { uid: maskedUid, courseId, apiCount: apiRows.length, firestoreCount: firestoreRows.length, count: resultRows.length });
+      return resultRows;
     } catch (cause) {
       const error = cause instanceof EnrollmentsApiError
         ? cause
@@ -374,17 +405,17 @@ export async function getVerifiedUserEnrollments(user: User, courseIdOrCategory:
     }
   }
 
-  // Explicit development-only compatibility path. Production access decisions
-  // are made exclusively by the Worker API.
-  const rows = await getUserEnrollments(user.uid);
+  // Compatibility path for cases where the Worker lookup misses an existing owner-readable enrollment.
+  const rows = await getFirestoreEnrollmentFallback(user.uid, maskedUid, courseId);
+  if (rows.length === 0 && !allowFirestoreFallback) throw new EnrollmentsApiError("수강권 조회 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", "server");
   if (requestAllCourses) {
     const activeRows = rows.filter(isEnrollmentActive);
-    logDashboardEnrollmentEvent("enrollments_api_development_fallback", { uid: maskedUid, courseId, count: activeRows.length });
+    logDashboardEnrollmentEvent("enrollments_fallback_response", { uid: maskedUid, courseId, count: activeRows.length });
     return activeRows;
   }
   const operatingEnrollment = rows.find((row) => row.courseId === courseId) ?? await getUserEnrollment(user.uid, courseId);
   const merged = operatingEnrollment && !rows.some((row) => row.courseId === courseId) ? [...rows, operatingEnrollment] : rows;
-  logDashboardEnrollmentEvent("enrollments_api_development_fallback", { uid: maskedUid, courseId, count: merged.length });
+  logDashboardEnrollmentEvent("enrollments_fallback_response", { uid: maskedUid, courseId, count: merged.length });
   return merged;
 }
 
