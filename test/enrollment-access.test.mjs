@@ -34,6 +34,11 @@ test('MANUAL enrollment allows course access without payment fields', () => {
   assert.equal(getEnrollmentAccessDecision(enrollment, 'user_1', 'dui-prevention-basic').allowed, true);
 });
 
+test('legacy adminGranted enrollment is treated as manual access', () => {
+  const enrollment = { ...base, sourceType: '', paymentStatus: null, paymentId: null, orderId: null, adminGranted: true };
+  assert.equal(getEnrollmentAccessDecision(enrollment, 'user_1', 'dui-prevention-basic').allowed, true);
+});
+
 test('different courseId is denied', () => {
   const enrollment = { ...base, sourceType: 'MANUAL' };
   const decision = getEnrollmentAccessDecision(enrollment, 'user_1', 'violence-basic');

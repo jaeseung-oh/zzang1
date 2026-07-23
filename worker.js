@@ -3451,7 +3451,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
             const duplicateResolution = String(body?.duplicateResolution || 'keep').trim();
             if (duplicateResolution === 'extend') {
                 const nowIso = new Date().toISOString();
-                const extensionDays = Number(body?.extensionDays || getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
+                const extensionDays = Number(body?.extensionDays || getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays);
                 const extensionBase = existingExpiresAt > Date.now() ? existingExpiresAt : Date.now();
                 const expiresAt = new Date(extensionBase + Math.max(1, extensionDays) * 24 * 60 * 60 * 1000).toISOString();
                 const patch = { expiresAt, updatedAt: nowIso, extendedAt: nowIso, extendedBy: admin.email || admin.uid, adminUpdateReason: note || '중복 수강권 부여 요청에 따른 기간 연장' };
@@ -3465,7 +3465,7 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
 
     const nowIso = new Date().toISOString();
     const startsAt = requestedStartsAt || nowIso;
-    const expiresAt = requestedExpiresAt || new Date(new Date(startsAt).getTime() + (getCourseProduct(canonicalCourseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
+    const expiresAt = requestedExpiresAt || new Date(new Date(startsAt).getTime() + (getCourseProduct(courseId)?.durationDays || DUI_COURSE_PRODUCT.durationDays) * 24 * 60 * 60 * 1000).toISOString();
     if (!Number.isFinite(new Date(startsAt).getTime()) || !Number.isFinite(new Date(expiresAt).getTime()) || new Date(expiresAt).getTime() <= new Date(startsAt).getTime()) {
         return json({ message: '수강 시작일 또는 종료일이 올바르지 않습니다.', code: 'INVALID_ACCESS_PERIOD' }, 400, corsHeaders);
     }
@@ -3490,6 +3490,10 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         accessEndsAt: expiresAt,
         paymentStatus: null,
         sourceType: grantType,
+        grantType,
+        issueType: grantType,
+        manualGrant: true,
+        grantReason: 'ADMIN_MANUAL',
         status: accessStatus,
         isActive: accessStatus === 'active',
         enrollmentStatus: accessStatus,
@@ -3499,8 +3503,6 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         totalLessons: product.totalLessons,
         certificateIssued: false,
         certificateIssuedAt: null,
-        grantType,
-        issueType: grantType,
         adminGranted: true,
         adminGrantReason: grantReason,
         adminMemo: note || '',
@@ -3522,6 +3524,10 @@ async function handleAdminEnrollmentGrant(request, env, corsHeaders) {
         productId,
         productTitle: product.title,
         sourceType: grantType,
+        grantType,
+        issueType: grantType,
+        manualGrant: true,
+        grantReason: 'ADMIN_MANUAL',
         status: accessStatus,
         isActive: accessStatus === 'active',
         startsAt,

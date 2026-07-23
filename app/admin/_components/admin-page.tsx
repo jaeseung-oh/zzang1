@@ -183,6 +183,12 @@ function getPaymentState(payments: AnyRecord[]) {
   return payments.length ? "결제대기" : "기록 없음";
 }
 
+function isManualEnrollment(row: AnyRecord) {
+  const sourceType = String(row.sourceType || row.grantType || row.issueType || row.source || "").toUpperCase();
+  const grantReason = String(row.grantReason || row.adminGrantReason || row.recoveredFrom || "").toUpperCase();
+  return Boolean(row.manualGrant || row.adminGranted || sourceType === "MANUAL" || grantReason === "ADMIN_MANUAL");
+}
+
 function getEntitlementState(enrollments: AnyRecord[]) {
   if (!enrollments.length) return "미발급";
   if (enrollments.some(isActiveEnrollment)) return "활성";
@@ -221,7 +227,7 @@ function getUserCrmBundle(uid: string, data: AdminDataset) {
   const primaryAccess = enrollments[0] || payments[0] || {};
   const issues: string[] = [];
   if (payments.some(isPaidRecord) && !enrollments.some(isActiveEnrollment)) issues.push("결제완료 + 수강권 없음");
-  if (enrollments.some(isActiveEnrollment) && !payments.some(isPaidRecord) && !enrollments.some((row) => row.manualGrant || row.grantReason === "ADMIN_MANUAL" || row.grantReason === "RESTORE")) issues.push("결제 없는 수강권");
+  if (enrollments.some(isActiveEnrollment) && !payments.some(isPaidRecord) && !enrollments.some((row) => isManualEnrollment(row) || row.grantReason === "RESTORE")) issues.push("결제 없는 수강권");
   if (payments.some(isFailedPayment) && enrollments.some(isActiveEnrollment)) issues.push("결제 실패 + 수강권 활성");
   if (payments.some(isRefundRecord) && enrollments.some(isActiveEnrollment)) issues.push("환불/취소 + 수강권 활성");
   const activeKeys = new Set(enrollments.filter(isActiveEnrollment).map((row) => String(row.courseId || "") + ":" + String(row.productId || "") + ":" + String(row.planId || "")));
@@ -800,7 +806,7 @@ function EnrollmentsView(ctx: any) {
   const sorted = rows.sort((a: AnyRecord, b: AnyRecord) => (toDate(b.purchasedAt || b.createdAt)?.getTime() || 0) - (toDate(a.purchasedAt || a.createdAt)?.getTime() || 0)); const pager = usePagination(sorted); const selected = sorted.find((row: AnyRecord) => row.id === ctx.selectedId); useEffect(() => { ctx.setMemo(selected?.adminMemo || ""); }, [selected?.id]);
   return <section><ManualEnrollmentGrantPanel users={ctx.data.users} onRefresh={ctx.refresh} /><AdminToolbar search={ctx.search} setSearch={ctx.setSearch} filter={ctx.filter} setFilter={ctx.setFilter} filters={["전체 수강권", "활성 수강권", "만료 예정", "수동 부여", "수강권 복구", "결제 없는 수강권", "결제 후 미발급 수강권", "수료증 발급 완료", "수료증 미발급", "환불 가능", "환불 불가"]} onRefresh={ctx.refresh} onCsv={() => downloadCsv("admin-enrollments.csv", sorted)} /><DataTable rows={pager.paged} columns={[{ key: "id", label: "수강권 ID" }, { key: "userName", label: "사용자명" }, { key: "email", label: "이메일" }, { key: "courseTitle", label: "과정명" }, { key: "purchasedAt", label: "결제일", render: (r) => formatDate(r.purchasedAt) }, { key: "createdAt", label: "시작일", render: (r) => formatDate(r.createdAt || r.purchasedAt) }, { key: "expiresAt", label: "만료일", render: (r) => formatDate(r.expiresAt) }, { key: "leftDays", label: "남은 수강일", render: (r) => r.leftDays === null ? "-" : `${r.leftDays}일` }, { key: "accessStatus", label: "상태" }, { key: "progressRate", label: "진행률", render: (r) => `${r.progressRate}%` }, { key: "completedLessons", label: "완료/전체", render: (r) => `${r.completedLessons}/${r.totalLessons || 5}` }, { key: "certificateIssued", label: "수료증", render: (r) => r.certificateIssued ? "발급" : "미발급" }, { key: "refundAmount", label: "환불예상", align: "right", render: (r) => formatKrw(r.refundAmount) }, { key: "detail", label: "상세", render: (r) => <button onClick={() => ctx.setSelectedId(r.id)} className="font-semibold text-[#173968] underline">보기</button> }]} /><Pagination {...pager} />{selected ? <EnrollmentDetail selected={selected} ctx={ctx} /> : null}</section>;
 }
-function filterEnrollment(row: AnyRecord, filter: string) { if (filter === "활성 수강권") return isActiveEnrollment(row) && !row.expired; if (filter === "만료 예정") return row.leftDays !== null && row.leftDays >= 0 && row.leftDays <= 14; if (filter === "수동 부여") return row.manualGrant || row.grantReason === "ADMIN_MANUAL"; if (filter === "수강권 복구") return row.grantReason === "RESTORE" || row.restoredAt; if (filter === "결제 없는 수강권") return isActiveEnrollment(row) && !(row.orderId || row.paymentId); if (filter === "결제 후 미발급 수강권") return false; if (filter === "수료증 발급 완료") return row.certificateIssued; if (filter === "수료증 미발급") return !row.certificateIssued; if (filter === "환불 가능") return row.refundable; if (filter === "환불 불가") return !row.refundable; return true; }
+function filterEnrollment(row: AnyRecord, filter: string) { if (filter === "활성 수강권") return isActiveEnrollment(row) && !row.expired; if (filter === "만료 예정") return row.leftDays !== null && row.leftDays >= 0 && row.leftDays <= 14; if (filter === "수동 부여") return isManualEnrollment(row); if (filter === "수강권 복구") return row.grantReason === "RESTORE" || row.restoredAt; if (filter === "결제 없는 수강권") return isActiveEnrollment(row) && !(row.orderId || row.paymentId); if (filter === "결제 후 미발급 수강권") return false; if (filter === "수료증 발급 완료") return row.certificateIssued; if (filter === "수료증 미발급") return !row.certificateIssued; if (filter === "환불 가능") return row.refundable; if (filter === "환불 불가") return !row.refundable; return true; }
 function EnrollmentActionPanel({ selected, onRefresh }: { selected: AnyRecord; onRefresh: () => void }) {
   const [reason, setReason] = useState("운영 관리자 처리");
   const [extensionDays, setExtensionDays] = useState(30);
