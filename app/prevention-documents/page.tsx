@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getVerifiedUserEnrollments, isEnrollmentActive } from "@/lib/course/enrollment-service";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
@@ -22,6 +22,7 @@ import {
   type PreventionDocumentKind,
 } from "@/lib/course/prevention-documents";
 import { centerLogoPath } from "@/app/components/SealStamp";
+import { createPdfFromJpeg, downloadBlob, formatCompactDate, inlineImages, sanitizeFilePart } from "@/lib/pdf-client";
 
 const blank = "____________";
 const exampleNotice = "본 자료는 참고용 작성자료입니다. 그대로 제출하기보다 반드시 본인의 실제 사건 경위, 생활환경, 반성 내용, 재발방지 실천계획에 맞게 자필로 수정·보완하여 작성해 주세요.";
@@ -174,6 +175,8 @@ function PreventionDocumentsContent() {
   const [error, setError] = useState("");
   const [identity, setIdentity] = useState<PreventionDocumentIdentity>({ name: "", birthDate: "", phoneNumber: "", address: "", writtenDate: "" });
   const [hasAccess, setHasAccess] = useState(false);
+  const [pdfSaving, setPdfSaving] = useState(false);
+  const documentPaperRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -211,15 +214,90 @@ function PreventionDocumentsContent() {
     return () => { cancelled = true; };
   }, [router, searchParams, requestedCourseId]);
 
-  const printDocument = (mode: "print" | "pdf") => {
-    trackEvent("material_download", { method: mode, material_id: selected.id, material_name: selected.title });
+  const printDocument = () => {
+    trackEvent("material_download", { method: "print", material_id: selected.id, material_name: selected.title });
     const previousTitle = document.title;
     document.title = selected.title.replace(/\s+/g, "_");
-    window.setTimeout(() => window.print(), mode === "pdf" ? 80 : 0);
+    window.setTimeout(() => window.print(), 0);
     window.setTimeout(() => { document.title = previousTitle; }, 800);
   };
 
-  return <main className="min-h-screen bg-[#eef3f8] px-4 py-8 text-slate-950 print:bg-white print:p-0"><style>{printStyles}</style><div className="mx-auto max-w-5xl"><div className="no-print mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-[#274690]">{preventionDocumentCategoryLabels[selected.category]} 작성자료</p><h1 className="mt-1 text-3xl font-bold">{selected.title}</h1><p className="mt-2 text-sm text-slate-600">{selected.description}</p><p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-950">{exampleNotice}</p></div><div className="flex flex-wrap gap-2"><Link href="/course-room/?v=202607161010" className={buttonClass("secondary", "sm", "rounded-full")}>수강실로 이동</Link><button type="button" disabled={!hasAccess} onClick={() => printDocument("print")} className={buttonClass("warning", "sm", "rounded-full font-bold disabled:opacity-60")}>인쇄하기</button><button type="button" disabled={!hasAccess} onClick={() => printDocument("pdf")} className={buttonClass("primary", "sm", "rounded-full font-bold disabled:opacity-60")}>PDF 저장</button></div></div><div className="no-print mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-5"><label className="text-sm font-semibold text-slate-700">성명<input value={identity.name} onChange={(e) => setIdentity({ ...identity, name: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label><label className="text-sm font-semibold text-slate-700">생년월일<input value={identity.birthDate} onChange={(e) => setIdentity({ ...identity, birthDate: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label><label className="text-sm font-semibold text-slate-700">연락처<input value={identity.phoneNumber} onChange={(e) => setIdentity({ ...identity, phoneNumber: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">주소<input value={identity.address} onChange={(e) => setIdentity({ ...identity, address: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label></div><div className="no-print mb-5 flex flex-wrap gap-2">{categoryDocuments.map((doc) => <Link key={doc.id} href={"/prevention-documents?type=" + encodeURIComponent(doc.id)} className={doc.id === selected.id ? buttonClass("primary", "sm", "rounded-full") : buttonClass("secondary", "sm", "rounded-full")}>{doc.title}</Link>)}</div>{loading ? <p className="no-print rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">작성자료 이용 권한을 확인하는 중입니다...</p> : null}{error && !loading ? <p className="no-print rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</p> : null}{hasAccess ? <article className="document-print-area document-paper relative mx-auto max-w-[210mm] overflow-hidden bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-200"><img src={centerLogoPath} alt="" aria-hidden="true" className="document-watermark pointer-events-none absolute left-1/2 top-[44%] z-0 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 select-none object-contain" /><div className="relative z-10"><DocumentBody category={selected.category} kind={selected.kind} identity={identity} /></div></article> : null}</div></main>;
+  const renderDocumentPdfImage = async () => {
+    const paper = documentPaperRef.current;
+    if (!paper) throw new Error("저장할 작성자료 정보가 없습니다.");
+
+    const { default: html2canvas } = await import("html2canvas");
+    const snapshot = paper.cloneNode(true) as HTMLElement;
+    snapshot.style.position = "fixed";
+    snapshot.style.left = "-10000px";
+    snapshot.style.top = "0";
+    snapshot.style.pointerEvents = "none";
+    snapshot.style.width = "210mm";
+    snapshot.style.maxWidth = "210mm";
+    snapshot.style.minHeight = "297mm";
+    snapshot.style.margin = "0";
+    snapshot.style.padding = "14mm";
+    snapshot.style.boxShadow = "none";
+    snapshot.style.borderRadius = "0";
+    snapshot.style.overflow = "hidden";
+    snapshot.style.backgroundColor = "#ffffff";
+    snapshot.style.color = "#0f172a";
+
+    [snapshot, ...Array.from(snapshot.querySelectorAll<HTMLElement>("*"))].forEach((element) => {
+      element.style.boxShadow = "none";
+      element.style.textDecorationColor = "currentColor";
+    });
+
+    snapshot.querySelectorAll<HTMLElement>("section").forEach((section) => {
+      section.style.breakInside = "avoid";
+    });
+    snapshot.querySelectorAll<HTMLElement>("p, li").forEach((text) => {
+      text.style.wordBreak = "keep-all";
+      text.style.overflowWrap = "normal";
+    });
+
+    document.body.appendChild(snapshot);
+    try {
+      await inlineImages(snapshot);
+      await document.fonts.ready;
+      const canvas = await html2canvas(snapshot, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+        useCORS: false,
+        allowTaint: false,
+        logging: false,
+        width: snapshot.offsetWidth,
+        height: snapshot.offsetHeight,
+        windowWidth: snapshot.offsetWidth,
+        windowHeight: snapshot.offsetHeight,
+      });
+      const blob = await new Promise<Blob>((resolve, reject) => canvas.toBlob((value) => value ? resolve(value) : reject(new Error("PDF 이미지를 생성하지 못했습니다.")), "image/jpeg", 0.95));
+      return { bytes: new Uint8Array(await blob.arrayBuffer()), width: canvas.width, height: canvas.height };
+    } finally {
+      snapshot.remove();
+    }
+  };
+
+  const savePdfFile = async () => {
+    if (!hasAccess || pdfSaving) return;
+    setPdfSaving(true);
+    setError("");
+    try {
+      trackEvent("material_download", { method: "pdf", material_id: selected.id, material_name: selected.title });
+      const image = await renderDocumentPdfImage();
+      const pdfBlob = createPdfFromJpeg(image.bytes, image.width, image.height);
+      const safeName = sanitizeFilePart(identity.name || "회원");
+      const safeDocument = sanitizeFilePart(selected.title);
+      downloadBlob(pdfBlob, `${safeName}_${safeDocument}_${formatCompactDate(new Date())}.pdf`);
+    } catch (downloadError) {
+      console.error(downloadError);
+      setError(downloadError instanceof Error ? downloadError.message : "PDF 파일 저장 중 오류가 발생했습니다.");
+    } finally {
+      setPdfSaving(false);
+    }
+  };
+
+  return <main className="min-h-screen bg-[#eef3f8] px-4 py-8 text-slate-950 print:bg-white print:p-0"><style>{printStyles}</style><div className="mx-auto max-w-5xl"><div className="no-print mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"><div><p className="text-sm font-semibold text-[#274690]">{preventionDocumentCategoryLabels[selected.category]} 작성자료</p><h1 className="mt-1 text-3xl font-bold">{selected.title}</h1><p className="mt-2 text-sm text-slate-600">{selected.description}</p><p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm font-semibold leading-6 text-amber-950">{exampleNotice}</p></div><div className="flex flex-wrap gap-2"><Link href="/course-room/?v=202607161010" className={buttonClass("secondary", "sm", "rounded-full")}>수강실로 이동</Link><button type="button" disabled={!hasAccess} onClick={printDocument} className={buttonClass("warning", "sm", "rounded-full font-bold disabled:opacity-60")}>인쇄하기</button><button type="button" disabled={!hasAccess || pdfSaving} onClick={() => void savePdfFile()} className={buttonClass("primary", "sm", "rounded-full font-bold disabled:opacity-60")}>{pdfSaving ? "PDF 생성 중" : "PDF 저장"}</button></div></div><div className="no-print mb-5 grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 sm:grid-cols-5"><label className="text-sm font-semibold text-slate-700">성명<input value={identity.name} onChange={(e) => setIdentity({ ...identity, name: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label><label className="text-sm font-semibold text-slate-700">생년월일<input value={identity.birthDate} onChange={(e) => setIdentity({ ...identity, birthDate: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label><label className="text-sm font-semibold text-slate-700">연락처<input value={identity.phoneNumber} onChange={(e) => setIdentity({ ...identity, phoneNumber: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label><label className="text-sm font-semibold text-slate-700 sm:col-span-2">주소<input value={identity.address} onChange={(e) => setIdentity({ ...identity, address: e.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3" /></label></div><div className="no-print mb-5 flex flex-wrap gap-2">{categoryDocuments.map((doc) => <Link key={doc.id} href={"/prevention-documents?type=" + encodeURIComponent(doc.id)} className={doc.id === selected.id ? buttonClass("primary", "sm", "rounded-full") : buttonClass("secondary", "sm", "rounded-full")}>{doc.title}</Link>)}</div>{loading ? <p className="no-print rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-600">작성자료 이용 권한을 확인하는 중입니다...</p> : null}{error && !loading ? <p className="no-print rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{error}</p> : null}{hasAccess ? <article ref={documentPaperRef} className="document-print-area document-paper relative mx-auto max-w-[210mm] overflow-hidden bg-white p-8 shadow-[0_20px_60px_rgba(15,23,42,0.12)] ring-1 ring-slate-200"><img src={centerLogoPath} alt="" aria-hidden="true" className="document-watermark pointer-events-none absolute left-1/2 top-[44%] z-0 h-[360px] w-[360px] -translate-x-1/2 -translate-y-1/2 select-none object-contain" /><div className="relative z-10"><DocumentBody category={selected.category} kind={selected.kind} identity={identity} /></div></article> : null}</div></main>;
 }
 
 export default function PreventionDocumentsPage() {
