@@ -40,6 +40,19 @@ function getConfiguredCourseStreamUids(env) {
     ].filter(Boolean));
 }
 
+function isCbtStreamUid(uid) {
+    return uid === '7c452891a700328cdb8f56cb39260970' || uid === 'afa89d104a50e779ee12112f1ec59655';
+}
+
+function isAdvancedCourseId(courseId) {
+    return courseId === 'dui-cbt-advanced' || String(courseId || '').endsWith('-advanced') || courseId === 'drug-addiction-premium';
+}
+
+function isStreamUidAllowedForCourse(uid, courseId) {
+    if (!isCbtStreamUid(uid)) return true;
+    return isAdvancedCourseId(courseId);
+}
+
 const PROVIDERS = {
     kakao: {
         id: 'kakao',
@@ -1420,6 +1433,11 @@ async function handleStreamToken(request, env, corsHeaders) {
     if (!getCourseProduct(courseId)) {
         logEnrollmentWorkerEvent('check_course_access', { authUid: firebaseUser.uid, authEmail: firebaseUser.email || null, requestedCourseId, canonicalCourseId: courseId, firebaseProjectId: getFirestoreProjectId(env), allowed: false, denialReason: 'INVALID_COURSE' });
         return json({ error: 'invalid_course', message: '지원하지 않는 교육과정입니다.' }, 400, corsHeaders);
+    }
+
+    if (!isStreamUidAllowedForCourse(uid, courseId)) {
+        logEnrollmentWorkerEvent('check_course_access', { authUid: maskLogIdentifier(firebaseUser.uid), authEmail: firebaseUser.email || null, requestedCourseId, canonicalCourseId: courseId, streamUid: uid, allowed: false, denialReason: 'STREAM_NOT_INCLUDED_IN_PRODUCT' });
+        return json({ error: 'stream_not_included', code: 'STREAM_NOT_INCLUDED_IN_PRODUCT', message: '선택한 수강권에 포함되지 않은 심화과정 영상입니다.' }, 403, corsHeaders);
     }
 
     const accessDecision = await hasOperationalCourseEntitlement(env, firebaseUser, courseId).catch((error) => {

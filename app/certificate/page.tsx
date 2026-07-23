@@ -992,7 +992,7 @@ function CertificatePageContent() {
           .certificate-inner { min-height: auto !important; padding: 18px 14px !important; }
           .certificate-title { font-size: 30px !important; letter-spacing: 0.12em !important; }
           .certificate-identity-value { font-size: 22px !important; }
-          .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; white-space: normal !important; text-align: center !important; word-break: keep-all !important; overflow-wrap: normal !important; letter-spacing: 0 !important; }
+          .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; white-space: normal !important; text-align: justify !important; text-align-last: left !important; word-break: keep-all !important; overflow-wrap: normal !important; letter-spacing: 0 !important; }
           .certificate-identity-row, .certificate-table-row { grid-template-columns: 96px minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 10px 12px !important; font-size: 13px !important; }
           .certificate-sign { padding-top: 32px !important; }
@@ -1032,7 +1032,7 @@ function CertificatePageContent() {
           .certificate-person { margin-top: 12.7mm !important; padding: 0 !important; font-size: 18px !important; line-height: 1.78 !important; }
           .certificate-identity-value { font-size: 19px !important; }
           .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
-          .certificate-body { margin-top: 12.7mm !important; font-size: 19px !important; line-height: 2.05 !important; white-space: normal !important; text-align: center !important; word-break: keep-all !important; overflow-wrap: normal !important; letter-spacing: 0 !important; }
+          .certificate-body { margin-top: 12.7mm !important; font-size: 19px !important; line-height: 2.05 !important; white-space: normal !important; text-align: justify !important; text-align-last: left !important; word-break: keep-all !important; overflow-wrap: normal !important; letter-spacing: 0 !important; }
           .certificate-table { margin-top: 10.5mm !important; font-size: 16px !important; }
           .certificate-table-row { grid-template-columns: 39.7mm minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 3.2mm 4.2mm !important; line-height: 1.5 !important; }
@@ -1207,7 +1207,7 @@ function CertificatePageContent() {
                       <p><span className="font-bold text-[#5f4514]">생년월일:</span> <span className="font-semibold">{formatBirthDate(certificate.birthDate)}</span></p>
                     </div>
 
-                    <p className="certificate-body mx-auto mt-12 max-w-[700px] whitespace-normal break-keep text-center text-[19px] leading-[2.05] tracking-normal text-slate-800 [overflow-wrap:normal] [word-break:keep-all]">
+                    <p className="certificate-body mx-auto mt-12 max-w-[700px] whitespace-normal break-keep text-justify text-[19px] leading-[2.05] tracking-normal text-slate-800 [overflow-wrap:normal] [text-align-last:left] [word-break:keep-all]">
                       {documentBody}
                     </p>
 

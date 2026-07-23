@@ -340,6 +340,7 @@ export function getCourseDefinition(courseId?: string | null) {
 
 export function getCourseModules(courseId?: string | null) {
   if (courseId === DUI_CBT_ADVANCED_COURSE_ID) return defaultCourse.modules;
+  if (!courseId || courseId === defaultCourse.id) return duiBasicModules;
   return getCourseDefinition(courseId)?.modules || duiBasicModules;
 }
 

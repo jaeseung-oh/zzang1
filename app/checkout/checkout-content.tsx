@@ -4,7 +4,7 @@ import * as PortOne from "@portone/browser-sdk/v2";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { defaultCourse, getCourseDefinition } from "@/lib/course/catalog";
+import { defaultCourse, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { duiPreventionCourseProduct, formatKrw } from "@/lib/course/product";
 import { applicationCourseCategories, duiDocumentsApplicationProduct, formatApplicationKrw, getApplicationCategory, getApplicationProduct } from "@/lib/course/application-products";
 import { getPreventionDocumentsForCourse } from "@/lib/course/prevention-documents";
@@ -105,7 +105,7 @@ export default function CheckoutContent() {
   const selectedCourseTitle = selectedProduct.canonicalCourseId ? selectedProduct.title : selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedPaymentOrderName = selectedProduct.id === "dui-cbt-advanced" ? "인지행동기반 재발방지교육 심화과정" : selectedCourseTitle;
   const selectedIsAdvanced = selectedProduct.id === "dui-cbt-advanced" || selectedProduct.id.endsWith("advanced") || selectedProduct.id.endsWith("premium") || selectedProduct.planId === "premium";
-  const selectedTotalLessons = selectedCourseDefinition?.modules.length || (selectedIsAdvanced ? 2 : selectedProduct.courseId ? 5 : 3);
+  const selectedTotalLessons = getCourseModules(selectedEntitlementCourseId).length || (selectedIsAdvanced ? 5 : 3);
   const selectedResourceLabel = selectedCourseDefinition?.outputs.join(" · ") || (selectedProduct.id === "dui-cbt-advanced" ? "수료증 · 재발방지계획서 · 음주예방실천계획서 · 음주운전 재발방지 서약서" : selectedProduct.id === "dui-documents" ? "수료증 · 재발방지계획서 · 음주예방실천계획서 · 음주운전 재발방지 서약서" : "수료증 · 기본 작성자료");
   const selectedChannelKey = selectedPaymentMethod === "kakaopay" ? paymentConfig.kakaoPayChannelKey : paymentConfig.kcpChannelKey;
   const selectedPaymentProvider = selectedPaymentMethod === "kakaopay" ? "portone-kakaopay-v2" : "portone-kcp-v2";

@@ -6,10 +6,10 @@ import vm from 'node:vm';
 const source = fs.readFileSync(new URL('../worker.js', import.meta.url), 'utf8')
   .replace('export default {', 'const __defaultExport = {')
   .replace(/export \{ getEnrollmentAccessDecision, isFirestoreEnrollmentActiveRecord, normalizeEnrollmentSourceType \};\s*$/, '')
-  + '\nglobalThis.__exports = { getEnrollmentAccessDecision, getActiveDuplicateEnrollmentDecision, isFirestoreEnrollmentActiveRecord, normalizeEnrollmentSourceType, resolveCanonicalCourseId };';
+  + '\nglobalThis.__exports = { getEnrollmentAccessDecision, getActiveDuplicateEnrollmentDecision, isFirestoreEnrollmentActiveRecord, normalizeEnrollmentSourceType, resolveCanonicalCourseId, isStreamUidAllowedForCourse };';
 const context = { console, crypto: { subtle: {} }, TextEncoder, TextDecoder, URL, URLSearchParams, Date, Promise, Set, Map, Object, String, Number, Boolean, Array, Math, RegExp, Error };
 vm.runInNewContext(source, context, { filename: 'worker.js' });
-const { getEnrollmentAccessDecision, getActiveDuplicateEnrollmentDecision, isFirestoreEnrollmentActiveRecord, resolveCanonicalCourseId } = context.__exports;
+const { getEnrollmentAccessDecision, getActiveDuplicateEnrollmentDecision, isFirestoreEnrollmentActiveRecord, resolveCanonicalCourseId, isStreamUidAllowedForCourse } = context.__exports;
 
 const base = {
   userId: 'user_1',
@@ -105,4 +105,21 @@ test('digital crime basic enrollment does not block advanced purchase', () => {
   };
   assert.equal(getActiveDuplicateEnrollmentDecision(enrollment, 'user_1', 'digital-crime-basic', 'digital-crime-basic').blocked, true);
   assert.equal(getActiveDuplicateEnrollmentDecision(enrollment, 'user_1', 'digital-crime-advanced', 'digital-crime-advanced').blocked, false);
+});
+
+
+test('basic courses cannot request CBT stream videos', () => {
+  assert.equal(isStreamUidAllowedForCourse('7c452891a700328cdb8f56cb39260970', 'dui-prevention-basic'), false);
+  assert.equal(isStreamUidAllowedForCourse('afa89d104a50e779ee12112f1ec59655', 'violence-basic'), false);
+});
+
+test('advanced courses can request CBT stream videos', () => {
+  assert.equal(isStreamUidAllowedForCourse('7c452891a700328cdb8f56cb39260970', 'dui-cbt-advanced'), true);
+  assert.equal(isStreamUidAllowedForCourse('afa89d104a50e779ee12112f1ec59655', 'violence-advanced'), true);
+  assert.equal(isStreamUidAllowedForCourse('7c452891a700328cdb8f56cb39260970', 'drug-addiction-premium'), true);
+});
+
+test('basic course videos remain available to basic courses', () => {
+  assert.equal(isStreamUidAllowedForCourse('22193ede6a22e4b27b2dc1d3ecce214c', 'dui-prevention-basic'), true);
+  assert.equal(isStreamUidAllowedForCourse('9e7a8bca74cc08b48622a4dcf8df070f', 'drug-addiction-basic'), true);
 });
