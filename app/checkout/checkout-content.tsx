@@ -21,7 +21,7 @@ const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617
 
 const CARD_APPROVAL_DELAY_MESSAGE =
   "안녕하세요. 리셋 재범방지교육센터입니다.\n\n결제 과정에서 카드 승인 후 수강권 반영이 지연된 것으로 확인됩니다.\n중복 결제는 하지 말아주시고, 승인 문자 또는 결제 시각을 보내주시면 확인 후 수강권을 즉시 반영해드리겠습니다.\n\n문제가 계속되면 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.\n\n이용에 불편을 드려 죄송합니다.";
-const ENROLLMENT_LOOKUP_FAILURE_MESSAGE = "기존 결제 내역을 확인하지 못해 중복 결제 방지를 위해 결제를 중단했습니다. 잠시 후 다시 시도해 주세요.";
+const ENROLLMENT_LOOKUP_FAILURE_MESSAGE = "기존 수강권 사전 확인이 지연되고 있습니다. 결제 직전 서버에서 중복 결제를 다시 확인합니다.";
 
 type PortOnePaymentResponse = Awaited<ReturnType<typeof PortOne.requestPayment>>;
 type CheckoutPaymentMethod = "card" | "kakaopay";
@@ -102,7 +102,6 @@ export default function CheckoutContent() {
   const selectedProduct = getApplicationProduct(selectedCategoryId, selectedProductId) || defaultCheckoutProduct;
   const selectedCourseId = selectedProduct.courseId || duiPreventionCourseProduct.courseId;
   const selectedEntitlementCourseId = selectedProduct.canonicalCourseId || selectedCourseId;
-  const allowPaymentWhenPrecheckUnavailable = selectedProduct.canonicalCourseId === "drug-addiction-relapse-prevention" || selectedProduct.id.startsWith("digital-crime-");
   const selectedCourseDefinition = getCourseDefinition(selectedEntitlementCourseId) || getCourseDefinition(selectedCourseId);
   const selectedCourseTitle = selectedProduct.canonicalCourseId ? selectedProduct.title : selectedCourseDefinition?.title || (selectedProduct.courseId ? selectedProduct.title : duiPreventionCourseProduct.courseTitle);
   const selectedPaymentOrderName = selectedProduct.id === "dui-cbt-advanced" ? "인지행동기반 재발방지교육 심화과정" : selectedCourseTitle;
@@ -114,11 +113,9 @@ export default function CheckoutContent() {
   const selectedPreviousPrice = selectedIsAdvanced ? "129,000원" : "69,000원";
   const hasPaymentConfig = Boolean(paymentConfig.storeId && selectedChannelKey);
   const hasActiveEnrollment = isEnrollmentActive(activeEnrollment);
-  const canSubmit = hasPaymentConfig && isMember && profileReady && !hasActiveEnrollment && !enrollmentCheckFailed && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
+  const canSubmit = hasPaymentConfig && isMember && profileReady && !hasActiveEnrollment && orderNoticeChecked && refundNoticeChecked && !isInitializing && !isSubmitting;
 
   useEffect(() => {
-    let cancelled = false;
-
     const params = new URLSearchParams(window.location.search);
     const requestedCategoryId = params.get("categoryId") || params.get("category") || "dui";
     const requestedCategory = getApplicationCategory(requestedCategoryId) || getApplicationCategory("dui");
@@ -127,6 +124,10 @@ export default function CheckoutContent() {
     if (requestedCategory && getApplicationProduct(requestedCategory.id, requestedProductId)) {
       setSelectedProductId(requestedProductId);
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
 
     const prepareOrder = async () => {
       try {
@@ -153,14 +154,9 @@ export default function CheckoutContent() {
         } catch (enrollmentError) {
           if (cancelled) return;
           console.error("Verified enrollment lookup failed before checkout", enrollmentError);
-          if (allowPaymentWhenPrecheckUnavailable) {
-            setActiveEnrollment(null);
-            setEnrollmentCheckFailed(false);
-            setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
-          } else {
-            setEnrollmentCheckFailed(true);
-            setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
-          }
+          setActiveEnrollment(null);
+          setEnrollmentCheckFailed(true);
+          setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
         }
         setPaymentId(createPaymentId(user.uid));
         setProfileReady(Boolean(realName && birthDate));
@@ -188,7 +184,7 @@ export default function CheckoutContent() {
     return () => {
       cancelled = true;
     };
-  }, [router, selectedCourseId, selectedEntitlementCourseId, selectedCategoryId, allowPaymentWhenPrecheckUnavailable]);
+  }, [router, selectedCourseId, selectedEntitlementCourseId, selectedCategoryId]);
 
   const handleRequestPayment = async () => {
     let verifiedUid = customerUid;
@@ -213,16 +209,10 @@ export default function CheckoutContent() {
         setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
       } catch (enrollmentError) {
         console.error("Verified enrollment lookup failed immediately before payment", enrollmentError);
-        if (allowPaymentWhenPrecheckUnavailable) {
-          enrollment = null;
-          setActiveEnrollment(null);
-          setEnrollmentCheckFailed(false);
-          setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
-        } else {
-          setEnrollmentCheckFailed(true);
-          setError(ENROLLMENT_LOOKUP_FAILURE_MESSAGE);
-          return;
-        }
+        enrollment = null;
+        setActiveEnrollment(null);
+        setEnrollmentCheckFailed(true);
+        setError((current) => current === ENROLLMENT_LOOKUP_FAILURE_MESSAGE ? "" : current);
       }
       if (isEnrollmentActive(enrollment)) {
         setActiveEnrollment(enrollment);
@@ -294,12 +284,21 @@ export default function CheckoutContent() {
         });
         if (!orderResponse.ok) {
           const orderText = await orderResponse.text().catch(() => "");
-          let orderPayload: unknown = {};
+          let orderPayload: { code?: unknown; message?: unknown; raw?: string } = {};
           try { orderPayload = orderText ? JSON.parse(orderText) : {}; } catch { orderPayload = { raw: orderText }; }
           console.error("PortOne pending order create failed", { url: orderCreateUrl, method: "POST", status: orderResponse.status, responseText: orderText, payload: orderPayload, paymentId: activePaymentId });
+          const orderMessage = typeof orderPayload.message === "string" && orderPayload.message.trim()
+            ? orderPayload.message
+            : "결제 전 주문 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.";
+          setError(orderMessage);
+          setIsSubmitting(false);
+          return;
         }
       } catch (orderCreateError) {
         console.error("PortOne pending order create failed", orderCreateError);
+        setError("결제 전 주문 확인에 실패했습니다. 잠시 후 다시 시도해 주세요.");
+        setIsSubmitting(false);
+        return;
       }
 
       paymentWindowRequested = true;
@@ -595,7 +594,7 @@ export default function CheckoutContent() {
             {!isInitializing && !isMember ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">로그인 및 회원가입 후 결제를 진행할 수 있습니다.</p> : null}
             {!isInitializing && isMember && !profileReady ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">수료증에 출력될 실명과 생년월일을 회원정보에 먼저 저장해 주세요.</p> : null}
             {!isInitializing && !hasPaymentConfig ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">결제 설정 확인이 필요합니다. 잠시 후 다시 시도해 주세요.</p> : null}
-            {enrollmentCheckFailed ? <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm leading-6 text-red-700">기존 결제 내역 확인에 실패했습니다. 중복 결제 방지를 위해 결제를 진행하지 않습니다.</p> : null}
+            {enrollmentCheckFailed ? <p className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">{ENROLLMENT_LOOKUP_FAILURE_MESSAGE}</p> : null}
             {hasActiveEnrollment ? <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm leading-7 text-emerald-900"><p className="font-bold">이미 결제 완료된 수강권이 있습니다.</p><p>중복 결제를 막기 위해 결제 버튼을 비활성화했습니다.</p><div className="mt-3 flex flex-wrap gap-2"><Link href="/course-room/?v=202607161010" className={buttonClass("primary", "sm", "rounded-full px-4 font-bold")}>강의실로 이동</Link><Link href="/certificate" className={buttonClass("secondary", "sm", "rounded-full px-4 font-bold")}>수료증 출력</Link></div></div> : null}
 
             <button type="button" onClick={() => void handleRequestPayment()} disabled={!canSubmit} className={buttonClass("primary", "lg", "mt-5 w-full rounded-xl font-bold disabled:opacity-100")}>

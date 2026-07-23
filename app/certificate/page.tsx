@@ -289,7 +289,7 @@ function getDetailDocumentContext(courseId: string) {
   if (normalized.includes("digital-crime") || normalized.includes("digital")) {
     return {
       courseTitle: "디지털범죄 재범방지교육 심화과정",
-      body: "위 사람은 본 기관에서 운영하는 「디지털범죄 재범방지교육 심화과정」을 성실히 이수하였기에 교육 내역을 아래와 같이 확인합니다.",
+      body: "위 사람은 본 기관에서 실시한 「디지털범죄 재범방지교육 심화과정」을 성실히 이수하였기에 교육 내역을 아래와 같이 확인합니다.",
       items: [
         "디지털범죄의 개념과 주요 유형",
         "디지털 행동이 현실의 피해로 이어지는 과정",
@@ -308,7 +308,7 @@ function getDetailDocumentContext(courseId: string) {
   if (normalized.includes("violence")) {
     return {
       courseTitle: "폭력범죄 재범방지교육 심화과정",
-      body: "위 사람은 본 기관에서 운영하는 「폭력범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      body: "위 사람은 본 기관에서 실시한 「폭력범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
         "폭력의 범위와 피해 영향 이해",
         "자극·해석·충동·행동의 폭력 발생 흐름 점검",
@@ -325,7 +325,7 @@ function getDetailDocumentContext(courseId: string) {
   if (normalized.includes("gambling")) {
     return {
       courseTitle: "도박중독 재발방지교육 심화과정",
-      body: "위 사람은 본 기관에서 운영하는 「도박중독 재발방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      body: "위 사람은 본 기관에서 실시한 「도박중독 재발방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
         "도박중독의 반복 구조와 범죄 위험 이해",
         "보상회로·손실 만회 심리·왜곡된 기대 점검",
@@ -342,7 +342,7 @@ function getDetailDocumentContext(courseId: string) {
   if (normalized.includes("drug-addiction") || normalized.includes("drug")) {
     return {
       courseTitle: "마약중독 재범방지교육 심화과정",
-      body: "위 사람은 본 기관에서 운영하는 「마약중독 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      body: "위 사람은 본 기관에서 실시한 「마약중독 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
         "책임, 회복, 재활을 중심으로 중독 문제를 인정하고 치료와 변화를 실천하는 태도 형성",
         "마약·향정신성의약품·대마의 구분과 투약·소지·매매·알선·처방약 오남용의 법적 위험 이해",
@@ -361,7 +361,7 @@ function getDetailDocumentContext(courseId: string) {
   if (normalized.includes("sexual-offense")) {
     return {
       courseTitle: "성범죄 재범방지교육 심화과정",
-      body: "위 사람은 본 기관에서 운영하는 「성범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+      body: "위 사람은 본 기관에서 실시한 「성범죄 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 대본 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
       items: [
         "존중·동의·경계와 성적 자기결정권 이해",
         "동의 없는 접촉·발언·메시지·촬영 등 성적 침해 범위 점검",
@@ -377,7 +377,7 @@ function getDetailDocumentContext(courseId: string) {
 
   return {
     courseTitle: "음주운전 재범방지교육 심화과정",
-    body: "위 사람은 본 기관에서 운영하는 「음주운전 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
+    body: "위 사람은 본 기관에서 실시한 「음주운전 재범방지교육 심화과정」을 성실히 이수하였기에 실제 강의 구성에 따른 상세 교육 내역을 아래와 같이 확인합니다.",
     items: [
       "음주운전이 개인의 실수를 넘어 타인의 생명과 안전을 위협하는 중대한 위험 행동임을 이해",
       "음주운전이 발생하는 전형적 상황, 사고 전개 구조, 자기합리화 표현과 책임 회피 언어 점검",
@@ -661,14 +661,10 @@ function CertificatePageContent() {
   const documentBody = isDetailDocument
     ? detailContext.body
     : isCbtCertificate
-      ? "위 사람은 본기관의 「인지행동기반 재발방지교육」을 성실히 이수하였습니다.\n본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
+      ? "위 사람은 본 기관에서 실시한 「인지행동기반 재발방지교육」을 성실히 이수하였습니다. 본 과정에서는 위법행동과 관련된 사고방식 및 행동양식을 점검하고, 위험상황 대처방법과 재범방지 실천계획을 학습하였습니다."
       : isCompletionCertificate
-        ? `위 사람은 리셋재범방지교육센터에서 실시한 「${effectiveCourseTitle}」을 성실히 이수하였습니다.
-
-본 과정은 해당 행동의 위험성과 피해 영향을 이해하고, 재범 위험요인을 점검하여 구체적인 재범방지 실천계획을 수립하는 교육으로 구성되었습니다.
-
-이에 교육과정을 정상적으로 이수하였음을 확인하며 본 수료증을 발급합니다.`
-        : `위 사람은 본 기관에서 운영하는 「${effectiveCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
+        ? `위 사람은 본 기관에서 실시한 「${effectiveCourseTitle}」을 성실히 이수하였습니다. 본 과정은 해당 행동의 위험성과 피해 영향을 이해하고, 재범 위험요인을 점검하여 구체적인 재범방지 실천계획을 수립하는 교육으로 구성되었습니다. 이에 교육과정을 정상적으로 이수하였음을 확인하며 본 수료증을 발급합니다.`
+        : `위 사람은 본 기관에서 실시한 「${effectiveCourseTitle}」 과정에 수강 등록하고 온라인 교육 시스템을 통해 수강 중임을 확인합니다.`;
 
   const displayedCourseTitle = isDetailDocument ? detailContext.courseTitle : isCbtCertificate ? "인지행동기반 재발방지교육" : effectiveCourseTitle;
   const certificateRows = [
@@ -764,9 +760,13 @@ function CertificatePageContent() {
     const body = snapshot.querySelector<HTMLElement>(".certificate-body");
     if (body) {
       body.style.marginTop = "12.7mm";
-      body.style.fontSize = "20px";
-      body.style.lineHeight = "2.1";
-      body.style.whiteSpace = "pre-line";
+      body.style.fontSize = "19px";
+      body.style.lineHeight = "2.05";
+      body.style.whiteSpace = "normal";
+      body.style.textAlign = "center";
+      body.style.wordBreak = "keep-all";
+      body.style.overflowWrap = "normal";
+      body.style.letterSpacing = "0";
       body.style.color = "#1f2937";
     }
 
@@ -992,7 +992,7 @@ function CertificatePageContent() {
           .certificate-inner { min-height: auto !important; padding: 18px 14px !important; }
           .certificate-title { font-size: 30px !important; letter-spacing: 0.12em !important; }
           .certificate-identity-value { font-size: 22px !important; }
-          .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; white-space: pre-line !important; }
+          .certificate-body { margin-top: 28px !important; font-size: 15px !important; line-height: 1.8 !important; white-space: normal !important; text-align: center !important; word-break: keep-all !important; overflow-wrap: normal !important; letter-spacing: 0 !important; }
           .certificate-identity-row, .certificate-table-row { grid-template-columns: 96px minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 10px 12px !important; font-size: 13px !important; }
           .certificate-sign { padding-top: 32px !important; }
@@ -1032,7 +1032,7 @@ function CertificatePageContent() {
           .certificate-person { margin-top: 12.7mm !important; padding: 0 !important; font-size: 18px !important; line-height: 1.78 !important; }
           .certificate-identity-value { font-size: 19px !important; }
           .certificate-identity-row { grid-template-columns: 30mm minmax(0, 1fr) !important; }
-          .certificate-body { margin-top: 12.7mm !important; font-size: 20px !important; line-height: 2.1 !important; white-space: pre-line !important; }
+          .certificate-body { margin-top: 12.7mm !important; font-size: 19px !important; line-height: 2.05 !important; white-space: normal !important; text-align: center !important; word-break: keep-all !important; overflow-wrap: normal !important; letter-spacing: 0 !important; }
           .certificate-table { margin-top: 10.5mm !important; font-size: 16px !important; }
           .certificate-table-row { grid-template-columns: 39.7mm minmax(0, 1fr) !important; }
           .certificate-table-cell { padding: 3.2mm 4.2mm !important; line-height: 1.5 !important; }
@@ -1207,7 +1207,7 @@ function CertificatePageContent() {
                       <p><span className="font-bold text-[#5f4514]">생년월일:</span> <span className="font-semibold">{formatBirthDate(certificate.birthDate)}</span></p>
                     </div>
 
-                    <p className="certificate-body mx-auto mt-12 max-w-[620px] whitespace-pre-line break-keep text-left text-xl leading-[2.1] text-slate-800">
+                    <p className="certificate-body mx-auto mt-12 max-w-[700px] whitespace-normal break-keep text-center text-[19px] leading-[2.05] tracking-normal text-slate-800 [overflow-wrap:normal] [word-break:keep-all]">
                       {documentBody}
                     </p>
 
