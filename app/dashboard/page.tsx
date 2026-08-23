@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
+import { collection, doc, getDoc, getDocs, query, where, QuerySnapshot, DocumentData, DocumentSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
@@ -369,22 +369,20 @@ export default function DashboardPage() {
         const newProgressRows: ProgressRecord[] = [];
         const newCertificates: CertificateRecord[] = [];
 
-        results.forEach(result => {
-          if (result.status === "fulfilled") {
-            const [progressSnapshot, certificateSnapshot] = result.value;
+        results.forEach(resultArray => {
+          const [progressSnapshotResult, certificateSnapshotResult] = resultArray;
 
-            if (progressSnapshot?.status === "fulfilled" && progressSnapshot.value) {
-              progressSnapshot.value.docs.forEach(doc => {
-                newProgressRows.push(doc.data() as ProgressRecord);
-              });
-            }
+          if (progressSnapshotResult.status === "fulfilled" && progressSnapshotResult.value) {
+            progressSnapshotResult.value.docs.forEach(doc => {
+              newProgressRows.push(doc.data() as ProgressRecord);
+            });
+          }
 
-            if (certificateSnapshot?.status === "fulfilled" && certificateSnapshot.value?.exists()) {
-              newCertificates.push({
-                id: certificateSnapshot.value.id,
-                ...(certificateSnapshot.value.data() as Omit<CertificateRecord, "id">),
-              });
-            }
+          if (certificateSnapshotResult.status === "fulfilled" && certificateSnapshotResult.value?.exists()) {
+            newCertificates.push({
+              id: certificateSnapshotResult.value.id,
+              ...(certificateSnapshotResult.value.data() as Omit<CertificateRecord, "id">),
+            });
           }
         });
 
