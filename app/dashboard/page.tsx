@@ -4,13 +4,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
-import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, defaultCourse, duiBasicModules, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
+import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { getVerifiedActiveUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
-import { getPreventionDocumentsForCourse, isPreventionDocumentsEnrollment } from "@/lib/course/prevention-documents";
+import { getPreventionDocumentsForCourse, getPreventionDocumentsForEnrollment, isPreventionDocumentsEnrollment } from "@/lib/course/prevention-documents";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -45,6 +45,10 @@ type CertificateRecord = {
 };
 
 type EnrollmentListItem = EnrollmentRecord & { id?: string };
+
+function formatCertificateNoForDisplay(value: string) {
+  return value.replace(/(^|-)SEX(?=-|$)/gi, "$1PREV");
+}
 
 function maskFirestoreSegment(value: string) {
   if (!value) return "";
@@ -94,7 +98,8 @@ function formatKrw(value: unknown) {
 }
 
 function getCourseRoomCourseId(enrollment: EnrollmentListItem) {
-  if (enrollment.productId === "drug-addiction-basic" || enrollment.productId === "drug-addiction-premium") return enrollment.productId;
+  const productId = String(enrollment.productId || "");
+  if (getCourseDefinition(productId)) return productId;
   return enrollment.courseId || defaultCourse.id;
 }
 
@@ -107,10 +112,108 @@ function getEnrollmentCertificateCourseId(enrollment: EnrollmentListItem) {
   return getEnrollmentCourseDefinition(enrollment)?.id || enrollment.courseId || defaultCourse.id;
 }
 
+type DashboardDocumentAction = {
+  key: string;
+  title: string;
+  description: string;
+  href: string;
+  printHref: string;
+  pdfHref: string;
+  tone: "certificate" | "material" | "advanced";
+};
+
+function getDashboardCertificateHref(courseId: string, documentType = "completion", mode?: "print" | "pdf") {
+  const params = new URLSearchParams({ courseId, documentType });
+  if (mode === "print") params.set("print", "1");
+  if (mode === "pdf") params.set("pdf", "1");
+  return "/certificate?" + params.toString();
+}
+
+function getDashboardMaterialHref(documentId: string, courseId: string, mode?: "print" | "pdf") {
+  const params = new URLSearchParams({ type: documentId, courseId });
+  if (mode === "print") params.set("print", "1");
+  if (mode === "pdf") params.set("pdf", "1");
+  return "/prevention-documents?" + params.toString();
+}
+
+function getEnrollmentDocumentActions(enrollment: EnrollmentListItem): DashboardDocumentAction[] {
+  const actions = new Map<string, DashboardDocumentAction>();
+  const certificateCourseId = getEnrollmentCertificateCourseId(enrollment);
+  const course = getEnrollmentCourseDefinition(enrollment);
+  const fallbackDocuments = certificateCourseId === DUI_CBT_ADVANCED_COURSE_ID
+    ? [
+        { type: "cbt-completion", title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID },
+        { type: "cbt-detail", title: "재범방지 교육 이수 상세 내역서", courseId: DUI_CBT_ADVANCED_COURSE_ID },
+      ]
+    : [{ type: "course-certificate", title: (course?.certificateTitle || enrollment.courseTitle || "교육") + " 수료증", courseId: certificateCourseId }];
+  const certificateDocuments = course?.documents?.length ? course.documents : fallbackDocuments;
+
+  certificateDocuments.forEach((document) => {
+    const documentType = document.type === "cbt-completion" || document.type === "cbt-detail" ? document.type : "completion";
+    const courseId = document.courseId || certificateCourseId;
+    const key = "certificate:" + courseId + ":" + documentType;
+    actions.set(key, {
+      key,
+      title: document.title,
+      description: documentType === "completion" ? "수료증 출력 및 PDF 저장" : "심화과정 이수 서류 출력 및 PDF 저장",
+      href: getDashboardCertificateHref(courseId, documentType),
+      printHref: getDashboardCertificateHref(courseId, documentType, "print"),
+      pdfHref: getDashboardCertificateHref(courseId, documentType, "pdf"),
+      tone: documentType === "completion" ? "certificate" : "advanced",
+    });
+  });
+
+  if (isPreventionDocumentsEnrollment(enrollment)) {
+    getPreventionDocumentsForEnrollment(enrollment).forEach((document) => {
+      const key = "material:" + certificateCourseId + ":" + document.id;
+      actions.set(key, {
+        key,
+        title: document.title,
+        description: document.advancedOnly ? "심화과정 작성자료 출력 및 PDF 저장" : "기본과정 작성자료 출력 및 PDF 저장",
+        href: getDashboardMaterialHref(document.id, certificateCourseId),
+        printHref: getDashboardMaterialHref(document.id, certificateCourseId, "print"),
+        pdfHref: getDashboardMaterialHref(document.id, certificateCourseId, "pdf"),
+        tone: document.advancedOnly ? "advanced" : "material",
+      });
+    });
+  }
+
+  return Array.from(actions.values());
+}
+
+function documentActionClass(tone: DashboardDocumentAction["tone"]) {
+  if (tone === "advanced") return "border-[#d3b271] bg-[#fffaf0] text-[#5f4514]";
+  if (tone === "material") return "border-emerald-200 bg-emerald-50 text-emerald-950";
+  return "border-slate-200 bg-white text-slate-950";
+}
+
 function getCourseRoomButtonLabel(progressRate: number, completed: boolean) {
   if (completed) return "다시보기";
   if (progressRate > 0) return "이어보기";
   return "수강 시작";
+}
+
+function getEnrollmentDisplayTitle(enrollment?: EnrollmentListItem | null) {
+  if (!enrollment) return defaultCourse.title;
+  const course = getEnrollmentCourseDefinition(enrollment);
+  return enrollment.courseTitle || course?.title || enrollment.productTitle || enrollment.courseId || defaultCourse.title;
+}
+
+function getDashboardEnrollmentPriority(enrollment: EnrollmentListItem) {
+  const course = getEnrollmentCourseDefinition(enrollment);
+  if (course?.level === "advanced" || getEnrollmentCertificateCourseId(enrollment) === DUI_CBT_ADVANCED_COURSE_ID) return 0;
+  if (enrollment.includedWithProductId || enrollment.includedWithEnrollmentId || enrollment.includedWithOrderId) return 2;
+  return 1;
+}
+
+function getPrimaryDashboardEnrollment(enrollments: EnrollmentListItem[]) {
+  return enrollments
+    .filter(isEnrollmentActive)
+    .sort((a, b) => {
+      const priority = getDashboardEnrollmentPriority(a) - getDashboardEnrollmentPriority(b);
+      if (priority !== 0) return priority;
+      return (toDate(b.purchasedAt || b.createdAt)?.getTime() || 0) - (toDate(a.purchasedAt || a.createdAt)?.getTime() || 0);
+    })[0] || null;
 }
 
 function getEnrollmentStatusLabel(enrollment: EnrollmentRecord) {
@@ -134,7 +237,7 @@ function buildAdminPreviewEnrollments(): EnrollmentListItem[] {
     userId: "admin-preview",
     courseId: course.id,
     courseTitle: course.title,
-    productId: course.productId || (course.id === defaultCourse.id ? "dui-documents" : course.id),
+    productId: course.productId || (course.id === defaultCourse.id ? "dui-cbt-basic" : course.id),
     productTitle: course.level === "advanced" ? "심화과정" : "기본과정",
     paymentStatus: "paid",
     enrollmentStatus: "active" as const,
@@ -219,6 +322,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState<ProgressRecord | null>(null);
+  const [progressRows, setProgressRows] = useState<ProgressRecord[]>([]);
   const [certificates, setCertificates] = useState<CertificateRecord[]>([]);
   const [enrollments, setEnrollments] = useState<EnrollmentListItem[]>([]);
   const [hasActiveEnrollment, setHasActiveEnrollment] = useState(false);
@@ -235,17 +339,6 @@ export default function DashboardPage() {
         const enrollments = await getVerifiedActiveUserEnrollments(user);
         const activeEnrollment = enrollments.some(isEnrollmentActive);
 
-        const [progressSnapshot, certificateSnapshot] = await Promise.all([
-          getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid))).catch((error) => {
-            logFirestoreFailure("getDocs", "courseProgress?uid=<uid>", error);
-            return null;
-          }),
-          getDoc(doc(db, "certificates", user.uid + "_" + defaultCourse.id)).catch((error) => {
-            logFirestoreFailure("getDoc", "certificates/<uid_courseId>", error);
-            return null;
-          }),
-        ]);
-
         if (cancelled) {
           return;
         }
@@ -253,11 +346,51 @@ export default function DashboardPage() {
         setAdminPreview(isAdmin);
         setHasActiveEnrollment(activeEnrollment);
         setEnrollments(enrollments as EnrollmentListItem[]);
-        setProgress(progressSnapshot?.docs[0]?.data() ? (progressSnapshot.docs[0].data() as ProgressRecord) : null);
-        setCertificates(certificateSnapshot?.exists() ? [{
-          id: certificateSnapshot.id,
-          ...(certificateSnapshot.data() as Omit<CertificateRecord, "id">),
-        }] : []);
+        setLoading(false);
+
+        const promises = enrollments.map(enrollment => {
+          const courseId = getEnrollmentCertificateCourseId(enrollment);
+          return Promise.allSettled([
+            getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid), where("courseId", "==", courseId))).catch((error) => {
+              logFirestoreFailure("getDocs", `courseProgress?uid=<uid>&courseId=${courseId}`, error);
+              return null;
+            }),
+            getDoc(doc(db, "certificates", `${user.uid}_${courseId}`)).catch((error) => {
+              logFirestoreFailure("getDoc", `certificates/<uid_${courseId}>`, error);
+              return null;
+            }),
+          ]);
+        });
+
+        const results = await Promise.all(promises);
+
+        if (cancelled) return;
+
+        const newProgressRows: ProgressRecord[] = [];
+        const newCertificates: CertificateRecord[] = [];
+
+        results.forEach(result => {
+          if (result.status === "fulfilled") {
+            const [progressSnapshot, certificateSnapshot] = result.value;
+
+            if (progressSnapshot?.status === "fulfilled" && progressSnapshot.value) {
+              progressSnapshot.value.docs.forEach(doc => {
+                newProgressRows.push(doc.data() as ProgressRecord);
+              });
+            }
+
+            if (certificateSnapshot?.status === "fulfilled" && certificateSnapshot.value?.exists()) {
+              newCertificates.push({
+                id: certificateSnapshot.value.id,
+                ...(certificateSnapshot.value.data() as Omit<CertificateRecord, "id">),
+              });
+            }
+          }
+        });
+
+        setProgressRows(current => [...current, ...newProgressRows]);
+        setCertificates(current => [...current, ...newCertificates]);
+        setProgress(newProgressRows[0] || null);
       } catch (loadError) {
         console.error(loadError);
         if (!cancelled) {
@@ -284,22 +417,33 @@ export default function DashboardPage() {
     };
   }, [router]);
 
+  const displayEnrollments = adminPreview ? buildAdminPreviewEnrollments() : enrollments;
+  const primaryEnrollment = getPrimaryDashboardEnrollment(displayEnrollments);
+  const primaryCourseId = primaryEnrollment ? getCourseRoomCourseId(primaryEnrollment) : defaultCourse.id;
+  const primaryCertificateCourseId = primaryEnrollment ? getEnrollmentCertificateCourseId(primaryEnrollment) : defaultCourse.id;
+  const primaryCourseTitle = getEnrollmentDisplayTitle(primaryEnrollment);
+  const primaryCourseModules = getCourseModules(primaryCourseId);
+  const primaryCourseRoomHref = loading ? "#" : "/course-room/?v=202607181430&courseId=" + encodeURIComponent(primaryCourseId);
+  const selectedProgress = progressRows.find((row) => [primaryCourseId, primaryEnrollment?.courseId, primaryCertificateCourseId].includes(row.courseId)) || (progress && [primaryCourseId, primaryEnrollment?.courseId, primaryCertificateCourseId].includes(progress.courseId) ? progress : null);
+
   const progressSummary = useMemo(() => {
-    const durationSeconds = Math.max(progress?.durationSeconds ?? 0, 0);
-    const watchedSeconds = Math.min(progress?.watchedSeconds ?? 0, durationSeconds);
-    const remainingSeconds = durationSeconds > 0 ? Math.max(progress?.remainingSeconds ?? durationSeconds - watchedSeconds, 0) : 0;
-    const completionRate = progress?.completionRate ?? (durationSeconds > 0 ? Math.floor((watchedSeconds / durationSeconds) * 100) : 0);
-    const completedModuleCount = progress?.completedModuleCount ?? Object.values(progress?.moduleProgress ?? {}).filter((item) => item.isCompleted).length;
-    const totalModuleCount = progress?.totalModuleCount ?? duiBasicModules.length;
-    const moduleEntries = duiBasicModules.map((module, index) => ({
+    const durationSeconds = Math.max(selectedProgress?.durationSeconds ?? 0, 0);
+    const watchedSeconds = Math.min(selectedProgress?.watchedSeconds ?? 0, durationSeconds);
+    const remainingSeconds = durationSeconds > 0 ? Math.max(selectedProgress?.remainingSeconds ?? durationSeconds - watchedSeconds, 0) : 0;
+    const fallbackCompletionRate = primaryEnrollment?.progress ?? 0;
+    const completionRate = selectedProgress?.completionRate ?? (durationSeconds > 0 ? Math.floor((watchedSeconds / durationSeconds) * 100) : fallbackCompletionRate);
+    const completedModuleCount = selectedProgress?.completedModuleCount ?? primaryEnrollment?.completedLessons ?? Object.values(selectedProgress?.moduleProgress ?? {}).filter((item) => item.isCompleted).length;
+    const totalModuleCount = selectedProgress?.totalModuleCount ?? primaryEnrollment?.totalLessons ?? primaryCourseModules.length;
+    const moduleEntries = primaryCourseModules.map((module, index) => ({
       module,
       index,
-      item: progress?.moduleProgress?.[module.id],
+      item: selectedProgress?.moduleProgress?.[module.id],
     }));
     const lastWatched = moduleEntries
       .filter((entry) => (entry.item?.lastPlaybackPositionSeconds ?? entry.item?.watchedSeconds ?? 0) > 0)
       .sort((a, b) => (b.item?.lastPlaybackPositionSeconds ?? b.item?.watchedSeconds ?? 0) - (a.item?.lastPlaybackPositionSeconds ?? a.item?.watchedSeconds ?? 0))[0];
-    const statusLabel = progress?.isCompleted ? "전체 수료 완료" : completionRate >= 80 ? "곧 전체 수료" : "수강 진행 중";
+    const isCompleted = Boolean(selectedProgress?.isCompleted || completionRate >= 100);
+    const statusLabel = isCompleted ? "전체 수료 완료" : completionRate >= 80 ? "곧 전체 수료" : "수강 진행 중";
 
     return {
       durationSeconds,
@@ -309,15 +453,13 @@ export default function DashboardPage() {
       completedModuleCount,
       totalModuleCount,
       statusLabel,
-      isCompleted: Boolean(progress?.isCompleted),
-      moduleProgress: progress?.moduleProgress ?? {},
-      lastLessonLabel: lastWatched ? `${lastWatched.index + 1}강 ${lastWatched.module.title.replace(/^\d+강\.\s*/, "")}` : "시청 기록 없음",
+      isCompleted,
+      moduleProgress: selectedProgress?.moduleProgress ?? {},
+      lastLessonLabel: lastWatched ? String(lastWatched.index + 1) + "강 " + lastWatched.module.title.replace(/^\d+강\.\s*/, "") : "시청 기록 없음",
       lastLessonTime: lastWatched?.item?.lastPlaybackPositionSeconds ?? lastWatched?.item?.watchedSeconds ?? 0,
-      certificateAvailable: Boolean(progress?.isCompleted),
+      certificateAvailable: isCompleted,
     };
-  }, [progress]);
-
-  const displayEnrollments = adminPreview ? buildAdminPreviewEnrollments() : enrollments;
+  }, [selectedProgress, primaryEnrollment, primaryCourseModules]);
 
   const advancedEnrollmentRecord = displayEnrollments.find((enrollment) => {
     if (!isEnrollmentActive(enrollment)) return false;
@@ -333,9 +475,9 @@ export default function DashboardPage() {
   const documentFormEnrollments = displayEnrollments.filter((enrollment) => isEnrollmentActive(enrollment) && isPreventionDocumentsEnrollment(enrollment));
   const hasDocumentFormsAccess = adminPreview || documentFormEnrollments.length > 0;
   const primaryDocumentCourseId = documentFormEnrollments[0]?.courseId || defaultCourse.id;
-  const primaryDocuments = getPreventionDocumentsForCourse(primaryDocumentCourseId);
+  const primaryDocuments = documentFormEnrollments[0] ? getPreventionDocumentsForEnrollment(documentFormEnrollments[0]) : getPreventionDocumentsForCourse(primaryDocumentCourseId);
   const primaryDocumentHref = primaryDocuments[0] ? "/prevention-documents?type=" + encodeURIComponent(primaryDocuments[0].id) + "&courseId=" + encodeURIComponent(primaryDocumentCourseId) : "/prevention-documents";
-  const dashboardDocumentEntries = (documentFormEnrollments.length ? documentFormEnrollments : [{ courseId: defaultCourse.id, courseTitle: defaultCourse.title } as EnrollmentRecord]).flatMap((enrollment) => getPreventionDocumentsForCourse(getEnrollmentCertificateCourseId(enrollment)).map((document) => ({ document, enrollment })));
+  const dashboardDocumentEntries = (documentFormEnrollments.length ? documentFormEnrollments : [{ courseId: defaultCourse.id, courseTitle: defaultCourse.title } as EnrollmentRecord]).flatMap((enrollment) => getPreventionDocumentsForEnrollment(enrollment).map((document) => ({ document, enrollment })));
 
   return (
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(211,173,98,0.14),transparent_22%),linear-gradient(180deg,#09111d_0%,#0d1728_32%,#eef3f8_32%,#f4f7fb_100%)] px-4 py-10 sm:px-6 lg:px-8">
@@ -364,9 +506,9 @@ export default function DashboardPage() {
               <h2 className="mt-1 text-2xl font-black leading-tight text-slate-950 sm:text-3xl">강의 목록과 서류 인쇄를 여기서 바로 실행하세요</h2>
             </div>
             <div className="grid gap-3 sm:grid-cols-2 lg:min-w-[560px]">
-              <Link href="/course-room/?v=202607161010" className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-5 py-4 text-left !text-white shadow-[0_18px_36px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
+              <Link href={primaryCourseRoomHref} className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-5 py-4 text-left !text-white shadow-[0_18px_36px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white text-base font-black text-[#10213f]">01</span>
-                <span className="min-w-0"><span className="block text-xl font-black leading-tight !text-white">강의 목록 보기</span><span className="mt-1 block text-sm font-bold !text-white/80">수강실로 이동</span></span>
+                <span className="min-w-0"><span className="block text-xl font-black leading-tight !text-white">강의 목록 보기</span><span className="mt-1 block text-sm font-bold !text-white/80">{loading ? "수강권 확인 후 이동" : "수강실로 이동"}</span></span>
               </Link>
               <Link href={primaryDocumentHref} className="group flex min-h-20 items-center gap-4 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-left text-[#111827] shadow-[0_18px_36px_rgba(255,221,0,0.36)] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                 <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#111827] text-base font-black text-[#ffdd00]">02</span>
@@ -376,7 +518,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {loading ? <p className="mt-8 text-sm text-slate-600">수강현황을 불러오는 중입니다...</p> : null}
+        {loading ? <section className="mt-8 rounded-[1.5rem] border-4 border-amber-400 bg-amber-100 p-6 text-center shadow-[0_18px_44px_rgba(245,158,11,0.24)]"><p className="text-2xl font-black leading-8 text-amber-950 sm:text-3xl">수강현황을 불러오는 중입니다.</p><p className="mt-3 text-base font-bold leading-7 text-amber-900">심화과정 수강권 확인이 끝날 때까지 강의 목록 버튼을 누르지 말고 잠시만 기다려 주세요.</p></section> : null}
         {error ? <p className="mt-8 text-sm text-[#f2a39b]">{error}</p> : null}
 
         {!loading && !error && adminPreview ? <p className="mt-6 rounded-[1.25rem] border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm font-semibold text-indigo-900">관리자 계정으로 접속 중입니다. 전체 과정을 확인할 수 있습니다.</p> : null}
@@ -415,27 +557,41 @@ export default function DashboardPage() {
                         <span className={active ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600"}>{getEnrollmentStatusLabel(enrollment)}</span>
                       </div>
                       {(() => {
-                        const modules = getCourseModules(enrollment.courseId);
-                        const documents = course?.documents || (enrollment.courseId === DUI_CBT_ADVANCED_COURSE_ID ? [{ type: "cbt-completion", title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID }, { type: "cbt-detail", title: "재범방지 교육 이수 상세 내역서", courseId: DUI_CBT_ADVANCED_COURSE_ID }] : [{ type: "course-certificate", title: "수료증", courseId: enrollment.courseId }]);
+                        const modules = getCourseModules(getCourseRoomCourseId(enrollment));
+                        const documentActions = active ? getEnrollmentDocumentActions(enrollment) : [];
                         return (
-                          <div className="mt-4 rounded-xl border border-slate-100 bg-slate-50 p-3">
-                            <p className="text-xs font-bold text-slate-600">수강 가능한 강의</p>
-                            <ol className="mt-2 space-y-1 text-xs font-semibold text-slate-800">
-                              {modules.map((module, index) => <li key={module.id}>{index + 1}. {module.title.replace(/^\d+강\.\s*/, "")}</li>)}
-                            </ol>
-                            <p className="mt-3 text-xs font-bold text-slate-600">제공 문서</p>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              {documents.map((document) => (
-                                <Link key={document.type + document.title} href={document.type === "cbt-completion" || document.type === "cbt-detail" ? "/certificate?courseId=" + encodeURIComponent(document.courseId || getEnrollmentCertificateCourseId(enrollment)) + "&documentType=" + encodeURIComponent(document.type) : "/certificate?courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-bold text-slate-800">
-                                  {document.title}
-                                </Link>
-                              ))}
-                              {active && isPreventionDocumentsEnrollment(enrollment) ? getPreventionDocumentsForCourse(getEnrollmentCertificateCourseId(enrollment)).map((document) => (
-                                <Link key={document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="rounded-full border border-amber-300 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-950">
-                                  {document.title}
-                                </Link>
-                              )) : null}
+                          <div className="mt-4 space-y-4">
+                            <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                              <p className="text-xs font-bold text-slate-600">수강 가능한 강의</p>
+                              <ol className="mt-2 space-y-1 text-xs font-semibold text-slate-800">
+                                {modules.map((module, index) => <li key={module.id}>{index + 1}. {module.title.replace(/^\d+강\.\s*/, "")}</li>)}
+                              </ol>
                             </div>
+                            {documentActions.length ? (
+                              <div className="rounded-xl border border-[#d7deea] bg-[#f8fafc] p-3">
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="text-sm font-black text-slate-950">서류 출력 및 저장</p>
+                                  <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-slate-500">{documentActions.length}종</span>
+                                </div>
+                                <div className="mt-3 grid gap-2">
+                                  {documentActions.map((document) => (
+                                    <div key={document.key} className={"rounded-xl border p-3 " + documentActionClass(document.tone)}>
+                                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                        <div className="min-w-0">
+                                          <p className="break-keep text-sm font-black">{document.title}</p>
+                                          <p className="mt-1 text-xs font-semibold opacity-75">{document.description}</p>
+                                        </div>
+                                        <div className="grid grid-cols-3 gap-1.5 sm:w-[210px]">
+                                          <Link href={document.href} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-300 bg-white px-2 text-xs font-black text-slate-900 shadow-sm">열기</Link>
+                                          <Link href={document.pdfHref} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-[#10213f] bg-[#10213f] px-2 text-xs font-black !text-white shadow-sm">PDF</Link>
+                                          <Link href={document.printHref} className="inline-flex min-h-10 items-center justify-center rounded-lg border border-slate-400 bg-white px-2 text-xs font-black text-slate-900 shadow-sm">인쇄</Link>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : null}
                           </div>
                         );
                       })()}
@@ -447,8 +603,6 @@ export default function DashboardPage() {
                       </dl>
                       <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                         {active ? <Link href={"/course-room/?v=202607181430&courseId=" + encodeURIComponent(getCourseRoomCourseId(enrollment))} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#10213f] bg-[#10213f] px-6 py-4 text-base font-black !text-white shadow-[0_18px_38px_rgba(16,33,63,0.28)] transition hover:-translate-y-0.5 hover:bg-[#173968] hover:!text-white focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-200 sm:w-auto">{getCourseRoomButtonLabel(progressRate, completed)}</Link> : <Link href={getCourseApplyHref(enrollment.courseId)} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">다시 구매하기</Link>}
-                        {certificateReady ? <Link href={"/certificate?courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8] sm:w-auto">수료증 출력</Link> : null}
-                        {certificateReady && (getEnrollmentCertificateCourseId(enrollment) === DUI_CBT_ADVANCED_COURSE_ID || course?.level === "advanced") ? <Link href={"/certificate?courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment)) + "&documentType=cbt-detail"} className="inline-flex min-h-14 w-full items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 sm:w-auto">교육이수 상세내역서 출력</Link> : null}
                       </div>
                     </article>
                   );
@@ -487,7 +641,7 @@ export default function DashboardPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-sm font-semibold text-[#f0cb85]">현재 코스</p>
-                    <h2 className="mt-3 text-2xl font-semibold text-white">{defaultCourse.title}</h2>
+                    <h2 className="mt-3 text-2xl font-semibold text-white">{primaryCourseTitle}</h2>
                   </div>
                   <span className="rounded-full border border-[#d3ad62]/30 bg-[#d3ad62]/10 px-4 py-2 text-sm font-semibold text-[#f7dfab]">
                     {progressSummary.statusLabel}
@@ -530,12 +684,12 @@ export default function DashboardPage() {
 
                 <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-sm leading-7 text-white/75">
                   <p><span className="font-semibold text-white">마지막 시청:</span> {progressSummary.lastLessonLabel} {progressSummary.lastLessonTime > 0 ? formatDuration(progressSummary.lastLessonTime) : ""}</p>
-                  <p className="mt-1">마지막 저장 시각: {formatTimestamp(progress?.updatedAt)}</p>
+                  <p className="mt-1">마지막 저장 시각: {formatTimestamp(selectedProgress?.updatedAt)}</p>
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <Link href="/course-room/?v=202607161010" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
+                    <Link href={primaryCourseRoomHref} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       이어보기
                     </Link>
-                    <Link href="/course-room/?v=202607161010" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
+                    <Link href={primaryCourseRoomHref} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
                       강의 목록 보기
                     </Link>
                   </div>
@@ -545,7 +699,7 @@ export default function DashboardPage() {
               <div className="rounded-[1.75rem] border border-white/10 bg-[#111f33] p-6">
                 <p className="text-sm font-semibold text-[#f0cb85]">강의별 수강 현황</p>
                 <div className="mt-4 space-y-3">
-                  {duiBasicModules.map((module, index) => {
+                  {primaryCourseModules.map((module, index) => {
                     const item = progressSummary.moduleProgress[module.id];
                     return (
                       <article key={module.id} className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -568,7 +722,7 @@ export default function DashboardPage() {
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
               <div className="mb-6 rounded-2xl border-4 border-[#facc15] bg-white p-5 shadow-[0_22px_54px_rgba(250,204,21,0.26)]">
                 <p className="text-xl font-black text-slate-950">서류 인쇄하기</p>
-                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 작성자료를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요." : "수강권을 선택하면 과정별 작성자료 3종을 이용할 수 있습니다."}</p>
+                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 작성자료를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요. 심화과정은 교육 소감문 작성자료도 함께 이용할 수 있습니다." : "수강권을 선택하면 과정별 작성자료 3종을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
                   {dashboardDocumentEntries.map(({ document, enrollment }) => (
                     <Link key={(enrollment.courseId || defaultCourse.id) + document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
@@ -588,7 +742,7 @@ export default function DashboardPage() {
                 {hasAdvancedCertificateAccess ? (
                   <div className="rounded-[1.5rem] border border-amber-300 bg-amber-50 p-5 text-sm leading-7 text-amber-950 shadow-[0_18px_44px_rgba(245,158,11,0.16)]">
                     <p className="font-black">심화과정 이수 서류</p>
-                    <p className="mt-2">심화과정 수강권은 기본 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 함께 출력할 수 있습니다.</p>
+                    <p className="mt-2">심화과정 수강권은 기본 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 함께 출력할 수 있으며 교육 소감문 작성자료를 이용할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link href={`/certificate?courseId=${encodeURIComponent(advancedBaseCertificateCourseId)}&documentType=completion`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200">
                         기본 수료증 출력
@@ -604,7 +758,7 @@ export default function DashboardPage() {
                     <div key={certificate.id} className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30">
                       <div>
                         <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType ?? "completion"] ?? certificate.courseTitle ?? "음주운전 재범방지교육 수료증"}</p>
-                        <p className="mt-2 text-sm text-white/65">발급번호 {certificate.certificateNo || certificate.issueNumber || "확인 중"}</p>
+                        <p className="mt-2 text-sm text-white/65">발급번호 {formatCertificateNoForDisplay(certificate.certificateNo || certificate.issueNumber || "확인 중")}</p>
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt || certificate.certificateIssuedAt)}</p>
                       </div>
                       <div className="mt-4 flex flex-wrap gap-3">
@@ -619,7 +773,7 @@ export default function DashboardPage() {
                   ))
                 ) : hasActiveEnrollment ? (
                   <div className="rounded-[1.5rem] border border-emerald-300/30 bg-emerald-400/10 p-6 text-sm leading-7 text-emerald-50">
-                    <p className="font-semibold text-white">결제된 음주운전 재범방지교육 수강권이 확인되었습니다.</p>
+                    <p className="font-semibold text-white">결제된 {primaryCourseTitle} 수강권이 확인되었습니다.</p>
                     <p className="mt-2">아래 버튼을 눌러 진도율과 관계없이 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link href="/certificate" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
