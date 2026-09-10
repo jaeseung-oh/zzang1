@@ -12,6 +12,7 @@ import { ensureCertificateIdentityLock } from "@/lib/firebase/user-profile";
 import { invalidateEnrollmentLookupCache } from "@/lib/course/enrollment-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { trackEvent, trackGoogleAdsPurchaseConversionOnce, trackNaverPurchaseConversionOnce, trackPurchaseOnce } from "@/lib/analytics/ga";
+import { readStoredAttribution, type StoredAttribution } from "@/lib/marketing/attribution";
 
 type ConfirmResponse = {
   savedPurchaseId?: string;
@@ -97,7 +98,7 @@ function readMatchingPendingPortOneOrder(paymentId: string) {
   const raw = window.localStorage.getItem("resetedu:pending-portone-order");
   if (!raw) return null;
   try {
-    const pending = JSON.parse(raw) as { paymentId?: string; categoryId?: string; productId?: string; courseId?: string; amount?: number; certificateBirthDate?: string; birthDate?: string; dateOfBirth?: string; phoneNumber?: string; buyerPhone?: string; customerPhone?: string };
+    const pending = JSON.parse(raw) as { paymentId?: string; categoryId?: string; productId?: string; courseId?: string; amount?: number; certificateBirthDate?: string; birthDate?: string; dateOfBirth?: string; phoneNumber?: string; buyerPhone?: string; customerPhone?: string; attribution?: StoredAttribution | null };
     return pending.paymentId === paymentId ? pending : null;
   } catch {
     return null;
@@ -188,6 +189,7 @@ function PortOnePaymentSuccessContent() {
         const productId = pending?.productId || searchParams.get("productId") || "basic";
         const product = getApplicationProduct(categoryId, productId);
         const amount = typeof pending?.amount === "number" ? pending.amount : product?.price;
+        const attribution = readStoredAttribution() || pending?.attribution || null;
 
         const payload = await fetchJsonWithRetry(confirmUrl, {
           method: "POST",
@@ -210,6 +212,7 @@ function PortOnePaymentSuccessContent() {
             phoneNumber: pending?.phoneNumber || pending?.buyerPhone || pending?.customerPhone || null,
             buyerPhone: pending?.buyerPhone || pending?.phoneNumber || pending?.customerPhone || null,
             customerPhone: pending?.customerPhone || pending?.phoneNumber || pending?.buyerPhone || null,
+            attribution,
           }),
         });
 

@@ -13,6 +13,15 @@ const sortOptions = [
   { value: "payment_desc", label: "결제일 최신순" },
   { value: "name_asc", label: "이름 가나다순" },
 ];
+const trafficSourceOptions = ["전체", "Google", "Naver", "Direct", "Referral"];
+const paymentCourseOptions = ["전체", "기본 수료과정", "심화이수과정", "심리상담 종합과정"];
+
+const emptyAttributionSummary = {
+  Google: { count: 0, revenue: 0 },
+  Naver: { count: 0, revenue: 0 },
+  Direct: { count: 0, revenue: 0 },
+  total: { count: 0, revenue: 0 },
+};
 
 function toDate(value: any) {
   if (!value) return null;
@@ -68,7 +77,15 @@ async function fetchAdminJson(path: string, init?: RequestInit) {
 }
 
 function Badge({ label }: { label: string }) {
-  const tone = label === "결제완료" || label === "생성됨" || label === "수료완료"
+  const tone = label === "Google"
+    ? "border-slate-200 bg-slate-50 text-slate-800"
+    : label === "Naver"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
+      : label === "직접유입"
+        ? "border-slate-200 bg-white text-slate-700"
+        : label === "외부유입"
+          ? "border-blue-200 bg-blue-50 text-blue-800"
+          : label === "결제완료" || label === "생성됨" || label === "수료완료"
     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
     : label === "환불" || label === "만료" || label === "결제완료 + 수강권 없음"
       ? "border-amber-200 bg-amber-50 text-amber-900"
@@ -109,8 +126,46 @@ export function SupabaseLedgerAdminView() {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("전체");
   const [sort, setSort] = useState("joined_desc");
+  const [paymentRows, setPaymentRows] = useState<AnyRecord[]>([]);
+  const [paymentSummary, setPaymentSummary] = useState<AnyRecord>(emptyAttributionSummary);
+  const [paymentOffset, setPaymentOffset] = useState(0);
+  const [paymentNextOffset, setPaymentNextOffset] = useState<number | null>(null);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentSearch, setPaymentSearch] = useState("");
+  const [trafficSource, setTrafficSource] = useState("전체");
+  const [paymentCourse, setPaymentCourse] = useState("전체");
+  const [amountMin, setAmountMin] = useState("");
+  const [amountMax, setAmountMax] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
 
   const params = useMemo(() => ({ search: search.trim(), filter, sort }), [search, filter, sort]);
+  const paymentParams = useMemo(() => ({ search: paymentSearch.trim(), trafficSource, paymentCourse, amountMin: amountMin.trim(), amountMax: amountMax.trim(), dateFrom, dateTo }), [paymentSearch, trafficSource, paymentCourse, amountMin, amountMax, dateFrom, dateTo]);
+
+  const loadPaymentAttribution = async (next = 0) => {
+    setPaymentLoading(true);
+    setError("");
+    try {
+      const query = new URLSearchParams({ limit: "50", offset: String(next) });
+      if (paymentParams.search) query.set("search", paymentParams.search);
+      if (paymentParams.trafficSource !== "전체") query.set("traffic_source", paymentParams.trafficSource);
+      if (paymentParams.paymentCourse !== "전체") query.set("course", paymentParams.paymentCourse);
+      if (paymentParams.amountMin) query.set("amount_min", paymentParams.amountMin);
+      if (paymentParams.amountMax) query.set("amount_max", paymentParams.amountMax);
+      if (paymentParams.dateFrom) query.set("date_from", paymentParams.dateFrom);
+      if (paymentParams.dateTo) query.set("date_to", paymentParams.dateTo);
+      const payload = await fetchAdminJson("/api/admin/supabase/payment-attribution?" + query.toString());
+      setPaymentRows(payload.payments || []);
+      setPaymentSummary(payload.summary || emptyAttributionSummary);
+      setPaymentOffset(next);
+      setPaymentNextOffset(payload.nextOffset ?? null);
+    } catch (loadError) {
+      console.error(loadError);
+      setError(loadError instanceof Error ? loadError.message : String(loadError));
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
 
   const loadMembers = async (next = 0) => {
     setLoading(true);
@@ -135,6 +190,7 @@ export function SupabaseLedgerAdminView() {
 
   useEffect(() => {
     void loadMembers(0);
+    void loadPaymentAttribution(0);
   }, []);
 
   const runRecovery = async () => {
@@ -205,6 +261,53 @@ export function SupabaseLedgerAdminView() {
       </div>
     </div>
 
+
+    <section className="space-y-3 rounded-lg border border-[#d7deea] bg-white p-3 sm:p-4">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <h2 className="text-lg font-black text-slate-950">광고 결제 원장</h2>
+          <p className="mt-1 text-sm font-semibold text-slate-600">실제 결제 승인 완료 건을 광고 유입정보와 연결해 확인합니다.</p>
+        </div>
+        <button type="button" onClick={() => void loadPaymentAttribution(0)} disabled={paymentLoading} className="min-h-10 rounded-lg bg-[#173968] px-4 text-sm font-black text-white disabled:bg-slate-300">{paymentLoading ? "조회 중" : "광고 원장 새로고침"}</button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-[1.3fr_140px_180px_120px_120px_140px_140px_96px]">
+        <input value={paymentSearch} onChange={(event) => setPaymentSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void loadPaymentAttribution(0); }} placeholder="광고키워드, 주문번호, 회원ID, 이메일 검색" className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]" />
+        <select value={trafficSource} onChange={(event) => setTrafficSource(event.target.value)} className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]">{trafficSourceOptions.map((item) => <option key={item} value={item}>{item === "Direct" ? "Direct / 직접유입" : item === "Referral" ? "Referral / 외부유입" : item}</option>)}</select>
+        <select value={paymentCourse} onChange={(event) => setPaymentCourse(event.target.value)} className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]">{paymentCourseOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
+        <input value={amountMin} onChange={(event) => setAmountMin(event.target.value.replace(/[^0-9]/g, ""))} placeholder="최소금액" className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]" />
+        <input value={amountMax} onChange={(event) => setAmountMax(event.target.value.replace(/[^0-9]/g, ""))} placeholder="최대금액" className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]" />
+        <input type="date" value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]" />
+        <input type="date" value={dateTo} onChange={(event) => setDateTo(event.target.value)} className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]" />
+        <button type="button" onClick={() => void loadPaymentAttribution(0)} disabled={paymentLoading} className="min-h-10 rounded-lg bg-[#173968] px-4 text-sm font-black text-white disabled:bg-slate-300">검색</button>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        {[{ label: "Google", stat: paymentSummary.Google }, { label: "Naver", stat: paymentSummary.Naver }, { label: "직접유입", stat: paymentSummary.Direct }, { label: "전체", stat: paymentSummary.total }].map((item) => <div key={item.label} className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"><p className="text-xs font-black text-slate-500">{item.label}</p><p className="mt-1 text-sm font-black text-slate-950">{Number(item.stat?.count || 0).toLocaleString("ko-KR")}건 · {formatKrw(item.stat?.revenue)}</p></div>)}
+      </div>
+
+      <div className="overflow-x-auto rounded-lg border border-[#d7deea]">
+        <table className="min-w-[980px] table-fixed border-separate border-spacing-0 text-left text-sm">
+          <thead><tr>{["광고매체", "광고키워드", "광고캠페인", "결제과정", "결제금액", "결제일", "주문번호"].map((label) => <th key={label} className="border-b border-slate-200 px-3 py-3 text-xs font-black text-slate-500">{label}</th>)}</tr></thead>
+          <tbody>{paymentRows.length ? paymentRows.map((row) => <tr key={row.id || row.order_id} className="hover:bg-slate-50">
+            <td className="border-b border-slate-100 px-3 py-3"><Badge label={row.traffic_source_label || row.traffic_source || "기타"} /></td>
+            <td className="truncate border-b border-slate-100 px-3 py-3 font-bold text-slate-950" title={row.traffic_keyword || "-"}>{row.traffic_keyword || "-"}</td>
+            <td className="truncate border-b border-slate-100 px-3 py-3" title={row.traffic_campaign || "-"}>{row.traffic_campaign || "-"}</td>
+            <td className="truncate border-b border-slate-100 px-3 py-3" title={row.course_name || "-"}>{row.course_name || "-"}</td>
+            <td className="border-b border-slate-100 px-3 py-3 font-black text-slate-950">{formatKrw(row.amount)}</td>
+            <td className="border-b border-slate-100 px-3 py-3 font-semibold text-slate-700">{formatDate(row.paid_at)}</td>
+            <td className="border-b border-slate-100 px-3 py-3 font-mono text-xs" title={row.order_id || ""}>{row.order_id || "-"}</td>
+          </tr>) : <tr><td colSpan={7} className="px-4 py-8 text-center text-sm font-semibold text-slate-500">조회된 결제 원장이 없습니다.</td></tr>}</tbody>
+        </table>
+      </div>
+
+      <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+        <button type="button" onClick={() => void loadPaymentAttribution(Math.max(0, paymentOffset - 50))} disabled={paymentLoading || paymentOffset === 0} className="rounded-lg border border-[#d7deea] bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:text-slate-300 sm:px-4">이전 50건</button>
+        <span className="text-xs font-bold text-slate-500">{paymentRows.length ? paymentOffset + 1 : 0} - {paymentOffset + paymentRows.length}</span>
+        <button type="button" onClick={() => void loadPaymentAttribution(paymentNextOffset || 0)} disabled={paymentLoading || paymentNextOffset === null} className="rounded-lg border border-[#d7deea] bg-white px-3 py-2 text-sm font-bold text-slate-700 disabled:text-slate-300 sm:px-4">다음 50건</button>
+      </div>
+    </section>
+
     <div className="grid gap-2 rounded-lg border border-[#d7deea] bg-white p-3 sm:grid-cols-2 lg:grid-cols-[1fr_190px_190px_110px]">
       <input value={search} onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void loadMembers(0); }} placeholder="회원 ID, 이메일, 이름, 과정명, 주문번호 검색" className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]" />
       <select value={filter} onChange={(event) => setFilter(event.target.value)} className="min-h-10 rounded-lg border border-slate-200 px-3 text-sm outline-none focus:border-[#173968]">{filterOptions.map((item) => <option key={item} value={item}>{item}</option>)}</select>
@@ -271,7 +374,7 @@ export function SupabaseLedgerAdminView() {
         <button type="button" onClick={() => setDetail(null)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-600">닫기</button>
       </div>
       <MiniTable title="기본정보" rows={[detailMember]} columns={[{ key: "firebase_uid", label: "전체 UID" }, { key: "email", label: "이메일", render: (r) => r.login_id || r.email || "-" }, { key: "name", label: "이름", render: (r) => r.name || "미입력" }, { key: "birth_date", label: "생년월일", render: (r) => r.birth_date || "-" }, { key: "phone", label: "전화번호" }, { key: "joined_at", label: "가입일", render: (r) => formatDate(r.joined_at || r.created_at) }]} />
-      <MiniTable title="결제정보" rows={detail.payments || []} columns={[{ key: "course_name", label: "과정명" }, { key: "amount", label: "결제금액", render: (r) => formatKrw(r.amount) }, { key: "paid_at", label: "결제일", render: (r) => formatDate(r.paid_at) }, { key: "payment_status", label: "결제상태" }, { key: "refund_status", label: "환불여부" }, { key: "order_id", label: "주문번호" }]} />
+      <MiniTable title="결제정보" rows={detail.payments || []} columns={[{ key: "traffic_source", label: "광고매체", render: (r) => <Badge label={r.traffic_source === "Direct" ? "직접유입" : r.traffic_source === "Referral" ? "외부유입" : r.traffic_source || "기타"} /> }, { key: "traffic_keyword", label: "광고키워드", render: (r) => r.traffic_keyword || "-" }, { key: "traffic_campaign", label: "광고캠페인", render: (r) => r.traffic_campaign || "-" }, { key: "course_name", label: "과정명" }, { key: "amount", label: "결제금액", render: (r) => formatKrw(r.amount) }, { key: "paid_at", label: "결제일", render: (r) => formatDate(r.paid_at) }, { key: "payment_status", label: "결제상태" }, { key: "refund_status", label: "환불여부" }, { key: "order_id", label: "주문번호" }]} />
       <MiniTable title="수강정보" rows={detail.enrollments || []} columns={[{ key: "course_name", label: "과정명" }, { key: "enrollment_status", label: "수강권 상태" }, { key: "progress", label: "진도율", render: (r) => String(r.progress ?? 0) + "%" }, { key: "completion_status", label: "수료여부" }, { key: "completion_date", label: "수료일", render: (r) => formatDate(r.completion_date) }]} />
       <MiniTable title="문서정보" rows={detail.documents || []} columns={[{ key: "document_name", label: "문서명" }, { key: "document_type", label: "문서유형" }, { key: "first_issued_at", label: "최초 발급일", render: (r) => formatDate(r.first_issued_at || r.generated_at) }, { key: "downloaded_at", label: "최근 다운로드일", render: (r) => formatDate(r.downloaded_at) }, { key: "printed_at", label: "인쇄 요청일", render: (r) => formatDate(r.printed_at) }, { key: "issue_count", label: "재발급 횟수" }]} />
     </aside> : null}

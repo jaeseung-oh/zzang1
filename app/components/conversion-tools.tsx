@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { applicationCourseCategories } from "@/lib/course/application-products";
-import { attributionParamKeys, attributionStorageKey, type AttributionParams } from "@/lib/marketing/attribution";
+import { captureCurrentAttribution, getStoredAttributionParams } from "@/lib/marketing/attribution";
 import { trackEvent } from "@/lib/analytics/ga";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import {
@@ -34,7 +34,7 @@ const defaultAssessment: AssessmentInput = {
 function appendStoredAttribution(href: string) {
   if (typeof window === "undefined") return href;
   try {
-    const stored = JSON.parse(window.sessionStorage.getItem(attributionStorageKey) || "{}") as AttributionParams;
+    const stored = getStoredAttributionParams();
     const url = new URL(href, window.location.origin);
     Object.entries(stored).forEach(([key, value]) => {
       if (value && !url.searchParams.has(key)) url.searchParams.set(key, value);
@@ -51,19 +51,7 @@ function applyHref(categoryId: string, productId: string) {
 
 export function AttributionCapture() {
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const next: AttributionParams = {};
-    attributionParamKeys.forEach((key) => {
-      const value = params.get(key);
-      if (value) next[key] = value.slice(0, 160);
-    });
-    if (Object.keys(next).length === 0) return;
-    try {
-      const prev = JSON.parse(window.sessionStorage.getItem(attributionStorageKey) || "{}") as AttributionParams;
-      window.sessionStorage.setItem(attributionStorageKey, JSON.stringify({ ...prev, ...next }));
-    } catch {
-      // Attribution capture must never block the site.
-    }
+    captureCurrentAttribution();
   }, []);
   return null;
 }

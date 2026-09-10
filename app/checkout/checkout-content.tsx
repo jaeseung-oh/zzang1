@@ -13,7 +13,7 @@ import { paymentConfig } from "@/lib/payment/config";
 import { getVerifiedUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { trackBeginCheckout, trackEvent } from "@/lib/analytics/ga";
-import { attributionParamKeys, attributionStorageKey, type AttributionParams } from "@/lib/marketing/attribution";
+import { getStoredAttributionParams, readStoredAttribution } from "@/lib/marketing/attribution";
 import { siteInfo } from "@/lib/site-info";
 
 const appOrigin = paymentConfig.siteUrl;
@@ -209,16 +209,16 @@ export default function CheckoutContent() {
     };
   };
 
-  const getStoredAttribution = () => {
-    try { return JSON.parse(window.sessionStorage.getItem(attributionStorageKey) || "{}") as AttributionParams; } catch { return {}; }
-  };
+  const getStoredAttribution = () => readStoredAttribution() || {};
+
+  const getStoredAttributionUrlParams = () => getStoredAttributionParams();
 
   const replaceCheckoutSelectionUrl = (categoryId: string, productId: string) => {
     const params = new URLSearchParams(window.location.search);
     params.set("categoryId", categoryId);
     params.set("productId", productId);
-    const stored = getStoredAttribution();
-    attributionParamKeys.forEach((key) => { if (stored[key] && !params.has(key)) params.set(key, stored[key] as string); });
+    const stored = getStoredAttributionUrlParams();
+    Object.entries(stored).forEach(([key, value]) => { if (value && !params.has(key)) params.set(key, value); });
     window.history.replaceState(null, "", window.location.pathname + "?" + params.toString());
   };
 
@@ -399,7 +399,8 @@ export default function CheckoutContent() {
       const activePaymentId = createPaymentId(verifiedUid);
       recoveryPaymentId = activePaymentId;
       recoveryProductId = paymentTarget.product.id;
-      window.localStorage.setItem("resetedu:pending-portone-order", JSON.stringify({ paymentId: activePaymentId, categoryId: paymentTarget.categoryId, productId: paymentTarget.product.id, courseId: paymentTarget.courseId, amount: paymentTarget.product.price, paymentMethod: selectedPortOnePayMethod, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, phoneNumber: buyerPhone.trim() || null, buyerPhone: buyerPhone.trim() || null, savedAt: new Date().toISOString() }));
+      const paymentAttribution = getStoredAttribution();
+      window.localStorage.setItem("resetedu:pending-portone-order", JSON.stringify({ paymentId: activePaymentId, categoryId: paymentTarget.categoryId, productId: paymentTarget.product.id, courseId: paymentTarget.courseId, amount: paymentTarget.product.price, paymentMethod: selectedPortOnePayMethod, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, phoneNumber: buyerPhone.trim() || null, buyerPhone: buyerPhone.trim() || null, attribution: paymentAttribution, savedAt: new Date().toISOString() }));
       try {
         const paymentUser = await requireAuthenticatedUser();
         if (paymentUser.uid !== verifiedUid) throw new Error("USER_MISMATCH");
@@ -408,7 +409,7 @@ export default function CheckoutContent() {
         const orderResponse = await fetch(orderCreateUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json", Authorization: "Bearer " + idToken },
-          body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: paymentTarget.categoryId, productId: paymentTarget.product.id, courseId: paymentTarget.courseId, amount: paymentTarget.product.price, orderName: paymentTarget.paymentOrderName, paymentMethod: selectedPortOnePayMethod, frontendPaymentMethod: selectedPaymentMethod, paymentProvider: selectedPaymentProvider, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, birthDate: verifiedBirthDate, dateOfBirth: verifiedBirthDate, phoneNumber: buyerPhone.trim() || null, buyerPhone: buyerPhone.trim() || null, customerPhone: buyerPhone.trim() || null }),
+          body: JSON.stringify({ paymentId: activePaymentId, uid: verifiedUid, categoryId: paymentTarget.categoryId, productId: paymentTarget.product.id, courseId: paymentTarget.courseId, amount: paymentTarget.product.price, orderName: paymentTarget.paymentOrderName, paymentMethod: selectedPortOnePayMethod, frontendPaymentMethod: selectedPaymentMethod, paymentProvider: selectedPaymentProvider, certificateName: verifiedName, certificateBirthDate: verifiedBirthDate, birthDate: verifiedBirthDate, dateOfBirth: verifiedBirthDate, phoneNumber: buyerPhone.trim() || null, buyerPhone: buyerPhone.trim() || null, customerPhone: buyerPhone.trim() || null, attribution: paymentAttribution }),
         });
         if (!orderResponse.ok) {
           const orderText = await orderResponse.text().catch(() => "");
@@ -430,7 +431,7 @@ export default function CheckoutContent() {
       }
 
       paymentWindowRequested = true;
-      const attribution = getStoredAttribution();
+      const attribution = paymentAttribution;
       trackEvent("checkout_start", { category: paymentTarget.categoryId, productId: paymentTarget.product.id, price: paymentTarget.product.price, ...attribution });
       trackBeginCheckout({
         value: paymentTarget.product.price,
@@ -487,7 +488,7 @@ export default function CheckoutContent() {
           paymentProvider: selectedPaymentProvider,
           certificateName: verifiedName,
           certificateBirthDate: verifiedBirthDate,
-          attribution: getStoredAttribution(),
+          attribution: paymentAttribution,
         },
       });
 

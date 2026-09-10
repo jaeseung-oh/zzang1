@@ -211,6 +211,10 @@ async function handleRequest(request, env) {
             return handleAdminSupabaseMemberDetail(request, env, corsHeaders);
         }
 
+        if (url.pathname === '/api/admin/supabase/payment-attribution' && request.method === 'GET') {
+            return handleAdminSupabasePaymentAttribution(request, env, corsHeaders);
+        }
+
         if (url.pathname === '/api/admin/supabase/migration/inspect' && request.method === 'POST') {
             return handleAdminSupabaseMigrationInspect(request, env, corsHeaders);
         }
@@ -1025,6 +1029,81 @@ async function supabaseLedgerRecordMemberEvent(env, firebaseUser, body = {}) {
     });
 }
 
+const SUPABASE_PAYMENT_ATTRIBUTION_FIELDS = [
+    'traffic_source', 'traffic_medium', 'traffic_campaign', 'traffic_keyword', 'traffic_content',
+    'google_gclid', 'google_gbraid', 'google_wbraid',
+    'naver_keyword', 'naver_query', 'naver_campaign', 'naver_ad_group', 'naver_ad', 'naver_media',
+    'landing_page', 'referrer'
+];
+
+function sanitizeAttributionText(value, maxLength = 500) {
+    const text = String(value || '').trim();
+    return text ? text.slice(0, maxLength) : null;
+}
+
+function normalizeTrafficSourceValue(value) {
+    const text = String(value || '').trim().toLowerCase();
+    if (text === 'google') return 'Google';
+    if (text === 'naver') return 'Naver';
+    if (text === 'direct') return 'Direct';
+    if (text === 'referral') return 'Referral';
+    if (text === 'other') return 'Other';
+    return null;
+}
+
+function normalizePaymentAttribution(input) {
+    const source = input && typeof input === 'object' ? input : {};
+    const params = source.params && typeof source.params === 'object' ? source.params : {};
+    const get = (...keys) => {
+        for (const key of keys) {
+            const value = source[key] ?? params[key];
+            const cleaned = sanitizeAttributionText(value);
+            if (cleaned) return cleaned;
+        }
+        return null;
+    };
+    const naverHasParam = Boolean(get('naverKeyword', 'naver_keyword', 'n_keyword') || get('naverQuery', 'naver_query', 'n_query') || get('naverCampaign', 'naver_campaign', 'n_campaign') || get('naverAdGroup', 'naver_ad_group', 'n_ad_group') || get('naverAd', 'naver_ad', 'n_ad') || get('naverMedia', 'naver_media', 'n_media'));
+    const utmSource = String(get('utm_source') || '').toLowerCase();
+    const explicitSource = normalizeTrafficSourceValue(source.trafficSource || source.traffic_source);
+    const trafficSource = get('googleGclid', 'google_gclid', 'gclid') || utmSource === 'google' ? 'Google'
+        : naverHasParam || utmSource === 'naver' ? 'Naver'
+            : explicitSource || 'Other';
+    const trafficKeyword = trafficSource === 'Google'
+        ? get('trafficKeyword', 'traffic_keyword', 'utm_term')
+        : trafficSource === 'Naver'
+            ? get('trafficKeyword', 'traffic_keyword', 'naverKeyword', 'naver_keyword', 'n_keyword', 'naverQuery', 'naver_query', 'n_query', 'utm_term')
+            : get('trafficKeyword', 'traffic_keyword', 'utm_term');
+    const output = {
+        traffic_source: trafficSource,
+        traffic_medium: get('trafficMedium', 'traffic_medium', 'utm_medium'),
+        traffic_campaign: get('trafficCampaign', 'traffic_campaign', 'utm_campaign', 'naverCampaign', 'naver_campaign', 'n_campaign'),
+        traffic_keyword: trafficKeyword,
+        traffic_content: get('trafficContent', 'traffic_content', 'utm_content'),
+        google_gclid: get('googleGclid', 'google_gclid', 'gclid'),
+        google_gbraid: get('googleGbraid', 'google_gbraid', 'gbraid'),
+        google_wbraid: get('googleWbraid', 'google_wbraid', 'wbraid'),
+        naver_keyword: get('naverKeyword', 'naver_keyword', 'n_keyword'),
+        naver_query: get('naverQuery', 'naver_query', 'n_query'),
+        naver_campaign: get('naverCampaign', 'naver_campaign', 'n_campaign', 'utm_campaign'),
+        naver_ad_group: get('naverAdGroup', 'naver_ad_group', 'n_ad_group'),
+        naver_ad: get('naverAd', 'naver_ad', 'n_ad'),
+        naver_media: get('naverMedia', 'naver_media', 'n_media'),
+        landing_page: get('landingPage', 'landing_page'),
+        referrer: get('referrer')
+    };
+    return output;
+}
+
+function pickPaymentAttributionFields(paymentRecord) {
+    const source = paymentRecord?.attribution && typeof paymentRecord.attribution === 'object' ? paymentRecord.attribution : paymentRecord;
+    const normalized = normalizePaymentAttribution(source);
+    const result = {};
+    for (const key of SUPABASE_PAYMENT_ATTRIBUTION_FIELDS) {
+        if (normalized[key] !== undefined) result[key] = normalized[key];
+    }
+    return result;
+}
+
 async function supabaseLedgerRecordPayment(env, paymentRecord, options = {}) {
     const uid = paymentRecord.uid || paymentRecord.userId || paymentRecord.firebase_uid || paymentRecord.firebaseUid || paymentRecord.user_id;
     const orderId = paymentRecord.orderId || paymentRecord.order_id || paymentRecord.paymentId || paymentRecord.payment_id;
@@ -1053,7 +1132,8 @@ async function supabaseLedgerRecordPayment(env, paymentRecord, options = {}) {
         refund_status: paymentRecord.refundStatus || (paymentRecord.refundedAt ? 'refunded' : 'none'),
         refunded_at: normalizeLedgerTimestamp(paymentRecord.refundedAt || paymentRecord.cancelledAt || paymentRecord.canceledAt),
         refund_amount: paymentRecord.refundAmount == null ? null : Number(paymentRecord.refundAmount || 0),
-        pg_provider: paymentRecord.paymentProvider || paymentRecord.pgProvider || 'portone-kcp-v2'
+        pg_provider: paymentRecord.paymentProvider || paymentRecord.pgProvider || 'portone-kcp-v2',
+        ...pickPaymentAttributionFields(paymentRecord)
     };
     let paymentRow = existing;
     if (existing && options.preserveExisting) {
@@ -3799,6 +3879,7 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
     const frontendPaymentMethod = String(body?.frontendPaymentMethod || '').trim() || requestedPaymentMethod;
     const certificateBirthDate = getWorkerRecordBirthDate(body) || null;
     const phoneNumber = String(body?.phoneNumber || body?.buyerPhone || body?.customerPhone || body?.phone || '').trim() || null;
+    const orderAttribution = normalizePaymentAttribution(body?.attribution || {});
 
     if (uid !== firebaseUser.uid) {
         return json({ message: '로그인한 사용자와 주문 사용자 정보가 일치하지 않습니다.', code: 'USER_MISMATCH' }, 403, corsHeaders);
@@ -3916,6 +3997,7 @@ async function handlePortOneOrderCreate(request, env, corsHeaders) {
         paymentStatus: 'pending',
         frontendOrigin: request.headers.get('origin') || null,
         endpoint: '/api/payments/portone-order',
+        attribution: orderAttribution,
         createdAt: nowIso,
         updatedAt: nowIso
     };
@@ -4566,6 +4648,8 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
     const method = getPortOnePaymentMethod(approved);
     const certificateBirthDate = getWorkerRecordBirthDate({ customData }, approved, pendingOrder);
 
+    const paymentAttribution = normalizePaymentAttribution(body?.attribution || pendingOrder?.attribution || customData?.attribution || {});
+
     const paymentRecord = {
         paymentId, orderId, paymentKey: paymentId, userId: uid, uid, courseId, canonicalCourseId,
         categoryId, productId, planId: product.planId || null, productTitle: product.title,
@@ -4584,7 +4668,7 @@ async function handlePortOnePaymentConfirm(body, firebaseUser, env, corsHeaders)
         kcpTid: getPortOneTid(approved),
         kcpResponseCode: getPortOneResponseCode(approved),
         kcpResponseMessage: getPortOneResponseMessage(approved),
-        approvedAt, createdAt: nowIso, updatedAt: nowIso, rawResponse: approved
+        approvedAt, createdAt: nowIso, updatedAt: nowIso, attribution: paymentAttribution, rawResponse: approved
     };
     const enrollmentRecord = {
         enrollmentId, userId: uid, uid, courseId: canonicalCourseId, canonicalCourseId,
@@ -7086,6 +7170,89 @@ async function handleAdminSupabaseMembers(request, env, corsHeaders) {
     }
 }
 
+
+function formatSupabaseLedgerDateOnly(value) {
+    if (!value) return '';
+    const date = new Date(String(value));
+    return Number.isFinite(date.getTime()) ? date.toISOString().slice(0, 10) : String(value).slice(0, 10);
+}
+
+function getPaymentAttributionDisplaySource(value) {
+    const source = normalizeTrafficSourceValue(value) || 'Other';
+    if (source === 'Direct') return '직접유입';
+    if (source === 'Referral') return '외부유입';
+    if (source === 'Other') return '기타';
+    return source;
+}
+
+function paymentAttributionMatchesSearch(row, term) {
+    if (!term) return true;
+    const haystack = [row.traffic_keyword, row.order_id, row.firebase_uid, row.email, row.login_id, row.course_name, row.traffic_campaign].map((value) => String(value || '').toLowerCase()).join(' ');
+    return haystack.includes(String(term || '').toLowerCase());
+}
+
+function summarizePaymentAttributionRows(rows) {
+    const base = {
+        Google: { count: 0, revenue: 0 },
+        Naver: { count: 0, revenue: 0 },
+        Direct: { count: 0, revenue: 0 },
+        total: { count: 0, revenue: 0 }
+    };
+    for (const row of rows || []) {
+        if (!isSupabasePaidPayment(row)) continue;
+        const amount = Number(row.amount || 0);
+        const source = normalizeTrafficSourceValue(row.traffic_source) || 'Other';
+        if (base[source]) {
+            base[source].count += 1;
+            base[source].revenue += amount;
+        }
+        base.total.count += 1;
+        base.total.revenue += amount;
+    }
+    return base;
+}
+
+async function handleAdminSupabasePaymentAttribution(request, env, corsHeaders) {
+    let admin;
+    try { admin = await requireFirebaseAdmin(request, env); requireSupabaseLedgerConfigured(env); }
+    catch (error) { return json({ ok: false, message: error.message || '관리자 권한 또는 Supabase 설정을 확인해 주세요.', code: error.code || 'ADMIN_FORBIDDEN' }, error.status || 403, corsHeaders); }
+    const requestUrl = new URL(request.url);
+    const limit = getSupabaseAdminLimit(requestUrl);
+    const offset = Math.max(0, Number(requestUrl.searchParams.get('offset') || 0));
+    const sourceFilter = String(requestUrl.searchParams.get('traffic_source') || '').trim();
+    const courseFilter = sanitizeSupabaseSearchTerm(requestUrl.searchParams.get('course') || '');
+    const search = sanitizeSupabaseSearchTerm(requestUrl.searchParams.get('search') || '');
+    const amountMin = Number(requestUrl.searchParams.get('amount_min') || '');
+    const amountMax = Number(requestUrl.searchParams.get('amount_max') || '');
+    const dateFrom = String(requestUrl.searchParams.get('date_from') || '').trim();
+    const dateTo = String(requestUrl.searchParams.get('date_to') || '').trim();
+    try {
+        const url = new URL(getSupabaseUrl(env, 'payments'));
+        url.searchParams.set('select', '*');
+        url.searchParams.set('order', 'paid_at.desc.nullslast,created_at.desc');
+        url.searchParams.set('limit', String(Math.max(limit + offset, 200)));
+        if (courseFilter) url.searchParams.set('course_name', 'ilike.*' + courseFilter + '*');
+        if (Number.isFinite(amountMin) && amountMin > 0) url.searchParams.set('amount', 'gte.' + amountMin);
+        if (Number.isFinite(amountMax) && amountMax > 0) url.searchParams.append('amount', 'lte.' + amountMax);
+        appendSupabaseDateFilter(url, 'paid_at', dateFrom, dateTo);
+        const base = String(env.SUPABASE_URL || '').replace(/\/$/, '') + '/rest/v1/';
+        const rows = await supabaseLedgerRequest(env, url.toString().replace(base, ''));
+        const allRows = (Array.isArray(rows) ? rows : [])
+            .filter((row) => !sourceFilter || sourceFilter === '전체' || normalizeTrafficSourceValue(row.traffic_source) === sourceFilter)
+            .filter((row) => paymentAttributionMatchesSearch(row, search));
+        const pageRows = allRows.slice(offset, offset + limit).map((row) => ({
+            ...row,
+            traffic_source_label: getPaymentAttributionDisplaySource(row.traffic_source),
+            traffic_keyword: row.traffic_keyword || '-',
+            traffic_campaign: row.traffic_campaign || '-',
+            paid_date: formatSupabaseLedgerDateOnly(row.paid_at)
+        }));
+        return json({ ok: true, payments: pageRows, summary: summarizePaymentAttributionRows(allRows), limit, offset, nextOffset: allRows.length > offset + limit ? offset + limit : null, admin: { uid: admin.uid, email: admin.email } }, 200, corsHeaders);
+    } catch (error) {
+        console.error('[admin-supabase-payment-attribution:failed]', { message: error instanceof Error ? error.message : String(error) });
+        return json({ ok: false, message: error instanceof Error ? error.message : 'Supabase 광고 결제 원장 조회 실패', code: 'SUPABASE_PAYMENT_ATTRIBUTION_FAILED' }, 500, corsHeaders);
+    }
+}
 
 async function handleAdminSupabaseMemberDetail(request, env, corsHeaders) {
     let admin;
