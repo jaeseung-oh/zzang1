@@ -4,11 +4,17 @@ import Link from "next/link";
 import { buttonClass } from "@/app/components/ui/button-styles";
 import { useSearchParams } from "next/navigation";
 
-const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7617-8619로 연락주시면 즉시 조치해드리겠습니다.";
+const paymentSupportMessage = "결제 실패 시 언제든 고객센터 010-7727-8619로 연락주시면 즉시 조치해드리겠습니다.";
+const birthDateMissingDocumentNotice = "출력서류에 생년월일이 미표시되는 경우 마이페이지-회원정보 변경에서 생년월일을 입력하여 주시기 바랍니다.";
+
+function getPaymentFailureDisplayMessage(message: string) {
+  if (message.includes("certificateBirthDate is not defined")) return birthDateMissingDocumentNotice;
+  return message;
+}
 
 export default function PaymentFailContent() {
   const searchParams = useSearchParams();
-  const message = searchParams.get("message") || "";
+  const message = getPaymentFailureDisplayMessage(searchParams.get("message") || "");
 
   return (
     <main className="min-h-screen bg-[#f3f6f9] px-4 py-10 text-slate-950 sm:px-6 lg:px-8">

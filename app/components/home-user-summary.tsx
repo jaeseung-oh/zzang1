@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { User } from "firebase/auth";
-import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { collection, getDocs, query, where } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { getUserProfile } from "@/lib/firebase/user-profile";
@@ -51,18 +51,23 @@ export default function HomeUserSummary({ currentUser }: HomeUserSummaryProps) {
 
     loadProfile();
 
-    const { db } = getFirebaseServices();
-    const progressQuery = query(collection(db, "courseProgress"), where("uid", "==", currentUser.uid));
-    const unsubscribe = onSnapshot(progressQuery, (snapshot) => {
-      if (!active) {
-        return;
+    const loadProgress = async () => {
+      try {
+        const { db } = getFirebaseServices();
+        const progressQuery = query(collection(db, "courseProgress"), where("uid", "==", currentUser.uid));
+        const snapshot = await getDocs(progressQuery);
+        if (active) {
+          setProgressItems(snapshot.docs.map((doc) => doc.data() as ProgressItem));
+        }
+      } catch (error) {
+        console.error(error);
       }
-      setProgressItems(snapshot.docs.map((doc) => doc.data() as ProgressItem));
-    });
+    };
+
+    void loadProgress();
 
     return () => {
       active = false;
-      unsubscribe();
     };
   }, [currentUser]);
 

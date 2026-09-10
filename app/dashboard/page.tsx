@@ -2,15 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { collection, doc, getDoc, getDocs, query, where, QuerySnapshot, DocumentData, DocumentSnapshot } from "firebase/firestore";
+import { collection, getDocs, query, where, QuerySnapshot, DocumentData, DocumentSnapshot } from "firebase/firestore";
 import { useEffect, useMemo, useState } from "react";
 import { DUI_CBT_ADVANCED_COURSE_ID, allCourseCatalog, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules } from "@/lib/course/catalog";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { buttonClass } from "@/app/components/ui/button-styles";
-import { getVerifiedActiveUserEnrollments, isEnrollmentActive, type EnrollmentRecord } from "@/lib/course/enrollment-service";
+import { getVerifiedActiveUserEnrollments, isEnrollmentActive, resolveCourseId, type EnrollmentRecord } from "@/lib/course/enrollment-service";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 import { getPreventionDocumentsForCourse, getPreventionDocumentsForEnrollment, isPreventionDocumentsEnrollment } from "@/lib/course/prevention-documents";
+import { normalizeCourseDisplayText } from "@/lib/course/display-names";
 
 type ModuleProgressState = {
   watchedSeconds: number;
@@ -99,17 +100,22 @@ function formatKrw(value: unknown) {
 
 function getCourseRoomCourseId(enrollment: EnrollmentListItem) {
   const productId = String(enrollment.productId || "");
+  const resolvedProductId = resolveCourseId(productId || null);
+  if (resolvedProductId === DUI_CBT_ADVANCED_COURSE_ID || getCourseDefinition(resolvedProductId)) return resolvedProductId;
   if (getCourseDefinition(productId)) return productId;
-  return enrollment.courseId || defaultCourse.id;
+  const resolvedCourseId = resolveCourseId(enrollment.canonicalCourseId || enrollment.courseId || null);
+  return resolvedCourseId === DUI_CBT_ADVANCED_COURSE_ID || getCourseDefinition(resolvedCourseId) ? resolvedCourseId : enrollment.courseId || defaultCourse.id;
 }
 
 function getEnrollmentCourseDefinition(enrollment: EnrollmentListItem) {
   const courseRoomCourseId = getCourseRoomCourseId(enrollment);
-  return getCourseDefinition(courseRoomCourseId) || getCourseDefinition(enrollment.courseId);
+  return getCourseDefinition(courseRoomCourseId) || getCourseDefinition(resolveCourseId(enrollment.productId || enrollment.courseId || null)) || getCourseDefinition(enrollment.courseId);
 }
 
 function getEnrollmentCertificateCourseId(enrollment: EnrollmentListItem) {
-  return getEnrollmentCourseDefinition(enrollment)?.id || enrollment.courseId || defaultCourse.id;
+  const resolvedProductId = resolveCourseId(enrollment.productId || null);
+  if (getCourseDefinition(resolvedProductId)) return resolvedProductId;
+  return getEnrollmentCourseDefinition(enrollment)?.id || resolveCourseId(enrollment.canonicalCourseId || enrollment.courseId || null) || enrollment.courseId || defaultCourse.id;
 }
 
 type DashboardDocumentAction = {
@@ -140,28 +146,32 @@ function getEnrollmentDocumentActions(enrollment: EnrollmentListItem): Dashboard
   const actions = new Map<string, DashboardDocumentAction>();
   const certificateCourseId = getEnrollmentCertificateCourseId(enrollment);
   const course = getEnrollmentCourseDefinition(enrollment);
-  const fallbackDocuments = certificateCourseId === DUI_CBT_ADVANCED_COURSE_ID
-    ? [
-        { type: "cbt-completion", title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID },
-        { type: "cbt-detail", title: "재범방지 교육 이수 상세 내역서", courseId: DUI_CBT_ADVANCED_COURSE_ID },
-      ]
-    : [{ type: "course-certificate", title: (course?.certificateTitle || enrollment.courseTitle || "교육") + " 수료증", courseId: certificateCourseId }];
-  const certificateDocuments = course?.documents?.length ? course.documents : fallbackDocuments;
+  const isAdvancedEquivalent = isAdvancedEquivalentEnrollment(enrollment);
+  const certificateDocuments = course?.documents?.length
+    ? course.documents
+    : [{ type: "course-certificate" as const, title: (course?.certificateTitle || enrollment.courseTitle || "교육") + " 수료증", courseId: certificateCourseId }];
 
-  certificateDocuments.forEach((document) => {
+  const addCertificateDocument = (document: { type: "course-certificate" | "cbt-completion" | "cbt-detail"; title: string; courseId?: string }) => {
     const documentType = document.type === "cbt-completion" || document.type === "cbt-detail" ? document.type : "completion";
     const courseId = document.courseId || certificateCourseId;
     const key = "certificate:" + courseId + ":" + documentType;
     actions.set(key, {
       key,
       title: document.title,
-      description: documentType === "completion" ? "수료증 출력 및 PDF 저장" : "심화과정 이수 서류 출력 및 PDF 저장",
+      description: documentType === "completion" ? "수료증 출력 및 PDF 저장" : "심화이수과정 이수 서류 출력 및 PDF 저장",
       href: getDashboardCertificateHref(courseId, documentType),
       printHref: getDashboardCertificateHref(courseId, documentType, "print"),
       pdfHref: getDashboardCertificateHref(courseId, documentType, "pdf"),
       tone: documentType === "completion" ? "certificate" : "advanced",
     });
-  });
+  };
+
+  certificateDocuments.forEach(addCertificateDocument);
+
+  if (isAdvancedEquivalent) {
+    addCertificateDocument({ type: "cbt-completion", title: "인지행동기반 재발방지교육 이수증", courseId: DUI_CBT_ADVANCED_COURSE_ID });
+    addCertificateDocument({ type: "cbt-detail", title: "재범방지 교육 이수 상세 내역서", courseId: DUI_CBT_ADVANCED_COURSE_ID });
+  }
 
   if (isPreventionDocumentsEnrollment(enrollment)) {
     getPreventionDocumentsForEnrollment(enrollment).forEach((document) => {
@@ -169,7 +179,7 @@ function getEnrollmentDocumentActions(enrollment: EnrollmentListItem): Dashboard
       actions.set(key, {
         key,
         title: document.title,
-        description: document.advancedOnly ? "심화과정 작성자료 출력 및 PDF 저장" : "기본과정 작성자료 출력 및 PDF 저장",
+        description: document.advancedOnly ? "심화이수과정 작성자료 출력 및 PDF 저장" : "기본 수료과정 작성자료 출력 및 PDF 저장",
         href: getDashboardMaterialHref(document.id, certificateCourseId),
         printHref: getDashboardMaterialHref(document.id, certificateCourseId, "print"),
         pdfHref: getDashboardMaterialHref(document.id, certificateCourseId, "pdf"),
@@ -196,12 +206,26 @@ function getCourseRoomButtonLabel(progressRate: number, completed: boolean) {
 function getEnrollmentDisplayTitle(enrollment?: EnrollmentListItem | null) {
   if (!enrollment) return defaultCourse.title;
   const course = getEnrollmentCourseDefinition(enrollment);
-  return enrollment.courseTitle || course?.title || enrollment.productTitle || enrollment.courseId || defaultCourse.title;
+  return String(normalizeCourseDisplayText(enrollment.courseTitle || course?.title || enrollment.productTitle || enrollment.courseId || defaultCourse.title));
+}
+
+function isAdvancedEquivalentEnrollment(enrollment: EnrollmentListItem) {
+  const productId = String(enrollment.productId || "");
+  const resolvedProductId = resolveCourseId(productId || null);
+  const resolvedCourseId = resolveCourseId(enrollment.canonicalCourseId || enrollment.courseId || null);
+  const title = String(enrollment.productTitle || enrollment.courseTitle || "").replace(/\s/g, "");
+  const course = getEnrollmentCourseDefinition(enrollment);
+  return resolvedProductId === DUI_CBT_ADVANCED_COURSE_ID
+    || resolvedCourseId === DUI_CBT_ADVANCED_COURSE_ID
+    || productId === "dui-cbt-counseling"
+    || productId === "dui-cbt-advanced"
+    || course?.level === "advanced"
+    || title.includes("심리상담종합과정")
+    || title.includes("심화이수과정") || title.includes("충실준비과정") || title.includes("충실 준비과정");
 }
 
 function getDashboardEnrollmentPriority(enrollment: EnrollmentListItem) {
-  const course = getEnrollmentCourseDefinition(enrollment);
-  if (course?.level === "advanced" || getEnrollmentCertificateCourseId(enrollment) === DUI_CBT_ADVANCED_COURSE_ID) return 0;
+  if (isAdvancedEquivalentEnrollment(enrollment)) return 0;
   if (enrollment.includedWithProductId || enrollment.includedWithEnrollmentId || enrollment.includedWithOrderId) return 2;
   return 1;
 }
@@ -238,7 +262,7 @@ function buildAdminPreviewEnrollments(): EnrollmentListItem[] {
     courseId: course.id,
     courseTitle: course.title,
     productId: course.productId || (course.id === defaultCourse.id ? "dui-cbt-basic" : course.id),
-    productTitle: course.level === "advanced" ? "심화과정" : "기본과정",
+    productTitle: course.level === "advanced" ? "심화이수과정" : "기본 수료과정",
     paymentStatus: "paid",
     enrollmentStatus: "active" as const,
     accessStatus: "active" as const,
@@ -257,9 +281,9 @@ function buildAdminPreviewEnrollments(): EnrollmentListItem[] {
       id: "admin-preview-" + DUI_CBT_ADVANCED_COURSE_ID,
       userId: "admin-preview",
       courseId: DUI_CBT_ADVANCED_COURSE_ID,
-      courseTitle: "음주운전 재범방지교육 심화과정",
+      courseTitle: "음주운전 재범방지교육 심화이수과정",
       productId: "dui-cbt-advanced",
-      productTitle: "심화과정",
+      productTitle: "심화이수과정",
       paymentStatus: "paid",
       enrollmentStatus: "active" as const,
       accessStatus: "active" as const,
@@ -348,42 +372,44 @@ export default function DashboardPage() {
         setEnrollments(enrollments as EnrollmentListItem[]);
         setLoading(false);
 
-        const promises = enrollments.map(enrollment => {
-          const courseId = getEnrollmentCertificateCourseId(enrollment);
-          return Promise.allSettled([
-            getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid), where("courseId", "==", courseId))).catch((error) => {
-              logFirestoreFailure("getDocs", `courseProgress?uid=<uid>&courseId=${courseId}`, error);
-              return null;
-            }),
-            getDoc(doc(db, "certificates", `${user.uid}_${courseId}`)).catch((error) => {
-              logFirestoreFailure("getDoc", `certificates/<uid_${courseId}>`, error);
-              return null;
-            }),
-          ]);
-        });
-
-        const results = await Promise.all(promises);
-
-        if (cancelled) return;
+        const targetCourseIds = new Set(enrollments.map(getEnrollmentCertificateCourseId));
+        const [progressSnapshotResult, certificatesByUidResult, certificatesByUserIdResult] = await Promise.allSettled([
+          getDocs(query(collection(db, "courseProgress"), where("uid", "==", user.uid))).catch((error) => {
+            logFirestoreFailure("getDocs", "courseProgress?uid=<uid>", error);
+            return null;
+          }),
+          getDocs(query(collection(db, "certificates"), where("uid", "==", user.uid))).catch((error) => {
+            logFirestoreFailure("getDocs", "certificates?uid=<uid>", error);
+            return null;
+          }),
+          getDocs(query(collection(db, "certificates"), where("userId", "==", user.uid))).catch((error) => {
+            logFirestoreFailure("getDocs", "certificates?userId=<uid>", error);
+            return null;
+          }),
+        ]);
 
         const newProgressRows: ProgressRecord[] = [];
         const newCertificates: CertificateRecord[] = [];
+        const certificateIds = new Set<string>();
 
-        results.forEach(resultArray => {
-          const [progressSnapshotResult, certificateSnapshotResult] = resultArray;
+        if (progressSnapshotResult.status === "fulfilled" && progressSnapshotResult.value) {
+          progressSnapshotResult.value.docs.forEach(doc => {
+            const row = doc.data() as ProgressRecord;
+            if (targetCourseIds.has(row.courseId)) newProgressRows.push(row);
+          });
+        }
 
-          if (progressSnapshotResult.status === "fulfilled" && progressSnapshotResult.value) {
-            progressSnapshotResult.value.docs.forEach(doc => {
-              newProgressRows.push(doc.data() as ProgressRecord);
-            });
-          }
-
-          if (certificateSnapshotResult.status === "fulfilled" && certificateSnapshotResult.value?.exists()) {
-            newCertificates.push({
-              id: certificateSnapshotResult.value.id,
-              ...(certificateSnapshotResult.value.data() as Omit<CertificateRecord, "id">),
-            });
-          }
+        [certificatesByUidResult, certificatesByUserIdResult].forEach(result => {
+          if (result.status !== "fulfilled" || !result.value) return;
+          result.value.docs.forEach(doc => {
+            if (certificateIds.has(doc.id)) return;
+            const row = { id: doc.id, ...(doc.data() as Omit<CertificateRecord, "id">) };
+            const courseId = String((row as CertificateRecord & { courseId?: string }).courseId || "");
+            if (!courseId || targetCourseIds.has(courseId)) {
+              certificateIds.add(doc.id);
+              newCertificates.push(row);
+            }
+          });
         });
 
         setProgressRows(current => [...current, ...newProgressRows]);
@@ -459,17 +485,10 @@ export default function DashboardPage() {
     };
   }, [selectedProgress, primaryEnrollment, primaryCourseModules]);
 
-  const advancedEnrollmentRecord = displayEnrollments.find((enrollment) => {
-    if (!isEnrollmentActive(enrollment)) return false;
-    const course = getEnrollmentCourseDefinition(enrollment);
-    return getEnrollmentCertificateCourseId(enrollment) === DUI_CBT_ADVANCED_COURSE_ID || course?.level === "advanced";
-  });
+  const advancedEnrollmentRecord = displayEnrollments.find((enrollment) => isEnrollmentActive(enrollment) && isAdvancedEquivalentEnrollment(enrollment));
   const hasAdvancedCertificateAccess = adminPreview || Boolean(advancedEnrollmentRecord);
-  const advancedBaseCertificateCourseId = advancedEnrollmentRecord && getEnrollmentCertificateCourseId(advancedEnrollmentRecord) === DUI_CBT_ADVANCED_COURSE_ID
-    ? defaultCourse.id
-    : advancedEnrollmentRecord
-      ? getEnrollmentCertificateCourseId(advancedEnrollmentRecord)
-      : defaultCourse.id;
+  const advancedBaseCertificateCourseId = defaultCourse.id;
+  const advancedCertificateCourseId = DUI_CBT_ADVANCED_COURSE_ID;
   const documentFormEnrollments = displayEnrollments.filter((enrollment) => isEnrollmentActive(enrollment) && isPreventionDocumentsEnrollment(enrollment));
   const hasDocumentFormsAccess = adminPreview || documentFormEnrollments.length > 0;
   const primaryDocumentCourseId = documentFormEnrollments[0]?.courseId || defaultCourse.id;
@@ -489,6 +508,9 @@ export default function DashboardPage() {
             </p>
             <p className="mt-4 max-w-4xl rounded-2xl border-4 border-amber-400 bg-amber-100 px-5 py-4 text-base font-black leading-8 text-amber-950 shadow-[0_16px_36px_rgba(245,158,11,0.22)] sm:text-lg sm:leading-9">
               수강목록이 모두 표시될 때까지 잠시만 기다려주시기 바랍니다.
+            </p>
+            <p className="mt-3 max-w-4xl break-words rounded-xl border-2 border-rose-200 bg-rose-50 px-4 py-3 text-[13px] font-bold leading-6 text-rose-900 sm:rounded-2xl sm:px-5 sm:py-4 sm:text-sm sm:leading-7">
+              출력서류에 생년월일이 미표시되는 경우 마이페이지-회원정보 변경에서 생년월일을 입력하여 주시기 바랍니다.
             </p>
           </div>
           <div className="w-full lg:w-auto">
@@ -516,7 +538,7 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {loading ? <section className="mt-8 rounded-[1.5rem] border-4 border-amber-400 bg-amber-100 p-6 text-center shadow-[0_18px_44px_rgba(245,158,11,0.24)]"><p className="text-2xl font-black leading-8 text-amber-950 sm:text-3xl">수강현황을 불러오는 중입니다.</p><p className="mt-3 text-base font-bold leading-7 text-amber-900">심화과정 수강권 확인이 끝날 때까지 강의 목록 버튼을 누르지 말고 잠시만 기다려 주세요.</p></section> : null}
+        {loading ? <section className="mt-8 rounded-[1.5rem] border-4 border-amber-400 bg-amber-100 p-6 text-center shadow-[0_18px_44px_rgba(245,158,11,0.24)]"><p className="text-2xl font-black leading-8 text-amber-950 sm:text-3xl">수강현황을 불러오는 중입니다.</p><p className="mt-3 text-base font-bold leading-7 text-amber-900">심화이수과정 수강권 확인이 끝날 때까지 강의 목록 버튼을 누르지 말고 잠시만 기다려 주세요.</p></section> : null}
         {error ? <p className="mt-8 text-sm text-[#f2a39b]">{error}</p> : null}
 
         {!loading && !error && adminPreview ? <p className="mt-6 rounded-[1.25rem] border border-indigo-200 bg-indigo-50 px-5 py-4 text-sm font-semibold text-indigo-900">관리자 계정으로 접속 중입니다. 전체 과정을 확인할 수 있습니다.</p> : null}
@@ -549,7 +571,7 @@ export default function DashboardPage() {
                     <article key={(enrollment.id || enrollment.courseId) + (enrollment.paymentId || enrollment.orderId || "")} className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="font-bold text-slate-950">{enrollment.courseTitle || defaultCourse.title}</p>
+                          <p className="font-bold text-slate-950">{String(normalizeCourseDisplayText(enrollment.courseTitle || defaultCourse.title))}</p>
                           <p className="mt-1 text-xs text-slate-500">{enrollment.productId === "basic" ? "기본형 수강권" : enrollment.productTitle || enrollment.productId || "수강권"}</p>
                         </div>
                         <span className={active ? "rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700" : "rounded-full bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600"}>{getEnrollmentStatusLabel(enrollment)}</span>
@@ -607,17 +629,6 @@ export default function DashboardPage() {
                 })}
               </div>
             ) : null}
-          </section>
-        ) : null}
-        {!loading && !error && hasActiveEnrollment ? (
-          <section id="paid-member-resources" className="mt-8 rounded-[1.5rem] border border-indigo-200 bg-[linear-gradient(135deg,#eef4ff_0%,#ffffff_65%,#fff7df_100%)] p-5 shadow-[0_18px_45px_rgba(39,70,144,0.12)] sm:p-6">
-            <p className="text-xs font-black uppercase tracking-[0.18em] text-indigo-700">Paid Member Resources</p>
-            <h2 className="mt-2 text-2xl font-black text-slate-950">결제 회원 제공 자료</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-700">강의를 결제하신 회원에게 반성문 작성 가이드와 작성 예시를 제공합니다.</p>
-            <div className="mt-5 grid gap-3 sm:grid-cols-2">
-              <Link href="/resources/reflection-guide" className={buttonClass("primary", "lg", "w-full rounded-2xl px-5 text-center font-black !text-white hover:!text-white")}>반성문 작성 가이드 보기</Link>
-              <Link href="/resources/dui-reflection-example" className={buttonClass("warning", "lg", "w-full rounded-2xl px-5 text-center font-black !text-black hover:!text-black")}>음주운전 반성문 예시 보기</Link>
-            </div>
           </section>
         ) : null}
 
@@ -720,11 +731,11 @@ export default function DashboardPage() {
             <section className="rounded-[1.75rem] border border-white/10 bg-[#0d1828] p-6">
               <div className="mb-6 rounded-2xl border-4 border-[#facc15] bg-white p-5 shadow-[0_22px_54px_rgba(250,204,21,0.26)]">
                 <p className="text-xl font-black text-slate-950">서류 인쇄하기</p>
-                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 작성자료를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요. 심화과정은 교육 소감문 작성자료도 함께 이용할 수 있습니다." : "수강권을 선택하면 과정별 작성자료 3종을 이용할 수 있습니다."}</p>
+                <p className="mt-1 text-sm leading-6 text-sky-900">{hasDocumentFormsAccess ? "각 과정에 맞는 작성자료를 열어 본인 사건과 상황에 맞게 자필로 수정·작성하세요. 심화이수과정은 교육 소감문 작성자료도 함께 이용할 수 있습니다." : "수강권을 선택하면 과정별 작성자료 3종을 이용할 수 있습니다."}</p>
                 <div className="mt-4 grid gap-3">
                   {dashboardDocumentEntries.map(({ document, enrollment }) => (
                     <Link key={(enrollment.courseId || defaultCourse.id) + document.id} href={"/prevention-documents?type=" + encodeURIComponent(document.id) + "&courseId=" + encodeURIComponent(getEnrollmentCertificateCourseId(enrollment))} className="flex min-h-16 items-center justify-between gap-3 rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-5 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black">
-                      <span><span className="block text-xs font-bold text-slate-700">{enrollment.courseTitle || defaultCourse.title}</span>{document.title}</span>
+                      <span><span className="block text-xs font-bold text-slate-700">{String(normalizeCourseDisplayText(enrollment.courseTitle || defaultCourse.title))}</span>{document.title}</span>
                       <span className="shrink-0 rounded-full bg-amber-300 px-3 py-1.5 text-xs font-black text-slate-950">작성자료 · 인쇄</span>
                     </Link>
                   ))}
@@ -732,21 +743,20 @@ export default function DashboardPage() {
               </div>
               <p className="text-sm font-semibold text-[#f0cb85]">수료증</p>
               <h2 className="mt-3 text-3xl font-semibold text-white">수강증/수료증 확인 및 온라인 인쇄</h2>
-              <p className="mt-4 text-sm leading-8 text-white/70">
-                결제가 확인된 수강권은 진도율과 관계없이 수료증을 바로 확인하고 출력할 수 있습니다.
-              </p>
-
               <div className="mt-6 space-y-4">
                 {hasAdvancedCertificateAccess ? (
                   <div className="rounded-[1.5rem] border border-amber-300 bg-amber-50 p-5 text-sm leading-7 text-amber-950 shadow-[0_18px_44px_rgba(245,158,11,0.16)]">
-                    <p className="font-black">심화과정 이수 서류</p>
-                    <p className="mt-2">심화과정 수강권은 기본 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 함께 출력할 수 있으며 교육 소감문 작성자료를 이용할 수 있습니다.</p>
+                    <p className="font-black">심화이수과정 이수 서류</p>
+                    <p className="mt-2">심화이수과정 수강권은 기본 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 함께 출력할 수 있으며 교육 소감문 작성자료를 이용할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link href={`/certificate?courseId=${encodeURIComponent(advancedBaseCertificateCourseId)}&documentType=completion`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-white px-6 py-4 text-base font-black text-[#111827] shadow-[0_18px_38px_rgba(15,23,42,0.12)] transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200">
                         기본 수료증 출력
                       </Link>
-                      <Link href={`/certificate?courseId=${encodeURIComponent(advancedBaseCertificateCourseId)}&documentType=cbt-completion`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
-                        심화 이수증 출력
+                      <Link href={`/certificate?courseId=${encodeURIComponent(advancedCertificateCourseId)}&documentType=cbt-completion`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                        심화이수 이수증 출력
+                      </Link>
+                      <Link href={`/certificate?courseId=${encodeURIComponent(advancedCertificateCourseId)}&documentType=cbt-detail`} className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
+                        교육이수 상세내역서 출력
                       </Link>
                     </div>
                   </div>
@@ -755,7 +765,7 @@ export default function DashboardPage() {
                   certificates.map((certificate) => (
                     <div key={certificate.id} className="rounded-[1.5rem] border border-white/10 bg-black/20 p-5 transition hover:bg-black/30">
                       <div>
-                        <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType ?? "completion"] ?? certificate.courseTitle ?? "음주운전 재범방지교육 수료증"}</p>
+                        <p className="text-lg font-semibold text-white">{documentLabels[certificate.documentType ?? "completion"] ?? String(normalizeCourseDisplayText(certificate.courseTitle ?? "음주운전 재범방지교육 수료증"))}</p>
                         <p className="mt-2 text-sm text-white/65">발급번호 {formatCertificateNoForDisplay(certificate.certificateNo || certificate.issueNumber || "확인 중")}</p>
                         <p className="mt-1 text-sm text-white/50">발급 시각 {formatTimestamp(certificate.issuedAt || certificate.certificateIssuedAt)}</p>
                       </div>
@@ -772,7 +782,6 @@ export default function DashboardPage() {
                 ) : hasActiveEnrollment ? (
                   <div className="rounded-[1.5rem] border border-emerald-300/30 bg-emerald-400/10 p-6 text-sm leading-7 text-emerald-50">
                     <p className="font-semibold text-white">결제된 {primaryCourseTitle} 수강권이 확인되었습니다.</p>
-                    <p className="mt-2">아래 버튼을 눌러 진도율과 관계없이 수료증을 즉시 확인하고 출력할 수 있습니다.</p>
                     <div className="mt-4 flex flex-wrap gap-3">
                       <Link href="/certificate" className="inline-flex min-h-14 items-center justify-center rounded-2xl border-4 border-[#111827] bg-[#ffdd00] px-6 py-4 text-base font-black !text-black shadow-[0_18px_38px_rgba(255,221,0,0.34)] ring-2 ring-[#fff2a8] transition hover:-translate-y-0.5 hover:bg-[#ffd000] hover:!text-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[#fff2a8]">
                         서류 보기

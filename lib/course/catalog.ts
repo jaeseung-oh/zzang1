@@ -49,7 +49,7 @@ export const courseCatalog: CourseDefinition[] = [
     modules: [
       {
         id: "dui-lesson-1",
-        title: "1강. 음주운전의 실제 위험과 사고 흐름 이해",
+        title: "음주운전의 실제 위험과 사고 흐름 이해",
         minutes: 10,
         summary: "음주운전이 단순 실수가 아니라 예측 가능한 위험 행동이라는 점을 사고 흐름 중심으로 정리합니다. 한 번의 선택이 본인, 동승자, 보행자, 가족에게 어떤 연쇄 영향을 만드는지 차분히 살펴봅니다.",
         highlights: [
@@ -67,7 +67,7 @@ export const courseCatalog: CourseDefinition[] = [
       },
       {
         id: "dui-lesson-2",
-        title: "2강. 알코올이 판단력과 운전능력에 미치는 영향",
+        title: "알코올이 판단력과 운전능력에 미치는 영향",
         minutes: 10,
         summary: "알코올이 반응속도, 시야, 거리감, 주의집중, 위험판단에 어떤 저하를 만드는지 이해합니다. 스스로 멀쩡하다고 느끼는 상태와 실제 수행능력 사이의 차이를 점검합니다.",
         highlights: [
@@ -85,7 +85,7 @@ export const courseCatalog: CourseDefinition[] = [
       },
       {
         id: "dui-lesson-3",
-        title: "3강. 사고 사례와 법적·사회적 책임 구조",
+        title: "사고 사례와 법적·사회적 책임 구조",
         minutes: 10,
         summary: "음주운전 사고가 발생했을 때 생기는 형사적 책임, 민사적 부담, 직장과 가족 관계의 손상 등 현실적인 결과를 사례 흐름으로 살펴봅니다. 결과를 두려움으로만 보는 것이 아니라 책임 인식의 출발점으로 정리합니다.",
         highlights: [
@@ -103,7 +103,7 @@ export const courseCatalog: CourseDefinition[] = [
       },
       {
         id: "dui-lesson-4",
-        title: "4강. 인지행동기반 재발방지: 자동사고와 고위험 상황 점검",
+        title: "인지행동기반 재발방지: 자동사고와 고위험 상황 점검",
         minutes: 10,
         summary: "음주 후 운전으로 이어지는 자동사고, 감정 반응, 행동 선택의 연결고리를 CBT 관점에서 점검합니다. 반복되는 고위험 상황을 구체적으로 분해하고 다른 선택을 준비합니다.",
         highlights: [
@@ -121,7 +121,7 @@ export const courseCatalog: CourseDefinition[] = [
       },
       {
         id: "dui-lesson-5",
-        title: "5강. 인지행동기반 재발방지: 대처기술과 재발방지 계획",
+        title: "인지행동기반 재발방지: 대처기술과 재발방지 계획",
         minutes: 10,
         summary: "CBT 기반 대처기술을 활용해 음주 약속 전후의 행동 기준, 도움 요청, 대체 이동수단, 자기점검 루틴을 재발방지 계획으로 정리합니다.",
         highlights: [
@@ -161,12 +161,21 @@ const preventionStreamUids = {
   drug: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "",
   drugAddiction: process.env.NEXT_PUBLIC_STREAM_UID_DRUG_ADDICTION_RELAPSE_PREVENTION || process.env.NEXT_PUBLIC_STREAM_UID_DRUG_REHAB_PREVENTION || "9e7a8bca74cc08b48622a4dcf8df070f",
   digitalCrime: process.env.NEXT_PUBLIC_STREAM_UID_DIGITAL_CRIME_PREVENTION || "6ace367027be3fe294639343739e9af5",
+  fraud: process.env.NEXT_PUBLIC_STREAM_UID_FRAUD_PREVENTION || "c3ee448bc45d30d329b76a89e2d1a547",
+  unlicensedDriving: process.env.NEXT_PUBLIC_STREAM_UID_UNLICENSED_DRIVING_PREVENTION || "f581475c91de7f8574391ec5daebc008",
+  hangoverDriving: process.env.NEXT_PUBLIC_STREAM_UID_HANGOVER_DRIVING_PREVENTION || "0a451904c6baea91ab32155f1df3e748",
+  recklessRetaliatoryDriving: process.env.NEXT_PUBLIC_STREAM_UID_RECKLESS_RETALIATORY_DRIVING_PREVENTION || "d9d7d67167f1874a7b93a964746fb1a8",
+  defamationInsult: process.env.NEXT_PUBLIC_STREAM_UID_DEFAMATION_INSULT_PREVENTION || "23341942e913deae11baabedcd24d95b",
+  legalComplianceAwareness: process.env.NEXT_PUBLIC_STREAM_UID_LEGAL_COMPLIANCE_AWARENESS || "a2b66d1b575d82d361f7680ec1e7e48b",
+  voicePhishing: process.env.NEXT_PUBLIC_STREAM_UID_VOICE_PHISHING_PREVENTION || "40db2b4735841194439c22e90d9665be",
+  digitalSexualCrime: process.env.NEXT_PUBLIC_STREAM_UID_DIGITAL_SEXUAL_CRIME_PREVENTION || "fa6e84899afa4f5f1314b6c145c27feb",
+  prostitution: process.env.NEXT_PUBLIC_STREAM_UID_PROSTITUTION_PREVENTION || "d01b607c43e0c6232706656082d044b8",
 };
 
 const digitalCrimeAdvancedModules: CourseModule[] = [
   {
     id: "digital-crime-cbt-lesson-1",
-    title: "인지행동치료 1강. 감정·생각·온라인 행동 연결 과정",
+    title: "인지행동치료 감정·생각·온라인 행동 연결 과정",
     minutes: 10,
     summary: "디지털범죄로 이어질 수 있는 감정, 자동적 생각, 정당화, 온라인 행동의 연결 과정을 점검하고 대안 행동을 정리합니다.",
     highlights: ["분노·질투·수치심·외로움 등 위험감정 파악", "온라인 행동 직전의 자동적 생각과 책임 회피 사고 점검", "충동이 생겼을 때 사용할 멈춤 행동 설계"],
@@ -177,7 +186,7 @@ const digitalCrimeAdvancedModules: CourseModule[] = [
   },
   {
     id: "digital-crime-cbt-lesson-2",
-    title: "인지행동치료 2강. 디지털 환경관리와 피해자 보호계획",
+    title: "인지행동치료 디지털 환경관리와 피해자 보호계획",
     minutes: 10,
     summary: "위험 계정, 사이트, 채팅방, 야간 사용, 음주 후 사용 같은 환경 요인을 관리하고 피해자 접촉과 2차 피해를 방지하는 계획을 세웁니다.",
     highlights: ["위험 계정·사이트·채팅방 관리", "피해자 접촉과 2차 피해 방지 원칙", "30일 실천계획과 도움 요청 체계 구성"],
@@ -234,6 +243,16 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     documentTitles: ["성범죄 재범방지계획서", "성범죄예방 실천계획서", "성범죄 재범방지 서약서"],
   },
   {
+    categoryId: "prostitution-prevention",
+    productPrefix: "prostitution",
+    baseLessonId: "prostitution-prevention-lesson-1",
+    title: "성매매 재범방지교육",
+    caseType: "성매매",
+    streamUid: preventionStreamUids.prostitution,
+    sourceFileName: "prostitution-prevention.mp4",
+    documentTitles: ["성매매 재발방지계획서", "성매매 예방 실천계획서", "성매매 재범방지 서약서"],
+  },
+  {
     categoryId: "drug-rehab-prevention",
     productPrefix: "drug-addiction",
     basicProductId: "drug-addiction-basic",
@@ -256,6 +275,86 @@ export const preventionCategorySeeds: PreventionCategorySeed[] = [
     sourceFileName: "digital-crime-prevention.mp4",
     documentTitles: ["디지털범죄 재발방지계획서", "디지털범죄 재범방지 실천계획서", "디지털범죄 재범방지 실천서약서"],
   },
+  {
+    categoryId: "fraud-prevention",
+    productPrefix: "fraud",
+    baseLessonId: "fraud-prevention-lesson-1",
+    title: "사기 재범방지교육",
+    caseType: "사기범죄",
+    streamUid: preventionStreamUids.fraud,
+    sourceFileName: "fraud-prevention.mp4",
+    documentTitles: ["사기범죄 재범방지계획서", "사기범죄 예방 실천계획서", "사기범죄 재범방지 서약서"],
+  },
+  {
+    categoryId: "unlicensed-driving-prevention",
+    productPrefix: "unlicensed-driving",
+    baseLessonId: "unlicensed-driving-prevention-lesson-1",
+    title: "무면허운전 재범방지교육",
+    caseType: "무면허운전",
+    streamUid: preventionStreamUids.unlicensedDriving,
+    sourceFileName: "unlicensed-driving-prevention.mp4",
+    documentTitles: ["무면허운전 재범방지계획서", "무면허운전 예방 실천계획서", "무면허운전 재범방지 서약서"],
+  },
+  {
+    categoryId: "hangover-driving-prevention",
+    productPrefix: "hangover-driving",
+    baseLessonId: "hangover-driving-prevention-lesson-1",
+    title: "숙취운전 재발방지교육",
+    caseType: "숙취운전",
+    streamUid: preventionStreamUids.hangoverDriving,
+    sourceFileName: "hangover-driving-prevention.mp4",
+    documentTitles: ["숙취운전 재발방지계획서", "숙취운전 예방 실천계획서", "숙취운전 재발방지 서약서"],
+  },
+  {
+    categoryId: "reckless-retaliatory-driving-prevention",
+    productPrefix: "reckless-retaliatory-driving",
+    baseLessonId: "reckless-retaliatory-driving-prevention-lesson-1",
+    title: "난폭·보복운전 재범방지교육",
+    caseType: "난폭·보복운전",
+    streamUid: preventionStreamUids.recklessRetaliatoryDriving,
+    sourceFileName: "reckless-retaliatory-driving-prevention.mp4",
+    documentTitles: ["난폭·보복운전 재범방지계획서", "난폭·보복운전 예방 실천계획서", "난폭·보복운전 재범방지 서약서"],
+  },
+  {
+    categoryId: "defamation-insult-prevention",
+    productPrefix: "defamation-insult",
+    baseLessonId: "defamation-insult-prevention-lesson-1",
+    title: "악플·모욕·명예훼손 재범방지교육",
+    caseType: "악플·모욕·명예훼손",
+    streamUid: preventionStreamUids.defamationInsult,
+    sourceFileName: "defamation-insult-prevention.mp4",
+    documentTitles: ["악플·모욕·명예훼손 재범방지계획서", "악플·모욕·명예훼손 예방 실천계획서", "악플·모욕·명예훼손 재범방지 서약서"],
+  },
+  {
+    categoryId: "voice-phishing-prevention",
+    productPrefix: "voice-phishing",
+    baseLessonId: "voice-phishing-prevention-lesson-1",
+    title: "보이스피싱 재범방지교육",
+    caseType: "보이스피싱",
+    streamUid: preventionStreamUids.voicePhishing,
+    sourceFileName: "voice-phishing-prevention.mp4",
+    documentTitles: ["보이스피싱 재범방지계획서", "보이스피싱 예방 실천계획서", "보이스피싱 재범방지 서약서"],
+  },
+  {
+    categoryId: "digital-sexual-crime-prevention",
+    productPrefix: "digital-sexual-crime",
+    baseLessonId: "digital-sexual-crime-prevention-lesson-1",
+    title: "디지털성범죄 재범방지교육",
+    caseType: "디지털성범죄",
+    streamUid: preventionStreamUids.digitalSexualCrime,
+    sourceFileName: "digital-sexual-crime-prevention.mp4",
+    documentTitles: ["디지털성범죄 재범방지계획서", "디지털성범죄 예방 실천계획서", "디지털성범죄 재범방지 서약서"],
+  },
+  {
+    categoryId: "legal-compliance-awareness",
+    productPrefix: "legal-compliance-awareness",
+    baseLessonId: "legal-compliance-awareness-lesson-1",
+    title: "준법의식 교육",
+    caseType: "준법의식",
+    streamUid: preventionStreamUids.legalComplianceAwareness,
+    sourceFileName: "legal-compliance-awareness.mp4",
+    documentTitles: ["준법의식 개선계획서", "준법생활 실천계획서", "준법의식 실천 서약서"],
+  },
 ];
 
 function buildPreventionModule(seed: PreventionCategorySeed): CourseModule {
@@ -263,7 +362,7 @@ function buildPreventionModule(seed: PreventionCategorySeed): CourseModule {
     id: seed.baseLessonId,
     title: seed.title,
     minutes: 30,
-    summary: seed.title + " 1강입니다. 사건 이후 위험요인을 점검하고 재범·재발 방지를 위한 실천 기준을 정리합니다.",
+    summary: seed.title + "입니다. 사건 이후 위험요인을 점검하고 재범·재발 방지를 위한 실천 기준을 정리합니다.",
     highlights: [
       seed.caseType + " 관련 위험상황과 반복 패턴 점검",
       "책임 인식과 피해 예방 관점 정리",
@@ -283,7 +382,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
   const baseModule = buildPreventionModule(seed);
   const basicProductId = seed.basicProductId || seed.productPrefix + "-basic";
   const advancedProductId = seed.advancedProductId || seed.productPrefix + "-advanced";
-  const advancedModules = seed.categoryId === "digital-crime" ? digitalCrimeAdvancedModules : CBT_COMPLETION_MODULES;
+  const advancedModules = seed.categoryId === "digital-crime" || seed.categoryId === "digital-sexual-crime-prevention" ? digitalCrimeAdvancedModules : CBT_COMPLETION_MODULES;
   const common = {
     categoryId: seed.categoryId,
     canonicalCourseId: seed.canonicalCourseId,
@@ -300,7 +399,7 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       productId: basicProductId,
       planId: "basic" as const,
       level: "basic" as const,
-      title: seed.title + " 기본과정",
+      title: seed.title + " 기본 수료과정",
       certificateTitle: seed.title,
       durationMinutes: baseModule.minutes,
       priceKrw: 49000,
@@ -315,8 +414,8 @@ export const newPreventionCourseCatalog: CourseDefinition[] = preventionCategory
       productId: advancedProductId,
       planId: seed.advancedProductId === "drug-addiction-premium" ? "premium" as const : "advanced" as const,
       level: "advanced" as const,
-      title: seed.title + " 심화과정",
-      certificateTitle: seed.title + " 심화과정",
+      title: seed.title + " 심화이수과정",
+      certificateTitle: seed.title,
       durationMinutes: baseModule.minutes + advancedModules.reduce((total, module) => total + module.minutes, 0),
       priceKrw: 99000,
       priceLabel: formatKrw(99000),

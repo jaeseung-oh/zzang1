@@ -39,7 +39,7 @@ export interface Purchase {
   courseId: string | null;
   orderId: string;
   paymentKey: string;
-  paymentStatus: "pending" | "paid" | "failed" | "refunded";
+  paymentStatus: "pending" | "awaiting_deposit" | "paid" | "failed" | "refunded";
   paymentProvider: string;
   amount: number;
   method?: string | null;

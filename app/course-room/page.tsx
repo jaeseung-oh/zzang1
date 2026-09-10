@@ -7,7 +7,7 @@ import Script from "next/script";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseApplyHref, getCourseDefinition, getCourseModules, isKnownCourseId } from "@/lib/course/catalog";
-import { moduleProgressToLessonProgress, saveLessonProgress, updateCourseProgress } from "@/lib/course/progress-service";
+import { moduleProgressToLessonProgress, saveCourseProgressSnapshot } from "@/lib/course/progress-service";
 import { getFirebaseServices } from "@/lib/firebase/client";
 import { requireAuthenticatedUser } from "@/lib/firebase/session";
 import { getUserProfile } from "@/lib/firebase/user-profile";
@@ -199,6 +199,21 @@ function truncateText(value: string, maxLength: number) {
 }
 
 
+function getRecentPaidEntitlementPaymentId(courseId: string) {
+  if (typeof window === "undefined") return "";
+  const raw = window.localStorage.getItem("resetedu:recent-paid-entitlement");
+  if (!raw) return "";
+  try {
+    const item = JSON.parse(raw) as { paymentId?: string; orderId?: string; courseId?: string; savedAt?: string };
+    const savedAt = item.savedAt ? new Date(item.savedAt).getTime() : 0;
+    if (savedAt && Date.now() - savedAt > 7 * 24 * 60 * 60 * 1000) return "";
+    if (item.courseId && item.courseId !== courseId) return "";
+    return item.paymentId || item.orderId || "";
+  } catch {
+    return "";
+  }
+}
+
 async function resolveCloudflareStreamUrl(uid: string, courseId: string) {
   const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
   if (!apiBaseUrl) {
@@ -207,7 +222,10 @@ async function resolveCloudflareStreamUrl(uid: string, courseId: string) {
 
   const user = await requireAuthenticatedUser();
   const idToken = await user.getIdToken(true);
-  const response = await fetch(`${apiBaseUrl}/api/stream/token?uid=${encodeURIComponent(uid)}&courseId=${encodeURIComponent(courseId)}&t=${Date.now()}`, {
+  const params = new URLSearchParams({ uid, courseId, t: String(Date.now()) });
+  const paymentId = getRecentPaidEntitlementPaymentId(courseId);
+  if (paymentId) params.set("paymentId", paymentId);
+  const response = await fetch(`${apiBaseUrl}/api/stream/token?${params.toString()}`, {
     method: "GET",
     headers: { Authorization: "Bearer " + idToken, "Cache-Control": "no-store" },
     cache: "no-store",
@@ -222,7 +240,6 @@ async function resolveCloudflareStreamUrl(uid: string, courseId: string) {
 
   return data.videoUrl;
 }
-
 function isVideoPermissionError(error: unknown) {
   const code = String((error as { code?: unknown })?.code || "").toLowerCase();
   const message = error instanceof Error ? error.message : "";
@@ -262,8 +279,11 @@ function getEnrollmentRecordMillis(enrollment: EnrollmentRecord | null | undefin
 
 function getCourseRoomCourseIdFromEnrollment(enrollment: EnrollmentRecord | null | undefined) {
   const productId = String(enrollment?.productId || "");
-  if (productId === "drug-addiction-basic" || productId === "drug-addiction-premium") return productId;
-  return enrollment?.courseId || enrollment?.canonicalCourseId || "";
+  const resolvedProductId = resolveCourseId(productId || null);
+  if (isKnownCourseId(resolvedProductId)) return resolvedProductId;
+  if (getCourseDefinition(productId)) return productId;
+  const resolvedCourseId = resolveCourseId(enrollment?.canonicalCourseId || enrollment?.courseId || null);
+  return isKnownCourseId(resolvedCourseId) ? resolvedCourseId : enrollment?.courseId || enrollment?.canonicalCourseId || "";
 }
 
 function chooseMostRecentActiveEnrollment(enrollments: EnrollmentRecord[]) {
@@ -279,6 +299,29 @@ function formatVideoLoadError(error: unknown) {
   }
   return message ? `강의 영상 URL 발급 실패: ${message}` : "수강 권한은 확인되었으나 강의 영상을 불러오지 못했습니다. 잠시 후 다시 시도하거나 고객센터로 문의해 주세요.";
 }
+function toFiniteProgressNumber(value: unknown, fallback = 0) {
+  const numeric = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+}
+
+function clampProgressRate(value: unknown) {
+  return Math.min(100, Math.max(0, Math.floor(toFiniteProgressNumber(value))));
+}
+
+function sanitizeModuleProgressItem(item?: Partial<ModuleProgressState> | null): ModuleProgressState {
+  const durationSeconds = Math.max(0, Math.round(toFiniteProgressNumber(item?.durationSeconds)));
+  const lastPlaybackPositionSeconds = Math.min(durationSeconds || Number.MAX_SAFE_INTEGER, Math.max(0, Math.round(toFiniteProgressNumber(item?.lastPlaybackPositionSeconds))));
+  const watchedSeconds = Math.min(durationSeconds || Number.MAX_SAFE_INTEGER, Math.max(0, Math.round(toFiniteProgressNumber(item?.watchedSeconds)), lastPlaybackPositionSeconds));
+  const completionRate = durationSeconds > 0 ? clampProgressRate((watchedSeconds / durationSeconds) * 100) : clampProgressRate(item?.completionRate);
+  return {
+    watchedSeconds,
+    durationSeconds,
+    completionRate,
+    lastPlaybackPositionSeconds,
+    isCompleted: Boolean(item?.isCompleted) || completionRate >= completionThreshold,
+  };
+}
+
 function buildEmptyModuleProgress(modules = defaultCourse.modules) {
   return Object.fromEntries(
     modules.map((module) => [
@@ -323,31 +366,26 @@ function mergeModuleProgress(
     const fallback = base[module.id];
     const remoteItem = remote?.[module.id];
     const localItem = local?.[module.id];
-    const durationSeconds = Math.max(
-      fallback.durationSeconds,
-      remoteItem?.durationSeconds ?? 0,
-      localItem?.durationSeconds ?? 0
-    );
+    const safeFallback = sanitizeModuleProgressItem(fallback);
+    const safeRemote = sanitizeModuleProgressItem(remoteItem);
+    const safeLocal = sanitizeModuleProgressItem(localItem);
+    const durationSeconds = Math.max(safeFallback.durationSeconds, safeRemote.durationSeconds, safeLocal.durationSeconds);
     const watchedSeconds = Math.min(
-      durationSeconds,
-      Math.max(remoteItem?.watchedSeconds ?? 0, localItem?.watchedSeconds ?? 0, fallback.watchedSeconds)
+      durationSeconds || Number.MAX_SAFE_INTEGER,
+      Math.max(safeRemote.watchedSeconds, safeLocal.watchedSeconds, safeFallback.watchedSeconds)
     );
     const lastPlaybackPositionSeconds = Math.min(
-      durationSeconds,
-      Math.max(
-        remoteItem?.lastPlaybackPositionSeconds ?? 0,
-        localItem?.lastPlaybackPositionSeconds ?? 0,
-        fallback.lastPlaybackPositionSeconds
-      )
+      durationSeconds || Number.MAX_SAFE_INTEGER,
+      Math.max(safeRemote.lastPlaybackPositionSeconds, safeLocal.lastPlaybackPositionSeconds, safeFallback.lastPlaybackPositionSeconds)
     );
-    const completionRate = Math.floor((watchedSeconds / Math.max(durationSeconds, 1)) * 100);
+    const completionRate = durationSeconds > 0 ? clampProgressRate((watchedSeconds / durationSeconds) * 100) : Math.max(safeRemote.completionRate, safeLocal.completionRate, safeFallback.completionRate);
 
     merged[module.id] = {
       watchedSeconds,
       durationSeconds,
       completionRate,
       lastPlaybackPositionSeconds,
-      isCompleted: completionRate >= completionThreshold,
+      isCompleted: Boolean(remoteItem?.isCompleted || localItem?.isCompleted) || completionRate >= completionThreshold,
     };
   }
 
@@ -400,7 +438,7 @@ function CourseRoomPageContent() {
   const courseDefinition = getCourseDefinition(effectiveCourseId);
   const courseModules = getCourseModules(effectiveCourseId);
   const courseTitle = isCbtAdvancedCourse ? "인지행동 개선교육" : courseDefinition?.title || defaultCourse.title;
-  const coursePreventionDocuments = getPreventionDocumentsForCourse(effectiveCourseId);
+  const coursePreventionDocuments = getPreventionDocumentsForCourse(effectiveCourseId, { includeAdvancedOnly: isAdvancedCourse });
   const courseDocumentCategory = coursePreventionDocuments[0]?.category || "dui";
   const [fullName, setFullName] = useState("");
   const [uid, setUid] = useState("");
@@ -437,6 +475,13 @@ function CourseRoomPageContent() {
   const streamIframeRef = useRef<HTMLIFrameElement | null>(null);
   const streamPlayerRef = useRef<CloudflareStreamPlayer | null>(null);
   const saveInFlightRef = useRef(false);
+  const backupInFlightRef = useRef(false);
+  const lastBackupSnapshotRef = useRef<{ lessonId: string; watchedSeconds: number; currentSeconds: number; completionRate: number }>({
+    lessonId: "",
+    watchedSeconds: -1,
+    currentSeconds: -1,
+    completionRate: -1,
+  });
   const restoreAppliedRef = useRef(false);
   const refreshTimeoutRef = useRef<number | null>(null);
   const resumeToastTimeoutRef = useRef<number | null>(null);
@@ -493,15 +538,15 @@ function CourseRoomPageContent() {
 
   const aggregate = useMemo(() => {
     const totalDurationSeconds = courseModules.reduce(
-      (sum, module) => sum + (moduleProgress[module.id]?.durationSeconds ?? 0),
+      (sum, module) => sum + toFiniteProgressNumber(moduleProgress[module.id]?.durationSeconds),
       0
     );
     const watchedSeconds = courseModules.reduce(
-      (sum, module) => sum + (moduleProgress[module.id]?.watchedSeconds ?? 0),
+      (sum, module) => sum + toFiniteProgressNumber(moduleProgress[module.id]?.watchedSeconds),
       0
     );
     const completedModuleCount = courseModules.filter((module) => moduleProgress[module.id]?.isCompleted).length;
-    const completionRate = totalDurationSeconds > 0 ? Math.floor((watchedSeconds / totalDurationSeconds) * 100) : 0;
+    const completionRate = totalDurationSeconds > 0 ? clampProgressRate((watchedSeconds / totalDurationSeconds) * 100) : 0;
     const remainingSeconds = Math.max(totalDurationSeconds - watchedSeconds, 0);
 
     return {
@@ -551,13 +596,13 @@ function CourseRoomPageContent() {
 
         setUid(user.uid);
 
-        const resolvedName = profile?.realName?.trim() || profile?.fullName?.trim();
-
-        if (!resolvedName) {
-          setError("수강을 저장하기 전에 회원가입 화면에서 실명을 먼저 저장해 주세요.");
-          setStatusMessage("실명 정보가 없어 학습 저장과 수료 처리 연결을 진행할 수 없습니다.");
-          return;
-        }
+        const resolvedName =
+          profile?.certificateIdentity?.realName?.trim() ||
+          profile?.realName?.trim() ||
+          profile?.fullName?.trim() ||
+          user.displayName?.trim() ||
+          user.email?.split("@")[0] ||
+          "회원";
 
         setFullName(resolvedName);
 
@@ -565,10 +610,16 @@ function CourseRoomPageContent() {
         const adminBypass = isSuperAdmin(user);
         setAdminPreview(adminBypass);
 
-        let enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, null);
+        let enrollments = adminBypass ? [] : await getVerifiedUserEnrollments(user, hasExplicitCourseId ? effectiveCourseId : null);
         const matchesEffectiveCourse = (item: EnrollmentRecord) => {
           const acceptedCourseIds = new Set([effectiveCourseId, courseDefinition?.canonicalCourseId].filter(Boolean));
-          return acceptedCourseIds.has(item.courseId) || acceptedCourseIds.has(item.canonicalCourseId || "") || item.productId === effectiveCourseId;
+          const resolvedProductId = resolveCourseId(item.productId || null);
+          const resolvedCourseId = resolveCourseId(item.canonicalCourseId || item.courseId || null);
+          return acceptedCourseIds.has(item.courseId)
+            || acceptedCourseIds.has(item.canonicalCourseId || "")
+            || acceptedCourseIds.has(resolvedCourseId)
+            || acceptedCourseIds.has(resolvedProductId)
+            || item.productId === effectiveCourseId;
         };
 
         if (!hasExplicitCourseId && !adminBypass) {
@@ -591,16 +642,6 @@ function CourseRoomPageContent() {
 
         let enrollment = enrollments.find((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item)) ?? enrollments.find(matchesEffectiveCourse);
         let allowed = adminBypass || isEnrollmentActive(enrollment);
-
-        for (let attempt = 0; !allowed && !adminBypass && attempt < 3; attempt += 1) {
-          if (cancelled) return;
-          setStatusMessage("수강권 정보를 다시 확인하고 있습니다. 방금 지급된 수강권은 잠시 후 반영될 수 있습니다.");
-          await delayCourseAccessRetry(900 + attempt * 700);
-          if (cancelled) return;
-          enrollments = await getVerifiedUserEnrollments(user, null);
-          enrollment = enrollments.find((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item)) ?? enrollments.find(matchesEffectiveCourse);
-          allowed = isEnrollmentActive(enrollment);
-        }
 
         const documentFormsAllowed = enrollments.some((item) => matchesEffectiveCourse(item) && isEnrollmentActive(item) && isPreventionDocumentsEnrollment(item));
         setHasDocumentFormsAccess(adminBypass || documentFormsAllowed);
@@ -664,7 +705,7 @@ function CourseRoomPageContent() {
         setStatusMessage(
           remote?.moduleProgress || local?.moduleProgress
             ? "이전 학습 기록을 불러왔습니다. 원하는 강의를 선택해 이어서 수강할 수 있습니다."
-            : "실명이 확인되었습니다. 온라인 교육실에서 진도와 전체 누적 수강률을 저장할 수 있습니다."
+            : "강의실 준비가 완료되었습니다. 온라인 교육실에서 진도와 전체 누적 수강률을 저장할 수 있습니다."
         );
         setAccessChecking(false);
       } catch (sessionError) {
@@ -674,7 +715,8 @@ function CourseRoomPageContent() {
           if (message === "AUTH_LOGIN_REQUIRED") {
             router.replace("/login?next=/course-room");
             setError("로그인한 회원만 강의실에 접근할 수 있습니다.");
-            setStatusMessage("undefined");
+            setStatusMessage("로그인이 필요합니다.");
+            setAccessChecking(false);
             return;
           }
 
@@ -761,20 +803,52 @@ function CourseRoomPageContent() {
     return progress;
   }
 
-  async function syncCurrentLessonBackup() {
-    const progress = buildCurrentLessonProgress();
-    if (!progress) return;
+  async function syncCurrentLessonBackup(options?: { force?: boolean }) {
+    const progress = saveCurrentLessonLocally();
+    if (!progress || backupInFlightRef.current) return;
 
-    const lessonResult = await saveLessonProgress(progress);
-    await updateCourseProgress(progress.userId, progress.courseId, {
-      lastLessonId: progress.lessonId,
-      lastLessonTime: progress.currentTime,
-    });
+    const totalWatchedSeconds = courseModules.reduce(
+      (sum, module) => sum + (moduleProgressRef.current[module.id]?.watchedSeconds ?? 0),
+      0
+    );
+    const totalDurationSeconds = courseModules.reduce(
+      (sum, module) => sum + (moduleProgressRef.current[module.id]?.durationSeconds ?? 0),
+      0
+    );
+    const completionRate = totalDurationSeconds > 0 ? Math.floor((totalWatchedSeconds / totalDurationSeconds) * 100) : 0;
+    const currentSnapshot = {
+      lessonId: progress.lessonId,
+      watchedSeconds: totalWatchedSeconds,
+      currentSeconds: progress.currentTime,
+      completionRate,
+    };
+    const previousSnapshot = lastBackupSnapshotRef.current;
 
-    if (!lessonResult.ok) {
-      setProgressSyncNotice("진도 저장이 일시적으로 지연되었습니다. 네트워크 연결 후 자동으로 다시 저장됩니다.");
-    } else {
-      setProgressSyncNotice("");
+    if (
+      !options?.force &&
+      previousSnapshot.lessonId === currentSnapshot.lessonId &&
+      previousSnapshot.watchedSeconds === currentSnapshot.watchedSeconds &&
+      previousSnapshot.currentSeconds === currentSnapshot.currentSeconds &&
+      previousSnapshot.completionRate === currentSnapshot.completionRate
+    ) {
+      return;
+    }
+
+    backupInFlightRef.current = true;
+    try {
+      const snapshotResult = await saveCourseProgressSnapshot(progress.userId, progress.courseId, moduleProgressRef.current, {
+        lastLessonId: progress.lessonId,
+        lastLessonTime: progress.currentTime,
+      });
+
+      if (!snapshotResult.ok) {
+        setProgressSyncNotice("진도 저장이 일시적으로 지연되었습니다. 네트워크 연결 후 자동으로 다시 저장됩니다.");
+      } else {
+        lastBackupSnapshotRef.current = currentSnapshot;
+        setProgressSyncNotice("");
+      }
+    } finally {
+      backupInFlightRef.current = false;
     }
   }
 
@@ -809,7 +883,8 @@ function CourseRoomPageContent() {
       }
     }
 
-    updateSelectedModuleProgress({ lastPlaybackPositionSeconds: safeSeconds });
+    updateSelectedModuleProgress({ watchedSeconds: safeSeconds, lastPlaybackPositionSeconds: safeSeconds });
+    window.setTimeout(() => void syncCurrentLessonBackup({ force: true }), 0);
     if (options?.hidePrompt) {
       setResumePromptVisible(false);
     }
@@ -833,23 +908,24 @@ function CourseRoomPageContent() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const handleBeforeUnload = () => {
+    const handlePageExit = () => {
       saveCurrentLessonLocally();
+      void syncCurrentLessonBackup({ force: true });
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        saveCurrentLessonLocally();
-        void persistProgress("auto");
-        void syncCurrentLessonBackup();
+        handlePageExit();
       }
     };
 
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("beforeunload", handlePageExit);
+    window.addEventListener("pagehide", handlePageExit);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("beforeunload", handlePageExit);
+      window.removeEventListener("pagehide", handlePageExit);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, []);
@@ -1026,6 +1102,7 @@ function CourseRoomPageContent() {
         isCompleted: true,
       });
       setTimeout(() => {
+        void syncCurrentLessonBackup({ force: true });
         void persistProgress("ended");
       }, 0);
     };
@@ -1048,12 +1125,20 @@ function CourseRoomPageContent() {
   }, [videoProvider, videoUrl, streamSdkReady, selectedModule]);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
+    const localTimer = window.setInterval(() => {
+      saveCurrentLessonLocally();
+    }, 3000);
+    const firestoreBackupTimer = window.setInterval(() => {
+      void syncCurrentLessonBackup();
+    }, 30000);
+    const verifiedSaveTimer = window.setInterval(() => {
       void persistProgress("auto");
-    }, 10000);
+    }, 60000);
 
     return () => {
-      window.clearInterval(timer);
+      window.clearInterval(localTimer);
+      window.clearInterval(firestoreBackupTimer);
+      window.clearInterval(verifiedSaveTimer);
     };
   }, []);
 
@@ -1120,14 +1205,14 @@ function CourseRoomPageContent() {
     const activeModuleId = selectedModuleIdRef.current;
     const activeProgress = moduleProgressRef.current[activeModuleId];
     const totalDurationSeconds = courseModules.reduce(
-      (sum, module) => sum + (moduleProgressRef.current[module.id]?.durationSeconds ?? 0),
+      (sum, module) => sum + toFiniteProgressNumber(moduleProgressRef.current[module.id]?.durationSeconds),
       0
     );
     const totalWatchedSeconds = courseModules.reduce(
-      (sum, module) => sum + (moduleProgressRef.current[module.id]?.watchedSeconds ?? 0),
+      (sum, module) => sum + toFiniteProgressNumber(moduleProgressRef.current[module.id]?.watchedSeconds),
       0
     );
-    const completionRate = totalDurationSeconds > 0 ? Math.floor((totalWatchedSeconds / totalDurationSeconds) * 100) : 0;
+    const completionRate = totalDurationSeconds > 0 ? clampProgressRate((totalWatchedSeconds / totalDurationSeconds) * 100) : 0;
     const isCompleted = courseModules.every((module) => moduleProgressRef.current[module.id]?.isCompleted);
 
     if (
@@ -1227,28 +1312,29 @@ function CourseRoomPageContent() {
     }
 
     setModuleProgress((prev) => {
-      const current = prev[selectedModule.id];
-      const durationSeconds = Math.max(1, Math.round(update.durationSeconds ?? current.durationSeconds));
-      const watchedSeconds = Math.min(
-        durationSeconds,
-        Math.max(0, Math.round(update.watchedSeconds ?? current.watchedSeconds))
-      );
+      const current = prev[selectedModule.id] ?? { watchedSeconds: 0, durationSeconds: 1, completionRate: 0, lastPlaybackPositionSeconds: 0, isCompleted: false };
+      const durationSeconds = Math.max(1, Math.round(toFiniteProgressNumber(update.durationSeconds, current.durationSeconds)));
       const lastPlaybackPositionSeconds = Math.min(
         durationSeconds,
-        Math.max(0, Math.round(update.lastPlaybackPositionSeconds ?? current.lastPlaybackPositionSeconds))
+        Math.max(0, Math.round(toFiniteProgressNumber(update.lastPlaybackPositionSeconds, current.lastPlaybackPositionSeconds)))
       );
-      const completionRate = Math.floor((watchedSeconds / durationSeconds) * 100);
-
-      return {
+      const watchedSeconds = Math.min(
+        durationSeconds,
+        Math.max(0, Math.round(toFiniteProgressNumber(update.watchedSeconds, current.watchedSeconds)), lastPlaybackPositionSeconds, toFiniteProgressNumber(current.watchedSeconds))
+      );
+      const completionRate = clampProgressRate((watchedSeconds / durationSeconds) * 100);
+      const next = {
         ...prev,
         [selectedModule.id]: {
           watchedSeconds,
           durationSeconds,
           completionRate,
           lastPlaybackPositionSeconds,
-          isCompleted: completionRate >= completionThreshold,
+          isCompleted: Boolean(update.isCompleted) || completionRate >= completionThreshold,
         },
       };
+      moduleProgressRef.current = next;
+      return next;
     });
   }
 
@@ -1276,13 +1362,19 @@ function CourseRoomPageContent() {
       return;
     }
 
-    const durationSeconds = Math.max(Math.round(player.duration || 0), selectedProgress.durationSeconds, 1);
+    const progress = selectedProgressRef.current;
+    const durationSeconds = Math.max(Math.round(player.duration || 0), progress.durationSeconds, 1);
     const currentSeconds = Math.min(Math.max(player.currentTime, 0), durationSeconds);
     updateSelectedModuleProgress({
       durationSeconds,
-      watchedSeconds: Math.max(selectedProgress.watchedSeconds, currentSeconds),
+      watchedSeconds: Math.max(progress.watchedSeconds, currentSeconds),
       lastPlaybackPositionSeconds: currentSeconds,
     });
+  };
+
+  const handleSeeked = () => {
+    handleTimeUpdate();
+    window.setTimeout(() => void syncCurrentLessonBackup(), 0);
   };
 
   const handlePlay = () => {
@@ -1292,6 +1384,7 @@ function CourseRoomPageContent() {
 
   const handlePause = () => {
     dispatchLectureActivity(false);
+    void syncCurrentLessonBackup({ force: true });
     void persistProgress("pause");
   };
 
@@ -1470,24 +1563,6 @@ function CourseRoomPageContent() {
             </div>
 
             <div className="grid gap-2 sm:grid-cols-2 lg:min-w-[360px]">
-              <a
-                href="/resources/reflection-guide"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ backgroundColor: "#facc15", color: "#111827", borderColor: "#fde047" }}
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 px-6 py-3 text-center text-sm font-black shadow-[0_18px_36px_rgba(250,204,21,0.34)] ring-2 ring-amber-100/70 transition-all hover:-translate-y-0.5 hover:bg-amber-300 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-200"
-              >
-                반성문 가이드
-              </a>
-              <a
-                href="/resources/dui-reflection-example"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ backgroundColor: "#ffffff", color: "#10213f", borderColor: "#cbd5e1" }}
-                className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 px-6 py-3 text-center text-sm font-black shadow-[0_14px_30px_rgba(15,23,42,0.22)] transition-all hover:-translate-y-0.5 hover:bg-slate-100 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/60"
-              >
-                반성문 예시
-              </a>
               <Link
                 href="/"
                 className="inline-flex min-h-12 cursor-pointer items-center justify-center rounded-full border-2 border-white/60 bg-transparent px-6 py-3 text-sm font-black text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-white hover:text-slate-950 hover:shadow-lg active:scale-[0.98] focus:outline-none focus:ring-4 focus:ring-white/50"
@@ -1523,37 +1598,6 @@ function CourseRoomPageContent() {
           </div>
         </section>
 
-        <section id="reflection-resources" className="mt-5 rounded-[1.5rem] border-2 border-amber-300 bg-[#fff8e6] p-5 text-slate-950 shadow-[0_20px_50px_rgba(250,204,21,0.20)] ring-2 ring-amber-100 sm:p-6">
-          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.18em] text-amber-800">결제 회원 전용 자료</p>
-              <h2 className="mt-2 text-xl font-black text-slate-950 sm:text-2xl">반성문 작성에 도움이 필요하신가요?</h2>
-              <p className="mt-2 max-w-3xl text-sm font-semibold leading-7 text-slate-700 sm:text-base">
-                결제 회원은 반성문 작성 가이드와 예시를 확인하고 인쇄하거나 PDF로 저장할 수 있습니다.
-              </p>
-            </div>
-            <div className="grid shrink-0 gap-3 sm:grid-cols-2">
-              <a
-                href="/resources/reflection-guide"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ backgroundColor: "#173968", color: "#ffffff", borderColor: "#173968" }}
-                className="inline-flex min-h-14 items-center justify-center rounded-xl border-2 px-6 py-3 text-center text-base font-black shadow-[0_14px_28px_rgba(23,57,104,0.28)] transition hover:bg-[#10213f] focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-blue-300"
-              >
-                반성문 작성 가이드 보기
-              </a>
-              <a
-                href="/resources/dui-reflection-example"
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{ backgroundColor: "#facc15", color: "#111827", borderColor: "#eab308" }}
-                className="inline-flex min-h-14 items-center justify-center rounded-xl border-2 px-6 py-3 text-center text-base font-black shadow-[0_14px_28px_rgba(250,204,21,0.28)] transition hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-amber-300"
-              >
-                음주운전 반성문 예시 보기
-              </a>
-            </div>
-          </div>
-        </section>
 
 
         <section className="mt-5 grid gap-4 lg:grid-cols-[360px_minmax(0,1fr)]">
@@ -1710,6 +1754,7 @@ function CourseRoomPageContent() {
                             onLoadedMetadata={handleLoadedMetadata}
                             onPlay={handlePlay}
                             onTimeUpdate={handleTimeUpdate}
+                            onSeeked={handleSeeked}
                             onPause={handlePause}
                             onEnded={handleEnded}
                             onContextMenu={(event) => event.preventDefault()}
@@ -1989,7 +2034,7 @@ function CourseRoomPageContent() {
               {isAdvancedCourse ? (
                 <div className="mt-4 space-y-3 rounded-[1.5rem] border-2 border-amber-300 bg-amber-50 p-4 shadow-[0_18px_44px_rgba(245,158,11,0.18)]">
                   <p className="text-sm font-black text-amber-950">인지행동기반 재발방지교육 이수 서류</p>
-                  <p className="text-sm leading-6 text-amber-900">심화과정 수강권은 과정 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 출력할 수 있습니다.</p>
+                  <p className="text-sm leading-6 text-amber-900">심화이수과정 수강권은 과정 수료증, 인지행동기반 재발방지교육 이수증, 교육이수 상세내역서를 출력할 수 있으며 교육 소감문 작성자료를 함께 이용할 수 있습니다.</p>
                   <Link href={"/certificate?courseId=" + encodeURIComponent(isCbtAdvancedCourse ? "dui-prevention-basic" : effectiveCourseId) + "&documentType=completion"} className="flex min-h-16 items-center justify-between gap-4 rounded-[1.15rem] border-2 border-slate-950 bg-[#facc15] px-4 py-4 text-sm font-black !text-slate-950 shadow-[0_16px_34px_rgba(15,23,42,0.22)] transition hover:-translate-y-0.5 hover:bg-[#fde047] hover:!text-slate-950 hover:shadow-[0_20px_42px_rgba(15,23,42,0.28)]">
                     <span className="min-w-0 break-keep leading-6">{isCbtAdvancedCourse ? "음주운전 재범방지교육 수료증" : (courseDefinition?.certificateTitle || courseTitle) + " 수료증"}</span>
                     <span className="shrink-0 rounded-full border-2 border-slate-950 bg-white px-3 py-1.5 text-xs font-black !text-slate-950 shadow-sm">인쇄 · PDF 저장</span>

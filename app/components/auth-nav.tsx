@@ -14,7 +14,7 @@ type AuthState = {
 
 type AuthNavProps = {
   applyHref?: string;
-  variant?: "header" | "panel";
+  variant?: "header" | "panel" | "mobileHeader";
   onNavigate?: () => void;
 };
 
@@ -23,21 +23,32 @@ export default function AuthNav({ applyHref = "/courses/apply?category=dui", var
   const [state, setState] = useState<AuthState>({ loading: true, user: null });
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const isPanel = variant === "panel";
-  const wrapperClassName = isPanel
+  const isMobileHeader = variant === "mobileHeader";
+  const wrapperClassName = isMobileHeader
+    ? "mobile-auth-nav flex shrink-0 items-center gap-1"
+    : isPanel
     ? "grid w-full gap-2"
     : "flex min-w-0 flex-1 flex-nowrap items-center justify-end gap-1.5 sm:flex-none sm:gap-2";
-  const compactButtonClassName = isPanel
-    ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black"
-    : "whitespace-nowrap rounded-full px-3 text-xs font-bold sm:px-4 sm:text-sm";
-  const primaryButtonClassName = isPanel
-    ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black !text-white hover:!text-white"
-    : "hidden whitespace-nowrap rounded-full px-4 font-bold !text-white hover:!text-white sm:inline-flex";
-  const logoutButtonClassName = isPanel
-    ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black disabled:opacity-100"
-    : "whitespace-nowrap rounded-full px-3 text-xs font-bold disabled:opacity-100 sm:px-4 sm:text-sm";
-  const applyButtonClassName = isPanel
-    ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black !text-black hover:!text-black"
-    : "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm";
+  const compactButtonClassName = isMobileHeader
+    ? "whitespace-nowrap rounded-[9px] px-2 text-[11.5px] font-black"
+    : isPanel
+      ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black"
+      : "whitespace-nowrap rounded-full px-3 text-xs font-bold sm:px-4 sm:text-sm";
+  const primaryButtonClassName = isMobileHeader
+    ? "whitespace-nowrap rounded-[9px] px-2 text-[11.5px] font-black !text-white hover:!text-white"
+    : isPanel
+      ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black !text-white hover:!text-white"
+      : "hidden whitespace-nowrap rounded-full px-4 font-bold !text-white hover:!text-white sm:inline-flex";
+  const logoutButtonClassName = isMobileHeader
+    ? "hidden"
+    : isPanel
+      ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black disabled:opacity-100"
+      : "whitespace-nowrap rounded-full px-3 text-xs font-bold disabled:opacity-100 sm:px-4 sm:text-sm";
+  const applyButtonClassName = isMobileHeader
+    ? "hidden"
+    : isPanel
+      ? "min-h-12 w-full justify-center rounded-2xl px-4 text-sm font-black !text-black hover:!text-black"
+      : "whitespace-nowrap rounded-full px-3 text-xs font-black !text-black hover:!text-black sm:px-4 sm:text-sm";
 
   useEffect(() => {
     const { auth } = getFirebaseServices();
@@ -62,26 +73,26 @@ export default function AuthNav({ applyHref = "/courses/apply?category=dui", var
   };
 
   if (state.loading) {
-    return <div aria-label="인증 상태 확인 중" className={isPanel ? "min-h-12 w-full" : "min-h-9 w-[112px] sm:min-h-10 sm:w-[312px]"} />;
+    return <div aria-label="인증 상태 확인 중" className={isMobileHeader ? "min-h-9 w-[104px]" : isPanel ? "min-h-12 w-full" : "min-h-9 w-[112px] sm:min-h-10 sm:w-[312px]"} />;
   }
 
   if (!state.user) {
     return (
       <div className={wrapperClassName}>
-        <Link href="/login" onClick={onNavigate} className={buttonClass("secondary", "sm", compactButtonClassName)}>로그인</Link>
-        <Link href="/signup" onClick={onNavigate} className={buttonClass("primary", "sm", primaryButtonClassName)}>회원가입</Link>
-        <Link href={applyHref} onClick={onNavigate} className={buttonClass("warning", "sm", applyButtonClassName)}><span className={isPanel ? "" : "sm:hidden"}>수강 신청</span><span className={isPanel ? "hidden" : "hidden sm:inline"}>교육 신청하기</span></Link>
+        <Link href="/login" onClick={onNavigate} className={buttonClass("secondary", "sm", isMobileHeader ? compactButtonClassName + " min-w-[42px]" : compactButtonClassName)}>로그인</Link>
+        <Link href="/signup" onClick={onNavigate} className={buttonClass("primary", "sm", isMobileHeader ? primaryButtonClassName + " min-w-[52px]" : primaryButtonClassName)}>회원가입</Link>
+        {!isMobileHeader ? <Link href={applyHref} onClick={onNavigate} className={buttonClass("warning", "sm", applyButtonClassName)}><span className={isPanel ? "" : "sm:hidden"}>수강 신청</span><span className={isPanel ? "hidden" : "hidden sm:inline"}>교육 신청하기</span></Link> : null}
       </div>
     );
   }
 
   return (
     <div className={wrapperClassName}>
-      <Link href="/dashboard" onClick={onNavigate} className={buttonClass("secondary", "sm", compactButtonClassName)}>마이페이지</Link>
-      <button type="button" onClick={handleLogout} disabled={isLoggingOut} className={buttonClass("danger", "sm", logoutButtonClassName)}>
+      <Link href="/dashboard" onClick={onNavigate} className={buttonClass("secondary", "sm", isMobileHeader ? compactButtonClassName + " min-w-[60px]" : compactButtonClassName)}>{isMobileHeader ? "내 강의실" : "마이페이지"}</Link>
+      {!isMobileHeader ? <button type="button" onClick={handleLogout} disabled={isLoggingOut} className={buttonClass("danger", "sm", logoutButtonClassName)}>
         {isLoggingOut ? "로그아웃 중..." : "로그아웃"}
-      </button>
-      <Link href={applyHref} onClick={onNavigate} className={buttonClass("warning", "sm", applyButtonClassName)}><span className={isPanel ? "" : "sm:hidden"}>수강 신청</span><span className={isPanel ? "hidden" : "hidden sm:inline"}>교육 신청하기</span></Link>
+      </button> : null}
+      {!isMobileHeader ? <Link href={applyHref} onClick={onNavigate} className={buttonClass("warning", "sm", applyButtonClassName)}><span className={isPanel ? "" : "sm:hidden"}>수강 신청</span><span className={isPanel ? "hidden" : "hidden sm:inline"}>교육 신청하기</span></Link> : null}
     </div>
   );
 }

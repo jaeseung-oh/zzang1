@@ -16,9 +16,9 @@
 - 결제 페이지에 미수강 강의별 환불 가능 금액표 표시 확인
 
 ## 결제 성공
-- successUrl에서 `paymentKey`, `orderId`, `amount`, `courseId` 수신
+- successUrl에서 PortOne `paymentId`, `courseId`, `categoryId`, `productId` 수신
 - Worker `/api/payments/confirm` 호출
-- 서버에서 courseId 기준 금액 `59,000원` 재검증
+- 서버에서 PortOne 결제내역을 조회하고 courseId/productId 기준 실제 결제금액 재검증
 - `payments` 컬렉션 결제내역 저장
 - `enrollments` 컬렉션 수강권 저장
 - 기존 호환용 `purchases` 컬렉션 저장
@@ -38,8 +38,7 @@
 ## 보안
 - 프론트 금액 위변조 시 Worker 승인 거부
 - 동일 `orderId` 중복 요청 시 거부
-- 동일 `paymentKey` 중복 요청 시 거부
-- `PAYMENT_SECRET_KEY`는 Worker secret으로만 설정
+- `PORTONE_API_SECRET`은 Worker secret으로만 설정
 - Firebase ID 토큰 uid와 요청 uid 불일치 시 거부
 - DB 저장 실패 시 `paymentLogs`에 재처리 로그 저장
 - 이미 활성 수강권이 있는 동일 강의 중복 결제 거부

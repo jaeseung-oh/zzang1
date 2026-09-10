@@ -11,10 +11,16 @@ declare global {
   interface Window {
     dataLayer?: unknown[];
     gtag?: (...args: unknown[]) => void;
+    wcs?: { cnv?: (type: string, value?: string) => unknown; inflow?: (domain: string) => void };
+    wcs_do?: (params?: unknown) => void;
+    _nasa?: Record<string, unknown>;
   }
 }
 
 export const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "";
+export const googleAdsId = "AW-18408125908";
+export const googleAdsPurchaseConversionLabel = process.env.NEXT_PUBLIC_GOOGLE_ADS_PURCHASE_CONVERSION_LABEL || "";
+export const googleAdsPurchaseConversionSendTo = googleAdsPurchaseConversionLabel ? `${googleAdsId}/${googleAdsPurchaseConversionLabel}` : "";
 
 function isProductionAnalyticsHost(hostname: string) {
   const normalized = hostname.toLowerCase();
@@ -101,6 +107,40 @@ export function trackPurchaseOnce(params: { transaction_id: string; value?: numb
 
   if (sent) markTracked("purchase", params.transaction_id);
   return sent;
+}
+
+export function trackGoogleAdsPurchaseConversionOnce(params: { transaction_id: string; value?: number; currency?: string }) {
+  if (!params.transaction_id || typeof window === "undefined" || typeof window.gtag !== "function" || isAlreadyTracked("ads_purchase_conversion", params.transaction_id)) {
+    return false;
+  }
+
+  if (!isProductionAnalyticsHost(window.location.hostname)) return false;
+  if (!googleAdsPurchaseConversionSendTo) return false;
+
+  window.gtag("event", "conversion", {
+    send_to: googleAdsPurchaseConversionSendTo,
+    transaction_id: params.transaction_id,
+    value: params.value,
+    currency: params.currency || "KRW",
+  });
+  markTracked("ads_purchase_conversion", params.transaction_id);
+  return true;
+}
+
+export function trackNaverPurchaseConversionOnce(params: { transaction_id: string; value?: number }) {
+  if (!params.transaction_id || typeof window === "undefined" || isAlreadyTracked("naver_purchase_conversion", params.transaction_id)) {
+    return false;
+  }
+
+  if (!isProductionAnalyticsHost(window.location.hostname)) return false;
+  if (typeof window.wcs_do !== "function" || typeof window.wcs?.cnv !== "function") return false;
+
+  const value = typeof params.value === "number" && Number.isFinite(params.value) ? String(Math.round(params.value)) : undefined;
+  window._nasa = window._nasa || {};
+  window._nasa["cnv"] = window.wcs.cnv("1", value);
+  window.wcs_do(window._nasa);
+  markTracked("naver_purchase_conversion", params.transaction_id);
+  return true;
 }
 
 export function trackBeginCheckout(params: { value?: number; currency?: string; items?: GaItem[] }) {

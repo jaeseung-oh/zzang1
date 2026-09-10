@@ -1,10 +1,9 @@
-import axios from "axios";
 import { createHash } from "crypto";
 import { initializeApp } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
-import { HttpsError, onCall, onRequest } from "firebase-functions/v2/https";
+import { HttpsError, onCall } from "firebase-functions/v2/https";
 import OpenAI from "openai";
 
 initializeApp();
@@ -17,17 +16,6 @@ const openai = openaiApiKey ? new OpenAI({ apiKey: openaiApiKey }) : null;
 const LEGAL_NOTICE =
   "본 서비스는 법률 검토나 상담을 제공하지 않으며, 자발적인 교육 이수와 생활 실천 계획 정리를 돕는 민간 교육 서비스입니다.";
 
-const COURSE_ACCESS_VALID_MONTHS = 3;
-const COURSE_ACCESS_VALID_DAYS = 90;
-const COURSE_PRICE_KRW: Record<string, number> = {
-  "dui-prevention-basic": 59000,
-  "rapid-sentencing-prep": 59000,
-  "drug-addiction-basic": 49000,
-  "drug-addiction-premium": 99000,
-  "drug-addiction-relapse-prevention": 49000,
-  "digital-crime-basic": 49000,
-  "digital-crime-advanced": 99000,
-};
 const DUI_COURSE_ID = "dui-prevention-basic";
 const DUI_COURSE_TITLE = "음주운전 재범방지교육";
 const DUI_TOTAL_LESSONS = 5;
@@ -49,6 +37,7 @@ const COURSE_ID_ALIASES: Record<string, string> = {
   advanced: "dui-cbt-advanced",
   "dui-cbt": "dui-cbt-advanced",
   "dui-cbt-advanced": "dui-cbt-advanced",
+  "dui-cbt-counseling": "dui-cbt-advanced",
   "violence-prevention": "violence-basic",
   violence: "violence-basic",
   "violence-basic": "violence-basic",
@@ -62,6 +51,11 @@ const COURSE_ID_ALIASES: Record<string, string> = {
   sexual: "sexual-offense-basic",
   "sexual-offense-basic": "sexual-offense-basic",
   "sexual-offense-advanced": "sexual-offense-advanced",
+  "prostitution-prevention": "prostitution-basic",
+  prostitution: "prostitution-basic",
+  "prostitution-basic": "prostitution-basic",
+  "prostitution-advanced": "prostitution-advanced",
+  "prostitution-advanced-counseling": "prostitution-advanced",
   "drug-rehab-prevention": "drug-basic",
   drug: "drug-basic",
   "drug-basic": "drug-basic",
@@ -78,6 +72,69 @@ const COURSE_ID_ALIASES: Record<string, string> = {
   "디지털범죄 재범방지교육": "digital-crime-basic",
   "디지털범죄 재범방지교육 기본과정": "digital-crime-basic",
   "디지털범죄 재범방지교육 심화과정": "digital-crime-advanced",
+  "fraud-prevention": "fraud-basic",
+  fraud: "fraud-basic",
+  "fraud-basic": "fraud-basic",
+  "fraud-advanced": "fraud-advanced",
+  "사기 재범방지교육": "fraud-basic",
+  "사기 재범방지교육 기본과정": "fraud-basic",
+  "사기 재범방지교육 심화과정": "fraud-advanced",
+  "unlicensed-driving-prevention": "unlicensed-driving-basic",
+  "unlicensed-driving-basic": "unlicensed-driving-basic",
+  "unlicensed-driving-advanced": "unlicensed-driving-advanced",
+  "무면허운전 재범방지교육": "unlicensed-driving-basic",
+  "무면허운전 재범방지교육 기본과정": "unlicensed-driving-basic",
+  "무면허운전 재범방지교육 심화과정": "unlicensed-driving-advanced",
+  "hangover-driving-prevention": "hangover-driving-basic",
+  "hangover-driving-basic": "hangover-driving-basic",
+  "hangover-driving-advanced": "hangover-driving-advanced",
+  "숙취운전 재발방지교육": "hangover-driving-basic",
+  "숙취운전 재발방지교육 기본과정": "hangover-driving-basic",
+  "숙취운전 재발방지교육 심화과정": "hangover-driving-advanced",
+  "defamation-insult-prevention": "defamation-insult-basic",
+  "defamation-insult-basic": "defamation-insult-basic",
+  "defamation-insult-advanced": "defamation-insult-advanced",
+  "악플·모욕·명예훼손 재범방지교육": "defamation-insult-basic",
+  "악플·모욕·명예훼손 재범방지교육 기본과정": "defamation-insult-basic",
+  "악플·모욕·명예훼손 재범방지교육 심화과정": "defamation-insult-advanced",
+  "모욕·명예훼손 재범방지교육": "defamation-insult-basic",
+  "모욕·명예훼손 재범방지교육 기본과정": "defamation-insult-basic",
+  "모욕·명예훼손 재범방지교육 심화과정": "defamation-insult-advanced",
+  "악플 재범방지교육": "defamation-insult-basic",
+  "인지행동기반 재발방지교육 충실 준비과정": "dui-cbt-advanced",
+  "인지행동기반 재발방지교육 충실준비과정": "dui-cbt-advanced",
+  "폭력범죄 재범방지교육 충실 준비과정": "violence-advanced",
+  "폭력범죄 재범방지교육 충실준비과정": "violence-advanced",
+  "도박중독 재발방지교육 충실 준비과정": "gambling-advanced",
+  "도박중독 재발방지교육 충실준비과정": "gambling-advanced",
+  "성범죄 재범방지교육 충실 준비과정": "sexual-offense-advanced",
+  "성범죄 재범방지교육 충실준비과정": "sexual-offense-advanced",
+  "성매매 재범방지교육 충실 준비과정": "prostitution-advanced",
+  "성매매 재범방지교육 충실준비과정": "prostitution-advanced",
+  "마약류중독 재범방지교육 충실 준비과정": "drug-advanced",
+  "마약류중독 재범방지교육 충실준비과정": "drug-advanced",
+  "마약중독 재범방지교육 충실 준비과정": "drug-addiction-relapse-prevention",
+  "마약중독 재범방지교육 충실준비과정": "drug-addiction-relapse-prevention",
+  "디지털범죄 재범방지교육 충실 준비과정": "digital-crime-advanced",
+  "디지털범죄 재범방지교육 충실준비과정": "digital-crime-advanced",
+  "사기 재범방지교육 충실 준비과정": "fraud-advanced",
+  "사기 재범방지교육 충실준비과정": "fraud-advanced",
+  "무면허운전 재범방지교육 충실 준비과정": "unlicensed-driving-advanced",
+  "무면허운전 재범방지교육 충실준비과정": "unlicensed-driving-advanced",
+  "숙취운전 재발방지교육 충실 준비과정": "hangover-driving-advanced",
+  "숙취운전 재발방지교육 충실준비과정": "hangover-driving-advanced",
+  "난폭·보복운전 재범방지교육 충실 준비과정": "reckless-retaliatory-driving-advanced",
+  "난폭·보복운전 재범방지교육 충실준비과정": "reckless-retaliatory-driving-advanced",
+  "악플·모욕·명예훼손 재범방지교육 충실 준비과정": "defamation-insult-advanced",
+  "악플·모욕·명예훼손 재범방지교육 충실준비과정": "defamation-insult-advanced",
+  "모욕·명예훼손 재범방지교육 충실 준비과정": "defamation-insult-advanced",
+  "모욕·명예훼손 재범방지교육 충실준비과정": "defamation-insult-advanced",
+  "보이스피싱 재범방지교육 충실 준비과정": "voice-phishing-advanced",
+  "보이스피싱 재범방지교육 충실준비과정": "voice-phishing-advanced",
+  "디지털성범죄 재범방지교육 충실 준비과정": "digital-sexual-crime-advanced",
+  "디지털성범죄 재범방지교육 충실준비과정": "digital-sexual-crime-advanced",
+  "준법의식 교육 충실 준비과정": "legal-compliance-awareness-advanced",
+  "준법의식 교육 충실준비과정": "legal-compliance-awareness-advanced",
 };
 
 function resolveCanonicalCourseId(input: Record<string, any> | string | null | undefined) {
@@ -101,6 +158,10 @@ function resolveCanonicalCourseId(input: Record<string, any> | string | null | u
     if (COURSE_ID_ALIASES[candidate]) return COURSE_ID_ALIASES[candidate];
     const lowered = candidate.toLowerCase();
     if (COURSE_ID_ALIASES[lowered]) return COURSE_ID_ALIASES[lowered];
+    if (lowered.endsWith("-counseling")) {
+      const includedProductId = lowered.replace(/-counseling$/, "");
+      return COURSE_ID_ALIASES[includedProductId] || includedProductId;
+    }
   }
   return "";
 }
@@ -185,15 +246,6 @@ type DraftInput = {
   userReviewAccepted: boolean;
 };
 
-type ConfirmPaymentRequest = {
-  paymentKey?: string;
-  orderId?: string;
-  amount?: number;
-  uid?: string | null;
-  courseId?: string | null;
-  legalDisclaimerAccepted?: boolean;
-  finalReviewResponsibilityAccepted?: boolean;
-};
 
 type ModuleProgressPayload = Record<
   string,
@@ -228,26 +280,6 @@ type GetCourseVideoAccessRequest = {
 type IssueCertificateRequest = {
   courseId?: string;
 };
-
-type CorsResponse = {
-  set(name: string, value: string): void;
-};
-
-function applyCors(response: CorsResponse) {
-  response.set("Access-Control-Allow-Origin", "*");
-  response.set("Access-Control-Allow-Methods", "POST, OPTIONS");
-  response.set("Access-Control-Allow-Headers", "Content-Type");
-}
-
-function getTossAuthHeader() {
-  const tossSecretKey = process.env.TOSS_SECRET_KEY;
-
-  if (!tossSecretKey) {
-    throw new Error("TOSS_SECRET_KEY is not configured.");
-  }
-
-  return `Basic ${Buffer.from(`${tossSecretKey}:`).toString("base64")}`;
-}
 
 function assertValidInput(data: Partial<DraftInput>): asserts data is DraftInput {
   if (!data.legalAccepted || !data.userReviewAccepted) {
@@ -864,111 +896,6 @@ function buildFallbackDraft(data: DraftInput) {
 
   return `${title}\n\n저는 이번 사건으로 인해 제 행동이 사회와 주변 사람들에게 미칠 수 있는 영향을 무겁게 받아들이고 있습니다. 경솔했던 판단과 부주의한 태도에 대해 깊이 반성하고 있으며, 같은 일이 반복되지 않도록 생활 전반을 다시 정비하고자 합니다.\n\n특히 ${data.remorseReason.trim()}와 같은 점을 계속 돌아보며, 단순한 후회에 그치지 않고 실제 행동 변화로 이어가야 한다고 생각하고 있습니다. ${data.familyContext.trim() || "가족과 주변 환경 또한 제게 더 신중한 태도를 요구하고 있습니다."}\n\n앞으로는 ${data.preventionPlan.trim()}와 같은 구체적인 재범 방지 계획을 실천하면서, 다시는 유사한 일이 발생하지 않도록 교육과 생활 관리를 병행하겠습니다.\n\n본 문안은 자기점검과 글 정리를 돕기 위한 참고용 예시이며, 실제 사용 전에는 사실관계와 표현을 직접 다시 확인하고 자신의 말로 수정해 사용하시기 바랍니다.`;
 }
-
-export const confirmPayment = onRequest({ region: "asia-northeast3" }, async (request, response) => {
-  applyCors(response);
-
-  if (request.method === "OPTIONS") {
-    response.status(204).send("");
-    return;
-  }
-
-  if (request.method !== "POST") {
-    response.status(400).json({ message: "POST 요청만 허용됩니다." });
-    return;
-  }
-
-  const {
-    paymentKey,
-    orderId,
-    amount,
-    uid = null,
-    courseId = null,
-    legalDisclaimerAccepted = false,
-    finalReviewResponsibilityAccepted = false,
-  } = (request.body || {}) as ConfirmPaymentRequest;
-
-  if (!paymentKey || !orderId || typeof amount !== "number" || !uid || !courseId) {
-    response.status(400).json({ message: "paymentKey, orderId, amount, uid, courseId가 모두 필요합니다." });
-    return;
-  }
-
-  const expectedAmount = COURSE_PRICE_KRW[courseId];
-  if (!expectedAmount || amount !== expectedAmount) {
-    response.status(400).json({ message: "결제 금액이 현재 강의 수강료와 일치하지 않습니다." });
-    return;
-  }
-
-  try {
-    const tossAuthHeader = getTossAuthHeader();
-    const tossResponse = await axios.post(
-      "https://api.tosspayments.com/v1/payments/confirm",
-      {
-        paymentKey,
-        orderId,
-        amount,
-      },
-      {
-        headers: {
-          Authorization: tossAuthHeader,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    const approved = tossResponse.data;
-    const accessStartsAt = approved.approvedAt ? new Date(approved.approvedAt) : new Date();
-    const expiresAt = new Date(accessStartsAt.getTime() + COURSE_ACCESS_VALID_DAYS * 24 * 60 * 60 * 1000).toISOString();
-
-    await db.collection("purchases").doc(orderId).set(
-      {
-        uid,
-        courseId,
-        orderId,
-        paymentKey,
-        paymentStatus: "paid",
-        paymentProvider: "toss-payments",
-        amount,
-        method: approved.method || null,
-        receiptUrl: approved.receipt?.url || null,
-        legalDisclaimerAccepted,
-        finalReviewResponsibilityAccepted,
-        orderedAt: approved.approvedAt || null,
-        approvedAt: approved.approvedAt || null,
-        accessValidMonths: COURSE_ACCESS_VALID_MONTHS,
-        accessValidDays: COURSE_ACCESS_VALID_DAYS,
-        expiresAt,
-        rawResponse: approved,
-        updatedAt: FieldValue.serverTimestamp(),
-        createdAt: FieldValue.serverTimestamp(),
-      },
-      { merge: true }
-    );
-
-    await getCertificateIdentity(uid, {
-      lockIfMissing: true,
-      purchaseId: orderId,
-      lockSource: "payment",
-    }).catch(() => null);
-
-    response.status(200).json({
-      ...approved,
-      savedPurchaseId: orderId,
-    });
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      response.status(400).json({
-        message: error.response?.data?.message || "토스 결제 승인 중 오류가 발생했습니다.",
-        code: error.response?.data?.code || "TOSS_CONFIRM_FAILED",
-      });
-      return;
-    }
-
-    response.status(400).json({
-      message: "토스 결제 승인 중 알 수 없는 오류가 발생했습니다.",
-    });
-  }
-});
 
 export const saveCourseProgress = onCall({ region: "asia-northeast3" }, async (request) => {
   const uid = getAuthenticatedUid(request);

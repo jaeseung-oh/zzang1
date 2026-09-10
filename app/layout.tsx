@@ -5,6 +5,8 @@ import IdleSessionGuard from "./components/idle-session-guard";
 import GlobalSiteHeader from "./components/global-site-header";
 import LegalFooter from "./components/legal-footer";
 import GoogleAnalyticsPageTracker from "./components/analytics/google-analytics";
+import ReadabilityRouteClass from "./components/readability-route-class";
+import { AttributionCapture } from "./components/conversion-tools";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -26,26 +28,40 @@ export const metadata: Metadata = {
 };
 
 const gaMeasurementId = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID || "";
+const googleAdsId = "AW-18408125908";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ko">
+      <head>
+        <Script src={`https://www.googletagmanager.com/gtag/js?id=${googleAdsId}`} strategy="afterInteractive" />
+        <Script src="https://wcs.naver.net/wcslog.js" strategy="afterInteractive" />
+        <Script id="google-tag" strategy="afterInteractive">
+          {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${googleAdsId}');
+              ${gaMeasurementId ? `gtag('config', '${gaMeasurementId}', { send_page_view: false });` : ""}
+            `}
+        </Script>
+        <Script id="naver-wcs" strategy="afterInteractive">
+          {`
+              window.wcs_add = window.wcs_add || {};
+              window.wcs_add["wa"] = "s_282e28d6411b";
+              window._nasa = window._nasa || {};
+              if (window.wcs) {
+                window.wcs.inflow("resetedu.kr");
+              }
+              if (window.wcs_do) {
+                window.wcs_do();
+              }
+            `}
+        </Script>
+      </head>
       <body>
-        {gaMeasurementId ? (
-          <>
-            <Script src={`https://www.googletagmanager.com/gtag/js?id=${gaMeasurementId}`} strategy="afterInteractive" />
-            <Script id="google-analytics" strategy="afterInteractive">
-              {`
-                window.dataLayer = window.dataLayer || [];
-                function gtag(){dataLayer.push(arguments);}
-                gtag('js', new Date());
-                gtag('config', '${gaMeasurementId}', { send_page_view: false });
-              `}
-            </Script>
-            <Suspense fallback={null}><GoogleAnalyticsPageTracker /></Suspense>
-          </>
-        ) : null}
-        <IdleSessionGuard /><GlobalSiteHeader /><div className="min-h-screen bg-white">{children}</div><LegalFooter />
+        {gaMeasurementId ? <Suspense fallback={null}><GoogleAnalyticsPageTracker /></Suspense> : null}
+        <AttributionCapture /><ReadabilityRouteClass /><IdleSessionGuard /><GlobalSiteHeader /><div className="min-h-screen bg-white">{children}</div><LegalFooter />
       </body>
     </html>
   );

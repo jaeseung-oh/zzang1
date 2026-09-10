@@ -36,6 +36,8 @@ service cloud.firestore {
     function allowedUserProfileKeys() {
       return [
         "uid",
+        "userId",
+        "loginId",
         "fullName",
         "realName",
         "email",
@@ -45,6 +47,7 @@ service cloud.firestore {
         "verificationEmailSendCount",
         "verificationEmailLastError",
         "phoneNumber",
+        "phone",
         "provider",
         "providerLabel",
         "nickname",
@@ -61,6 +64,8 @@ service cloud.firestore {
         "birthDate",
         "certificateIdentity",
         "createdAt",
+        "joinedAt",
+        "crmJoinedAt",
         "updatedAt"
       ];
     }
@@ -177,6 +182,12 @@ service cloud.firestore {
       allow create, delete: if false;
     }
 
+    match /orders/{orderId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid));
+      allow update: if isAdminMemoOnlyUpdate();
+      allow create, delete: if false;
+    }
+
     match /enrollments/{enrollmentId} {
       allow read: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid));
       allow update: if isAdminMemoOnlyUpdate();
@@ -219,6 +230,16 @@ service cloud.firestore {
     match /adminLogs/{logId} {
       allow read, create: if isAdmin();
       allow update, delete: if false;
+    }
+
+    match /paymentLogs/{logId} {
+      allow read: if isAdmin() || (isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.uid == request.auth.uid));
+      allow create, update, delete: if false;
+    }
+
+    match /documentOutputLogs/{logId} {
+      allow read: if isAdmin() || (isSignedIn() && resource.data.uid == request.auth.uid);
+      allow create, update, delete: if false;
     }
 
     match /aiDocuments/{documentId} {

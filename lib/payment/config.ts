@@ -7,5 +7,5 @@ export const paymentConfig = {
   kakaoPayChannelKey: process.env.NEXT_PUBLIC_PORTONE_KAKAOPAY_CHANNEL_KEY || "",
   kakaoPayMid: process.env.NEXT_PUBLIC_PORTONE_KAKAOPAY_MID || "",
   siteUrl: process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_APP_ORIGIN || "http://localhost:3000",
-  confirmUrl: process.env.NEXT_PUBLIC_PAYMENT_CONFIRM_URL || (authApiBaseUrl ? `${authApiBaseUrl}/api/payments/confirm` : process.env.NEXT_PUBLIC_TOSS_CONFIRM_URL || ""),
+  confirmUrl: process.env.NEXT_PUBLIC_PAYMENT_CONFIRM_URL || (authApiBaseUrl ? `${authApiBaseUrl}/api/payments/confirm` : ""),
 } as const;

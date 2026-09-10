@@ -1,35 +1,16 @@
 import type { User } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, where } from "firebase/firestore";
 import { DUI_CBT_ADVANCED_COURSE_ID, defaultCourse, getCourseDefinition } from "@/lib/course/catalog";
 import { getApplicationCategory } from "@/lib/course/application-products";
-import { getFirebaseServices } from "@/lib/firebase/client";
 import { isSuperAdmin } from "@/lib/auth/auth-role-service";
 
-export type EnrollmentStatus = "active" | "cancelled" | "expired" | "pending" | "refunded";
+export type EnrollmentStatus = "active" | "cancelled" | "expired" | "pending" | "awaiting_deposit" | "refunded";
 
-const allowedEnrollmentSourceTypes = new Set(["PAYMENT", "MANUAL", "MIGRATION", "PROMOTION", "ADMIN_TEST", "EXTENSION"]);
+const allowedEnrollmentSourceTypes = new Set(["PAYMENT", "MANUAL", "MIGRATION", "PROMOTION", "ADMIN_TEST", "EXTENSION", "TRUSTED_PAYMENT_RECORD", "PAID_RECORD", "PORTONE", "PORTONE_KCP", "KCP", "NHN_KCP", "ADMIN", "ADMIN_GRANTED", "MANUAL_GRANT", "ADMIN_MANUAL", "FREE"]);
 
 function maskFirestoreSegment(value: string) {
   if (!value) return "";
   if (value.length <= 8) return value.slice(0, 2) + "***";
   return value.slice(0, 4) + "***" + value.slice(-4);
-}
-
-function maskFirestorePath(path: string) {
-  return path
-    .split("/")
-    .map((segment, index) => (index % 2 === 1 ? maskFirestoreSegment(segment) : segment))
-    .join("/");
-}
-
-function logFirestoreFailure(operation: "getDoc" | "getDocs", path: string, error: unknown) {
-  const errorLike = error as { code?: unknown; message?: unknown };
-  console.error("[enrollment:firestore]", {
-    operation,
-    path: maskFirestorePath(path),
-    code: typeof errorLike?.code === "string" ? errorLike.code : undefined,
-    message: typeof errorLike?.message === "string" ? errorLike.message : "Firestore request failed",
-  });
 }
 
 export type EnrollmentRecord = {
@@ -42,7 +23,7 @@ export type EnrollmentRecord = {
   productTitle?: string;
   paymentId?: string;
   orderId?: string;
-  paymentStatus?: "paid" | "pending" | "failed" | "cancelled" | "refunded" | string | null;
+  paymentStatus?: "paid" | "pending" | "awaiting_deposit" | "failed" | "cancelled" | "refunded" | string | null;
   sourceType?: "PAYMENT" | "MANUAL" | "PROMOTION" | "FREE" | string;
   status?: EnrollmentStatus | string;
   isActive?: boolean;
@@ -58,6 +39,9 @@ export type EnrollmentRecord = {
   progress?: number;
   completedLessons?: number;
   totalLessons?: number;
+  includedWithProductId?: string | null;
+  includedWithEnrollmentId?: string | null;
+  includedWithOrderId?: string | null;
   createdAt?: unknown;
   updatedAt?: unknown;
 };
@@ -67,6 +51,7 @@ export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
   dui: defaultCourse.id,
   basic: defaultCourse.id,
   "dui-documents": defaultCourse.id,
+  "dui-cbt-basic": defaultCourse.id,
   "dui-prevention": defaultCourse.id,
   "dui-prevention-basic": defaultCourse.id,
   "rapid-sentencing-prep": defaultCourse.id,
@@ -74,6 +59,7 @@ export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
   advanced: DUI_CBT_ADVANCED_COURSE_ID,
   "dui-cbt": DUI_CBT_ADVANCED_COURSE_ID,
   "dui-cbt-advanced": DUI_CBT_ADVANCED_COURSE_ID,
+  "dui-cbt-counseling": DUI_CBT_ADVANCED_COURSE_ID,
   "violence-prevention": "violence-basic",
   violence: "violence-basic",
   "violence-basic": "violence-basic",
@@ -87,8 +73,12 @@ export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
   sexual: "sexual-offense-basic",
   "sexual-offense-basic": "sexual-offense-basic",
   "sexual-offense-advanced": "sexual-offense-advanced",
+  "prostitution-prevention": "prostitution-basic",
+  prostitution: "prostitution-basic",
+  "prostitution-basic": "prostitution-basic",
+  "prostitution-advanced": "prostitution-advanced",
   "drug-rehab-prevention": "drug-addiction-basic",
-  drug: "drug-basic",
+  drug: "drug-addiction-basic",
   "drug-basic": "drug-basic",
   "drug-advanced": "drug-advanced",
   "drug-addiction-relapse-prevention": "drug-addiction-relapse-prevention",
@@ -97,17 +87,41 @@ export const APPLICATION_TO_COURSE_ID: Record<string, string> = {
   "digital-crime": "digital-crime-basic",
   "digital-crime-basic": "digital-crime-basic",
   "digital-crime-advanced": "digital-crime-advanced",
+  "fraud-prevention": "fraud-basic",
+  fraud: "fraud-basic",
+  "fraud-basic": "fraud-basic",
+  "fraud-advanced": "fraud-advanced",
+  "unlicensed-driving-prevention": "unlicensed-driving-basic",
+  "unlicensed-driving-basic": "unlicensed-driving-basic",
+  "unlicensed-driving-advanced": "unlicensed-driving-advanced",
+  "hangover-driving-prevention": "hangover-driving-basic",
+  "hangover-driving-basic": "hangover-driving-basic",
+  "hangover-driving-advanced": "hangover-driving-advanced",
+  "reckless-retaliatory-driving-prevention": "reckless-retaliatory-driving-basic",
+  "reckless-retaliatory-driving-basic": "reckless-retaliatory-driving-basic",
+  "reckless-retaliatory-driving-advanced": "reckless-retaliatory-driving-advanced",
+  "defamation-insult-prevention": "defamation-insult-basic",
+  "defamation-insult-basic": "defamation-insult-basic",
+  "defamation-insult-advanced": "defamation-insult-advanced",
+  "legal-compliance-awareness": "legal-compliance-awareness-basic",
+  "legal-compliance-awareness-basic": "legal-compliance-awareness-basic",
+  "legal-compliance-awareness-advanced": "legal-compliance-awareness-advanced",
 };
 
 export function resolveCourseId(courseIdOrCategory?: string | null) {
   if (!courseIdOrCategory || courseIdOrCategory === "dui") return defaultCourse.id;
-  return APPLICATION_TO_COURSE_ID[courseIdOrCategory] ?? courseIdOrCategory;
+  const normalized = String(courseIdOrCategory);
+  if (normalized.endsWith("-counseling")) {
+    const includedProductId = normalized.replace(/-counseling$/, "");
+    return APPLICATION_TO_COURSE_ID[includedProductId] ?? includedProductId;
+  }
+  return APPLICATION_TO_COURSE_ID[normalized] ?? normalized;
 }
 
 export function getCourseAvailability(courseIdOrCategory?: string | null) {
   const resolvedCourseId = resolveCourseId(courseIdOrCategory);
   if (resolvedCourseId === DUI_CBT_ADVANCED_COURSE_ID) {
-    return { exists: true, available: true, comingSoon: false, title: "인지행동기반 재발방지교육 심화과정" };
+    return { exists: true, available: true, comingSoon: false, title: "인지행동기반 재발방지교육 심화이수과정" };
   }
   const course = getCourseDefinition(resolvedCourseId);
   if (course) {
@@ -139,8 +153,9 @@ function normalizeEnrollmentSourceType(enrollment: EnrollmentRecord) {
   const grantType = (enrollment as EnrollmentRecord & { grantType?: string; issueType?: string }).grantType;
   const issueType = (enrollment as EnrollmentRecord & { issueType?: string }).issueType;
   const explicit = String(enrollment.sourceType || grantType || issueType || rawSource || "").trim().toUpperCase();
-  if (explicit === "MANUAL_GRANT" || explicit === "ADMIN_MANUAL") return "MANUAL";
-  if (explicit === "PAYMENT_AUTO_RECOVERY") return "MIGRATION";
+  if (["MANUAL_GRANT", "ADMIN_MANUAL", "ADMIN", "ADMIN_GRANTED"].includes(explicit)) return "MANUAL";
+  if (["PAYMENT_AUTO_RECOVERY", "TRUSTED_PAYMENT_RECORD", "PAID_RECORD", "PORTONE", "PORTONE_KCP", "KCP", "NHN_KCP"].includes(explicit)) return "MIGRATION";
+  if (explicit === "FREE") return "PROMOTION";
   if (explicit) return explicit;
   if ((enrollment as EnrollmentRecord & { adminGranted?: boolean }).adminGranted === true || (enrollment.paymentId == null && enrollment.orderId == null && enrollment.paymentStatus == null)) return "MANUAL";
   const paymentStatus = String(enrollment.paymentStatus || "").toLowerCase();
@@ -152,155 +167,22 @@ export function isEnrollmentActive(enrollment: EnrollmentRecord | null | undefin
   if (!allowedEnrollmentSourceTypes.has(normalizeEnrollmentSourceType(enrollment))) return false;
   const paymentStatus = String(enrollment.paymentStatus || "").toLowerCase();
   const paidLike = ["paid", "done", "completed", "approved", "success"].includes(paymentStatus);
-  const accessStatus = String(enrollment.enrollmentStatus ?? enrollment.accessStatus ?? enrollment.status ?? (enrollment.isActive === true || paidLike ? "active" : "")).toLowerCase();
-  const blockedStatuses = ["cancelled", "canceled", "refunded", "expired", "failed", "revoked", "deleted"];
+  const meta = enrollment as EnrollmentRecord & { active?: boolean; enabled?: boolean; accessGranted?: boolean };
+  const activeFlag = enrollment.isActive === true || meta.active === true || meta.enabled === true || meta.accessGranted === true;
+  const accessStatus = String(enrollment.enrollmentStatus ?? enrollment.accessStatus ?? enrollment.status ?? (activeFlag || paidLike ? "active" : "")).toLowerCase();
+  const blockedStatuses = ["cancelled", "canceled", "refunded", "expired", "failed", "awaiting_deposit", "revoked", "deleted"];
   if (blockedStatuses.includes(paymentStatus) || blockedStatuses.includes(accessStatus)) return false;
-  if (enrollment.isActive === false || accessStatus === "inactive" || accessStatus === "disabled") return false;
+  if (enrollment.isActive === false || meta.active === false || meta.enabled === false || accessStatus === "inactive" || accessStatus === "disabled") return false;
   if (!accessStatus) return false;
-  if (!["active", "paid", "done", "completed", "approved", "success"].includes(accessStatus)) return false;
+  if (!["active", "paid", "done", "completed", "approved", "success", "enrolled", "granted", "valid", "available"].includes(accessStatus)) return false;
   const startsAt = toMillis(enrollment.startsAt ?? enrollment.accessStartsAt ?? enrollment.purchasedAt);
   if (startsAt !== null && startsAt > Date.now()) return false;
   const expiresAt = toMillis(enrollment.expiresAt ?? enrollment.accessEndsAt);
   return expiresAt === null || expiresAt >= Date.now();
 }
 
-export async function getUserEnrollment(userId: string, courseIdOrCategory: string) {
-  const courseId = resolveCourseId(courseIdOrCategory);
-  const { db } = getFirebaseServices();
-  let fallback: EnrollmentRecord | null = null;
-
-  const choose = (rows: EnrollmentRecord[]) => {
-    const active = rows.find(isEnrollmentActive);
-    if (active) return active;
-    if (!fallback && rows.length > 0) fallback = rows[0];
-    return null;
-  };
-
-  const nestedPath = `users/${userId}/enrollments/${courseId}`;
-  try {
-    const nested = await getDoc(doc(db, "users", userId, "enrollments", courseId));
-    if (nested.exists()) {
-      const active = choose([nested.data() as EnrollmentRecord]);
-      if (active) return active;
-    }
-  } catch (error) {
-    logFirestoreFailure("getDoc", nestedPath, error);
-  }
-
-  const rootByIdPath = `enrollments/${userId}_${courseId}`;
-  try {
-    const rootById = await getDoc(doc(db, "enrollments", userId + "_" + courseId));
-    if (rootById.exists()) {
-      const active = choose([rootById.data() as EnrollmentRecord]);
-      if (active) return active;
-    }
-  } catch (error) {
-    logFirestoreFailure("getDoc", rootByIdPath, error);
-  }
-
-  try {
-    const rootQuery = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId), where("userId", "==", userId)));
-    const active = choose(rootQuery.docs.map((snapshot) => snapshot.data() as EnrollmentRecord));
-    if (active) return active;
-  } catch (error) {
-    logFirestoreFailure("getDocs", "enrollments?courseId=<courseId>&userId=<uid>", error);
-  }
-
-  try {
-    const legacyQuery = await getDocs(query(collection(db, "enrollments"), where("courseId", "==", courseId), where("uid", "==", userId)));
-    const active = choose(legacyQuery.docs.map((snapshot) => snapshot.data() as EnrollmentRecord));
-    if (active) return active;
-  } catch (error) {
-    logFirestoreFailure("getDocs", "enrollments?courseId=<courseId>&uid=<uid>", error);
-  }
-
-  return fallback;
-}
-
-export async function getUserEnrollments(userId: string) {
-  const { db } = getFirebaseServices();
-  const byCourse = new Map<string, EnrollmentRecord>();
-  let failedReads = 0;
-
-  const addEnrollment = (row: EnrollmentRecord | null | undefined) => {
-    if (!row?.courseId) return;
-    const key = row.productId === "drug-addiction-basic" || row.productId === "drug-addiction-premium"
-      ? row.courseId + ":" + row.productId
-      : row.courseId;
-    const existing = byCourse.get(key);
-    if (!existing || isEnrollmentActive(row) || !isEnrollmentActive(existing)) {
-      byCourse.set(key, row);
-    }
-  };
-
-  try {
-    const nested = await getDocs(collection(db, "users", userId, "enrollments"));
-    nested.docs.forEach((snapshot) => addEnrollment(snapshot.data() as EnrollmentRecord));
-  } catch (error) {
-    failedReads += 1;
-    logFirestoreFailure("getDocs", "users/" + userId + "/enrollments", error);
-  }
-
-  const operatingCoursePath = "enrollments/" + userId + "_" + OPERATING_COURSE_ID;
-  try {
-    const rootById = await getDoc(doc(db, "enrollments", userId + "_" + OPERATING_COURSE_ID));
-    if (rootById.exists()) addEnrollment(rootById.data() as EnrollmentRecord);
-  } catch (error) {
-    failedReads += 1;
-    logFirestoreFailure("getDoc", operatingCoursePath, error);
-  }
-
-  try {
-    const root = await getDocs(query(collection(db, "enrollments"), where("userId", "==", userId)));
-    root.docs.forEach((snapshot) => addEnrollment(snapshot.data() as EnrollmentRecord));
-  } catch (error) {
-    failedReads += 1;
-    logFirestoreFailure("getDocs", "enrollments?userId=<uid>", error);
-  }
-
-  try {
-    const legacy = await getDocs(query(collection(db, "enrollments"), where("uid", "==", userId)));
-    legacy.docs.forEach((snapshot) => addEnrollment(snapshot.data() as EnrollmentRecord));
-  } catch (error) {
-    failedReads += 1;
-    logFirestoreFailure("getDocs", "enrollments?uid=<uid>", error);
-  }
-
-  if (byCourse.size === 0 && failedReads > 0) {
-    throw new Error("수강권 조회 중 Firestore 요청이 실패했습니다.");
-  }
-
-  return Array.from(byCourse.values());
-}
-
 function logDashboardEnrollmentEvent(event: string, details: Record<string, unknown> = {}) {
   console.info("[enrollments:frontend]", { event, ...details });
-}
-
-function getEnrollmentMergeKey(row: EnrollmentRecord) {
-  const meta = row as EnrollmentRecord & { planId?: string; enrollmentId?: string; id?: string };
-  return [row.courseId || "", row.canonicalCourseId || "", row.productId || "", meta.planId || "", meta.enrollmentId || meta.id || ""].join(":");
-}
-
-function mergeEnrollmentRecords(primary: EnrollmentRecord[], fallback: EnrollmentRecord[]) {
-  const merged = new Map<string, EnrollmentRecord>();
-  [...fallback, ...primary].forEach((row) => {
-    const key = getEnrollmentMergeKey(row);
-    const existing = merged.get(key);
-    if (!existing || isEnrollmentActive(row) || !isEnrollmentActive(existing)) merged.set(key, row);
-  });
-  return Array.from(merged.values());
-}
-
-async function getFirestoreEnrollmentFallback(userId: string, maskedUid: string, courseId: string) {
-  try {
-    const rows = await getUserEnrollments(userId);
-    logDashboardEnrollmentEvent("enrollments_firestore_fallback", { uid: maskedUid, courseId, count: rows.length });
-    return rows;
-  } catch (error) {
-    logDashboardEnrollmentEvent("enrollments_firestore_fallback_failed", { uid: maskedUid, courseId, message: error instanceof Error ? error.message : String(error) });
-    return [];
-  }
 }
 
 type EnrollmentsApiFailureKind = "auth" | "forbidden" | "not_found" | "server" | "network" | "config" | "invalid_response";
@@ -325,26 +207,117 @@ function getEnrollmentsApiError(status: number, code?: string) {
   return new EnrollmentsApiError("수강권 조회 요청을 처리하지 못했습니다.", "server", status, code);
 }
 
-export async function getVerifiedUserEnrollments(user: User, courseIdOrCategory: string | null = defaultCourse.id) {
+const enrollmentLookupCache = new Map<string, { expiresAt: number; rows: EnrollmentRecord[] }>();
+const enrollmentCacheHitTtlMs = 60_000;
+const enrollmentCacheMissTtlMs = 30_000;
+
+function getEnrollmentCacheKey(userId: string, courseId: string, lookup?: string) {
+  return [userId, courseId, lookup || "default"].join(":");
+}
+
+function getSessionEnrollmentCacheKey(cacheKey: string) {
+  return "resetedu:enrollments:v3:" + cacheKey;
+}
+
+function getCachedEnrollments(cacheKey: string) {
+  const cached = enrollmentLookupCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) return cached.rows;
+  enrollmentLookupCache.delete(cacheKey);
+
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(getSessionEnrollmentCacheKey(cacheKey));
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { expiresAt?: number; rows?: EnrollmentRecord[] };
+    if (!parsed.expiresAt || parsed.expiresAt <= Date.now() || !Array.isArray(parsed.rows) || parsed.rows.length === 0) {
+      window.sessionStorage.removeItem(getSessionEnrollmentCacheKey(cacheKey));
+      return null;
+    }
+    enrollmentLookupCache.set(cacheKey, { expiresAt: parsed.expiresAt, rows: parsed.rows });
+    return parsed.rows;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedEnrollments(cacheKey: string, rows: EnrollmentRecord[]) {
+  if (rows.length === 0) {
+    enrollmentLookupCache.delete(cacheKey);
+    if (typeof window !== "undefined") {
+      try {
+        window.sessionStorage.removeItem(getSessionEnrollmentCacheKey(cacheKey));
+      } catch {
+        // Session cache is a read-reduction optimization only.
+      }
+    }
+    return;
+  }
+
+  const entry = {
+    rows,
+    expiresAt: Date.now() + enrollmentCacheHitTtlMs,
+  };
+  enrollmentLookupCache.set(cacheKey, entry);
+  if (typeof window !== "undefined") {
+    try {
+      window.sessionStorage.setItem(getSessionEnrollmentCacheKey(cacheKey), JSON.stringify(entry));
+    } catch {
+      // Session cache is a read-reduction optimization only.
+    }
+  }
+}
+
+export function invalidateEnrollmentLookupCache(userId?: string) {
+  const prefix = userId ? userId + ":" : "";
+  for (const key of Array.from(enrollmentLookupCache.keys())) {
+    if (!prefix || key.startsWith(prefix)) enrollmentLookupCache.delete(key);
+  }
+  if (typeof window === "undefined") return;
+  try {
+    for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+      const key = window.sessionStorage.key(index);
+      if (!key || !key.startsWith("resetedu:enrollments:v3:")) continue;
+      if (!prefix || key.startsWith("resetedu:enrollments:v3:" + prefix)) window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Ignore cache eviction failures.
+  }
+}
+
+export async function getVerifiedUserEnrollments(user: User, courseIdOrCategory: string | null = defaultCourse.id, options: { lookup?: "direct" | "entitlement" } = {}) {
   const requestAllCourses = courseIdOrCategory === null;
   const courseId = requestAllCourses ? "all" : resolveCourseId(courseIdOrCategory);
   const maskedUid = maskFirestoreSegment(user.uid);
   const apiBaseUrl = process.env.NEXT_PUBLIC_AUTH_API_BASE_URL?.replace(/\/$/, "");
-  const allowFirestoreFallback = process.env.NODE_ENV !== "production";
+  const cacheKey = getEnrollmentCacheKey(user.uid, courseId, options.lookup);
+  const cachedRows = getCachedEnrollments(cacheKey);
+  if (cachedRows) {
+    logDashboardEnrollmentEvent("enrollments_cache_hit", { uid: maskedUid, courseId, count: cachedRows.length });
+    return cachedRows;
+  }
+  if (!requestAllCourses) {
+    const cachedAllRows = getCachedEnrollments(getEnrollmentCacheKey(user.uid, "all", options.lookup));
+    if (cachedAllRows) {
+      const filteredRows = cachedAllRows.filter((row) => resolveCourseId(row.courseId) === courseId || resolveCourseId(row.canonicalCourseId || "") === courseId || row.productId === courseId);
+      setCachedEnrollments(cacheKey, filteredRows);
+      logDashboardEnrollmentEvent("enrollments_cache_hit_all_filtered", { uid: maskedUid, courseId, count: filteredRows.length });
+      return filteredRows;
+    }
+  }
 
   logDashboardEnrollmentEvent("auth_user_ready", { uid: maskedUid, courseId });
 
   if (!apiBaseUrl) {
     const error = new EnrollmentsApiError("수강권 조회 API URL 설정이 없습니다.", "config");
     logDashboardEnrollmentEvent("enrollments_api_failed", { uid: maskedUid, courseId, kind: error.kind, code: "API_URL_MISSING" });
-    if (!allowFirestoreFallback) throw error;
+    throw error;
   } else {
     const apiUrl = requestAllCourses
       ? apiBaseUrl + "/api/enrollments/me?scope=all"
-      : apiBaseUrl + "/api/enrollments/me?courseId=" + encodeURIComponent(courseId);
+      : apiBaseUrl + "/api/enrollments/me?courseId=" + encodeURIComponent(courseId) + (options.lookup === "direct" ? "&lookup=direct" : "");
     try {
-      const token = await user.getIdToken(true);
-      logDashboardEnrollmentEvent("id_token_acquired", { uid: maskedUid, courseId, forcedRefresh: true });
+      const token = await user.getIdToken();
+      logDashboardEnrollmentEvent("id_token_acquired", { uid: maskedUid, courseId, forcedRefresh: false });
       logDashboardEnrollmentEvent("enrollments_api_request_started", { uid: maskedUid, courseId, method: "GET", url: apiUrl });
 
       let response: Response;
@@ -375,15 +348,25 @@ export async function getVerifiedUserEnrollments(user: User, courseIdOrCategory:
       const count = Array.isArray(payload.enrollments) ? payload.enrollments.length : undefined;
       logDashboardEnrollmentEvent("enrollments_api_response", { uid: maskedUid, courseId, status: response.status, ok: response.ok, code: responseCode, count });
 
-      if (!response.ok) throw getEnrollmentsApiError(response.status, responseCode);
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new EnrollmentsApiError("현재 이용정보 확인 요청이 많아 수강권 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.", "server", response.status, responseCode || "RESOURCE_EXHAUSTED");
+        }
+        throw getEnrollmentsApiError(response.status, responseCode);
+      }
       if (!Array.isArray(payload.enrollments)) {
         throw new EnrollmentsApiError("수강권 조회 API 응답에 enrollments 배열이 없습니다.", "invalid_response", response.status, "INVALID_PAYLOAD");
       }
       const apiRows = payload.enrollments as EnrollmentRecord[];
-      const firestoreRows = await getFirestoreEnrollmentFallback(user.uid, maskedUid, courseId);
-      const mergedRows = mergeEnrollmentRecords(apiRows, firestoreRows);
-      const resultRows = requestAllCourses ? mergedRows : mergedRows.filter((row) => resolveCourseId(row.courseId) === courseId || resolveCourseId(row.canonicalCourseId || "") === courseId || row.productId === courseId);
-      logDashboardEnrollmentEvent("enrollments_merged_response", { uid: maskedUid, courseId, apiCount: apiRows.length, firestoreCount: firestoreRows.length, count: resultRows.length });
+      const resultRows = requestAllCourses ? apiRows : apiRows.filter((row) => resolveCourseId(row.courseId) === courseId || resolveCourseId(row.canonicalCourseId || "") === courseId || row.productId === courseId);
+      setCachedEnrollments(cacheKey, resultRows);
+      if (requestAllCourses) {
+        resultRows.forEach((row) => {
+          const rowCourseId = resolveCourseId(row.courseId || row.canonicalCourseId || "");
+          if (rowCourseId) setCachedEnrollments(getEnrollmentCacheKey(user.uid, rowCourseId, options.lookup), [row]);
+        });
+      }
+      logDashboardEnrollmentEvent("enrollments_api_direct_response", { uid: maskedUid, courseId, apiCount: apiRows.length, count: resultRows.length, access: payload.access === true, code: responseCode });
       return resultRows;
     } catch (cause) {
       const error = cause instanceof EnrollmentsApiError
@@ -401,22 +384,11 @@ export async function getVerifiedUserEnrollments(user: User, courseIdOrCategory:
         status: error.status,
         code: error.code,
       });
-      if (!allowFirestoreFallback) throw error;
+      throw error;
     }
   }
 
-  // Compatibility path for cases where the Worker lookup misses an existing owner-readable enrollment.
-  const rows = await getFirestoreEnrollmentFallback(user.uid, maskedUid, courseId);
-  if (rows.length === 0 && !allowFirestoreFallback) throw new EnrollmentsApiError("수강권 조회 서버 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.", "server");
-  if (requestAllCourses) {
-    const activeRows = rows.filter(isEnrollmentActive);
-    logDashboardEnrollmentEvent("enrollments_fallback_response", { uid: maskedUid, courseId, count: activeRows.length });
-    return activeRows;
-  }
-  const operatingEnrollment = rows.find((row) => row.courseId === courseId) ?? await getUserEnrollment(user.uid, courseId);
-  const merged = operatingEnrollment && !rows.some((row) => row.courseId === courseId) ? [...rows, operatingEnrollment] : rows;
-  logDashboardEnrollmentEvent("enrollments_fallback_response", { uid: maskedUid, courseId, count: merged.length });
-  return merged;
+  throw new EnrollmentsApiError("수강권 조회 API URL 설정이 없습니다.", "config");
 }
 
 

@@ -1,6 +1,6 @@
 import { FirebaseApp, getApps, initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { Firestore, getFirestore, initializeFirestore } from "firebase/firestore";
+import { Firestore, connectFirestoreEmulator, getFirestore, initializeFirestore } from "firebase/firestore";
 import { getFunctions } from "firebase/functions";
 import { getStorage } from "firebase/storage";
 
@@ -18,6 +18,9 @@ let firestoreInstance: Firestore | null = null;
 
 const productionFirebaseProjectId = "jaeseung-try-2-34973152-e44aa";
 const runtimeEnvironment = process.env.NEXT_PUBLIC_APP_ENV || process.env.NODE_ENV || "production";
+const useFirebaseEmulator = process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === "true";
+const allowProductionFirebaseInDev = process.env.NEXT_PUBLIC_ALLOW_PROD_FIREBASE_IN_DEV === "true";
+let firestoreEmulatorConnected = false;
 
 function getFirebaseConfig() {
   return {
@@ -46,6 +49,9 @@ function assertFirebaseConfig() {
   if (runtimeEnvironment === "production" && config.projectId !== expectedProjectId) {
     throw new Error(`Firebase production project mismatch: expected ${expectedProjectId}, got ${config.projectId}`);
   }
+  if (runtimeEnvironment !== "production" && config.projectId === productionFirebaseProjectId && !useFirebaseEmulator && !allowProductionFirebaseInDev) {
+    throw new Error("Local development is pointing at the production Firebase project. Set NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true, use a dev Firebase project, or explicitly set NEXT_PUBLIC_ALLOW_PROD_FIREBASE_IN_DEV=true.");
+  }
 
   return config;
 }
@@ -70,6 +76,13 @@ function getFirestoreInstance(app: FirebaseApp) {
     });
   } catch {
     firestoreInstance = getFirestore(app);
+  }
+
+  if (useFirebaseEmulator && !firestoreEmulatorConnected) {
+    const host = process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_HOST || "127.0.0.1";
+    const port = Number(process.env.NEXT_PUBLIC_FIRESTORE_EMULATOR_PORT || 8080);
+    connectFirestoreEmulator(firestoreInstance, host, port);
+    firestoreEmulatorConnected = true;
   }
 
   return firestoreInstance;

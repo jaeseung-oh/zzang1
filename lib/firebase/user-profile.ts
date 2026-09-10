@@ -1,5 +1,6 @@
 import { doc, getDoc, increment, serverTimestamp, setDoc } from "firebase/firestore";
 import { getFirebaseServices } from "@/lib/firebase/client";
+import { getUserBirthDate, getUserDisplayName } from "@/lib/user-identity";
 
 export type CertificateIdentity = {
   realName?: string;
@@ -10,6 +11,9 @@ export type CertificateIdentity = {
 };
 
 export type StoredUserProfile = {
+  uid?: string;
+  userId?: string;
+  loginId?: string | null;
   fullName: string;
   realName?: string;
   dateOfBirth?: string;
@@ -21,6 +25,7 @@ export type StoredUserProfile = {
   verificationEmailSendCount?: number;
   verificationEmailLastError?: string | null;
   phoneNumber: string | null;
+  phone?: string | null;
   provider: string;
   providerLabel: string;
   nickname: string | null;
@@ -29,6 +34,8 @@ export type StoredUserProfile = {
   sensitiveInfoAccepted?: boolean;
   certificateIdentity?: CertificateIdentity;
   createdAt?: unknown;
+  joinedAt?: unknown;
+  crmJoinedAt?: unknown;
   updatedAt?: unknown;
 };
 
@@ -53,6 +60,24 @@ export type EnsureCertificateIdentityLockInput = {
   purchaseId?: string | null;
   lockSource?: "payment" | "completion" | "admin";
 };
+
+function normalizePhoneNumber(value?: string | null) {
+  const raw = String(value || "").trim();
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("010")) return digits.slice(0, 3) + "-" + digits.slice(3, 7) + "-" + digits.slice(7);
+  if (digits.length === 10 && digits.startsWith("02")) return digits.slice(0, 2) + "-" + digits.slice(2, 6) + "-" + digits.slice(6);
+  if (digits.length === 10) return digits.slice(0, 3) + "-" + digits.slice(3, 6) + "-" + digits.slice(6);
+  return raw || null;
+}
+
+function normalizeDateOfBirth(value?: string | null) {
+  const raw = String(value || "").trim();
+  const digits = raw.replace(/\D/g, "");
+  if (/^\d{8}$/.test(digits)) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  }
+  return raw;
+}
 
 function assertValidDateOfBirth(value?: string | null) {
   if (!value) {
@@ -104,8 +129,8 @@ export function getCertificateIdentity(profile: StoredUserProfile | null) {
   }
 
   return {
-    realName: profile?.realName?.trim() || profile?.fullName?.trim() || "",
-    dateOfBirth: profile?.dateOfBirth?.trim() || profile?.birthDate?.trim() || "",
+    realName: getUserDisplayName(profile),
+    dateOfBirth: getUserBirthDate(profile),
     lockedAt: null,
     lockSource: null,
     purchaseId: null,
@@ -180,18 +205,25 @@ export async function upsertUserProfile(input: UpsertUserProfileInput) {
     throw new Error("실명을 입력해 주세요.");
   }
 
-  assertValidDateOfBirth(input.dateOfBirth ?? null);
+  const normalizedDateOfBirth = normalizeDateOfBirth(input.dateOfBirth);
+  const normalizedPhoneNumber = normalizePhoneNumber(input.phoneNumber);
+  assertValidDateOfBirth(normalizedDateOfBirth);
 
   const { db } = getFirebaseServices();
   const userRef = doc(db, "users", input.uid);
   const existingSnapshot = await getDoc(userRef);
+  const normalizedEmail = input.email?.trim().toLowerCase() || null;
   const payload: Record<string, unknown> = {
+    uid: input.uid,
+    userId: input.uid,
+    loginId: normalizedEmail,
     fullName: realName,
     realName,
-    dateOfBirth: input.dateOfBirth,
-    birthDate: input.dateOfBirth,
-    email: input.email ?? null,
-    phoneNumber: input.phoneNumber ?? null,
+    dateOfBirth: normalizedDateOfBirth,
+    birthDate: normalizedDateOfBirth,
+    email: normalizedEmail,
+    phoneNumber: normalizedPhoneNumber,
+    phone: normalizedPhoneNumber,
     provider: input.provider ?? "password",
     providerLabel: input.providerLabel ?? "이메일 회원",
     nickname: input.nickname ?? null,
@@ -210,7 +242,28 @@ export async function upsertUserProfile(input: UpsertUserProfileInput) {
 
   if (!existingSnapshot.exists()) {
     payload.createdAt = serverTimestamp();
+    payload.joinedAt = serverTimestamp();
+    payload.crmJoinedAt = serverTimestamp();
+    payload.lastLoginAt = serverTimestamp();
   }
+
+  await setDoc(userRef, payload, { merge: true });
+}
+
+export async function recordUserLoginSummary(uid: string) {
+  const { db } = getFirebaseServices();
+  const userRef = doc(db, "users", uid);
+  const existingSnapshot = await getDoc(userRef);
+  if (!existingSnapshot.exists()) {
+    return;
+  }
+
+  const payload: Record<string, unknown> = {
+    uid,
+    userId: uid,
+    lastLoginAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+  };
 
   await setDoc(userRef, payload, { merge: true });
 }

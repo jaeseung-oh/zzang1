@@ -19,6 +19,7 @@ import {
 import { getFirebaseServices } from "@/lib/firebase/client";
 import {
   getCertificateIdentity,
+  recordUserLoginSummary,
   getUserProfile,
   upsertUserProfile,
   type StoredUserProfile,
@@ -26,22 +27,20 @@ import {
 import { trackEvent } from "@/lib/analytics/ga";
 
 type AuthMode = "signup" | "login";
-
-
 const modeCopy = {
   signup: {
     eyebrow: "Member Registration",
-    title: "수강 시작 전, 수료증 발급 정보를 정확히 등록해 주세요",
+    title: "수강 시작 전, 출력문서에 들어갈 정보를 정확히 등록해 주세요",
     intro:
-      "실명과 생년월일은 수료증 발급 기준 정보로 사용됩니다. 가입 후 바로 로그인하여 강의실과 발급 기능을 이용할 수 있습니다.",
+      "실명과 생년월일은 수료증과 제공 자료 등 출력문서에 들어가는 정보입니다. 가입 후 결제와 발급 과정에서는 이 정보가 그대로 사용됩니다.",
     benefits: [
-      "등록 정보는 수료증 발급 기준으로 연결됩니다.",
+      "등록 정보는 출력문서에 그대로 사용됩니다.",
       "회원가입 후 바로 강의실 이용이 가능합니다.",
-      "결제 이후에는 발급 기준 정보가 잠길 수 있습니다.",
+      "이름과 생년월일은 정확하게 입력해 주세요.",
     ],
     submitLabel: "회원가입",
     helperTitle: "등록 안내",
-    helperBody: "필수 정보만 정확히 입력하면 바로 강의 수강과 수료증 발급 흐름으로 이어집니다.",
+    helperBody: "출력문서에 들어갈 이름과 생년월일을 정확히 입력하면 결제와 발급 흐름으로 이어집니다.",
   },
   login: {
     eyebrow: "Member Login",
@@ -51,7 +50,7 @@ const modeCopy = {
     benefits: [
       "로그인 후 즉시 수강을 시작할 수 있습니다.",
       "저장된 정보로 수료증 발급 흐름이 연결됩니다.",
-      "결제 이후에는 발급 기준 정보가 잠길 수 있습니다.",
+      "이름과 생년월일은 정확하게 입력해 주세요.",
     ],
     submitLabel: "로그인",
     helperTitle: "이용 안내",
@@ -60,16 +59,18 @@ const modeCopy = {
 } as const;
 
 const trustIndicators = [
-  { value: "5강", label: "현재 운영 강의" },
-  { value: "ONLINE", label: "온라인 수강" },
-  { value: "PC·모바일", label: "접속 환경" },
+  { value: "교육 선택", label: "사건 유형별 과정" },
+  { value: "49,000원~", label: "기본 수료·심화이수과정" },
+  { value: "즉시 수강", label: "결제 후 강의실" },
 ];
 
 const trustHighlights = [
-  "PC와 모바일에서 수강할 수 있는 온라인 환경",
-  "이수 확인 후 발급 화면 안내 제공",
-  "수강 정보와 회원 정보를 분리 저장하도록 설계",
+  "사건 유형에 맞는 교육을 선택합니다.",
+  "기본 수료과정 또는 심화이수과정을 결제합니다.",
+  "수강 후 수료증과 제공자료를 확인합니다.",
 ];
+
+const mainPath = "/";
 
 function ShieldIcon() {
   return (
@@ -108,6 +109,36 @@ function CheckIcon() {
   );
 }
 
+function isValidEmailAddress(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
+
+function normalizePhoneNumberInput(value: string) {
+  const raw = value.trim();
+  const digits = raw.replace(/\D/g, "");
+  if (digits.length === 11 && digits.startsWith("010")) return digits.slice(0, 3) + "-" + digits.slice(3, 7) + "-" + digits.slice(7);
+  if (digits.length === 10 && digits.startsWith("02")) return digits.slice(0, 2) + "-" + digits.slice(2, 6) + "-" + digits.slice(6);
+  if (digits.length === 10) return digits.slice(0, 3) + "-" + digits.slice(3, 6) + "-" + digits.slice(6);
+  return raw;
+}
+
+function normalizeDateOfBirthInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+  if (/^\d{8}$/.test(digits)) {
+    return `${digits.slice(0, 4)}-${digits.slice(4, 6)}-${digits.slice(6, 8)}`;
+  }
+  return value.trim();
+}
+
+function isValidPhoneNumberInput(value: string) {
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 9 && digits.length <= 11;
+}
+
+function hasStoredIdentityFields(profile: StoredUserProfile | null) {
+  return Boolean(profile?.dateOfBirth || profile?.birthDate) && Boolean(profile?.phoneNumber || profile?.phone);
+}
+
 function isValidDateOfBirth(value: string) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     return false;
@@ -144,6 +175,29 @@ function isValidDateOfBirth(value: string) {
 
 function getProfileName(profile: StoredUserProfile | null, user: User | null) {
   return profile?.realName?.trim() || profile?.fullName?.trim() || user?.displayName?.trim() || "회원";
+}
+
+function buildLocalStoredProfile(user: User, values: { name: string; birthDate: string; phone: string; provider: string; providerLabel: string }): StoredUserProfile {
+  const name = values.name.trim();
+  const birthDate = normalizeDateOfBirthInput(values.birthDate);
+  const phone = normalizePhoneNumberInput(values.phone);
+
+  return {
+    uid: user.uid,
+    userId: user.uid,
+    loginId: user.email ?? null,
+    fullName: name,
+    realName: name,
+    dateOfBirth: birthDate,
+    birthDate,
+    email: user.email ?? null,
+    isEmailVerified: user.emailVerified,
+    phoneNumber: phone || null,
+    phone: phone || null,
+    provider: values.provider,
+    providerLabel: values.providerLabel,
+    nickname: null,
+  };
 }
 
 function formatDateOfBirthInput(value: string) {
@@ -218,10 +272,36 @@ function isAuthError(error: unknown, expectedCode: string) {
   return getAuthErrorCode(error) === expectedCode;
 }
 
+
+async function recordSupabaseLedgerMemberEvent(user: User, eventType: "member_joined" | "member_login" | "profile_updated" | "admin_modified", profile?: { name?: string | null; birthDate?: string | null; phone?: string | null; provider?: string | null }) {
+  const baseUrl = process.env.NEXT_PUBLIC_PAYMENT_CONFIRM_URL?.replace(/\/api\/payments\/confirm$/, "") || process.env.NEXT_PUBLIC_AUTH_API_BASE_URL || "";
+  if (!baseUrl) throw new Error("회원정보 저장 API URL이 설정되지 않았습니다.");
+  const idToken = await user.getIdToken();
+  const response = await fetch(baseUrl + "/api/ledger/member-event", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + idToken, "Content-Type": "application/json" },
+    body: JSON.stringify({ eventType, loginId: user.email || null, birthDate: profile?.birthDate || null, name: profile?.name || user.displayName || null, phone: profile?.phone || null, provider: profile?.provider || user.providerData[0]?.providerId || null }),
+    cache: "no-store",
+  });
+  if (!response.ok) {
+    const payload = await response.text().catch(() => "");
+    console.error("[supabase-ledger:member-event:http-failed]", response.status, payload.slice(0, 300));
+    throw new Error("회원정보 서버 저장에 실패했습니다.");
+  }
+}
+
+async function getPostLoginPath(user: User, nextPath: string | null) {
+  void user;
+  void nextPath;
+  return mainPath;
+}
+
 export default function AuthPage({ mode, nextPath: nextPathProp = null, notice = null }: { mode: AuthMode; nextPath?: string | null; notice?: string | null }) {
   const router = useRouter();
   const copy = modeCopy[mode];
   const nextPath = resolveNextPath(nextPathProp);
+  const loginHref = nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login";
+  const signupHref = nextPath ? `/signup?next=${encodeURIComponent(nextPath)}` : "/signup";
   const [authUser, setAuthUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<StoredUserProfile | null>(null);
   const [email, setEmail] = useState("");
@@ -286,7 +366,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
           setEmail(user.email ?? storedProfile?.email ?? "");
           setRealName(storedProfile?.realName ?? storedProfile?.fullName ?? user.displayName ?? "");
           setDateOfBirth(storedProfile?.dateOfBirth ?? storedProfile?.birthDate ?? "");
-          setPhoneNumber(storedProfile?.phoneNumber ?? user.phoneNumber ?? "");
+          setPhoneNumber(storedProfile?.phoneNumber ?? storedProfile?.phone ?? user.phoneNumber ?? "");
           const certificateIdentity = getCertificateIdentity(storedProfile);
           setMessage(
             certificateIdentity.isLocked
@@ -319,7 +399,18 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
       return;
     }
 
-    router.replace(nextPath);
+    let cancelled = false;
+
+    void (async () => {
+      const postLoginPath = await getPostLoginPath(authUser, nextPath);
+      if (!cancelled) {
+        router.replace(postLoginPath);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [authUser, mode, nextPath, router]);
 
 
@@ -341,40 +432,70 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
           throw new Error("비밀번호 확인이 일치하지 않습니다.");
         }
         if (!realName.trim()) {
-          throw new Error("수료증 발급을 위해 실명을 입력해 주세요.");
+          throw new Error("출력문서에 들어갈 실명을 입력해 주세요.");
         }
-        if (!isValidDateOfBirth(dateOfBirth)) {
-          throw new Error("생년월일을 YYYY-MM-DD 형식으로 정확히 입력해 주세요.");
+        const normalizedDateOfBirth = normalizeDateOfBirthInput(dateOfBirth);
+        const normalizedPhoneNumber = normalizePhoneNumberInput(phoneNumber);
+        if (!isValidDateOfBirth(normalizedDateOfBirth)) {
+          throw new Error("생년월일을 19900101 또는 1990-01-01 형식으로 정확히 입력해 주세요.");
         }
+        if (!isValidPhoneNumberInput(normalizedPhoneNumber)) {
+          throw new Error("연락처를 01000000000 또는 010-0000-0000 형식으로 정확히 입력해 주세요.");
+        }
+        setDateOfBirth(normalizedDateOfBirth);
+        setPhoneNumber(normalizedPhoneNumber);
         if (!isSignupConsentComplete) {
           throw new Error("필수 약관과 개인정보 수집·이용 동의에 모두 체크해 주세요.");
         }
 
+        if (!isValidEmailAddress(email)) {
+          throw new Error("올바른 이메일 주소를 입력해 주세요.");
+        }
+
         const { auth } = getFirebaseServices();
-        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
+        const credential = await createUserWithEmailAndPassword(auth, email.trim().toLowerCase(), password);
         await updateProfile(credential.user, { displayName: realName.trim() });
-        await upsertUserProfile({
+        const profileInput = {
           uid: credential.user.uid,
           fullName: realName,
           realName,
-          dateOfBirth,
+          dateOfBirth: normalizedDateOfBirth,
           email: credential.user.email,
           provider: "password",
           providerLabel: "이메일 회원가입",
           isEmailVerified: credential.user.emailVerified,
-          phoneNumber: phoneNumber.trim() || null,
+          phoneNumber: normalizedPhoneNumber,
           termsAccepted: true,
           privacyAccepted: true,
           sensitiveInfoAccepted: false,
+        };
+        const [firebaseProfileSave, serverProfileSave] = await Promise.allSettled([
+          upsertUserProfile(profileInput),
+          recordSupabaseLedgerMemberEvent(credential.user, "member_joined", { name: realName, birthDate: normalizedDateOfBirth, phone: normalizedPhoneNumber, provider: "password" }),
+        ]);
+        if (firebaseProfileSave.status === "rejected" && serverProfileSave.status === "rejected") {
+          console.error("[profile:signup-all-saves-failed]", firebaseProfileSave.reason, serverProfileSave.reason);
+          throw new Error("회원정보 저장에 실패했습니다. 생년월일과 연락처가 저장되지 않아 가입을 완료할 수 없습니다.");
+        }
+        if (firebaseProfileSave.status === "rejected") console.error("[profile:signup-client-save-failed]", firebaseProfileSave.reason);
+        if (serverProfileSave.status === "rejected") console.error("[profile:signup-server-save-failed]", serverProfileSave.reason);
+        const fallbackProfile = buildLocalStoredProfile(credential.user, { name: realName, birthDate: normalizedDateOfBirth, phone: normalizedPhoneNumber, provider: "password", providerLabel: "이메일 회원가입" });
+        const storedProfile = await getUserProfile(credential.user.uid).catch((profileLoadError) => {
+          console.error("[profile:load-after-save:failed]", profileLoadError);
+          return null;
         });
-        const storedProfile = await getUserProfile(credential.user.uid);
+        if (storedProfile && !hasStoredIdentityFields(storedProfile)) {
+          console.error("[profile:signup-identity-fields-missing-after-save]", { uid: credential.user.uid });
+          throw new Error("회원정보 저장 확인에 실패했습니다. 생년월일과 연락처를 다시 저장해 주세요.");
+        }
         trackEvent("sign_up", { method: "password" });
-        setProfile(storedProfile);
+        setProfile(storedProfile ?? fallbackProfile);
         setPassword("");
         setPasswordConfirm("");
         setTermsAccepted(false);
         setPrivacyAccepted(false);
-        setMessage("회원가입이 완료되었습니다. 바로 로그인 및 결제를 진행할 수 있습니다.");
+        setMessage("회원가입이 완료되었습니다. 메인 화면으로 이동합니다.");
+        router.replace(mainPath);
       } catch (submitError) {
         console.error(submitError);
         setError(getAuthErrorMessage(submitError));
@@ -393,11 +514,14 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
         const { auth } = getFirebaseServices();
         const credential = await signInWithEmailAndPassword(auth, email.trim(), password);
         const storedProfile = await getUserProfile(credential.user.uid);
+        await recordUserLoginSummary(credential.user.uid);
+        await recordSupabaseLedgerMemberEvent(credential.user, "member_login", { name: storedProfile?.realName || storedProfile?.fullName || credential.user.displayName || null, birthDate: storedProfile?.dateOfBirth || storedProfile?.birthDate || null, phone: storedProfile?.phoneNumber || storedProfile?.phone || null, provider: "password" });
         trackEvent("login", { method: "password" });
         setProfile(storedProfile);
-        setMessage("로그인되었습니다. 바로 강의실 이용이 가능합니다.");
+        setMessage("로그인되었습니다. 수강권 상태를 확인하는 중입니다.");
         setPassword("");
-        router.replace(nextPath ?? "/dashboard");
+        const postLoginPath = await getPostLoginPath(credential.user, nextPath);
+        router.replace(postLoginPath);
       } catch (submitError) {
         console.error(submitError);
         setError(getAuthErrorMessage(submitError));
@@ -417,25 +541,51 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
         if (!realName.trim()) {
           throw new Error("수료증 발급을 위해 반드시 실명을 입력해 주세요.");
         }
-        if (!isValidDateOfBirth(dateOfBirth)) {
-          throw new Error("생년월일을 YYYY-MM-DD 형식으로 입력해 주세요.");
+        const normalizedDateOfBirth = normalizeDateOfBirthInput(dateOfBirth);
+        const normalizedPhoneNumber = normalizePhoneNumberInput(phoneNumber);
+        if (!isValidDateOfBirth(normalizedDateOfBirth)) {
+          throw new Error("생년월일을 19900101 또는 1990-01-01 형식으로 입력해 주세요.");
         }
+        if (!isValidPhoneNumberInput(normalizedPhoneNumber)) {
+          throw new Error("연락처를 01000000000 또는 010-0000-0000 형식으로 정확히 입력해 주세요.");
+        }
+        setDateOfBirth(normalizedDateOfBirth);
+        setPhoneNumber(normalizedPhoneNumber);
 
-        await upsertUserProfile({
+        const profileInput = {
           uid: authUser.uid,
           fullName: realName,
           realName,
-          dateOfBirth,
+          dateOfBirth: normalizedDateOfBirth,
           email: authUser.email,
           provider: authUser.providerData[0]?.providerId ?? "password",
           providerLabel: "이메일 회원",
           isEmailVerified: authUser.emailVerified,
-          phoneNumber: phoneNumber.trim() || null,
-        });
+          phoneNumber: normalizedPhoneNumber,
+        };
+        const [firebaseProfileSave, serverProfileSave] = await Promise.allSettled([
+          upsertUserProfile(profileInput),
+          recordSupabaseLedgerMemberEvent(authUser, "profile_updated", { name: realName, birthDate: normalizedDateOfBirth, phone: normalizedPhoneNumber, provider: authUser.providerData[0]?.providerId ?? "password" }),
+        ]);
+        if (firebaseProfileSave.status === "rejected" && serverProfileSave.status === "rejected") {
+          console.error("[profile:update-all-saves-failed]", firebaseProfileSave.reason, serverProfileSave.reason);
+          throw new Error("회원정보 저장에 실패했습니다. 생년월일과 연락처가 저장되지 않았습니다.");
+        }
+        if (firebaseProfileSave.status === "rejected") console.error("[profile:update-client-save-failed]", firebaseProfileSave.reason);
+        if (serverProfileSave.status === "rejected") console.error("[profile:update-server-save-failed]", serverProfileSave.reason);
 
-        const storedProfile = await getUserProfile(authUser.uid);
-        setProfile(storedProfile);
-        const certificateIdentity = getCertificateIdentity(storedProfile);
+        const fallbackProfile = buildLocalStoredProfile(authUser, { name: realName, birthDate: normalizedDateOfBirth, phone: normalizedPhoneNumber, provider: authUser.providerData[0]?.providerId ?? "password", providerLabel: "이메일 회원" });
+        const storedProfile = await getUserProfile(authUser.uid).catch((profileLoadError) => {
+          console.error("[profile:load-after-save:failed]", profileLoadError);
+          return null;
+        });
+        if (storedProfile && !hasStoredIdentityFields(storedProfile)) {
+          console.error("[profile:update-identity-fields-missing-after-save]", { uid: authUser.uid });
+          throw new Error("회원정보 저장 확인에 실패했습니다. 생년월일과 연락처를 다시 저장해 주세요.");
+        }
+        const effectiveProfile = storedProfile ?? fallbackProfile;
+        setProfile(effectiveProfile);
+        const certificateIdentity = getCertificateIdentity(effectiveProfile);
         setMessage(
           certificateIdentity.isLocked
             ? "프로필 정보가 저장되었습니다. 수료증에는 기존 잠금 정보가 계속 사용됩니다."
@@ -568,17 +718,17 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
             </Link>
             <div className="hidden items-center gap-3 rounded-full border border-white/15 bg-white/6 px-4 py-2 text-xs text-white/72 lg:flex">
               <ShieldIcon />
-              <span>민간 교육 수강 시스템</span>
+              <span>교육 선택 후 결제</span>
             </div>
           </div>
 
           <div className="relative z-10 mt-12 lg:mt-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#d8b26b]">Online Course Access</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.34em] text-[#d8b26b]">온라인 재범방지교육</p>
             <h1 className="mt-5 max-w-[560px] break-keep text-3xl font-semibold leading-[1.12] tracking-[-0.03em] text-white sm:text-5xl sm:tracking-[-0.04em] xl:text-[3.75rem]">
-              자기 점검과 교육 이수 과정을 차분히 시작할 수 있는 리셋 재범방지교육센터
+              필요한 교육을 선택하고 바로 수강하세요
             </h1>
             <p className="mt-6 max-w-[560px] text-[15px] leading-8 text-slate-200 sm:text-base">
-              회원가입, 수강 진행, 이수 확인 자료 안내까지 한 흐름으로 확인할 수 있는 민간 온라인 교육 서비스입니다. 이용 환경과 발급 기준은 각 화면에서 순차적으로 안내됩니다.
+              회원가입 또는 로그인 후 사건 유형에 맞는 교육을 선택하고 기본 수료·심화이수과정을 결제하면 강의실과 제공자료를 이용할 수 있습니다.
             </p>
 
             <div className="mt-8 hidden gap-3 sm:grid sm:grid-cols-3">
@@ -595,22 +745,22 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8b26b]/18 text-[#f7d9a0]">
                   <StreamingIcon />
                 </div>
-                <p className="mt-4 text-sm font-semibold text-white">모바일 수강 지원</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">언제 어디서든 끊김 없이 접속할 수 있는 온라인 수강 환경</p>
+                <p className="mt-4 text-sm font-semibold text-white">사건 유형별 교육 선택</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">음주운전, 폭력, 성범죄, 마약, 도박 등 필요한 과정을 고릅니다.</p>
               </div>
               <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] p-5 backdrop-blur-sm">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8b26b]/18 text-[#f7d9a0]">
                   <CertificateIcon />
                 </div>
-                <p className="mt-4 text-sm font-semibold text-white">수료증 발급 흐름 안내</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">등록 정보 확인 후 발급 문서 화면까지 자연스럽게 연결되는 구조</p>
+                <p className="mt-4 text-sm font-semibold text-white">기본 수료·심화이수과정 결제</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">기본 수료 49,000원, 심화이수과정 99,000원 과정 중 필요한 구성을 선택합니다.</p>
               </div>
               <div className="rounded-[1.6rem] border border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.05))] p-5 backdrop-blur-sm">
                 <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#d8b26b]/18 text-[#f7d9a0]">
                   <ShieldIcon />
                 </div>
-                <p className="mt-4 text-sm font-semibold text-white">계정 정보 보안 관리</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">민감할 수 있는 수강 이력과 회원 정보를 분리 저장하고 보호</p>
+                <p className="mt-4 text-sm font-semibold text-white">수강 후 자료 확인</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">교육 이수 후 수료증과 재범방지 실천자료를 확인하고 출력합니다.</p>
               </div>
             </div>
 
@@ -627,8 +777,8 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
           </div>
 
           <div className="relative z-10 mt-10 rounded-[1.6rem] border border-white/12 bg-white/7 p-5 text-sm text-slate-200 backdrop-blur-sm lg:mt-12">
-            <p className="font-semibold text-white">이용 전 안내</p>
-            <p className="mt-2 leading-7 text-slate-300">{copy.helperBody}</p>
+            <p className="font-semibold text-white">결제 전 확인</p>
+            <p className="mt-2 leading-7 text-slate-300">입력한 실명과 생년월일은 출력문서에 그대로 사용됩니다. 정확히 입력한 뒤 필요한 교육과정을 선택해 주세요.</p>
           </div>
         </section>
 
@@ -661,10 +811,10 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
             {!authUser ? (
               <div className="mt-6 space-y-4">
                 <div className="grid grid-cols-2 rounded-full bg-[#eef3fa] p-1 text-sm font-semibold text-slate-600">
-                  <Link href="/login" className={`rounded-full px-4 py-2 text-center transition ${mode === "login" ? "bg-white text-slate-950 shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-950"}`}>
+                  <Link href={loginHref} className={`rounded-full px-4 py-2 text-center transition ${mode === "login" ? "bg-white text-slate-950 shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-950"}`}>
                     로그인
                   </Link>
-                  <Link href="/signup" className={`rounded-full px-4 py-2 text-center transition ${mode === "signup" ? "bg-white text-slate-950 shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-950"}`}>
+                  <Link href={signupHref} className={`rounded-full px-4 py-2 text-center transition ${mode === "signup" ? "bg-white text-slate-950 shadow-sm" : "text-slate-700 hover:bg-white hover:text-slate-950"}`}>
                     회원가입
                   </Link>
                 </div>
@@ -788,7 +938,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
 
                 <p className="text-center text-sm text-slate-500">
                   {mode === "login" ? "아직 회원이 아니신가요? " : "이미 회원이신가요? "}
-                  <Link href={mode === "login" ? "/signup" : "/login"} className="font-semibold text-indigo-700 hover:text-slate-950">
+                  <Link href={mode === "login" ? signupHref : loginHref} className="font-semibold text-indigo-700 hover:text-slate-950">
                     {mode === "login" ? "회원가입" : "로그인"}
                   </Link>
                 </p>
@@ -859,7 +1009,7 @@ export default function AuthPage({ mode, nextPath: nextPathProp = null, notice =
                 <div className="grid gap-3 text-sm text-slate-600 sm:grid-cols-2">
                   <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">저장된 실명: {profile?.realName || profile?.fullName || "아직 없음"}</div>
                   <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3">저장된 생년월일: {profile?.dateOfBirth || profile?.birthDate || "아직 없음"}</div>
-                  <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 sm:col-span-2">저장된 연락처: {profile?.phoneNumber || "아직 없음"}</div>
+                  <div className="rounded-2xl border border-slate-200 bg-[#f8fafc] px-4 py-3 sm:col-span-2">저장된 연락처: {profile?.phoneNumber || profile?.phone || "아직 없음"}</div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">
